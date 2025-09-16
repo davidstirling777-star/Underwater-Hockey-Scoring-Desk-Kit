@@ -236,7 +236,12 @@ class MultiTabApp:
             self.timer_running = False
             if self.timer_job:
                 self.master.after_cancel(self.timer_job)
+                self.timer_job = None
         else:
+            # Cancel any existing timer job before starting
+            if self.timer_job:
+                self.master.after_cancel(self.timer_job)
+                self.timer_job = None
             self.timer_running = True
             self.countdown_timer()
 
@@ -246,6 +251,9 @@ class MultiTabApp:
             return
         if self.timer_seconds > 0:
             self.timer_seconds -= 1
+            # Cancel any existing timer job before scheduling new one
+            if self.timer_job:
+                self.master.after_cancel(self.timer_job)
             self.timer_job = self.master.after(1000, self.countdown_timer)
         else:
             self.next_period()
@@ -257,6 +265,7 @@ class MultiTabApp:
         self.timer_running = False
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
+            self.timer_job = None
         if self.periods:
             self.timer_seconds = self.periods[0]["duration"]
             self.half_label.config(text=self.periods[0]["name"])
@@ -328,6 +337,7 @@ class MultiTabApp:
             self.timer_running = False
             if self.timer_job:
                 self.master.after_cancel(self.timer_job)
+                self.timer_job = None
             self.goto_between_game_break()
             return
 
@@ -341,6 +351,11 @@ class MultiTabApp:
             score_var.set(score_var.get() - 1)
 
     def handle_tiebreak_after_break(self):
+        # Cancel any existing timer job first
+        if self.timer_job:
+            self.master.after_cancel(self.timer_job)
+            self.timer_job = None
+            
         cur_setting = self.periods[self.current_period_index].get("setting_name", "")
         if cur_setting == "between_game_break":
             if self.overtime_periods:
@@ -349,6 +364,7 @@ class MultiTabApp:
                 self.timer_seconds = self.periods[0]["duration"]
                 self.half_label.config(text=self.periods[0]["name"])
                 self.update_half_label_background(self.periods[0]["name"])
+                self.timer_running = False  # Ensure state is correct before starting
                 self.start_pause_timer()
             elif self.sudden_death_periods:
                 self.periods = self.sudden_death_periods + self.periods[self.current_period_index+1:]
@@ -358,6 +374,7 @@ class MultiTabApp:
                 self.update_half_label_background(self.periods[0]["name"])
                 self.in_sudden_death = True
                 self.sudden_death_goal_scored = False
+                self.timer_running = False  # Ensure state is correct before starting
                 self.start_pause_timer()
             else:
                 self.setup_periods()
@@ -365,6 +382,7 @@ class MultiTabApp:
                 self.timer_seconds = self.periods[1]["duration"]
                 self.half_label.config(text=self.periods[1]["name"])
                 self.update_half_label_background(self.periods[1]["name"])
+                self.timer_running = False  # Ensure state is correct before starting
                 self.start_pause_timer()
         elif cur_setting in {"half_time_break", "overtime_game_break", "overtime_half_time_break"}:
             if self.overtime_periods and cur_setting != "overtime_half_time_break":
@@ -373,6 +391,7 @@ class MultiTabApp:
                 self.timer_seconds = self.periods[0]["duration"]
                 self.half_label.config(text=self.periods[0]["name"])
                 self.update_half_label_background(self.periods[0]["name"])
+                self.timer_running = False  # Ensure state is correct before starting
                 self.start_pause_timer()
             elif self.sudden_death_periods and cur_setting == "overtime_half_time_break":
                 self.periods = self.sudden_death_periods + self.periods[self.current_period_index+1:]
@@ -382,9 +401,15 @@ class MultiTabApp:
                 self.update_half_label_background(self.periods[0]["name"])
                 self.in_sudden_death = True
                 self.sudden_death_goal_scored = False
+                self.timer_running = False  # Ensure state is correct before starting
                 self.start_pause_timer()
 
     def goto_between_game_break(self):
+        # Cancel any existing timer job first
+        if self.timer_job:
+            self.master.after_cancel(self.timer_job)
+            self.timer_job = None
+            
         for i, period in enumerate(self.periods):
             if period.get("setting_name", "") == "between_game_break":
                 self.current_period_index = i
@@ -393,6 +418,7 @@ class MultiTabApp:
                 self.update_half_label_background(period["name"])
                 self.update_timer_display()
                 self.sudden_death_goal_scored = False
+                self.timer_running = False  # Ensure state is correct before starting
                 self.start_pause_timer()
                 return
         self.timer_seconds = 0
@@ -406,6 +432,11 @@ class MultiTabApp:
         self.timer_running = False
 
     def next_period(self):
+        # Cancel any existing timer job first
+        if self.timer_job:
+            self.master.after_cancel(self.timer_job)
+            self.timer_job = None
+        
         self.current_period_index += 1
         if self.current_period_index >= len(self.periods):
             if self.white_score_var.get() == self.black_score_var.get():
@@ -415,6 +446,7 @@ class MultiTabApp:
                     self.timer_seconds = self.periods[0]["duration"]
                     self.half_label.config(text=self.periods[0]["name"])
                     self.update_half_label_background(self.periods[0]["name"])
+                    self.timer_running = False  # Ensure state is correct before starting
                     self.start_pause_timer()
                     return
                 elif self.sudden_death_periods:
@@ -425,6 +457,7 @@ class MultiTabApp:
                     self.update_half_label_background(self.periods[0]["name"])
                     self.in_sudden_death = True
                     self.sudden_death_goal_scored = False
+                    self.timer_running = False  # Ensure state is correct before starting
                     self.start_pause_timer()
                     return
             self.setup_periods()
@@ -432,6 +465,7 @@ class MultiTabApp:
             self.timer_seconds = self.periods[0]["duration"]
             self.half_label.config(text=self.periods[0]["name"])
             self.update_half_label_background(self.periods[0]["name"])
+            self.timer_running = False  # Ensure state is correct before starting
             self.start_pause_timer()
             return
         cur_period = self.periods[self.current_period_index]
