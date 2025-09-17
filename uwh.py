@@ -239,7 +239,6 @@ class GameManagementApp:
                 self.master.after_cancel(self.timer_job)
                 self.timer_job = None
         else:
-            # Cancel any existing timer job before starting
             if self.timer_job:
                 self.master.after_cancel(self.timer_job)
                 self.timer_job = None
@@ -251,16 +250,13 @@ class GameManagementApp:
         if not self.timer_running:
             return
         if self.timer_seconds > 0:
-            # Check for auto-reset at 30 seconds during Between Game Break
             if (self.timer_seconds == 30 and 
                 self.current_period_index < len(self.periods) and
                 self.periods[self.current_period_index].get("setting_name", "") == "between_game_break"):
-                # Auto-reset scores to 0 at 30 seconds remaining
                 self.white_score_var.set(0)
                 self.black_score_var.set(0)
             
             self.timer_seconds -= 1
-            # Cancel any existing timer job before scheduling new one
             if self.timer_job:
                 self.master.after_cancel(self.timer_job)
             self.timer_job = self.master.after(1000, self.countdown_timer)
@@ -316,7 +312,6 @@ class GameManagementApp:
             self.half_label.config(bg="lightblue")
 
     def is_overtime_enabled(self):
-        """Check if overtime periods are enabled via checkboxes"""
         v = self.variables
         return (v["overtime_game_break"].get("used", True) or 
                 v["overtime_half_period"].get("used", True) or
@@ -324,7 +319,6 @@ class GameManagementApp:
                 v["overtime_second_half"].get("used", True))
 
     def is_sudden_death_enabled(self):
-        """Check if sudden death periods are enabled via checkboxes"""
         v = self.variables
         return v["sudden_death_game_break"].get("used", True)
 
@@ -375,7 +369,6 @@ class GameManagementApp:
                 score_var.set(score_var.get() - 1)
 
     def handle_tiebreak_after_break(self):
-        # Cancel any existing timer job first
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
@@ -388,7 +381,7 @@ class GameManagementApp:
                 self.timer_seconds = self.periods[0]["duration"]
                 self.half_label.config(text=self.periods[0]["name"])
                 self.update_half_label_background(self.periods[0]["name"])
-                self.timer_running = False  # Ensure state is correct before starting
+                self.timer_running = False
                 self.start_pause_timer()
             elif self.sudden_death_periods and self.is_sudden_death_enabled():
                 self.periods = self.sudden_death_periods + self.periods[self.current_period_index+1:]
@@ -398,16 +391,15 @@ class GameManagementApp:
                 self.update_half_label_background(self.periods[0]["name"])
                 self.in_sudden_death = True
                 self.sudden_death_goal_scored = False
-                self.timer_running = False  # Ensure state is correct before starting
+                self.timer_running = False
                 self.start_pause_timer()
             else:
-                # No overtime/sudden death enabled or available, loop back to First Half
                 self.setup_periods()
-                self.current_period_index = 1  # First Half
+                self.current_period_index = 1
                 self.timer_seconds = self.periods[1]["duration"]
                 self.half_label.config(text=self.periods[1]["name"])
                 self.update_half_label_background(self.periods[1]["name"])
-                self.timer_running = False  # Ensure state is correct before starting
+                self.timer_running = False
                 self.start_pause_timer()
         elif cur_setting in {"half_time_break", "overtime_game_break", "overtime_half_time_break"}:
             if self.overtime_periods and self.is_overtime_enabled() and cur_setting != "overtime_half_time_break":
@@ -416,7 +408,7 @@ class GameManagementApp:
                 self.timer_seconds = self.periods[0]["duration"]
                 self.half_label.config(text=self.periods[0]["name"])
                 self.update_half_label_background(self.periods[0]["name"])
-                self.timer_running = False  # Ensure state is correct before starting
+                self.timer_running = False
                 self.start_pause_timer()
             elif self.sudden_death_periods and self.is_sudden_death_enabled() and cur_setting == "overtime_half_time_break":
                 self.periods = self.sudden_death_periods + self.periods[self.current_period_index+1:]
@@ -426,17 +418,14 @@ class GameManagementApp:
                 self.update_half_label_background(self.periods[0]["name"])
                 self.in_sudden_death = True
                 self.sudden_death_goal_scored = False
-                self.timer_running = False  # Ensure state is correct before starting
+                self.timer_running = False
                 self.start_pause_timer()
 
     def goto_between_game_break(self):
-        # Cancel any existing timer job first
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
             
-        # Reset to main periods to find the "Between Game Break" period
-        # This ensures we can find it regardless of whether we're in overtime or sudden death
         self.setup_periods()
         self.in_sudden_death = False
         
@@ -448,7 +437,7 @@ class GameManagementApp:
                 self.update_half_label_background(period["name"])
                 self.update_timer_display()
                 self.sudden_death_goal_scored = False
-                self.timer_running = False  # Ensure state is correct before starting
+                self.timer_running = False
                 self.start_pause_timer()
                 return
         self.timer_seconds = 0
@@ -461,25 +450,29 @@ class GameManagementApp:
             self.reset_timer_button.config(state=tk.NORMAL)
         self.timer_running = False
 
+    # PATCHED: next_period logic
     def next_period(self):
-        # Cancel any existing timer job first
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
         
         self.current_period_index += 1
+
+        # Are we at the end of regular periods?
         if self.current_period_index >= len(self.periods):
-            # Check if scores are tied and overtime/sudden death should be triggered
+            # Scores tied after regular game
             if self.white_score_var.get() == self.black_score_var.get():
+                # Overtime
                 if self.overtime_periods and self.is_overtime_enabled():
                     self.periods = self.overtime_periods
                     self.current_period_index = 0
                     self.timer_seconds = self.periods[0]["duration"]
                     self.half_label.config(text=self.periods[0]["name"])
                     self.update_half_label_background(self.periods[0]["name"])
-                    self.timer_running = False  # Ensure state is correct before starting
+                    self.timer_running = False
                     self.start_pause_timer()
                     return
+                # Sudden death
                 elif self.sudden_death_periods and self.is_sudden_death_enabled():
                     self.periods = self.sudden_death_periods
                     self.current_period_index = 0
@@ -488,18 +481,33 @@ class GameManagementApp:
                     self.update_half_label_background(self.periods[0]["name"])
                     self.in_sudden_death = True
                     self.sudden_death_goal_scored = False
-                    self.timer_running = False  # Ensure state is correct before starting
+                    self.timer_running = False
                     self.start_pause_timer()
                     return
-            # No overtime/sudden death, or scores not tied - start new game
+            # No overtime/sudden death, or scores not tied - enter between game break
             self.setup_periods()
-            self.current_period_index = 0
-            self.timer_seconds = self.periods[0]["duration"]
-            self.half_label.config(text=self.periods[0]["name"])
-            self.update_half_label_background(self.periods[0]["name"])
-            self.timer_running = False  # Ensure state is correct before starting
-            self.start_pause_timer()
+            # Enter "Between Game Break" (last period)
+            for i, period in enumerate(self.periods):
+                if period.get("setting_name", "") == "between_game_break":
+                    self.current_period_index = i
+                    self.timer_seconds = period["duration"]
+                    self.half_label.config(text=period["name"])
+                    self.update_half_label_background(period["name"])
+                    self.timer_running = False
+                    self.start_pause_timer()
+                    return
+            # If not found, game over
+            self.timer_seconds = 0
+            self.half_label.config(text="Game Over")
+            self.update_half_label_background("Game Over")
+            self.update_timer_display()
+            if self.start_timer_button:
+                self.start_timer_button.config(text="Game Over", state="disabled")
+            if self.reset_timer_button:
+                self.reset_timer_button.config(state=tk.NORMAL)
+            self.timer_running = False
             return
+
         cur_period = self.periods[self.current_period_index]
         self.timer_seconds = cur_period["duration"]
         self.half_label.config(text=cur_period["name"])
