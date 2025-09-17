@@ -1,13 +1,13 @@
 {
-  "game_number": 125,
+  "game_number": 124,
   "variables": {
     "half_period": {
-      "value": "20",
+      "value": "15",
       "used": true
     },
     "overtime_game_break": {
-      "value": "5",
-      "used": false
+      "value": "3",
+      "used": true
     }
   }
 }
