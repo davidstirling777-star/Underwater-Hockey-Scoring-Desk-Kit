@@ -49,6 +49,7 @@ class GameManagementApp:
         self.in_sudden_death = False
         self.sudden_death_goal_scored = False
         self.just_added_break_goal = False
+        self.scores_reset_this_break = False
 
         self.start_timer_button = None
         self.reset_timer_button = None
@@ -252,6 +253,29 @@ class GameManagementApp:
             return
         if self.timer_seconds > 0:
             self.timer_seconds -= 1
+            
+            # Check if we're in between_game_break and timer is at 30 seconds
+            cur_period = None
+            if self.current_period_index < len(self.periods):
+                cur_period = self.periods[self.current_period_index]
+            elif self.in_sudden_death and self.current_period_index < len(self.sudden_death_periods):
+                cur_period = self.sudden_death_periods[self.current_period_index]
+            elif not self.in_sudden_death and self.current_period_index < len(self.overtime_periods):
+                cur_period = self.overtime_periods[self.current_period_index]
+            
+            # Auto-reset scores during between_game_break at 30 seconds
+            if (cur_period and 
+                cur_period.get("setting_name", "") == "between_game_break" and
+                self.timer_seconds == 30 and
+                not self.scores_reset_this_break):
+                self.white_score_var.set(0)
+                self.black_score_var.set(0)
+                self.scores_reset_this_break = True
+            
+            # Reset flag if not in break period
+            if not (cur_period and cur_period.get("setting_name", "") == "between_game_break"):
+                self.scores_reset_this_break = False
+            
             # Cancel any existing timer job before scheduling new one
             if self.timer_job:
                 self.master.after_cancel(self.timer_job)
