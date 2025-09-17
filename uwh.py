@@ -1,9 +1,19 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, font
 import datetime
+import json
+import os
 
 class GameManagementApp:
+    """
+    Underwater Hockey Game Management Application.
+    
+    A comprehensive GUI application for managing underwater hockey games,
+    including timer management, scoring, period transitions, overtime,
+    sudden death, and settings persistence.
+    """
     def __init__(self, master):
+        """Initialize the Game Management Application with all UI components and settings."""
         self.master = master
         self.master.title("Underwater Hockey Game Management App")
         self.master.geometry('1200x800')
@@ -30,6 +40,7 @@ class GameManagementApp:
         self.sudden_death_periods = []
         self.widgets = []
         self.last_valid_values = {}
+        self.game_number = 121  # Track current game number
 
         self.fonts = {
             "court_time": font.Font(family="Arial", size=36),
@@ -55,17 +66,19 @@ class GameManagementApp:
 
         self.create_scoreboard_tab()
         self.create_settings_tab()
+        self.load_settings_from_file()
         self.load_settings()
         self.setup_periods()
         self.reset_timer()
 
         self.master.bind('<Configure>', self.scale_fonts)
-        self.initial_width = self.master.winfo_width()
+        self.initial_width = 1200  # Set initial width reference
         self.master.update_idletasks()
         self.scale_fonts(None)
         self.update_court_time()
 
     def create_scoreboard_tab(self):
+        """Create the main scoreboard tab with timer, scores, and game controls."""
         tab = ttk.Frame(self.notebook)
         self.notebook.add(tab, text="Scoreboard")
         for i, weight in enumerate([1, 2, 5, 1]):
@@ -113,7 +126,7 @@ class GameManagementApp:
         ttk.Button(score_button_frame_white, text="Add Goal", command=lambda: self.add_goal_with_confirmation(self.white_score_var, "White")).grid(row=0, column=0, padx=2, pady=2)
         ttk.Button(score_button_frame_white, text="-ve Goal", command=lambda: self.adjust_score_with_confirm(self.white_score_var, "White")).grid(row=1, column=0, padx=2, pady=2)
 
-        self.game_no_label = tk.Label(game_info_frame, text="This is game No 121.", font=self.fonts["game_no"])
+        self.game_no_label = tk.Label(game_info_frame, text=f"This is game No {self.game_number}.", font=self.fonts["game_no"])
         self.game_no_label.grid(row=0, column=1, pady=10, sticky="ew")
 
         score_button_frame_black = ttk.Frame(game_info_frame)
@@ -123,6 +136,7 @@ class GameManagementApp:
         ttk.Button(score_button_frame_black, text="-ve Goal", command=lambda: self.adjust_score_with_confirm(self.black_score_var, "Black")).grid(row=1, column=0, padx=2, pady=2)
 
     def create_settings_tab(self):
+        """Create the settings tab with game variables, checkboxes, and timer controls."""
         tab = ttk.Frame(self.notebook)
         self.notebook.add(tab, text="Game Variables")
         frame = ttk.Frame(tab, padding=(10, 10, 10, 10))
@@ -145,6 +159,8 @@ class GameManagementApp:
                 cb = ttk.Checkbutton(frame, variable=check_var)
                 cb.grid(row=i, column=0, sticky="w", pady=5)
                 check_var.trace_add("write", lambda *args, name=var_name: self._on_settings_variable_change())
+                # Add tooltip for checkboxes
+                self.create_checkbox_tooltip(cb, "Uncheck to disable this period/variable from being used in the game")
             label_text = f"{var_name.replace('_', ' ').title()}:"
             ttk.Label(frame, text=label_text, style="Settings.TLabel").grid(row=i, column=1, sticky="w", pady=5)
             entry = ttk.Entry(frame, width=10)
@@ -162,13 +178,140 @@ class GameManagementApp:
         self.start_timer_button.grid(row=0, column=0, padx=10)
         self.reset_timer_button = ttk.Button(button_frame, text="Reset Timer", command=self.reset_timer)
         self.reset_timer_button.grid(row=0, column=1, padx=10)
+    
+    def create_checkbox_tooltip(self, widget, text):
+        """Create a simple tooltip for a widget."""
+        def show_tooltip(event):
+            tooltip = tk.Toplevel()
+            tooltip.wm_overrideredirect(True)
+            tooltip.wm_geometry(f"+{event.x_root+10}+{event.y_root+10}")
+            label = tk.Label(tooltip, text=text, background="lightyellow", 
+                           relief="solid", borderwidth=1, wraplength=200)
+            label.pack()
+            
+            def hide_tooltip():
+                tooltip.destroy()
+            
+            tooltip.after(3000, hide_tooltip)  # Hide after 3 seconds
+        
+        widget.bind("<Enter>", show_tooltip)
 
     def _on_settings_variable_change(self, *args):
-        self.load_settings()
-        self.setup_periods()
-        self.reset_timer()
+        """Handle settings changes with validation and persistence."""
+        if self.validate_all_settings():
+            self.load_settings()
+            self.setup_periods()
+            self.reset_timer()
+            self.save_settings_to_file()
+
+    def validate_all_settings(self):
+        """Validate all settings entries and show errors for invalid values."""
+        all_valid = True
+        for widget in self.widgets:
+            entry = widget["entry"]
+            var_name = widget["name"]
+            value = entry.get()
+            
+            if not self.validate_entry(var_name, value):
+                all_valid = False
+                # Revert to last valid value
+                entry.delete(0, tk.END)
+                entry.insert(0, self.last_valid_values.get(var_name, str(self.variables[var_name]["default"])))
+            else:
+                # Update last valid value
+                self.last_valid_values[var_name] = value
+        return all_valid
+    
+    def validate_entry(self, var_name, value):
+        """Validate a single entry value based on its type and constraints."""
+        var_info = self.variables[var_name]
+        
+        try:
+            if var_name == "start_first_game_at_this_time":
+                # Validate time format hh:mm
+                if ":" not in value:
+                    raise ValueError("Time must be in hh:mm format")
+                hh, mm = map(int, value.split(":"))
+                if not (0 <= hh <= 23 and 0 <= mm <= 59):
+                    raise ValueError("Invalid time values")
+            elif var_info["unit"] == "minutes":
+                # Validate positive integer for minutes
+                val = int(float(value))
+                if val < 0:
+                    raise ValueError("Minutes must be non-negative")
+            elif var_info["unit"] == "seconds":
+                # Validate positive integer for seconds  
+                val = int(float(value))
+                if val < 0:
+                    raise ValueError("Seconds must be non-negative")
+            else:
+                # Generic numeric validation
+                float(value)
+            
+            return True
+        except (ValueError, TypeError) as e:
+            messagebox.showerror("Invalid Input", 
+                f"Invalid value for {var_name.replace('_', ' ').title()}: {value}\n"
+                f"Error: {str(e)}\nReverting to last valid value.")
+            return False
+
+    def save_settings_to_file(self):
+        """Save current settings to JSON file."""
+        try:
+            settings_data = {
+                "game_number": self.game_number,
+                "variables": {}
+            }
+            
+            for var_name, var_info in self.variables.items():
+                settings_data["variables"][var_name] = {
+                    "value": var_info.get("value", var_info["default"]),
+                    "used": var_info.get("used", True)
+                }
+            
+            with open(self.settings_file, 'w') as f:
+                json.dump(settings_data, f, indent=2)
+        except Exception as e:
+            print(f"Error saving settings: {e}")
+
+    def load_settings_from_file(self):
+        """Load settings from JSON file if it exists."""
+        try:
+            if os.path.exists(self.settings_file):
+                with open(self.settings_file, 'r') as f:
+                    settings_data = json.load(f)
+                
+                # Load game number
+                if "game_number" in settings_data:
+                    self.game_number = settings_data["game_number"]
+                
+                # Load variable values
+                if "variables" in settings_data:
+                    for var_name, var_data in settings_data["variables"].items():
+                        if var_name in self.variables:
+                            self.variables[var_name]["value"] = var_data.get("value", self.variables[var_name]["default"])
+                            self.variables[var_name]["used"] = var_data.get("used", True)
+                            
+                # Update UI with loaded values
+                if hasattr(self, 'widgets'):
+                    for widget in self.widgets:
+                        var_name = widget["name"]
+                        entry = widget["entry"]
+                        checkbox = widget["checkbox"]
+                        
+                        # Update entry value
+                        entry.delete(0, tk.END)
+                        entry.insert(0, str(self.variables[var_name].get("value", self.variables[var_name]["default"])))
+                        
+                        # Update checkbox state
+                        if checkbox is not None:
+                            checkbox.set(self.variables[var_name].get("used", True))
+                            
+        except Exception as e:
+            print(f"Error loading settings: {e}")
 
     def load_settings(self):
+        """Load settings from UI widgets into internal variables."""
         for widget in self.widgets:
             entry = widget["entry"]
             value = entry.get()
@@ -178,23 +321,51 @@ class GameManagementApp:
                 self.variables[var_name]["used"] = widget["checkbox"].get()
             else:
                 self.variables[var_name]["used"] = True
+    
+    def update_game_number_display(self):
+        """Update the game number display label."""
+        self.game_no_label.config(text=f"This is game No {self.game_number}.")
+    
+    def increment_game_number(self):
+        """Increment the game number and update display."""
+        self.game_number += 1
+        self.update_game_number_display() 
+        self.save_settings_to_file()
+    
+    def update_button_states(self):
+        """Update Start and Reset button states based on game state."""
+        if self.start_timer_button and self.reset_timer_button:
+            # Determine if game is over
+            is_game_over = (self.half_label.cget("text") == "Game Over" or
+                          (hasattr(self, 'timer_seconds') and self.timer_seconds <= 0 and 
+                           self.current_period_index >= len(self.periods) - 1))
+            
+            if is_game_over:
+                self.start_timer_button.config(text="Game Over", state="disabled")
+                self.reset_timer_button.config(state=tk.NORMAL)
+            else:
+                if self.timer_running:
+                    self.start_timer_button.config(text="Pause Timer", state=tk.NORMAL)
+                else:
+                    self.start_timer_button.config(text="Start Timer", state=tk.NORMAL)
+                self.reset_timer_button.config(state=tk.NORMAL)
 
     def setup_periods(self):
+        """Set up all game periods including main, overtime, and sudden death periods."""
         self.periods = []
         self.overtime_periods = []
         self.sudden_death_periods = []
+        
+        # Generate different types of periods
+        self._generate_main_periods()
+        self._generate_overtime_periods() 
+        self._generate_sudden_death_periods()
+        
+    def _generate_main_periods(self):
+        """Generate the main game periods (start, halves, breaks)."""
         v = self.variables
-
-        def int_or_default(name):
-            try:
-                return int(float(v[name].get("value", v[name]["default"])))
-            except Exception:
-                return v[name]["default"]
-
-        def minutes(name):
-            return int_or_default(name) * 60
-
-        # Add "Game Starts in:" as the first period (fixed for start timer)
+        
+        # Add start period
         start_first_game = v["start_first_game_at_this_time"].get("value", v["start_first_game_at_this_time"]["default"])
         if isinstance(start_first_game, str) and ":" in start_first_game:
             try:
@@ -207,32 +378,50 @@ class GameManagementApp:
             except Exception:
                 seconds_until = 0
         else:
-            seconds_until = minutes("start_first_game_at_this_time")
+            seconds_until = self._minutes_to_seconds("start_first_game_at_this_time")
+            
         self.periods.append({
             "name": "Game Starts in:",
             "duration": seconds_until,
             "setting_name": "start_first_game_at_this_time"
         })
 
-        self.periods.append({"name": "First Half", "duration": minutes("half_period"), "setting_name": "half_period"})
-        self.periods.append({"name": "Half Time", "duration": minutes("half_time_break"), "setting_name": "half_time_break"})
-        self.periods.append({"name": "Second Half", "duration": minutes("half_period"), "setting_name": "half_period"})
-
+        # Add main game periods
+        self.periods.append({"name": "First Half", "duration": self._minutes_to_seconds("half_period"), "setting_name": "half_period"})
+        self.periods.append({"name": "Half Time", "duration": self._minutes_to_seconds("half_time_break"), "setting_name": "half_time_break"})
+        self.periods.append({"name": "Second Half", "duration": self._minutes_to_seconds("half_period"), "setting_name": "half_period"})
+        self.periods.append({"name": "Between Game Break", "duration": self._minutes_to_seconds("between_game_break"), "setting_name": "between_game_break"})
+    
+    def _generate_overtime_periods(self):
+        """Generate overtime periods based on enabled settings."""
+        v = self.variables
+        
         if v["overtime_game_break"].get("used", True):
-            self.overtime_periods.append({"name": "Overtime Game Break", "duration": minutes("overtime_game_break"), "setting_name": "overtime_game_break"})
+            self.overtime_periods.append({"name": "Overtime Game Break", "duration": self._minutes_to_seconds("overtime_game_break"), "setting_name": "overtime_game_break"})
         if v["overtime_half_period"].get("used", True):
-            self.overtime_periods.append({"name": "Overtime First Half", "duration": minutes("overtime_half_period"), "setting_name": "overtime_half_period"})
+            self.overtime_periods.append({"name": "Overtime First Half", "duration": self._minutes_to_seconds("overtime_half_period"), "setting_name": "overtime_half_period"})
         if v["overtime_half_time_break"].get("used", True):
-            self.overtime_periods.append({"name": "Overtime Half Time", "duration": minutes("overtime_half_time_break"), "setting_name": "overtime_half_time_break"})
+            self.overtime_periods.append({"name": "Overtime Half Time", "duration": self._minutes_to_seconds("overtime_half_time_break"), "setting_name": "overtime_half_time_break"})
         if v["overtime_second_half"].get("used", True):
-            self.overtime_periods.append({"name": "Overtime Second Half", "duration": minutes("overtime_second_half"), "setting_name": "overtime_second_half"})
+            self.overtime_periods.append({"name": "Overtime Second Half", "duration": self._minutes_to_seconds("overtime_second_half"), "setting_name": "overtime_second_half"})
+    
+    def _generate_sudden_death_periods(self):
+        """Generate sudden death periods based on enabled settings."""
+        v = self.variables
+        
         if v["sudden_death_game_break"].get("used", True):
-            self.sudden_death_periods.append({"name": "Sudden Death Game Break", "duration": minutes("sudden_death_game_break"), "setting_name": "sudden_death_game_break"})
+            self.sudden_death_periods.append({"name": "Sudden Death Game Break", "duration": self._minutes_to_seconds("sudden_death_game_break"), "setting_name": "sudden_death_game_break"})
             self.sudden_death_periods.append({"name": "Sudden Death", "duration": 60*60, "setting_name": "sudden_death"})
-
-        self.periods.append({"name": "Between Game Break", "duration": minutes("between_game_break"), "setting_name": "between_game_break"})
+    
+    def _minutes_to_seconds(self, var_name):
+        """Convert minutes setting to seconds, with error handling."""
+        try:
+            return int(float(self.variables[var_name].get("value", self.variables[var_name]["default"]))) * 60
+        except Exception:
+            return self.variables[var_name]["default"] * 60
 
     def start_pause_timer(self):
+        """Start or pause the timer with proper button state management."""
         if self.timer_running:
             self.timer_running = False
             if self.timer_job:
@@ -245,8 +434,11 @@ class GameManagementApp:
                 self.timer_job = None
             self.timer_running = True
             self.countdown_timer()
+        
+        self.update_button_states()
 
     def countdown_timer(self):
+        """Handle the countdown timer with automatic score reset and period transitions."""
         self.update_timer_display()
         if not self.timer_running:
             return
@@ -268,10 +460,14 @@ class GameManagementApp:
             self.next_period()
 
     def reset_timer(self):
+        """Reset the timer and game state with proper button state management."""
         self.white_score_var.set(0)
         self.black_score_var.set(0)
         self.current_period_index = 0
         self.timer_running = False
+        self.in_sudden_death = False
+        self.sudden_death_goal_scored = False
+        
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
@@ -282,25 +478,54 @@ class GameManagementApp:
         else:
             self.timer_seconds = 0
             self.half_label.config(text="")
+        
         self.update_timer_display()
+        self.update_button_states()
+        self.update_sudden_death_ui()
 
     def update_timer_display(self):
+        """Update the timer display with current time in MM:SS format."""
         mins, secs = divmod(self.timer_seconds, 60)
         self.timer_label.config(text=f"{int(mins):02d}:{int(secs):02d}")
 
     def scale_fonts(self, event):
-        pass
+        """Dynamically scale fonts based on window size changes."""
+        if not hasattr(self, 'initial_width') or self.initial_width == 0:
+            return
+        
+        current_width = self.master.winfo_width()
+        if current_width <= 1:  # Window not yet initialized
+            return
+            
+        scale_factor = current_width / 1200  # Base width of 1200
+        scale_factor = max(0.5, min(2.0, scale_factor))  # Limit scaling between 0.5x and 2.0x
+        
+        base_sizes = {
+            "court_time": 36,
+            "half": 36,
+            "team": 30,
+            "score": 200,
+            "timer": 90,
+            "game_no": 18
+        }
+        
+        for font_name, base_size in base_sizes.items():
+            if font_name in self.fonts:
+                new_size = max(8, int(base_size * scale_factor))  # Minimum size of 8
+                self.fonts[font_name].config(size=new_size)
 
     def update_court_time(self):
+        """Update the current court time display and schedule next update."""
         now = datetime.datetime.now()
         time_string = now.strftime('%I:%M:%S %p').lstrip('0')
         self.court_time_label.config(text=f"Court Time is {time_string}")
         self.master.after(1000, self.update_court_time)
 
     def update_half_label_background(self, period_name):
+        """Update the half label background color based on period type."""
         red_periods = {
             "half_time_break",
-            "overtime_game_break",
+            "overtime_game_break", 
             "overtime_half_time_break",
             "between_game_break",
             "start_first_game_at_this_time",
@@ -310,10 +535,35 @@ class GameManagementApp:
             if period["name"] == period_name:
                 internal_name = period.get("setting_name", "")
                 break
-        if internal_name in red_periods:
-            self.half_label.config(bg="red")
+        
+        # Check for sudden death
+        if self.in_sudden_death and period_name == "Sudden Death":
+            self.half_label.config(bg="orange", fg="black")
+        elif internal_name in red_periods:
+            self.half_label.config(bg="red", fg="white")
         else:
-            self.half_label.config(bg="lightblue")
+            self.half_label.config(bg="lightblue", fg="black")
+    
+    def update_sudden_death_ui(self):
+        """Update UI elements to show sudden death state."""
+        if self.in_sudden_death:
+            # Change scoreboard background to indicate sudden death
+            if hasattr(self, 'timer_label'):
+                self.timer_label.config(bg="orange", fg="darkred")
+            # Add sudden death message to court time label
+            if hasattr(self, 'court_time_label'):
+                original_text = self.court_time_label.cget("text")
+                if "SUDDEN DEATH" not in original_text:
+                    self.court_time_label.config(text=f"{original_text} - SUDDEN DEATH!")
+        else:
+            # Reset to normal colors
+            if hasattr(self, 'timer_label'):
+                self.timer_label.config(bg="lightgrey", fg="darkblue")
+            # Remove sudden death message
+            if hasattr(self, 'court_time_label'):
+                text = self.court_time_label.cget("text")
+                if " - SUDDEN DEATH!" in text:
+                    self.court_time_label.config(text=text.replace(" - SUDDEN DEATH!", ""))
 
     def is_overtime_enabled(self):
         """Check if overtime periods are enabled via checkboxes"""
@@ -329,6 +579,7 @@ class GameManagementApp:
         return v["sudden_death_game_break"].get("used", True)
 
     def is_break_or_half_time(self):
+        """Check if the current period is a break or half-time period."""
         break_names = {
             "half_time_break",
             "overtime_game_break",
@@ -347,6 +598,7 @@ class GameManagementApp:
         return False
 
     def add_goal_with_confirmation(self, score_var, team_name):
+        """Add a goal with confirmation during breaks and handle sudden death scenarios."""
         if self.is_break_or_half_time():
             if not messagebox.askyesno("Add Goal During Break?", f"You are about to add a goal for {team_name} during a break or half time. Are you sure?"):
                 return
@@ -370,11 +622,13 @@ class GameManagementApp:
         self.just_added_break_goal = False
 
     def adjust_score_with_confirm(self, score_var, team_name):
+        """Subtract a goal with confirmation dialog."""
         if score_var.get() > 0:
             if messagebox.askyesno("Subtract Goal", f"Are you sure you want to subtract a goal from {team_name}?"):
                 score_var.set(score_var.get() - 1)
 
     def handle_tiebreak_after_break(self):
+        """Handle tiebreak scenarios that occur during break periods."""
         # Cancel any existing timer job first
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
@@ -430,6 +684,7 @@ class GameManagementApp:
                 self.start_pause_timer()
 
     def goto_between_game_break(self):
+        """Jump to between-game break period, typically after sudden death goal."""
         # Cancel any existing timer job first
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
@@ -449,19 +704,20 @@ class GameManagementApp:
                 self.update_timer_display()
                 self.sudden_death_goal_scored = False
                 self.timer_running = False  # Ensure state is correct before starting
+                self.update_sudden_death_ui()
+                self.update_button_states()
                 self.start_pause_timer()
                 return
+                
         self.timer_seconds = 0
         self.half_label.config(text="Game Over")
         self.update_half_label_background("Game Over")
         self.update_timer_display()
-        if self.start_timer_button:
-            self.start_timer_button.config(text="Game Over", state="disabled")
-        if self.reset_timer_button:
-            self.reset_timer_button.config(state=tk.NORMAL)
+        self.update_button_states()
         self.timer_running = False
 
     def next_period(self):
+        """Advance to the next period with proper game management."""
         # Cancel any existing timer job first
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
@@ -489,9 +745,11 @@ class GameManagementApp:
                     self.in_sudden_death = True
                     self.sudden_death_goal_scored = False
                     self.timer_running = False  # Ensure state is correct before starting
+                    self.update_sudden_death_ui()
                     self.start_pause_timer()
                     return
             # No overtime/sudden death, or scores not tied - start new game
+            self.increment_game_number()  # Increment game number for new game
             self.setup_periods()
             self.current_period_index = 0
             self.timer_seconds = self.periods[0]["duration"]
@@ -500,12 +758,14 @@ class GameManagementApp:
             self.timer_running = False  # Ensure state is correct before starting
             self.start_pause_timer()
             return
+        
         cur_period = self.periods[self.current_period_index]
         self.timer_seconds = cur_period["duration"]
         self.half_label.config(text=cur_period["name"])
         self.update_half_label_background(cur_period["name"])
         self.update_timer_display()
         self.timer_running = True
+        self.update_button_states()
         self.countdown_timer()
 
 if __name__ == "__main__":
