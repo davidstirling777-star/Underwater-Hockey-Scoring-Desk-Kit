@@ -462,32 +462,58 @@ class GameManagementApp:
         if self.current_period_index >= len(self.periods):
             # Check if scores are tied and overtime/sudden death should be triggered
             if self.white_score_var.get() == self.black_score_var.get():
-                if self.overtime_periods and self.is_overtime_enabled():
-                    self.periods = self.overtime_periods
-                    self.current_period_index = 0
-                    self.timer_seconds = self.periods[0]["duration"]
-                    self.half_label.config(text=self.periods[0]["name"])
-                    self.update_half_label_background(self.periods[0]["name"])
-                    self.timer_running = False  # Ensure state is correct before starting
-                    self.start_pause_timer()
+                # Determine what phase we just finished by checking the last period
+                just_finished_overtime = False
+                if len(self.periods) > 0:
+                    last_period_setting = self.periods[-1].get("setting_name", "")
+                    # Check if we just finished overtime by looking for overtime_second_half as last period
+                    just_finished_overtime = (last_period_setting == "overtime_second_half")
+                
+                if just_finished_overtime:
+                    # We just finished overtime, check for sudden death
+                    if self.sudden_death_periods and self.is_sudden_death_enabled():
+                        self.periods = self.sudden_death_periods
+                        self.current_period_index = 0
+                        self.timer_seconds = self.periods[0]["duration"]
+                        self.half_label.config(text=self.periods[0]["name"])
+                        self.update_half_label_background(self.periods[0]["name"])
+                        self.in_sudden_death = True
+                        self.sudden_death_goal_scored = False
+                        self.timer_running = False  # Ensure state is correct before starting
+                        self.start_pause_timer()
+                        return
+                    # If no sudden death available after overtime, go to between game break
+                    self.goto_between_game_break()
                     return
-                elif self.sudden_death_periods and self.is_sudden_death_enabled():
-                    self.periods = self.sudden_death_periods
-                    self.current_period_index = 0
-                    self.timer_seconds = self.periods[0]["duration"]
-                    self.half_label.config(text=self.periods[0]["name"])
-                    self.update_half_label_background(self.periods[0]["name"])
-                    self.in_sudden_death = True
-                    self.sudden_death_goal_scored = False
-                    self.timer_running = False  # Ensure state is correct before starting
-                    self.start_pause_timer()
-                    return
-            # No overtime/sudden death, or scores not tied - start new game
+                else:
+                    # We finished regular game, check for overtime first
+                    if self.overtime_periods and self.is_overtime_enabled():
+                        self.periods = self.overtime_periods
+                        self.current_period_index = 0
+                        self.timer_seconds = self.periods[0]["duration"]
+                        self.half_label.config(text=self.periods[0]["name"])
+                        self.update_half_label_background(self.periods[0]["name"])
+                        self.timer_running = False  # Ensure state is correct before starting
+                        self.start_pause_timer()
+                        return
+                    elif self.sudden_death_periods and self.is_sudden_death_enabled():
+                        self.periods = self.sudden_death_periods
+                        self.current_period_index = 0
+                        self.timer_seconds = self.periods[0]["duration"]
+                        self.half_label.config(text=self.periods[0]["name"])
+                        self.update_half_label_background(self.periods[0]["name"])
+                        self.in_sudden_death = True
+                        self.sudden_death_goal_scored = False
+                        self.timer_running = False  # Ensure state is correct before starting
+                        self.start_pause_timer()
+                        return
+            
+            # No overtime/sudden death, or scores not tied - start new game (go to First Half)
             self.setup_periods()
-            self.current_period_index = 0
-            self.timer_seconds = self.periods[0]["duration"]
-            self.half_label.config(text=self.periods[0]["name"])
-            self.update_half_label_background(self.periods[0]["name"])
+            self.current_period_index = 1  # First Half (skip Start First Game At This Time)
+            self.timer_seconds = self.periods[1]["duration"]
+            self.half_label.config(text=self.periods[1]["name"])
+            self.update_half_label_background(self.periods[1]["name"])
             self.timer_running = False  # Ensure state is correct before starting
             self.start_pause_timer()
             return
