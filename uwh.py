@@ -295,6 +295,7 @@ class GameManagementApp:
             "overtime_game_break",
             "overtime_half_time_break",
             "between_game_break",
+            "start_first_game_at_this_time",
         }
         internal_name = None
         for period in self.periods + self.overtime_periods + self.sudden_death_periods:
