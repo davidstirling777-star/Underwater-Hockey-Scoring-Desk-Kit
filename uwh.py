@@ -426,6 +426,11 @@ class GameManagementApp:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
             
+        # Reset to main periods to find the "Between Game Break" period
+        # This ensures we can find it regardless of whether we're in overtime or sudden death
+        self.setup_periods()
+        self.in_sudden_death = False
+        
         for i, period in enumerate(self.periods):
             if period.get("setting_name", "") == "between_game_break":
                 self.current_period_index = i
