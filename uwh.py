@@ -2,10 +2,10 @@ import tkinter as tk
 from tkinter import ttk, messagebox, font
 import datetime
 
-class MultiTabApp:
+class GameManagementApp:
     def __init__(self, master):
         self.master = master
-        self.master.title("Game Management App")
+        self.master.title("Underwater Hockey Game Management App")
         self.master.geometry('1200x800')
 
         self.notebook = ttk.Notebook(master)
@@ -48,6 +48,7 @@ class MultiTabApp:
         self.timer_job = None
         self.in_sudden_death = False
         self.sudden_death_goal_scored = False
+        self.just_added_break_goal = False
 
         self.start_timer_button = None
         self.reset_timer_button = None
@@ -305,6 +306,19 @@ class MultiTabApp:
         else:
             self.half_label.config(bg="lightblue")
 
+    def is_overtime_enabled(self):
+        """Check if overtime periods are enabled via checkboxes"""
+        v = self.variables
+        return (v["overtime_game_break"].get("used", True) or 
+                v["overtime_half_period"].get("used", True) or
+                v["overtime_half_time_break"].get("used", True) or
+                v["overtime_second_half"].get("used", True))
+
+    def is_sudden_death_enabled(self):
+        """Check if sudden death periods are enabled via checkboxes"""
+        v = self.variables
+        return v["sudden_death_game_break"].get("used", True)
+
     def is_break_or_half_time(self):
         break_names = {
             "half_time_break",
@@ -348,7 +362,8 @@ class MultiTabApp:
 
     def adjust_score_with_confirm(self, score_var, team_name):
         if score_var.get() > 0:
-            score_var.set(score_var.get() - 1)
+            if messagebox.askyesno("Subtract Goal", f"Are you sure you want to subtract a goal from {team_name}?"):
+                score_var.set(score_var.get() - 1)
 
     def handle_tiebreak_after_break(self):
         # Cancel any existing timer job first
@@ -358,7 +373,7 @@ class MultiTabApp:
             
         cur_setting = self.periods[self.current_period_index].get("setting_name", "")
         if cur_setting == "between_game_break":
-            if self.overtime_periods:
+            if self.overtime_periods and self.is_overtime_enabled():
                 self.periods = self.overtime_periods + self.periods[self.current_period_index+1:]
                 self.current_period_index = 0
                 self.timer_seconds = self.periods[0]["duration"]
@@ -366,7 +381,7 @@ class MultiTabApp:
                 self.update_half_label_background(self.periods[0]["name"])
                 self.timer_running = False  # Ensure state is correct before starting
                 self.start_pause_timer()
-            elif self.sudden_death_periods:
+            elif self.sudden_death_periods and self.is_sudden_death_enabled():
                 self.periods = self.sudden_death_periods + self.periods[self.current_period_index+1:]
                 self.current_period_index = 0
                 self.timer_seconds = self.periods[0]["duration"]
@@ -377,6 +392,7 @@ class MultiTabApp:
                 self.timer_running = False  # Ensure state is correct before starting
                 self.start_pause_timer()
             else:
+                # No overtime/sudden death enabled or available, loop back to First Half
                 self.setup_periods()
                 self.current_period_index = 1  # First Half
                 self.timer_seconds = self.periods[1]["duration"]
@@ -385,7 +401,7 @@ class MultiTabApp:
                 self.timer_running = False  # Ensure state is correct before starting
                 self.start_pause_timer()
         elif cur_setting in {"half_time_break", "overtime_game_break", "overtime_half_time_break"}:
-            if self.overtime_periods and cur_setting != "overtime_half_time_break":
+            if self.overtime_periods and self.is_overtime_enabled() and cur_setting != "overtime_half_time_break":
                 self.periods = self.overtime_periods + self.periods[self.current_period_index+1:]
                 self.current_period_index = 0
                 self.timer_seconds = self.periods[0]["duration"]
@@ -393,7 +409,7 @@ class MultiTabApp:
                 self.update_half_label_background(self.periods[0]["name"])
                 self.timer_running = False  # Ensure state is correct before starting
                 self.start_pause_timer()
-            elif self.sudden_death_periods and cur_setting == "overtime_half_time_break":
+            elif self.sudden_death_periods and self.is_sudden_death_enabled() and cur_setting == "overtime_half_time_break":
                 self.periods = self.sudden_death_periods + self.periods[self.current_period_index+1:]
                 self.current_period_index = 0
                 self.timer_seconds = self.periods[0]["duration"]
@@ -439,8 +455,9 @@ class MultiTabApp:
         
         self.current_period_index += 1
         if self.current_period_index >= len(self.periods):
+            # Check if scores are tied and overtime/sudden death should be triggered
             if self.white_score_var.get() == self.black_score_var.get():
-                if self.overtime_periods:
+                if self.overtime_periods and self.is_overtime_enabled():
                     self.periods = self.overtime_periods
                     self.current_period_index = 0
                     self.timer_seconds = self.periods[0]["duration"]
@@ -449,7 +466,7 @@ class MultiTabApp:
                     self.timer_running = False  # Ensure state is correct before starting
                     self.start_pause_timer()
                     return
-                elif self.sudden_death_periods:
+                elif self.sudden_death_periods and self.is_sudden_death_enabled():
                     self.periods = self.sudden_death_periods
                     self.current_period_index = 0
                     self.timer_seconds = self.periods[0]["duration"]
@@ -460,6 +477,7 @@ class MultiTabApp:
                     self.timer_running = False  # Ensure state is correct before starting
                     self.start_pause_timer()
                     return
+            # No overtime/sudden death, or scores not tied - start new game
             self.setup_periods()
             self.current_period_index = 0
             self.timer_seconds = self.periods[0]["duration"]
@@ -478,5 +496,5 @@ class MultiTabApp:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = MultiTabApp(root)
+    app = GameManagementApp(root)
     root.mainloop()

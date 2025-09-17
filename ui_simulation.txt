@@ -1,0 +1,89 @@
+UNDERWATER HOCKEY GAME MANAGEMENT APP - UI SIMULATION
+====================================================
+
+WINDOW TITLE: "Underwater Hockey Game Management App"
+
+TAB 1: SCOREBOARD
+-----------------
+┌─────────────────────────────────────────────────────────────────────┐
+│                    Court Time is 2:45:30 PM                        │
+├─────────────────────────────────────────────────────────────────────┤
+│                         First Half                                  │
+│                     (Background: lightblue)                        │
+├─────────────┬─────────────────────────┬─────────────────────────────┤
+│    White    │                         │           Black             │
+│ (White BG)  │          14:32          │      (Black BG, White text)│
+│             │       (Timer)           │                             │
+│      3      │      (90pt font)        │             2               │
+│  (200pt)    │                         │         (200pt)             │
+├─────────────┼─────────────────────────┼─────────────────────────────┤
+│ [Add Goal]  │   This is game No 121.  │        [Add Goal]           │
+│ [-ve Goal]  │                         │        [-ve Goal]           │
+└─────────────┴─────────────────────────┴─────────────────────────────┘
+
+TAB 2: GAME VARIABLES
+---------------------
+┌─────────────────────────────────────────────────────────────────────┐
+│ Use?  │ Variable                         │ Value │ Units            │
+├───────┼──────────────────────────────────┼───────┼──────────────────┤
+│       │ Start First Game At This Time:   │ 12:00 │ hh:mm            │
+│       │ Half Period:                     │ 15    │ minutes          │
+│       │ Half Time Break:                 │ 3     │ minutes          │
+│  ☑    │ Overtime Game Break:             │ 3     │ minutes          │
+│  ☑    │ Overtime Half Period:            │ 5     │ minutes          │
+│  ☑    │ Overtime Half Time Break:        │ 1     │ minutes          │
+│  ☑    │ Overtime Second Half:            │ 5     │ minutes          │
+│  ☑    │ Sudden Death Game Break:         │ 1     │ minutes          │
+│       │ Between Game Break:              │ 5     │ minutes          │
+│  ☑    │ Timeout Period:                  │ 1     │ minutes          │
+│  ☑    │ Crib Time:                       │ 60    │ seconds          │
+├─────────────────────────────────────────────────────────────────────┤
+│               [Start Timer]    [Reset Timer]                        │
+└─────────────────────────────────────────────────────────────────────┘
+
+CONFIRMATION DIALOGS:
+--------------------
+
+1. When clicking "-ve Goal" button:
+┌─────────────────────────────────────┐
+│             Subtract Goal           │
+├─────────────────────────────────────┤
+│ Are you sure you want to subtract   │
+│ a goal from White?                  │
+├─────────────────────────────────────┤
+│         [Yes]        [No]           │
+└─────────────────────────────────────┘
+
+2. When adding goal during break:
+┌─────────────────────────────────────┐
+│         Add Goal During Break?      │
+├─────────────────────────────────────┤
+│ You are about to add a goal for     │
+│ Black during a break or half time.  │
+│ Are you sure?                       │
+├─────────────────────────────────────┤
+│         [Yes]        [No]           │
+└─────────────────────────────────────┘
+
+KEY FEATURES IMPLEMENTED:
+========================
+✓ App title: "Underwater Hockey Game Management App"
+✓ Class name: GameManagementApp (not MultiTabApp)
+✓ Scoreboard tab with team scores, timer, game phases
+✓ Settings tab with runtime configuration for all game variables
+✓ Checkboxes to enable/disable overtime and sudden death periods
+✓ Confirmation dialog for goal subtraction mentioning team color
+✓ Goal adjustment buttons (+/- for each team)
+✓ Overtime logic: only enters if scores tied AND overtime enabled
+✓ Sudden death logic: only enters if scores tied AND sudden death enabled
+✓ Break goal handling: confirms with user, handles tiebreak scenarios
+✓ Timer system with proper period progression
+✓ All game logic fully functional as described
+
+GAME LOGIC FLOW:
+===============
+1. Start First Game At This Time → First Half → Half Time → Second Half
+2. If scores tied at end AND overtime enabled: → Overtime periods
+3. If scores still tied after overtime AND sudden death enabled: → Sudden Death
+4. After Between Game Break: loop back to First Half (unless overtime/sudden death)
+5. Special handling for goals added during breaks (can trigger overtime/sudden death)
