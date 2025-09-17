@@ -16,7 +16,7 @@ class GameManagementApp:
             "start_first_game_at_this_time": {"default": "12:00", "checkbox": False, "unit": "hh:mm"},
             "half_period": {"default": 15, "checkbox": False, "unit": "minutes"},
             "half_time_break": {"default": 3, "checkbox": False, "unit": "minutes"},
-            "overtime_game_break": {"default": 3, "checkbox": True, "unit": "minutes"},  # CHANGED
+            "overtime_game_break": {"default": 3, "checkbox": True, "unit": "minutes"},
             "overtime_half_period": {"default": 5, "checkbox": True, "unit": "minutes"},
             "overtime_half_time_break": {"default": 1, "checkbox": True, "unit": "minutes"},
             "overtime_second_half": {"default": 5, "checkbox": True, "unit": "minutes"},
@@ -63,7 +63,7 @@ class GameManagementApp:
         self.initial_width = self.master.winfo_width()
         self.master.update_idletasks()
         self.scale_fonts(None)
-        self.update_court_time()
+        self.update_court_time()  # Only called once at startup
 
     def create_scoreboard_tab(self):
         tab = ttk.Frame(self.notebook)
@@ -279,6 +279,7 @@ class GameManagementApp:
             self.timer_seconds = 0
             self.half_label.config(text="")
         self.update_timer_display()
+        self.update_court_time()  # Only update court time on reset
 
     def update_timer_display(self):
         mins, secs = divmod(self.timer_seconds, 60)
@@ -291,7 +292,6 @@ class GameManagementApp:
         now = datetime.datetime.now()
         time_string = now.strftime('%I:%M:%S %p').lstrip('0')
         self.court_time_label.config(text=f"Court Time is {time_string}")
-        self.master.after(1000, self.update_court_time)
 
     def update_half_label_background(self, period_name):
         red_periods = {
