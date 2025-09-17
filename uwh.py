@@ -468,7 +468,11 @@ class GameManagementApp:
             self.timer_job = None
         
         self.current_period_index += 1
-        if self.current_period_index >= len(self.periods):
+        
+        # Check if we just completed "Second Half" and should check for overtime/sudden death
+        if (self.current_period_index < len(self.periods) and 
+            self.current_period_index > 0 and 
+            self.periods[self.current_period_index - 1].get("name") == "Second Half"):
             # Check if scores are tied and overtime/sudden death should be triggered
             if self.white_score_var.get() == self.black_score_var.get():
                 if self.overtime_periods and self.is_overtime_enabled():
@@ -491,6 +495,8 @@ class GameManagementApp:
                     self.timer_running = False  # Ensure state is correct before starting
                     self.start_pause_timer()
                     return
+        
+        if self.current_period_index >= len(self.periods):
             # No overtime/sudden death, or scores not tied - start new game
             self.setup_periods()
             self.current_period_index = 0
