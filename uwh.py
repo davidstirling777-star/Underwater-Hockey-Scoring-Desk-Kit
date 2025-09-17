@@ -194,7 +194,7 @@ class GameManagementApp:
         def minutes(name):
             return int_or_default(name) * 60
 
-        # Add "Start First Game At This Time" as the first period (fixed for start timer)
+        # Add "Game Starts in:" as the first period (fixed for start timer)
         start_first_game = v["start_first_game_at_this_time"].get("value", v["start_first_game_at_this_time"]["default"])
         if isinstance(start_first_game, str) and ":" in start_first_game:
             try:
@@ -209,7 +209,7 @@ class GameManagementApp:
         else:
             seconds_until = minutes("start_first_game_at_this_time")
         self.periods.append({
-            "name": "Start First Game At This Time",
+            "name": "Game Starts in:",
             "duration": seconds_until,
             "setting_name": "start_first_game_at_this_time"
         })
@@ -251,6 +251,14 @@ class GameManagementApp:
         if not self.timer_running:
             return
         if self.timer_seconds > 0:
+            # Check for auto-reset at 30 seconds during Between Game Break
+            if (self.timer_seconds == 30 and 
+                self.current_period_index < len(self.periods) and
+                self.periods[self.current_period_index].get("setting_name", "") == "between_game_break"):
+                # Auto-reset scores to 0 at 30 seconds remaining
+                self.white_score_var.set(0)
+                self.black_score_var.set(0)
+            
             self.timer_seconds -= 1
             # Cancel any existing timer job before scheduling new one
             if self.timer_job:
@@ -295,6 +303,7 @@ class GameManagementApp:
             "overtime_game_break",
             "overtime_half_time_break",
             "between_game_break",
+            "start_first_game_at_this_time",
         }
         internal_name = None
         for period in self.periods + self.overtime_periods + self.sudden_death_periods:
