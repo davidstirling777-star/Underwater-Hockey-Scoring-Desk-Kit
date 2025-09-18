@@ -588,15 +588,15 @@ class GameManagementApp:
     is_break = (cur_period['type'] == 'break'
         or cur_period['name'] in ["White Team Timeout", "Black Team Timeout"])
 
-    # Only show confirmation and add goal if user agrees
-    if is_break:
-        if not messagebox.askyesno(
-            "Add Goal During Break?",
-            f"You are about to add a goal for {team_name} during a break or half time. Are you sure?"
-        ):
-            return
+        # Only show confirmation and add goal if user agrees
+        if is_break:
+            if not messagebox.askyesno(
+                "Add Goal During Break?",
+                f"You are about to add a goal for {team_name} during a break or half time. Are you sure?"
+            ):
+                return
 
-    score_var.set(score_var.get() + 1)
+        score_var.set(score_var.get() + 1)
 
     # Overtime Game Break or Sudden Death Game Break logic: handle post-goal transitions
     if cur_period['name'] in ['Overtime Game Break', 'Sudden Death Game Break']:
