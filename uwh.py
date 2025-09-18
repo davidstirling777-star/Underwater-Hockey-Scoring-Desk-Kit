@@ -150,33 +150,33 @@ class GameManagementApp:
         self.white_timeout_button.grid(row=9, column=0, rowspan=2, padx=1, pady=1, sticky="nsew")
 
         self.white_goal_button = tk.Button(
-            tab, text="Add Goal White", font=self.fonts["button"], bg="cyan",
+            tab, text="Add Goal White", font=self.fonts["button"], bg="light grey",
             command=lambda: self.add_goal_with_confirmation(self.white_score_var, "White")
         )
         self.white_goal_button.grid(row=9, column=1, padx=1, pady=1, sticky="nsew")
 
         self.white_minus_button = tk.Button(
-            tab, text="-ve Goal White", font=self.fonts["button"], bg="red",
+            tab, text="-ve Goal White", font=self.fonts["button"], bg="light grey",
             command=lambda: self.adjust_score_with_confirm(self.white_score_var, "White")
         )
-        self.white_minus_button.grid(row=9, column=2, padx=1, pady=1, sticky="nsew")
+        self.white_minus_button.grid(row=10, column=1, padx=1, pady=1, sticky="nsew")   
 
         self.ref_timeout_button = tk.Button(
             tab, text="Ref Time Out", font=self.fonts["button"], bg="red"
         )
-        self.ref_timeout_button.grid(row=9, column=3, columnspan=2, padx=1, pady=1, sticky="nsew")
+        self.ref_timeout_button.grid(row=9, rowspan=2,column=2, columnspan=2, padx=1, pady=1, sticky="nsew")
 
-        self.test_121_label = tk.Label(tab, text="Test 121", font=self.fonts["game_no"], bg="silver")
-        self.test_121_label.grid(row=10, column=2, columnspan=2, padx=1, pady=1, sticky="nsew")
+        self.test_121_label = tk.Label(tab, text="Test 121", font=self.fonts["game_no"], bg="light grey")
+        self.test_121_label.grid(row=2, column=2, columnspan=2, padx=1, pady=1, sticky="nsew")
 
         self.black_goal_button = tk.Button(
-            tab, text="Add Goal Black", font=self.fonts["button"], bg="wheat",
+            tab, text="Add Goal Black", font=self.fonts["button"], bg="light grey",
             command=lambda: self.add_goal_with_confirmation(self.black_score_var, "Black")
         )
         self.black_goal_button.grid(row=9, column=4, padx=1, pady=1, sticky="nsew")
 
         self.black_minus_button = tk.Button(
-            tab, text="-ve Goal Black", font=self.fonts["button"], bg="turquoise",
+            tab, text="-ve Goal Black", font=self.fonts["button"], bg="light grey",
             command=lambda: self.adjust_score_with_confirm(self.black_score_var, "Black")
         )
         self.black_minus_button.grid(row=10, column=4, padx=1, pady=1, sticky="nsew")
