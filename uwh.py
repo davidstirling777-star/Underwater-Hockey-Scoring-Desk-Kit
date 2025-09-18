@@ -13,17 +13,17 @@ class GameManagementApp:
 
         self.settings_file = "game_settings.json"
         self.variables = {
-            "start_first_game_at_this_time": {"default": "12:00", "checkbox": False, "unit": "hh:mm"},
-            "half_period": {"default": 15, "checkbox": False, "unit": "minutes"},
-            "half_time_break": {"default": 3, "checkbox": False, "unit": "minutes"},
-            "overtime_game_break": {"default": 3, "checkbox": True, "unit": "minutes"},
-            "overtime_half_period": {"default": 5, "checkbox": True, "unit": "minutes"},
+            "start_first_game_at_this_time": {"default": 1, "checkbox": False, "unit": "hh:mm"},
+            "half_period": {"default": 1, "checkbox": False, "unit": "minutes"},
+            "half_time_break": {"default": 1, "checkbox": False, "unit": "minutes"},
+            "overtime_game_break": {"default": 1, "checkbox": True, "unit": "minutes"},
+            "overtime_half_period": {"default": 1, "checkbox": True, "unit": "minutes"},
             "overtime_half_time_break": {"default": 1, "checkbox": True, "unit": "minutes"},
-            "overtime_second_half": {"default": 5, "checkbox": True, "unit": "minutes"},
+            "overtime_second_half": {"default": 1, "checkbox": True, "unit": "minutes"},
             "sudden_death_game_break": {"default": 1, "checkbox": True, "unit": "minutes"},
-            "between_game_break": {"default": 5, "checkbox": False, "unit": "minutes"},
+            "between_game_break": {"default": 1, "checkbox": False, "unit": "minutes"},
             "timeout_period": {"default": 1, "checkbox": True, "unit": "minutes"},
-            "crib_time": {"default": 60, "checkbox": True, "unit": "seconds"}
+            "crib_time": {"default": 1, "checkbox": True, "unit": "seconds"}
         }
         self.periods = []
         self.overtime_periods = []
