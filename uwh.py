@@ -11,7 +11,6 @@ class GameManagementApp:
         self.notebook = ttk.Notebook(master)
         self.notebook.pack(expand=True, fill='both', padx=10, pady=10)
 
-        # All variables default to 1 (all entry fields will show "1")
         self.variables = {
             "team_timeouts_allowed": {"default": True, "checkbox": True, "unit": "", "label": "Team time outs allowed?"},
             "start_first_game_at_this_time": {"default": 1, "checkbox": False, "unit": "hh:mm"},
@@ -63,7 +62,7 @@ class GameManagementApp:
 
         self.full_sequence = []
         self.current_index = 0
-        self.game_started = False  # Track if game has started
+        self.game_started = False
 
         self.widgets = []
         self.last_valid_values = {}
@@ -117,76 +116,90 @@ class GameManagementApp:
     def create_scoreboard_tab(self):
         tab = ttk.Frame(self.notebook)
         self.notebook.add(tab, text="Scoreboard")
-        for i, weight in enumerate([1, 2, 5, 1]):
-            tab.grid_rowconfigure(i, weight=weight)
-        for i in range(5):
+
+        for i in range(11):
+            tab.grid_rowconfigure(i, weight=1)
+        for i in range(6):
             tab.grid_columnconfigure(i, weight=1)
 
-        self.court_time_label = tk.Label(tab, text="Court Time is", font=self.fonts["court_time"])
-        self.court_time_label.grid(row=0, column=0, columnspan=5, pady=1, sticky="nsew")
-        self.half_label = tk.Label(tab, text="", font=self.fonts["half"], bg="lightblue")
-        self.half_label.grid(row=1, column=0, columnspan=5, pady=1, sticky="nsew")
+        # Widget 1: Court Time (light grey)
+        self.court_time_label = tk.Label(tab, text="Court Time is", font=self.fonts["court_time"], bg="lightgrey")
+        self.court_time_label.grid(row=0, column=0, columnspan=6, padx=1, pady=1, sticky="nsew")
 
-        scoreboard_frame = tk.Frame(tab, bg="grey")
-        scoreboard_frame.grid(row=2, column=0, columnspan=5, sticky="nsew", padx=1, pady=1)
-        for i in range(5):
-            scoreboard_frame.grid_columnconfigure(i, weight=1)
-        for i in range(5):
-            scoreboard_frame.grid_rowconfigure(i, weight=1)
+        # Widget 2: Game Status (lightcoral)
+        self.half_label = tk.Label(tab, text="", font=self.fonts["half"], bg="lightcoral")
+        self.half_label.grid(row=1, column=0, columnspan=6, padx=1, pady=1, sticky="nsew")
 
-        self.white_label = tk.Label(scoreboard_frame, text="White", font=self.fonts["team"], bg="white", fg="black")
-        self.white_label.grid(row=0, column=1, sticky="new", padx=5, pady=2)
-        self.white_score = tk.Label(scoreboard_frame, textvariable=self.white_score_var, font=self.fonts["score"], bg="white", fg="black")
-        self.white_score.grid(row=1, column=1, sticky="nsew", padx=5, pady=(0, 2))
-        self.white_goal_button = tk.Button(scoreboard_frame, text="Add Goal", command=lambda: self.add_goal_with_confirmation(self.white_score_var, "White"), font=self.fonts["button"])
-        self.white_goal_button.grid(row=2, column=1, sticky="ew", padx=2, pady=2)
-        self.white_minus_button = tk.Button(scoreboard_frame, text="-ve Goal", command=lambda: self.adjust_score_with_confirm(self.white_score_var, "White"), font=self.fonts["button"])
-        self.white_minus_button.grid(row=3, column=1, sticky="ew", padx=2, pady=2)
+        # Widget 3: White Team Name (white)
+        self.white_label = tk.Label(tab, text="White", font=self.fonts["team"], bg="white", fg="black")
+        self.white_label.grid(row=2, column=0, columnspan=2, padx=1, pady=1, sticky="nsew")
 
+        # Widget 4: White Score (white)
+        self.white_score = tk.Label(tab, textvariable=self.white_score_var, font=self.fonts["score"], bg="white", fg="black")
+        self.white_score.grid(row=3, column=0, rowspan=6, columnspan=2, padx=1, pady=1, sticky="nsew")
+
+        # Widget 5: Timer (light grey background, black font)
+        self.timer_label = tk.Label(tab, text="00:00", font=self.fonts["timer"], bg="lightgrey", fg="black")
+        self.timer_label.grid(row=3, column=2, rowspan=6, columnspan=2, padx=1, pady=1, sticky="nsew")
+
+        # Widget 6: Black Team Name (black)
+        self.black_label = tk.Label(tab, text="Black", font=self.fonts["team"], bg="black", fg="white")
+        self.black_label.grid(row=2, column=4, columnspan=2, padx=1, pady=1, sticky="nsew")
+
+        # Widget 7: Black Score (black)
+        self.black_score = tk.Label(tab, textvariable=self.black_score_var, font=self.fonts["score"], bg="black", fg="white")
+        self.black_score.grid(row=3, column=4, rowspan=6, columnspan=2, padx=1, pady=1, sticky="nsew")
+
+        # Widget 8: White Team Timeout Button (white)
         self.white_timeout_button = tk.Button(
-            scoreboard_frame,
-            text="White Team\nTime Out",
-            font=self.fonts["button"],
-            bg="white",
-            fg="black",
-            justify="center",
-            wraplength=180,
-            height=2,
-            command=self.white_team_timeout
+            tab, text="White Team\nTime Out", font=self.fonts["button"], bg="white", fg="black",
+            justify="center", wraplength=180, height=2, command=self.white_team_timeout
         )
-        self.white_timeout_button.grid(row=1, column=0, rowspan=3, sticky="ew", padx=2, pady=2, ipadx=10, ipady=10)
+        self.white_timeout_button.grid(row=9, column=0, rowspan=2, padx=1, pady=1, sticky="nsew")
 
-        self.timer_label = tk.Label(scoreboard_frame, text="00:00", font=self.fonts["timer"], bg="lightgrey", fg="darkblue")
-        self.timer_label.grid(row=0, column=2, rowspan=2, sticky="nsew", padx=5, pady=5)
+        # Widget 9: Add Goal White (cyan)
+        self.white_goal_button = tk.Button(
+            tab, text="Add Goal White", font=self.fonts["button"], bg="cyan",
+            command=lambda: self.add_goal_with_confirmation(self.white_score_var, "White")
+        )
+        self.white_goal_button.grid(row=9, column=1, padx=1, pady=1, sticky="nsew")
 
-        self.black_label = tk.Label(scoreboard_frame, text="Black", font=self.fonts["team"], bg="black", fg="white")
-        self.black_label.grid(row=0, column=3, sticky="new", padx=5, pady=2)
-        self.black_score = tk.Label(scoreboard_frame, textvariable=self.black_score_var, font=self.fonts["score"], bg="black", fg="white")
-        self.black_score.grid(row=1, column=3, sticky="nsew", padx=5, pady=(0, 2))
-        self.black_goal_button = tk.Button(scoreboard_frame, text="Add Goal", command=lambda: self.add_goal_with_confirmation(self.black_score_var, "Black"), font=self.fonts["button"])
-        self.black_goal_button.grid(row=2, column=3, sticky="ew", padx=2, pady=2)
-        self.black_minus_button = tk.Button(scoreboard_frame, text="-ve Goal", command=lambda: self.adjust_score_with_confirm(self.black_score_var, "Black"), font=self.fonts["button"])
-        self.black_minus_button.grid(row=3, column=3, sticky="ew", padx=2, pady=2)
+        # Widget 11: -ve Goal White (red) and Ref Timeout (red, columns 3-4)
+        self.white_minus_button = tk.Button(
+            tab, text="-ve Goal White", font=self.fonts["button"], bg="red",
+            command=lambda: self.adjust_score_with_confirm(self.white_score_var, "White")
+        )
+        self.white_minus_button.grid(row=9, column=2, padx=1, pady=1, sticky="nsew")
 
+        self.ref_timeout_button = tk.Button(
+            tab, text="Ref Time Out", font=self.fonts["button"], bg="red"
+        )
+        self.ref_timeout_button.grid(row=9, column=3, columnspan=2, padx=1, pady=1, sticky="nsew")
+
+        # Widget 12: Test 121 (silver)
+        self.test_121_label = tk.Label(tab, text="Test 121", font=self.fonts["game_no"], bg="silver")
+        self.test_121_label.grid(row=10, column=2, columnspan=2, padx=1, pady=1, sticky="nsew")
+
+        # Widget 13: Add Goal Black (wheat)
+        self.black_goal_button = tk.Button(
+            tab, text="Add Goal Black", font=self.fonts["button"], bg="wheat",
+            command=lambda: self.add_goal_with_confirmation(self.black_score_var, "Black")
+        )
+        self.black_goal_button.grid(row=9, column=4, padx=1, pady=1, sticky="nsew")
+
+        # Widget 14: -ve Goal Black (turquoise)
+        self.black_minus_button = tk.Button(
+            tab, text="-ve Goal Black", font=self.fonts["button"], bg="turquoise",
+            command=lambda: self.adjust_score_with_confirm(self.black_score_var, "Black")
+        )
+        self.black_minus_button.grid(row=10, column=4, padx=1, pady=1, sticky="nsew")
+
+        # Widget 15: Black Team Timeout Button (black)
         self.black_timeout_button = tk.Button(
-            scoreboard_frame,
-            text="Black Team\nTime Out",
-            font=self.fonts["button"],
-            bg="black",
-            fg="white",
-            justify="center",
-            wraplength=180,
-            height=2,
-            command=self.black_team_timeout
+            tab, text="Black Team\nTime Out", font=self.fonts["button"], bg="black", fg="white",
+            justify="center", wraplength=180, height=2, command=self.black_team_timeout
         )
-        self.black_timeout_button.grid(row=1, column=4, rowspan=3, sticky="ew", padx=2, pady=2, ipadx=10, ipady=10)
-
-        game_info_frame = tk.Frame(tab)
-        game_info_frame.grid(row=3, column=0, columnspan=5, pady=10, padx=10, sticky="ew")
-        for i in range(5):
-            game_info_frame.grid_columnconfigure(i, weight=1)
-        self.game_no_label = tk.Label(game_info_frame, text="This is game No 121.", font=self.fonts["game_no"])
-        self.game_no_label.grid(row=0, column=2, pady=5, sticky="ew")
+        self.black_timeout_button.grid(row=9, column=5, rowspan=2, padx=1, pady=1, sticky="nsew")
 
         self.update_team_timeouts_allowed()
 
@@ -494,7 +507,6 @@ class GameManagementApp:
         self.half_label.config(text=cur_period['name'])
         self.update_half_label_background(cur_period['name'])
 
-        # Pause court time during overtime and sudden death periods
         paused_periods = [
             'Overtime Game Break',
             'Overtime First Half',
@@ -598,7 +610,6 @@ class GameManagementApp:
         is_break = (cur_period['type'] == 'break'
             or cur_period['name'] in ["White Team Timeout", "Black Team Timeout"])
 
-        # Only show confirmation and add goal if user agrees
         if is_break:
             if not messagebox.askyesno(
                 "Add Goal During Break?",
@@ -608,7 +619,6 @@ class GameManagementApp:
 
         score_var.set(score_var.get() + 1)
 
-        # Overtime Game Break or Sudden Death Game Break logic: handle post-goal transitions
         if cur_period['name'] in ['Overtime Game Break', 'Sudden Death Game Break']:
             if self.white_score_var.get() != self.black_score_var.get():
                 self.current_index = self.find_period_index('Between Game Break')
@@ -623,17 +633,4 @@ class GameManagementApp:
                         return
 
         if cur_period['name'] == 'Sudden Death' and not getattr(self, 'sudden_death_goal_scored', False):
-            self.sudden_death_goal_scored = True
-            self.timer_running = False
-            self.stop_sudden_death_timer()
-            self.goto_between_game_break()
-
-    def adjust_score_with_confirm(self, score_var, team_name):
-        if score_var.get() > 0:
-            if messagebox.askyesno("Remove Goal", f"Are you sure you want to remove a goal from {team_name}?"):
-                score_var.set(score_var.get() - 1)
-
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = GameManagementApp(root)
-    root.mainloop()
+            self.sudden_death
