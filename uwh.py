@@ -122,49 +122,39 @@ class GameManagementApp:
         for i in range(6):
             tab.grid_columnconfigure(i, weight=1)
 
-        # Widget 1: Court Time (light grey)
         self.court_time_label = tk.Label(tab, text="Court Time is", font=self.fonts["court_time"], bg="lightgrey")
         self.court_time_label.grid(row=0, column=0, columnspan=6, padx=1, pady=1, sticky="nsew")
 
-        # Widget 2: Game Status (lightcoral)
         self.half_label = tk.Label(tab, text="", font=self.fonts["half"], bg="lightcoral")
         self.half_label.grid(row=1, column=0, columnspan=6, padx=1, pady=1, sticky="nsew")
 
-        # Widget 3: White Team Name (white)
         self.white_label = tk.Label(tab, text="White", font=self.fonts["team"], bg="white", fg="black")
         self.white_label.grid(row=2, column=0, columnspan=2, padx=1, pady=1, sticky="nsew")
 
-        # Widget 4: White Score (white)
         self.white_score = tk.Label(tab, textvariable=self.white_score_var, font=self.fonts["score"], bg="white", fg="black")
         self.white_score.grid(row=3, column=0, rowspan=6, columnspan=2, padx=1, pady=1, sticky="nsew")
 
-        # Widget 5: Timer (light grey background, black font)
         self.timer_label = tk.Label(tab, text="00:00", font=self.fonts["timer"], bg="lightgrey", fg="black")
         self.timer_label.grid(row=3, column=2, rowspan=6, columnspan=2, padx=1, pady=1, sticky="nsew")
 
-        # Widget 6: Black Team Name (black)
         self.black_label = tk.Label(tab, text="Black", font=self.fonts["team"], bg="black", fg="white")
         self.black_label.grid(row=2, column=4, columnspan=2, padx=1, pady=1, sticky="nsew")
 
-        # Widget 7: Black Score (black)
         self.black_score = tk.Label(tab, textvariable=self.black_score_var, font=self.fonts["score"], bg="black", fg="white")
         self.black_score.grid(row=3, column=4, rowspan=6, columnspan=2, padx=1, pady=1, sticky="nsew")
 
-        # Widget 8: White Team Timeout Button (white)
         self.white_timeout_button = tk.Button(
             tab, text="White Team\nTime Out", font=self.fonts["button"], bg="white", fg="black",
             justify="center", wraplength=180, height=2, command=self.white_team_timeout
         )
         self.white_timeout_button.grid(row=9, column=0, rowspan=2, padx=1, pady=1, sticky="nsew")
 
-        # Widget 9: Add Goal White (cyan)
         self.white_goal_button = tk.Button(
             tab, text="Add Goal White", font=self.fonts["button"], bg="cyan",
             command=lambda: self.add_goal_with_confirmation(self.white_score_var, "White")
         )
         self.white_goal_button.grid(row=9, column=1, padx=1, pady=1, sticky="nsew")
 
-        # Widget 11: -ve Goal White (red) and Ref Timeout (red, columns 3-4)
         self.white_minus_button = tk.Button(
             tab, text="-ve Goal White", font=self.fonts["button"], bg="red",
             command=lambda: self.adjust_score_with_confirm(self.white_score_var, "White")
@@ -176,25 +166,21 @@ class GameManagementApp:
         )
         self.ref_timeout_button.grid(row=9, column=3, columnspan=2, padx=1, pady=1, sticky="nsew")
 
-        # Widget 12: Test 121 (silver)
         self.test_121_label = tk.Label(tab, text="Test 121", font=self.fonts["game_no"], bg="silver")
         self.test_121_label.grid(row=10, column=2, columnspan=2, padx=1, pady=1, sticky="nsew")
 
-        # Widget 13: Add Goal Black (wheat)
         self.black_goal_button = tk.Button(
             tab, text="Add Goal Black", font=self.fonts["button"], bg="wheat",
             command=lambda: self.add_goal_with_confirmation(self.black_score_var, "Black")
         )
         self.black_goal_button.grid(row=9, column=4, padx=1, pady=1, sticky="nsew")
 
-        # Widget 14: -ve Goal Black (turquoise)
         self.black_minus_button = tk.Button(
             tab, text="-ve Goal Black", font=self.fonts["button"], bg="turquoise",
             command=lambda: self.adjust_score_with_confirm(self.black_score_var, "Black")
         )
         self.black_minus_button.grid(row=10, column=4, padx=1, pady=1, sticky="nsew")
 
-        # Widget 15: Black Team Timeout Button (black)
         self.black_timeout_button = tk.Button(
             tab, text="Black Team\nTime Out", font=self.fonts["button"], bg="black", fg="white",
             justify="center", wraplength=180, height=2, command=self.black_team_timeout
@@ -317,12 +303,17 @@ class GameManagementApp:
         return v["sudden_death_game_break"].get("used", True)
 
     def reset_timeouts_for_half(self):
-        self.white_timeouts_this_half = 0
-        self.black_timeouts_this_half = 0
+        # FIX: Only disable the button for a team that has used their timeout.
         period = self.full_sequence[self.current_index]
         if period['type'] in ['regular']:
-            self.white_timeout_button.config(state=tk.NORMAL)
-            self.black_timeout_button.config(state=tk.NORMAL)
+            if self.white_timeouts_this_half < 1:
+                self.white_timeout_button.config(state=tk.NORMAL)
+            else:
+                self.white_timeout_button.config(state=tk.DISABLED)
+            if self.black_timeouts_this_half < 1:
+                self.black_timeout_button.config(state=tk.NORMAL)
+            else:
+                self.black_timeout_button.config(state=tk.DISABLED)
         else:
             self.white_timeout_button.config(state=tk.DISABLED)
             self.black_timeout_button.config(state=tk.DISABLED)
@@ -393,7 +384,7 @@ class GameManagementApp:
         label.pack(pady=20)
         btn = tk.Button(popup, text="OK", font=self.fonts["button"], command=popup.destroy)
         btn.pack(pady=5)
-        self.team_timeouts_allowed_var.set(False)
+        # FIX: Do NOT disable both teams' timeout buttons, just keep the popup.
 
     def update_court_time(self):
         if self.court_time_paused:
@@ -632,5 +623,33 @@ class GameManagementApp:
                         self.start_current_period()
                         return
 
+        # FIX: Complete Sudden Death logic
         if cur_period['name'] == 'Sudden Death' and not getattr(self, 'sudden_death_goal_scored', False):
-            self.sudden_death
+            self.sudden_death_goal_scored = True
+            self.stop_sudden_death_timer()
+            self.next_period()
+
+    def adjust_score_with_confirm(self, score_var, team_name):
+        cur_period = self.full_sequence[self.current_index]
+        is_break = (cur_period['type'] == 'break'
+            or cur_period['name'] in ["White Team Timeout", "Black Team Timeout"])
+        if is_break:
+            if not messagebox.askyesno(
+                "Adjust Goal During Break?",
+                f"You are about to adjust a goal for {team_name} during a break or half time. Are you sure?"
+            ):
+                return
+
+        if score_var.get() > 0:
+            score_var.set(score_var.get() - 1)
+
+        if cur_period['name'] == 'Sudden Death' and not getattr(self, 'sudden_death_goal_scored', False):
+            self.sudden_death_goal_scored = True
+            self.stop_sudden_death_timer()
+            self.next_period()
+
+# If this script is run directly, start the GUI
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = GameManagementApp(root)
+    root.mainloop()
