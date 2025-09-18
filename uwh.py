@@ -46,6 +46,7 @@ class GameManagementApp:
         self.court_time_seconds = 0
         self.court_time_job = None
         self.court_time_paused = False
+        self.timer_job = None
 
         self.reset_timer_button = None
 
@@ -89,7 +90,6 @@ class GameManagementApp:
 
     def build_game_sequence(self):
         seq = []
-        # Only run "Game Starts in:" once at the very start
         if not self.game_started:
             seq.append({'name': 'Game Starts in:', 'type': 'break', 'duration': self.get_minutes('start_first_game_at_this_time')})
             self.game_started = True
@@ -386,6 +386,8 @@ class GameManagementApp:
         if self.court_time_paused:
             self.court_time_job = self.master.after(1000, self.update_court_time)
             return
+        if self.court_time_dt is None:
+            self.court_time_dt = datetime.datetime.now()
         current_dt = self.court_time_dt + datetime.timedelta(seconds=self.court_time_seconds)
         time_string = current_dt.strftime('%I:%M:%S %p').lstrip('0')
         self.court_time_label.config(text=f"Court Time is {time_string}")
@@ -451,7 +453,6 @@ class GameManagementApp:
         if self.timer_seconds > 0:
             self.timer_seconds -= 1
 
-            # Reset scores to 0 when Between Game Break hits 30 seconds
             cur_period = self.full_sequence[self.current_index] if self.full_sequence and self.current_index < len(self.full_sequence) else None
             if cur_period and cur_period['name'] == 'Between Game Break' and self.timer_seconds == 30:
                 self.white_score_var.set(0)
@@ -488,25 +489,25 @@ class GameManagementApp:
 
     def start_current_period(self):
         if self.current_index >= len(self.full_sequence):
-            # Loop back to Between Game Break
             self.current_index = self.find_period_index('Between Game Break')
         cur_period = self.full_sequence[self.current_index]
         self.half_label.config(text=cur_period['name'])
         self.update_half_label_background(cur_period['name'])
-            # New logic: pause court time during overtime and sudden death periods
-    paused_periods = [
-        'Overtime Game Break',
-        'Overtime First Half',
-        'Overtime Half Time',
-        'Overtime Second Half',
-        'Sudden Death Game Break',
-        'Sudden Death'
-    ]
-    if cur_period['name'] in paused_periods:
-        self.court_time_paused = True
-    else:
-        self.court_time_paused = False
-        
+
+        # Pause court time during overtime and sudden death periods
+        paused_periods = [
+            'Overtime Game Break',
+            'Overtime First Half',
+            'Overtime Half Time',
+            'Overtime Second Half',
+            'Sudden Death Game Break',
+            'Sudden Death'
+        ]
+        if cur_period['name'] in paused_periods:
+            self.court_time_paused = True
+        else:
+            self.court_time_paused = False
+
         if cur_period['name'] == 'Sudden Death':
             self.timer_running = True
             self.sudden_death_seconds = 0
@@ -529,7 +530,6 @@ class GameManagementApp:
             self.timer_job = None
 
         if self.current_index >= len(self.full_sequence):
-            # Finished game, loop back to Between Game Break
             self.current_index = self.find_period_index('Between Game Break')
             self.start_current_period()
             return
@@ -537,15 +537,12 @@ class GameManagementApp:
         cur_period = self.full_sequence[self.current_index]
         period_name = cur_period['name']
 
-        # Overtime Second Half: if scores are not tied, go to Between Game Break
         if period_name == 'Overtime Second Half':
             if self.white_score_var.get() != self.black_score_var.get():
                 self.current_index = self.find_period_index('Between Game Break')
                 self.start_current_period()
                 return
-            # If tied, continue to next period (e.g., Sudden Death if enabled)
 
-        # Sudden death: end after goal
         if period_name == 'Sudden Death' and self.sudden_death_goal_scored:
             self.current_index = self.find_period_index('Between Game Break')
             self.start_current_period()
@@ -553,7 +550,6 @@ class GameManagementApp:
 
         self.current_index += 1
 
-        # After Between Game Break, always go to First Half
         if self.current_index < len(self.full_sequence):
             next_period = self.full_sequence[self.current_index]
             if next_period['name'] == 'Between Game Break':
@@ -561,7 +557,6 @@ class GameManagementApp:
                 self.start_current_period()
                 return
 
-        # If we've gone past the end, go to Between Game Break, THEN First Half
         if self.current_index >= len(self.full_sequence):
             self.current_index = self.find_period_index('Between Game Break')
             self.start_current_period()
@@ -598,9 +593,10 @@ class GameManagementApp:
     def scale_fonts(self, event):
         pass
 
-    cur_period = self.full_sequence[self.current_index]
-    is_break = (cur_period['type'] == 'break'
-        or cur_period['name'] in ["White Team Timeout", "Black Team Timeout"])
+    def add_goal_with_confirmation(self, score_var, team_name):
+        cur_period = self.full_sequence[self.current_index]
+        is_break = (cur_period['type'] == 'break'
+            or cur_period['name'] in ["White Team Timeout", "Black Team Timeout"])
 
         # Only show confirmation and add goal if user agrees
         if is_break:
@@ -612,28 +608,25 @@ class GameManagementApp:
 
         score_var.set(score_var.get() + 1)
 
-    # Overtime Game Break or Sudden Death Game Break logic: handle post-goal transitions
-    if cur_period['name'] in ['Overtime Game Break', 'Sudden Death Game Break']:
-        if self.white_score_var.get() != self.black_score_var.get():
-            # Scores are uneven, there is a winner, go to Between Game Break
-            self.current_index = self.find_period_index('Between Game Break')
-            self.start_current_period()
-            return
-        elif self.white_score_var.get() == self.black_score_var.get():
-            # Scores are now even, move on to the relevant next overtime/sudden death period
-            for idx in range(self.current_index + 1, len(self.full_sequence)):
-                next_period = self.full_sequence[idx]
-                if next_period['name'] in ['Overtime First Half', 'Sudden Death']:
-                    self.current_index = idx
-                    self.start_current_period()
-                    return
+        # Overtime Game Break or Sudden Death Game Break logic: handle post-goal transitions
+        if cur_period['name'] in ['Overtime Game Break', 'Sudden Death Game Break']:
+            if self.white_score_var.get() != self.black_score_var.get():
+                self.current_index = self.find_period_index('Between Game Break')
+                self.start_current_period()
+                return
+            elif self.white_score_var.get() == self.black_score_var.get():
+                for idx in range(self.current_index + 1, len(self.full_sequence)):
+                    next_period = self.full_sequence[idx]
+                    if next_period['name'] in ['Overtime First Half', 'Sudden Death']:
+                        self.current_index = idx
+                        self.start_current_period()
+                        return
 
-    # Sudden Death period: scoring ends game
-    if cur_period['name'] == 'Sudden Death' and not getattr(self, 'sudden_death_goal_scored', False):
-        self.sudden_death_goal_scored = True
-        self.timer_running = False
-        self.stop_sudden_death_timer()
-        self.goto_between_game_break()
+        if cur_period['name'] == 'Sudden Death' and not getattr(self, 'sudden_death_goal_scored', False):
+            self.sudden_death_goal_scored = True
+            self.timer_running = False
+            self.stop_sudden_death_timer()
+            self.goto_between_game_break()
 
     def adjust_score_with_confirm(self, score_var, team_name):
         if score_var.get() > 0:
