@@ -720,82 +720,20 @@ class GameManagementApp:
             self.reset_timer_button.config(state=tk.NORMAL)
         self.timer_running = False
 
-    def next_period(self):
-        if self.timer_job:
-            self.master.after_cancel(self.timer_job)
-            self.timer_job = None
+def next_period(self):
+    if self.timer_job:
+        self.master.after_cancel(self.timer_job)
+        self.timer_job = None
 
-        self.current_period_index += 1
-
-        # At the end of the second half, if tied and overtime is enabled, enter overtime
-        if self.periods and self.current_period_index < len(self.periods):
-            cur_setting = self.periods[self.current_period_index - 1].get("setting_name", "")
-            if cur_setting == "second_half" and self.timer_seconds == 0:
-                if self.white_score_var.get() == self.black_score_var.get():
-                    if self.is_overtime_enabled() and self.overtime_periods:
-                        self.periods = self.overtime_periods + self.periods[self.current_period_index:]
-                        self.current_period_index = 0
-                        self.timer_seconds = self.periods[0]["duration"]
-                        self.half_label.config(text=self.periods[0]["name"])
-                        self.update_half_label_background(self.periods[0]["name"])
-                        self.timer_running = True
-                        self.countdown_timer()
-                        return
-                    elif self.is_sudden_death_enabled() and self.sudden_death_periods:
-                        self.periods = self.sudden_death_periods + self.periods[self.current_period_index:]
-                        self.current_period_index = 0
-                        self.timer_seconds = self.sudden_death_periods[0]["duration"]
-                        self.half_label.config(text=self.sudden_death_periods[0]["name"])
-                        self.update_half_label_background(self.sudden_death_periods[0]["name"])
-                        self.in_sudden_death = True
-                        self.sudden_death_goal_scored = False
-                        self.timer_running = True
-                        self.countdown_timer()
-                        return
-                self.goto_between_game_break()
-                return
-
-        if self.periods == self.overtime_periods:
-            overtime_second_half_idx = None
-            for idx, p in enumerate(self.overtime_periods):
-                if p.get("setting_name") == "overtime_second_half":
-                    overtime_second_half_idx = idx
-                    break
-            if overtime_second_half_idx is not None and self.current_period_index > overtime_second_half_idx:
-                if self.white_score_var.get() == self.black_score_var.get() and self.is_sudden_death_enabled():
-                    self.periods = self.sudden_death_periods
-                    self.current_period_index = 0
-                    self.timer_seconds = self.sudden_death_periods[0]["duration"]
-                    self.half_label.config(text=self.sudden_death_periods[0]["name"])
-                    self.update_half_label_background(self.sudden_death_periods[0]["name"])
-                    self.in_sudden_death = True
-                    self.sudden_death_goal_scored = False
-                    self.timer_running = True
-                    self.countdown_timer()
-                    return
-                else:
-                    self.goto_between_game_break()
-                    return
-
-        if self.periods == self.sudden_death_periods:
-            if self.current_period_index < len(self.sudden_death_periods):
-                period = self.sudden_death_periods[self.current_period_index]
-                if period.get("setting_name") == "sudden_death":
-                    self.sudden_death_seconds = 0
-                    self.half_label.config(text=period["name"])
-                    self.update_half_label_background(period["name"])
-                    self.update_timer_display()
-                    self.timer_running = True
-                    self.start_sudden_death_timer()
-                    return
-            if self.current_period_index >= len(self.sudden_death_periods):
-                self.goto_between_game_break()
-                return
-
-        if self.current_period_index >= len(self.periods):
+    # Check for end of second half BEFORE incrementing period index
+    if self.periods and self.current_period_index < len(self.periods):
+        cur_setting = self.periods[self.current_period_index].get("setting_name", "")
+        # Only do this if the current period is "second_half" and timer reached zero
+        if cur_setting == "second_half" and self.timer_seconds == 0:
             if self.white_score_var.get() == self.black_score_var.get():
+                # Overtime
                 if self.is_overtime_enabled() and self.overtime_periods:
-                    self.periods = self.overtime_periods
+                    self.periods = self.overtime_periods + self.periods[self.current_period_index+1:]
                     self.current_period_index = 0
                     self.timer_seconds = self.periods[0]["duration"]
                     self.half_label.config(text=self.periods[0]["name"])
@@ -803,8 +741,9 @@ class GameManagementApp:
                     self.timer_running = True
                     self.countdown_timer()
                     return
+                # Sudden death
                 elif self.is_sudden_death_enabled() and self.sudden_death_periods:
-                    self.periods = self.sudden_death_periods
+                    self.periods = self.sudden_death_periods + self.periods[self.current_period_index+1:]
                     self.current_period_index = 0
                     self.timer_seconds = self.sudden_death_periods[0]["duration"]
                     self.half_label.config(text=self.sudden_death_periods[0]["name"])
@@ -814,17 +753,87 @@ class GameManagementApp:
                     self.timer_running = True
                     self.countdown_timer()
                     return
+            # Not tied: go to break
             self.goto_between_game_break()
             return
 
-        cur_period = self.periods[self.current_period_index]
-        self.timer_seconds = cur_period["duration"]
-        self.half_label.config(text=cur_period["name"])
-        self.update_half_label_background(cur_period["name"])
-        self.update_timer_display()
-        self.timer_running = True
-        self.countdown_timer()
+    # Now increment to the next period
+    self.current_period_index += 1
 
+    # Overtime period handling (unchanged)
+    if self.periods == self.overtime_periods:
+        overtime_second_half_idx = None
+        for idx, p in enumerate(self.overtime_periods):
+            if p.get("setting_name") == "overtime_second_half":
+                overtime_second_half_idx = idx
+                break
+        if overtime_second_half_idx is not None and self.current_period_index > overtime_second_half_idx:
+            if self.white_score_var.get() == self.black_score_var.get() and self.is_sudden_death_enabled():
+                self.periods = self.sudden_death_periods
+                self.current_period_index = 0
+                self.timer_seconds = self.sudden_death_periods[0]["duration"]
+                self.half_label.config(text=self.sudden_death_periods[0]["name"])
+                self.update_half_label_background(self.sudden_death_periods[0]["name"])
+                self.in_sudden_death = True
+                self.sudden_death_goal_scored = False
+                self.timer_running = True
+                self.countdown_timer()
+                return
+            else:
+                self.goto_between_game_break()
+                return
+
+    # Sudden death period handling (unchanged)
+    if self.periods == self.sudden_death_periods:
+        if self.current_period_index < len(self.sudden_death_periods):
+            period = self.sudden_death_periods[self.current_period_index]
+            if period.get("setting_name") == "sudden_death":
+                self.sudden_death_seconds = 0
+                self.half_label.config(text=period["name"])
+                self.update_half_label_background(period["name"])
+                self.update_timer_display()
+                self.timer_running = True
+                self.start_sudden_death_timer()
+                return
+        if self.current_period_index >= len(self.sudden_death_periods):
+            self.goto_between_game_break()
+            return
+
+    # At end of all periods
+    if self.current_period_index >= len(self.periods):
+        if self.white_score_var.get() == self.black_score_var.get():
+            if self.is_overtime_enabled() and self.overtime_periods:
+                self.periods = self.overtime_periods
+                self.current_period_index = 0
+                self.timer_seconds = self.periods[0]["duration"]
+                self.half_label.config(text=self.periods[0]["name"])
+                self.update_half_label_background(self.periods[0]["name"])
+                self.timer_running = True
+                self.countdown_timer()
+                return
+            elif self.is_sudden_death_enabled() and self.sudden_death_periods:
+                self.periods = self.sudden_death_periods
+                self.current_period_index = 0
+                self.timer_seconds = self.sudden_death_periods[0]["duration"]
+                self.half_label.config(text=self.sudden_death_periods[0]["name"])
+                self.update_half_label_background(self.sudden_death_periods[0]["name"])
+                self.in_sudden_death = True
+                self.sudden_death_goal_scored = False
+                self.timer_running = True
+                self.countdown_timer()
+                return
+        self.goto_between_game_break()
+        return
+
+    # Advance to next period
+    cur_period = self.periods[self.current_period_index]
+    self.timer_seconds = cur_period["duration"]
+    self.half_label.config(text=cur_period["name"])
+    self.update_half_label_background(cur_period["name"])
+    self.update_timer_display()
+    self.timer_running = True
+    self.countdown_timer()
+    
 if __name__ == "__main__":
     root = tk.Tk()
     app = GameManagementApp(root)
