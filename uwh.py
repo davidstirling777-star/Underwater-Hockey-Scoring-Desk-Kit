@@ -626,6 +626,10 @@ class GameManagementApp:
                 self.handle_tiebreak_and_overtime_logic()
 
     def handle_tiebreak_and_overtime_logic(self):
+        # Called after any score change during breaks/half time/overtime/sudden death
+        # At the end of Second Half or Overtime Second Half, if scores are tied, determine next step
+
+        # If in sudden death and a goal is scored, finish game
         if self.in_sudden_death and not self.sudden_death_goal_scored and (self.white_score_var.get() != self.black_score_var.get()):
             self.sudden_death_goal_scored = True
             self.timer_running = False
@@ -636,6 +640,7 @@ class GameManagementApp:
             self.goto_between_game_break()
             return
 
+        # If in between game break, check if scores are tied and transition
         if self.periods and self.current_period_index < len(self.periods):
             cur_setting = self.periods[self.current_period_index].get("setting_name", "")
             if cur_setting == "between_game_break":
@@ -661,6 +666,7 @@ class GameManagementApp:
                         self.countdown_timer()
                         return
 
+        # If in second half, and scores are tied after timer runs out, allow overtime if enabled
         if self.periods and self.current_period_index > 2:
             cur_setting = self.periods[self.current_period_index].get("setting_name", "")
             if cur_setting == "second_half" and self.timer_seconds == 0:
@@ -720,6 +726,34 @@ class GameManagementApp:
             self.timer_job = None
 
         self.current_period_index += 1
+
+        # At the end of the second half, if tied and overtime is enabled, enter overtime
+        if self.periods and self.current_period_index < len(self.periods):
+            cur_setting = self.periods[self.current_period_index - 1].get("setting_name", "")
+            if cur_setting == "second_half" and self.timer_seconds == 0:
+                if self.white_score_var.get() == self.black_score_var.get():
+                    if self.is_overtime_enabled() and self.overtime_periods:
+                        self.periods = self.overtime_periods + self.periods[self.current_period_index:]
+                        self.current_period_index = 0
+                        self.timer_seconds = self.periods[0]["duration"]
+                        self.half_label.config(text=self.periods[0]["name"])
+                        self.update_half_label_background(self.periods[0]["name"])
+                        self.timer_running = True
+                        self.countdown_timer()
+                        return
+                    elif self.is_sudden_death_enabled() and self.sudden_death_periods:
+                        self.periods = self.sudden_death_periods + self.periods[self.current_period_index:]
+                        self.current_period_index = 0
+                        self.timer_seconds = self.sudden_death_periods[0]["duration"]
+                        self.half_label.config(text=self.sudden_death_periods[0]["name"])
+                        self.update_half_label_background(self.sudden_death_periods[0]["name"])
+                        self.in_sudden_death = True
+                        self.sudden_death_goal_scored = False
+                        self.timer_running = True
+                        self.countdown_timer()
+                        return
+                self.goto_between_game_break()
+                return
 
         if self.periods == self.overtime_periods:
             overtime_second_half_idx = None
