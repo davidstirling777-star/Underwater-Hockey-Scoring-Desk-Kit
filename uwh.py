@@ -584,39 +584,42 @@ class GameManagementApp:
     def scale_fonts(self, event):
         pass
 
-    def add_goal_with_confirmation(self, score_var, team_name):
-        cur_period = self.full_sequence[self.current_index]
-        is_break = (cur_period['type'] == 'break'
-            or cur_period['name'] in ["White Team Timeout", "Black Team Timeout"])
+    cur_period = self.full_sequence[self.current_index]
+    is_break = (cur_period['type'] == 'break'
+        or cur_period['name'] in ["White Team Timeout", "Black Team Timeout"])
 
-        score_var.set(score_var.get() + 1)
+    # Only show confirmation and add goal if user agrees
+    if is_break:
+        if not messagebox.askyesno(
+            "Add Goal During Break?",
+            f"You are about to add a goal for {team_name} during a break or half time. Are you sure?"
+        ):
+            return
 
-        # Overtime Game Break or Sudden Death Game Break logic: handle post-goal transitions
-        if cur_period['name'] in ['Overtime Game Break', 'Sudden Death Game Break']:
-            if self.white_score_var.get() != self.black_score_var.get():
-                # Scores are uneven, there is a winner, go to Between Game Break
-                self.current_index = self.find_period_index('Between Game Break')
-                self.start_current_period()
-                return
-            elif self.white_score_var.get() == self.black_score_var.get():
-                # Scores are now even, move on to the relevant next overtime/sudden death period
-                for idx in range(self.current_index + 1, len(self.full_sequence)):
-                    next_period = self.full_sequence[idx]
-                    if next_period['name'] in ['Overtime First Half', 'Sudden Death']:
-                        self.current_index = idx
-                        self.start_current_period()
-                        return
+    score_var.set(score_var.get() + 1)
 
-        if is_break:
-            if not messagebox.askyesno("Add Goal During Break?", f"You are about to add a goal for {team_name} during a break or half time. Are you sure?"):
-                return
+    # Overtime Game Break or Sudden Death Game Break logic: handle post-goal transitions
+    if cur_period['name'] in ['Overtime Game Break', 'Sudden Death Game Break']:
+        if self.white_score_var.get() != self.black_score_var.get():
+            # Scores are uneven, there is a winner, go to Between Game Break
+            self.current_index = self.find_period_index('Between Game Break')
+            self.start_current_period()
+            return
+        elif self.white_score_var.get() == self.black_score_var.get():
+            # Scores are now even, move on to the relevant next overtime/sudden death period
+            for idx in range(self.current_index + 1, len(self.full_sequence)):
+                next_period = self.full_sequence[idx]
+                if next_period['name'] in ['Overtime First Half', 'Sudden Death']:
+                    self.current_index = idx
+                    self.start_current_period()
+                    return
 
-        # Sudden Death period: scoring ends game
-        if cur_period['name'] == 'Sudden Death' and not getattr(self, 'sudden_death_goal_scored', False):
-            self.sudden_death_goal_scored = True
-            self.timer_running = False
-            self.stop_sudden_death_timer()
-            self.goto_between_game_break()
+    # Sudden Death period: scoring ends game
+    if cur_period['name'] == 'Sudden Death' and not getattr(self, 'sudden_death_goal_scored', False):
+        self.sudden_death_goal_scored = True
+        self.timer_running = False
+        self.stop_sudden_death_timer()
+        self.goto_between_game_break()
 
     def adjust_score_with_confirm(self, score_var, team_name):
         if score_var.get() > 0:
