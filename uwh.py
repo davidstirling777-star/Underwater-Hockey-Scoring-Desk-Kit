@@ -493,6 +493,20 @@ class GameManagementApp:
         cur_period = self.full_sequence[self.current_index]
         self.half_label.config(text=cur_period['name'])
         self.update_half_label_background(cur_period['name'])
+            # New logic: pause court time during overtime and sudden death periods
+    paused_periods = [
+        'Overtime Game Break',
+        'Overtime First Half',
+        'Overtime Half Time',
+        'Overtime Second Half',
+        'Sudden Death Game Break',
+        'Sudden Death'
+    ]
+    if cur_period['name'] in paused_periods:
+        self.court_time_paused = True
+    else:
+        self.court_time_paused = False
+        
         if cur_period['name'] == 'Sudden Death':
             self.timer_running = True
             self.sudden_death_seconds = 0
