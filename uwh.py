@@ -11,12 +11,13 @@ class GameManagementApp:
         self.notebook = ttk.Notebook(master)
         self.notebook.pack(expand=True, fill='both', padx=10, pady=10)
 
+        # All variables default to 1 (all entry fields will show "1")
         self.variables = {
-            "team_timeouts_allowed": {"default": False, "checkbox": True, "unit": "", "label": "Team time outs allowed?"},
+            "team_timeouts_allowed": {"default": True, "checkbox": True, "unit": "", "label": "Team time outs allowed?"},
             "start_first_game_at_this_time": {"default": 1, "checkbox": False, "unit": "hh:mm"},
             "half_period": {"default": 1, "checkbox": False, "unit": "minutes"},
             "half_time_break": {"default": 1, "checkbox": False, "unit": "minutes"},
-            "overtime_allowed": {"default": False, "checkbox": True, "unit": "", "label": "Overtime allowed?"},
+            "overtime_allowed": {"default": True, "checkbox": True, "unit": "", "label": "Overtime allowed?"},
             "overtime_game_break": {"default": 1, "checkbox": True, "unit": "minutes"},
             "overtime_half_period": {"default": 1, "checkbox": True, "unit": "minutes"},
             "overtime_half_time_break": {"default": 1, "checkbox": True, "unit": "minutes"},
@@ -25,11 +26,6 @@ class GameManagementApp:
             "timeout_period": {"default": 1, "checkbox": True, "unit": "minutes"},
             "crib_time": {"default": 1, "checkbox": True, "unit": "seconds"}
         }
-        self.periods = []
-        self.overtime_periods = []
-        self.sudden_death_periods = []
-        self.widgets = []
-        self.last_valid_values = {}
 
         self.fonts = {
             "court_time": font.Font(family="Arial", size=36),
@@ -40,23 +36,18 @@ class GameManagementApp:
             "game_no": font.Font(family="Arial", size=12),
             "button": font.Font(family="Arial", size=20, weight="bold"),
         }
+
         self.white_score_var = tk.IntVar(value=0)
         self.black_score_var = tk.IntVar(value=0)
 
         self.timer_running = False
         self.timer_seconds = 0
-        self.current_period_index = 0
-        self.timer_job = None
-        self.in_sudden_death = False
-        self.sudden_death_goal_scored = False
-        self.just_added_break_goal = False
-
-        self.reset_timer_button = None
-
         self.court_time_dt = None
         self.court_time_seconds = 0
         self.court_time_job = None
         self.court_time_paused = False
+
+        self.reset_timer_button = None
 
         self.in_timeout = False
         self.pending_timeout = None
@@ -67,6 +58,14 @@ class GameManagementApp:
 
         self.sudden_death_timer_job = None
         self.sudden_death_seconds = 0
+        self.sudden_death_goal_scored = False
+
+        self.full_sequence = []
+        self.current_index = 0
+        self.game_started = False  # Track if game has started
+
+        self.widgets = []
+        self.last_valid_values = {}
 
         self.team_timeouts_allowed_var = tk.BooleanVar(value=self.variables["team_timeouts_allowed"]["default"])
         self.overtime_allowed_var = tk.BooleanVar(value=self.variables["overtime_allowed"]["default"])
@@ -74,13 +73,46 @@ class GameManagementApp:
         self.create_scoreboard_tab()
         self.create_settings_tab()
         self.load_settings()
-        self.setup_periods()
+        self.build_game_sequence()
         self.reset_timer()
 
         self.master.bind('<Configure>', self.scale_fonts)
         self.initial_width = self.master.winfo_width()
         self.master.update_idletasks()
         self.scale_fonts(None)
+
+    def get_minutes(self, varname):
+        try:
+            return int(float(self.variables[varname].get("value", self.variables[varname]["default"]))) * 60
+        except Exception:
+            return int(self.variables[varname]["default"]) * 60
+
+    def build_game_sequence(self):
+        seq = []
+        # Only run "Game Starts in:" once at the very start
+        if not self.game_started:
+            seq.append({'name': 'Game Starts in:', 'type': 'break', 'duration': self.get_minutes('start_first_game_at_this_time')})
+            self.game_started = True
+        seq.append({'name': 'Between Game Break', 'type': 'break', 'duration': self.get_minutes('between_game_break')})
+        seq.append({'name': 'First Half', 'type': 'regular', 'duration': self.get_minutes('half_period')})
+        seq.append({'name': 'Half Time', 'type': 'break', 'duration': self.get_minutes('half_time_break')})
+        seq.append({'name': 'Second Half', 'type': 'regular', 'duration': self.get_minutes('half_period')})
+        if self.is_overtime_enabled():
+            seq.append({'name': 'Overtime Game Break', 'type': 'break', 'duration': self.get_minutes('overtime_game_break')})
+            seq.append({'name': 'Overtime First Half', 'type': 'overtime', 'duration': self.get_minutes('overtime_half_period')})
+            seq.append({'name': 'Overtime Half Time', 'type': 'break', 'duration': self.get_minutes('overtime_half_time_break')})
+            seq.append({'name': 'Overtime Second Half', 'type': 'overtime', 'duration': self.get_minutes('overtime_half_period')})
+        if self.is_sudden_death_enabled():
+            seq.append({'name': 'Sudden Death Game Break', 'type': 'break', 'duration': self.get_minutes('sudden_death_game_break')})
+            seq.append({'name': 'Sudden Death', 'type': 'sudden_death', 'duration': None})
+        self.full_sequence = seq
+        self.current_index = 0
+
+    def find_period_index(self, name):
+        for idx, period in enumerate(self.full_sequence):
+            if period['name'] == name:
+                return idx
+        return len(self.full_sequence) - 1
 
     def create_scoreboard_tab(self):
         tab = ttk.Frame(self.notebook)
@@ -198,6 +230,8 @@ class GameManagementApp:
 
         row_idx = 1
         for var_name, var_info in self.variables.items():
+            if var_info["checkbox"]:
+                var_info["default"] = True
             if var_name == "team_timeouts_allowed":
                 check_var = self.team_timeouts_allowed_var
                 cb = ttk.Checkbutton(frame, variable=check_var)
@@ -229,7 +263,7 @@ class GameManagementApp:
             label_widget = tk.Label(frame, text=label_text, font=(default_font.cget("family"), new_size, "bold"))
             label_widget.grid(row=row_idx, column=1, sticky="w", pady=5)
             entry = ttk.Entry(frame, width=10)
-            entry.insert(0, str(var_info["default"]))
+            entry.insert(0, "1")
             entry.grid(row=row_idx, column=2, sticky="w", padx=5, pady=5)
             tk.Label(frame, text=var_info["unit"], font=(default_font.cget("family"), new_size, "bold")).grid(row=row_idx, column=3, sticky="w", padx=5, pady=5)
             self.widgets.append({"name": var_name, "entry": entry, "checkbox": check_var, "label_widget": label_widget})
@@ -245,172 +279,10 @@ class GameManagementApp:
 
         self.update_overtime_variables_state()
 
-    # --- Game and Timer Logic ---
-
-    def get_current_half(self):
-        if self.in_sudden_death:
-            return 99
-        if self.periods == self.overtime_periods:
-            if self.current_period_index < len(self.periods):
-                name = self.periods[self.current_period_index]["name"].lower()
-                if "overtime period" in name:
-                    return 3
-        if self.current_period_index < len(self.periods):
-            name = self.periods[self.current_period_index]["name"].lower()
-            if "first half" in name:
-                return 1
-            elif "second half" in name:
-                return 2
-        return self.current_half if self.current_half else 1
-
-    def reset_timeouts_for_half(self):
-        self.white_timeouts_this_half = 0
-        self.black_timeouts_this_half = 0
-
-    def check_and_update_half(self):
-        half = self.get_current_half()
-        if half != self.current_half:
-            self.current_half = half
-            self.reset_timeouts_for_half()
-
-    def white_team_timeout(self):
-        if not self.team_timeouts_allowed_var.get():
-            return
-        self.check_and_update_half()
-        if self.white_timeouts_this_half >= 1:
-            self.show_timeout_popup("White")
-            return
-        if self.in_timeout:
-            if self.active_timeout_team == "black" and self.pending_timeout is None:
-                self.pending_timeout = "white"
-            return
-        self.white_timeouts_this_half += 1
-        self.in_timeout = True
-        self.active_timeout_team = "white"
-        self.court_time_paused = True
-        self.save_timer_state()
-        timeout_seconds = int(float(self.variables["timeout_period"].get("value", self.variables["timeout_period"]["default"]))) * 60
-        self.timer_seconds = timeout_seconds
-        self.timer_running = True
-        self.half_label.config(text="White Team Timeout")
-        self.update_half_label_background("White Team Timeout")
-        self.update_timer_display()
-        if self.timer_job:
-            self.master.after_cancel(self.timer_job)
-            self.timer_job = None
-        self.timer_job = self.master.after(1000, self.timeout_countdown)
-
-    def black_team_timeout(self):
-        if not self.team_timeouts_allowed_var.get():
-            return
-        self.check_and_update_half()
-        if self.black_timeouts_this_half >= 1:
-            self.show_timeout_popup("Black")
-            return
-        if self.in_timeout:
-            if self.active_timeout_team == "white" and self.pending_timeout is None:
-                self.pending_timeout = "black"
-            return
-        self.black_timeouts_this_half += 1
-        self.in_timeout = True
-        self.active_timeout_team = "black"
-        self.court_time_paused = True
-        self.save_timer_state()
-        timeout_seconds = int(float(self.variables["timeout_period"].get("value", self.variables["timeout_period"]["default"]))) * 60
-        self.timer_seconds = timeout_seconds
-        self.timer_running = True
-        self.half_label.config(text="Black Team Timeout")
-        self.update_half_label_background("Black Team Timeout")
-        self.update_timer_display()
-        if self.timer_job:
-            self.master.after_cancel(self.timer_job)
-            self.timer_job = None
-        self.timer_job = self.master.after(1000, self.timeout_countdown)
-
-    def save_timer_state(self):
-        self.saved_timer_running = self.timer_running
-        self.saved_timer_seconds = self.timer_seconds
-        self.saved_period_index = self.current_period_index
-        self.saved_periods = self.periods
-        self.saved_half_label = self.half_label.cget("text")
-        self.saved_half_label_bg = self.half_label.cget("bg")
-        self.saved_in_sudden_death = self.in_sudden_death
-        self.saved_sudden_death_goal_scored = self.sudden_death_goal_scored
-
-    def show_timeout_popup(self, team):
-        popup = tk.Toplevel(self.master)
-        popup.title("Timeout Limit")
-        popup.geometry("350x100")
-        label = tk.Label(popup, text="One time-out period per team per half", font=self.fonts["button"])
-        label.pack(pady=20)
-        btn = tk.Button(popup, text="OK", font=self.fonts["button"], command=popup.destroy)
-        btn.pack(pady=5)
-
-    def update_court_time(self):
-        if self.court_time_paused or self.should_pause_court_time_for_period():
-            self.court_time_job = self.master.after(1000, self.update_court_time)
-            return
-        current_dt = self.court_time_dt + datetime.timedelta(seconds=self.court_time_seconds)
-        time_string = current_dt.strftime('%I:%M:%S %p').lstrip('0')
-        self.court_time_label.config(text=f"Court Time is {time_string}")
-        self.court_time_seconds += 1
-        self.court_time_job = self.master.after(1000, self.update_court_time)
-
-    def should_pause_court_time_for_period(self):
-        period_name = ""
-        if self.in_sudden_death and self.current_period_index < len(self.sudden_death_periods):
-            period_name = self.sudden_death_periods[self.current_period_index]["name"].lower()
-            return True
-        elif self.periods == self.overtime_periods and self.current_period_index < len(self.periods):
-            period_name = self.periods[self.current_period_index]["name"].lower()
-        elif self.periods == self.sudden_death_periods and self.current_period_index < len(self.periods):
-            period_name = self.periods[self.current_period_index]["name"].lower()
-        elif self.current_period_index < len(self.periods):
-            period_name = self.periods[self.current_period_index]["name"].lower()
-        if any(sub in period_name for sub in ["overtime game break", "overtime period", "overtime half time", "sudden death game break", "sudden death"]):
-            return True
-        return False
-
-    def timeout_countdown(self):
-        self.update_timer_display()
-        if not self.timer_running:
-            return
-        if self.timer_seconds > 0:
-            self.timer_seconds -= 1
-            if self.timer_job:
-                self.master.after_cancel(self.timer_job)
-            self.timer_job = self.master.after(1000, self.timeout_countdown)
-        else:
-            self.end_timeout()
-
-    def end_timeout(self):
-        self.in_timeout = False
-        self.active_timeout_team = None
-        self.court_time_paused = False
-        self.timer_running = self.saved_timer_running
-        self.timer_seconds = self.saved_timer_seconds
-        self.current_period_index = self.saved_period_index
-        self.periods = self.saved_periods
-        self.half_label.config(text=self.saved_half_label)
-        self.half_label.config(bg=self.saved_half_label_bg)
-        self.in_sudden_death = self.saved_in_sudden_death
-        self.sudden_death_goal_scored = self.saved_sudden_death_goal_scored
-        self.update_timer_display()
-        if self.timer_job:
-            self.master.after_cancel(self.timer_job)
-            self.timer_job = None
-        if self.pending_timeout == "white":
-            self.pending_timeout = None
-            self.white_team_timeout()
-        elif self.pending_timeout == "black":
-            self.pending_timeout = None
-            self.black_team_timeout()
-        elif self.timer_running:
-            self.countdown_timer()
-
     def _on_settings_variable_change(self, *args):
         self.load_settings()
-        self.setup_periods()
+        self.build_game_sequence()
+        self.reset_timer()
 
     def load_settings(self):
         for widget in self.widgets:
@@ -424,153 +296,6 @@ class GameManagementApp:
             else:
                 self.variables[var_name]["used"] = True
 
-    def setup_periods(self):
-        self.periods = []
-        self.overtime_periods = []
-        self.sudden_death_periods = []
-        v = self.variables
-
-        def int_or_default(name):
-            try:
-                return int(float(v[name].get("value", v[name]["default"])))
-            except Exception:
-                return v[name]["default"]
-
-        def minutes(name):
-            return int_or_default(name) * 60
-
-        start_first_game = v["start_first_game_at_this_time"].get("value", v["start_first_game_at_this_time"]["default"])
-        if isinstance(start_first_game, str) and ":" in start_first_game:
-            try:
-                now = datetime.datetime.now()
-                hh, mm = map(int, start_first_game.split(":"))
-                start_time = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
-                if start_time < now:
-                    start_time += datetime.timedelta(days=1)
-                seconds_until = int((start_time - now).total_seconds())
-            except Exception:
-                seconds_until = 0
-        else:
-            seconds_until = minutes("start_first_game_at_this_time")
-        if seconds_until < 0:
-            seconds_until = 0
-        self.periods.append({
-            "name": "Game Starts in:",
-            "duration": seconds_until,
-            "setting_name": "start_first_game_at_this_time"
-        })
-
-        self.periods.append({"name": "First Half", "duration": minutes("half_period"), "setting_name": "half_period"})
-        self.periods.append({"name": "Half Time", "duration": minutes("half_time_break"), "setting_name": "half_time_break"})
-        self.periods.append({"name": "Second Half", "duration": minutes("half_period"), "setting_name": "second_half"}) # Note: use unique setting_name
-
-        if v["overtime_game_break"].get("used", True):
-            self.overtime_periods.append({"name": "Overtime Game Break", "duration": minutes("overtime_game_break"), "setting_name": "overtime_game_break"})
-        if v["overtime_half_period"].get("used", True):
-            combined_duration = minutes("overtime_half_period") * 2
-            self.overtime_periods.append({"name": "Overtime Period", "duration": combined_duration, "setting_name": "overtime_half_period"})
-        if v["overtime_half_time_break"].get("used", True):
-            self.overtime_periods.append({"name": "Overtime Half Time", "duration": minutes("overtime_half_time_break"), "setting_name": "overtime_half_time_break"})
-
-        if v["sudden_death_game_break"].get("used", True):
-            self.sudden_death_periods.append({"name": "Sudden Death Game Break", "duration": minutes("sudden_death_game_break"), "setting_name": "sudden_death_game_break"})
-            self.sudden_death_periods.append({"name": "Sudden Death", "duration": None, "setting_name": "sudden_death"})
-
-        self.periods.append({"name": "Between Game Break", "duration": minutes("between_game_break"), "setting_name": "between_game_break"})
-
-    def countdown_timer(self):
-        self.update_timer_display()
-        if not self.timer_running:
-            return
-        if self.timer_seconds > 0:
-            if (self.timer_seconds == 30 and 
-                self.current_period_index < len(self.periods) and
-                self.periods[self.current_period_index].get("setting_name", "") == "between_game_break"):
-                self.white_score_var.set(0)
-                self.black_score_var.set(0)
-            self.timer_seconds -= 1
-            if self.timer_job:
-                self.master.after_cancel(self.timer_job)
-            self.timer_job = self.master.after(1000, self.countdown_timer)
-        else:
-            self.next_period()
-
-    def reset_timer(self):
-        self.white_score_var.set(0)
-        self.black_score_var.set(0)
-        self.current_period_index = 0
-        self.timer_running = True
-        self.in_sudden_death = False
-        if self.timer_job:
-            self.master.after_cancel(self.timer_job)
-            self.timer_job = None
-        if self.sudden_death_timer_job:
-            self.master.after_cancel(self.sudden_death_timer_job)
-            self.sudden_death_timer_job = None
-        self.sudden_death_seconds = 0
-        if self.periods:
-            self.timer_seconds = self.periods[0]["duration"]
-            self.half_label.config(text=self.periods[0]["name"])
-            self.update_half_label_background(self.periods[0]["name"])
-        else:
-            self.timer_seconds = 0
-            self.half_label.config(text="")
-        self.update_timer_display()
-        self.court_time_dt = datetime.datetime.now()
-        self.court_time_seconds = 0
-        if self.court_time_job:
-            self.master.after_cancel(self.court_time_job)
-        self.court_time_paused = False
-        self.update_court_time()
-        self.timer_running = True
-        self.countdown_timer()
-
-    def update_timer_display(self):
-        if self.in_sudden_death and self.current_period_index < len(self.sudden_death_periods):
-            period = self.sudden_death_periods[self.current_period_index]
-            if period.get("setting_name") == "sudden_death":
-                mins, secs = divmod(self.sudden_death_seconds, 60)
-                self.timer_label.config(text=f"{int(mins):02d}:{int(secs):02d}")
-                return
-        mins, secs = divmod(self.timer_seconds, 60)
-        self.timer_label.config(text=f"{int(mins):02d}:{int(secs):02d}")
-
-    def start_sudden_death_timer(self):
-        self.update_timer_display()
-        self.sudden_death_seconds += 1
-        self.sudden_death_timer_job = self.master.after(1000, self.start_sudden_death_timer)
-
-    def stop_sudden_death_timer(self):
-        if self.sudden_death_timer_job:
-            self.master.after_cancel(self.sudden_death_timer_job)
-            self.sudden_death_timer_job = None
-
-    def scale_fonts(self, event):
-        pass
-
-    def update_half_label_background(self, period_name):
-        red_periods = {
-            "half_time_break",
-            "overtime_game_break",
-            "overtime_half_time_break",
-            "between_game_break",
-            "start_first_game_at_this_time",
-            "sudden_death_game_break",
-            "white_team_timeout",
-            "black_team_timeout"
-        }
-        internal_name = None
-        for period in self.periods + self.overtime_periods + self.sudden_death_periods:
-            if period["name"] == period_name:
-                internal_name = period.get("setting_name", "")
-                break
-        if period_name in ["White Team Timeout", "Black Team Timeout"]:
-            internal_name = period_name.lower().replace(" ", "_")
-        if internal_name in red_periods:
-            self.half_label.config(bg="red")
-        else:
-            self.half_label.config(bg="lightblue")
-
     def is_overtime_enabled(self):
         return self.overtime_allowed_var.get()
 
@@ -578,218 +303,325 @@ class GameManagementApp:
         v = self.variables
         return v["sudden_death_game_break"].get("used", True)
 
-    def is_break_or_half_time(self):
-        break_names = {
+    def reset_timeouts_for_half(self):
+        self.white_timeouts_this_half = 0
+        self.black_timeouts_this_half = 0
+        period = self.full_sequence[self.current_index]
+        if period['type'] in ['regular']:
+            self.white_timeout_button.config(state=tk.NORMAL)
+            self.black_timeout_button.config(state=tk.NORMAL)
+        else:
+            self.white_timeout_button.config(state=tk.DISABLED)
+            self.black_timeout_button.config(state=tk.DISABLED)
+
+    def white_team_timeout(self):
+        period = self.full_sequence[self.current_index]
+        if period['type'] != 'regular' or not self.team_timeouts_allowed_var.get():
+            self.white_timeout_button.config(state=tk.DISABLED)
+            return
+        if self.white_timeouts_this_half >= 1:
+            self.show_timeout_popup("White")
+            return
+        self.white_timeouts_this_half += 1
+        self.white_timeout_button.config(state=tk.DISABLED)
+        self.in_timeout = True
+        self.active_timeout_team = "white"
+        self.court_time_paused = True
+        self.save_timer_state()
+        timeout_seconds = self.get_minutes('timeout_period')
+        self.timer_seconds = timeout_seconds
+        self.timer_running = True
+        self.half_label.config(text="White Team Timeout")
+        self.update_half_label_background("White Team Timeout")
+        self.update_timer_display()
+        if self.timer_job:
+            self.master.after_cancel(self.timer_job)
+            self.timer_job = None
+        self.timer_job = self.master.after(1000, self.timeout_countdown)
+
+    def black_team_timeout(self):
+        period = self.full_sequence[self.current_index]
+        if period['type'] != 'regular' or not self.team_timeouts_allowed_var.get():
+            self.black_timeout_button.config(state=tk.DISABLED)
+            return
+        if self.black_timeouts_this_half >= 1:
+            self.show_timeout_popup("Black")
+            return
+        self.black_timeouts_this_half += 1
+        self.black_timeout_button.config(state=tk.DISABLED)
+        self.in_timeout = True
+        self.active_timeout_team = "black"
+        self.court_time_paused = True
+        self.save_timer_state()
+        timeout_seconds = self.get_minutes('timeout_period')
+        self.timer_seconds = timeout_seconds
+        self.timer_running = True
+        self.half_label.config(text="Black Team Timeout")
+        self.update_half_label_background("Black Team Timeout")
+        self.update_timer_display()
+        if self.timer_job:
+            self.master.after_cancel(self.timer_job)
+            self.timer_job = None
+        self.timer_job = self.master.after(1000, self.timeout_countdown)
+
+    def save_timer_state(self):
+        self.saved_timer_running = self.timer_running
+        self.saved_timer_seconds = self.timer_seconds
+        self.saved_index = self.current_index
+        self.saved_half_label = self.half_label.cget("text")
+        self.saved_half_label_bg = self.half_label.cget("bg")
+        self.saved_sudden_death_goal_scored = getattr(self, "sudden_death_goal_scored", False)
+
+    def show_timeout_popup(self, team):
+        popup = tk.Toplevel(self.master)
+        popup.title("Timeout Limit")
+        popup.geometry("350x100")
+        label = tk.Label(popup, text="One time-out period per team per half", font=self.fonts["button"])
+        label.pack(pady=20)
+        btn = tk.Button(popup, text="OK", font=self.fonts["button"], command=popup.destroy)
+        btn.pack(pady=5)
+        self.team_timeouts_allowed_var.set(False)
+
+    def update_court_time(self):
+        if self.court_time_paused:
+            self.court_time_job = self.master.after(1000, self.update_court_time)
+            return
+        current_dt = self.court_time_dt + datetime.timedelta(seconds=self.court_time_seconds)
+        time_string = current_dt.strftime('%I:%M:%S %p').lstrip('0')
+        self.court_time_label.config(text=f"Court Time is {time_string}")
+        self.court_time_seconds += 1
+        self.court_time_job = self.master.after(1000, self.update_court_time)
+
+    def timeout_countdown(self):
+        if self.timer_job:
+            self.master.after_cancel(self.timer_job)
+            self.timer_job = None
+        self.update_timer_display()
+        if not self.timer_running:
+            return
+        if self.timer_seconds > 0:
+            self.timer_seconds -= 1
+            self.timer_job = self.master.after(1000, self.timeout_countdown)
+        else:
+            self.end_timeout()
+
+    def end_timeout(self):
+        self.in_timeout = False
+        self.active_timeout_team = None
+        self.court_time_paused = False
+        self.timer_running = self.saved_timer_running
+        self.timer_seconds = self.saved_timer_seconds
+        self.current_index = self.saved_index
+        self.half_label.config(text=self.saved_half_label)
+        self.half_label.config(bg=self.saved_half_label_bg)
+        self.update_timer_display()
+        if self.timer_job:
+            self.master.after_cancel(self.timer_job)
+            self.timer_job = None
+        if self.timer_running:
+            self.timer_job = self.master.after(1000, self.countdown_timer)
+
+    def update_half_label_background(self, period_name):
+        red_periods = {
+            "game_starts_in:",
+            "half_time",
             "half_time_break",
             "overtime_game_break",
+            "overtime_half_time",
             "overtime_half_time_break",
             "between_game_break",
+            "start_first_game_at_this_time",
             "sudden_death_game_break",
             "white_team_timeout",
             "black_team_timeout"
         }
-        cur_period = None
-        if self.current_period_index < len(self.periods):
-            cur_period = self.periods[self.current_period_index]
-        elif self.in_sudden_death and self.current_period_index < len(self.sudden_death_periods):
-            cur_period = self.sudden_death_periods[self.current_period_index]
-        elif not self.in_sudden_death and self.current_period_index < len(self.overtime_periods):
-            cur_period = self.overtime_periods[self.current_period_index]
-        if self.half_label.cget("text") in ["White Team Timeout", "Black Team Timeout"]:
-            return True
-        if cur_period:
-            return cur_period.get("setting_name", "") in break_names
-        return False
-
-    def add_goal_with_confirmation(self, score_var, team_name):
-        if self.is_break_or_half_time():
-            if not messagebox.askyesno("Add Goal During Break?", f"You are about to add a goal for {team_name} during a break or half time. Are you sure?"):
-                return
-            self.just_added_break_goal = True
+        internal_name = period_name.lower().replace(" ", "_")
+        if internal_name in red_periods:
+            self.half_label.config(bg="red")
         else:
-            self.just_added_break_goal = False
+            self.half_label.config(bg="lightblue")
 
-        score_var.set(score_var.get() + 1)
-        self.handle_tiebreak_and_overtime_logic()
-        self.just_added_break_goal = False
-
-    def adjust_score_with_confirm(self, score_var, team_name):
-        if score_var.get() > 0:
-            if messagebox.askyesno("Subtract Goal", f"Are you sure you want to subtract a goal from {team_name}?"):
-                score_var.set(score_var.get() - 1)
-                self.handle_tiebreak_and_overtime_logic()
-
-    def handle_tiebreak_and_overtime_logic(self):
-        # Called after any score change during breaks/half time/overtime/sudden death
-
-        # If in sudden death and a goal is scored, finish game
-        if self.in_sudden_death and not self.sudden_death_goal_scored and (self.white_score_var.get() != self.black_score_var.get()):
-            self.sudden_death_goal_scored = True
-            self.timer_running = False
-            self.stop_sudden_death_timer()
-            if self.timer_job:
-                self.master.after_cancel(self.timer_job)
-                self.timer_job = None
-            self.goto_between_game_break()
-            return
-
-        # If in between game break, check if scores are tied and transition
-        if self.periods and self.current_period_index < len(self.periods):
-            cur_setting = self.periods[self.current_period_index].get("setting_name", "")
-            if cur_setting == "between_game_break":
-                if self.white_score_var.get() == self.black_score_var.get():
-                    if self.is_overtime_enabled() and self.overtime_periods:
-                        self.periods = self.overtime_periods + self.periods[self.current_period_index+1:]
-                        self.current_period_index = 0
-                        self.timer_seconds = self.periods[0]["duration"]
-                        self.half_label.config(text=self.periods[0]["name"])
-                        self.update_half_label_background(self.periods[0]["name"])
-                        self.timer_running = True
-                        self.countdown_timer()
-                        return
-                    elif self.is_sudden_death_enabled() and self.sudden_death_periods:
-                        self.periods = self.sudden_death_periods + self.periods[self.current_period_index+1:]
-                        self.current_period_index = 0
-                        self.timer_seconds = self.sudden_death_periods[0]["duration"]
-                        self.half_label.config(text=self.sudden_death_periods[0]["name"])
-                        self.update_half_label_background(self.sudden_death_periods[0]["name"])
-                        self.in_sudden_death = True
-                        self.sudden_death_goal_scored = False
-                        self.timer_running = True
-                        self.countdown_timer()
-                        return
-
-    def goto_between_game_break(self):
+    def countdown_timer(self):
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
-        self.stop_sudden_death_timer()
-        self.setup_periods()
-        self.in_sudden_death = False
-        for i, period in enumerate(self.periods):
-            if period.get("setting_name", "") == "between_game_break":
-                self.current_period_index = i
-                self.timer_seconds = period["duration"]
-                self.half_label.config(text=period["name"])
-                self.update_half_label_background(period["name"])
-                self.update_timer_display()
-                self.sudden_death_goal_scored = False
-                self.timer_running = True
-                self.countdown_timer()
-                return
-        self.timer_seconds = 0
-        self.half_label.config(text="Game Over")
-        self.update_half_label_background("Game Over")
         self.update_timer_display()
-        if self.reset_timer_button:
-            self.reset_timer_button.config(state=tk.NORMAL)
-        self.timer_running = False
+        if not self.timer_running:
+            return
+        if self.timer_seconds > 0:
+            self.timer_seconds -= 1
+
+            # Reset scores to 0 when Between Game Break hits 30 seconds
+            cur_period = self.full_sequence[self.current_index] if self.full_sequence and self.current_index < len(self.full_sequence) else None
+            if cur_period and cur_period['name'] == 'Between Game Break' and self.timer_seconds == 30:
+                self.white_score_var.set(0)
+                self.black_score_var.set(0)
+
+            self.timer_job = self.master.after(1000, self.countdown_timer)
+        else:
+            self.next_period()
+
+    def reset_timer(self):
+        self.white_score_var.set(0)
+        self.black_score_var.set(0)
+        self.current_index = 0
+        self.timer_running = True
+        self.sudden_death_goal_scored = False
+        if self.timer_job:
+            self.master.after_cancel(self.timer_job)
+            self.timer_job = None
+        self.sudden_death_timer_job = None
+        self.sudden_death_seconds = 0
+        if self.full_sequence:
+            self.timer_seconds = self.full_sequence[0]["duration"]
+            self.half_label.config(text=self.full_sequence[0]["name"])
+            self.update_half_label_background(self.full_sequence[0]["name"])
+        else:
+            self.timer_seconds = 0
+            self.half_label.config(text="")
+        self.update_timer_display()
+        self.court_time_dt = datetime.datetime.now()
+        self.court_time_seconds = 0
+        self.court_time_paused = False
+        self.update_court_time()
+        self.start_current_period()
+
+    def start_current_period(self):
+        if self.current_index >= len(self.full_sequence):
+            # Loop back to Between Game Break
+            self.current_index = self.find_period_index('Between Game Break')
+        cur_period = self.full_sequence[self.current_index]
+        self.half_label.config(text=cur_period['name'])
+        self.update_half_label_background(cur_period['name'])
+        if cur_period['name'] == 'Sudden Death':
+            self.timer_running = True
+            self.sudden_death_seconds = 0
+            self.update_timer_display()
+            self.start_sudden_death_timer()
+            self.reset_timeouts_for_half()
+        else:
+            self.timer_seconds = cur_period['duration'] if cur_period['duration'] is not None else 0
+            self.update_timer_display()
+            self.timer_running = True
+            if self.timer_job:
+                self.master.after_cancel(self.timer_job)
+                self.timer_job = None
+            self.timer_job = self.master.after(1000, self.countdown_timer)
+            self.reset_timeouts_for_half()
 
     def next_period(self):
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
 
-        # Check for end of second half BEFORE incrementing period index
-        if self.periods and self.current_period_index < len(self.periods):
-            cur_setting = self.periods[self.current_period_index].get("setting_name", "")
-            if cur_setting == "second_half" and self.timer_seconds == 0:
-                if self.white_score_var.get() == self.black_score_var.get():
-                    # Overtime
-                    if self.is_overtime_enabled() and self.overtime_periods:
-                        self.periods = self.overtime_periods + self.periods[self.current_period_index+1:]
-                        self.current_period_index = 0
-                        self.timer_seconds = self.periods[0]["duration"]
-                        self.half_label.config(text=self.periods[0]["name"])
-                        self.update_half_label_background(self.periods[0]["name"])
-                        self.timer_running = True
-                        self.countdown_timer()
-                        return
-                    # Sudden death
-                    elif self.is_sudden_death_enabled() and self.sudden_death_periods:
-                        self.periods = self.sudden_death_periods + self.periods[self.current_period_index+1:]
-                        self.current_period_index = 0
-                        self.timer_seconds = self.sudden_death_periods[0]["duration"]
-                        self.half_label.config(text=self.sudden_death_periods[0]["name"])
-                        self.update_half_label_background(self.sudden_death_periods[0]["name"])
-                        self.in_sudden_death = True
-                        self.sudden_death_goal_scored = False
-                        self.timer_running = True
-                        self.countdown_timer()
-                        return
-                # Not tied: go to break
-                self.goto_between_game_break()
-                return
-
-        self.current_period_index += 1
-
-        while self.current_period_index < len(self.periods) and self.periods[self.current_period_index]["duration"] == 0:
-            self.current_period_index += 1
-
-        if self.periods == self.overtime_periods:
-            if self.current_period_index >= len(self.overtime_periods):
-                if self.white_score_var.get() == self.black_score_var.get() and self.is_sudden_death_enabled():
-                    self.periods = self.sudden_death_periods
-                    self.current_period_index = 0
-                    self.timer_seconds = self.sudden_death_periods[0]["duration"]
-                    self.half_label.config(text=self.sudden_death_periods[0]["name"])
-                    self.update_half_label_background(self.sudden_death_periods[0]["name"])
-                    self.in_sudden_death = True
-                    self.sudden_death_goal_scored = False
-                    self.timer_running = True
-                    self.countdown_timer()
-                    return
-                else:
-                    self.goto_between_game_break()
-                    return
-
-        if self.periods == self.sudden_death_periods:
-            if self.current_period_index < len(self.sudden_death_periods):
-                period = self.sudden_death_periods[self.current_period_index]
-                if period.get("setting_name") == "sudden_death":
-                    self.sudden_death_seconds = 0
-                    self.half_label.config(text=period["name"])
-                    self.update_half_label_background(period["name"])
-                    self.update_timer_display()
-                    self.timer_running = True
-                    self.start_sudden_death_timer()
-                    return
-            if self.current_period_index >= len(self.sudden_death_periods):
-                self.goto_between_game_break()
-                return
-
-        if self.current_period_index >= len(self.periods):
-            if self.white_score_var.get() == self.black_score_var.get():
-                if self.is_overtime_enabled() and self.overtime_periods:
-                    self.periods = self.overtime_periods
-                    self.current_period_index = 0
-                    self.timer_seconds = self.periods[0]["duration"]
-                    self.half_label.config(text=self.periods[0]["name"])
-                    self.update_half_label_background(self.periods[0]["name"])
-                    self.timer_running = True
-                    self.countdown_timer()
-                    return
-                elif self.is_sudden_death_enabled() and self.sudden_death_periods:
-                    self.periods = self.sudden_death_periods
-                    self.current_period_index = 0
-                    self.timer_seconds = self.sudden_death_periods[0]["duration"]
-                    self.half_label.config(text=self.sudden_death_periods[0]["name"])
-                    self.update_half_label_background(self.sudden_death_periods[0]["name"])
-                    self.in_sudden_death = True
-                    self.sudden_death_goal_scored = False
-                    self.timer_running = True
-                    self.countdown_timer()
-                    return
-            self.goto_between_game_break()
+        if self.current_index >= len(self.full_sequence):
+            # Finished game, loop back to Between Game Break
+            self.current_index = self.find_period_index('Between Game Break')
+            self.start_current_period()
             return
 
-        cur_period = self.periods[self.current_period_index]
-        self.timer_seconds = cur_period["duration"]
-        self.half_label.config(text=cur_period["name"])
-        self.update_half_label_background(cur_period["name"])
+        cur_period = self.full_sequence[self.current_index]
+        period_name = cur_period['name']
+
+        # Overtime Second Half: if scores are not tied, go to Between Game Break
+        if period_name == 'Overtime Second Half':
+            if self.white_score_var.get() != self.black_score_var.get():
+                self.current_index = self.find_period_index('Between Game Break')
+                self.start_current_period()
+                return
+            # If tied, continue to next period (e.g., Sudden Death if enabled)
+
+        # Sudden death: end after goal
+        if period_name == 'Sudden Death' and self.sudden_death_goal_scored:
+            self.current_index = self.find_period_index('Between Game Break')
+            self.start_current_period()
+            return
+
+        self.current_index += 1
+
+        # After Between Game Break, always go to First Half
+        if self.current_index < len(self.full_sequence):
+            next_period = self.full_sequence[self.current_index]
+            if next_period['name'] == 'Between Game Break':
+                self.current_index = self.find_period_index('First Half')
+                self.start_current_period()
+                return
+
+        # If we've gone past the end, go to Between Game Break, THEN First Half
+        if self.current_index >= len(self.full_sequence):
+            self.current_index = self.find_period_index('Between Game Break')
+            self.start_current_period()
+            return
+
+        self.start_current_period()
+
+    def start_sudden_death_timer(self):
+        if not self.timer_running:
+            return
+        self.sudden_death_seconds += 1
         self.update_timer_display()
-        self.timer_running = True
-        self.countdown_timer()
+        self.sudden_death_timer_job = self.master.after(1000, self.start_sudden_death_timer)
+
+    def stop_sudden_death_timer(self):
+        if self.sudden_death_timer_job:
+            self.master.after_cancel(self.sudden_death_timer_job)
+            self.sudden_death_timer_job = None
+
+    def goto_between_game_break(self):
+        idx = self.find_period_index('Between Game Break')
+        self.current_index = idx
+        self.start_current_period()
+
+    def update_timer_display(self):
+        cur_period = self.full_sequence[self.current_index] if self.full_sequence and self.current_index < len(self.full_sequence) else None
+        if cur_period and cur_period['name'] == 'Sudden Death':
+            mins, secs = divmod(self.sudden_death_seconds, 60)
+            self.timer_label.config(text=f"{int(mins):02d}:{int(secs):02d}")
+        else:
+            mins, secs = divmod(self.timer_seconds, 60)
+            self.timer_label.config(text=f"{int(mins):02d}:{int(secs):02d}")
+
+    def scale_fonts(self, event):
+        pass
+
+    def add_goal_with_confirmation(self, score_var, team_name):
+        cur_period = self.full_sequence[self.current_index]
+        is_break = (cur_period['type'] == 'break'
+            or cur_period['name'] in ["White Team Timeout", "Black Team Timeout"])
+
+        score_var.set(score_var.get() + 1)
+
+        # Overtime Game Break or Sudden Death Game Break logic: handle post-goal transitions
+        if cur_period['name'] in ['Overtime Game Break', 'Sudden Death Game Break']:
+            if self.white_score_var.get() != self.black_score_var.get():
+                # Scores are uneven, there is a winner, go to Between Game Break
+                self.current_index = self.find_period_index('Between Game Break')
+                self.start_current_period()
+                return
+            elif self.white_score_var.get() == self.black_score_var.get():
+                # Scores are now even, move on to the relevant next overtime/sudden death period
+                for idx in range(self.current_index + 1, len(self.full_sequence)):
+                    next_period = self.full_sequence[idx]
+                    if next_period['name'] in ['Overtime First Half', 'Sudden Death']:
+                        self.current_index = idx
+                        self.start_current_period()
+                        return
+
+        if is_break:
+            if not messagebox.askyesno("Add Goal During Break?", f"You are about to add a goal for {team_name} during a break or half time. Are you sure?"):
+                return
+
+        # Sudden Death period: scoring ends game
+        if cur_period['name'] == 'Sudden Death' and not getattr(self, 'sudden_death_goal_scored', False):
+            self.sudden_death_goal_scored = True
+            self.timer_running = False
+            self.stop_sudden_death_timer()
+            self.goto_between_game_break()
+
+    def adjust_score_with_confirm(self, score_var, team_name):
+        if score_var.get() > 0:
+            if messagebox.askyesno("Remove Goal", f"Are you sure you want to remove a goal from {team_name}?"):
+                score_var.set(score_var.get() - 1)
 
 if __name__ == "__main__":
     root = tk.Tk()
