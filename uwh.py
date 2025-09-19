@@ -34,6 +34,7 @@ class GameManagementApp:
             "timer": font.Font(family="Arial", size=90, weight="bold"),
             "game_no": font.Font(family="Arial", size=12),
             "button": font.Font(family="Arial", size=20, weight="bold"),
+            "timeout_button": font.Font(family="Arial", size=20, weight="bold"),  # New font for timeouts
         }
 
         self.white_score_var = tk.IntVar(value=0)
@@ -144,8 +145,8 @@ class GameManagementApp:
         self.black_score.grid(row=3, column=4, rowspan=6, columnspan=2, padx=1, pady=1, sticky="nsew")
 
         self.white_timeout_button = tk.Button(
-            tab, text="White Team\nTime Out", font=self.fonts["button"], bg="white", fg="black",
-            justify="center", wraplength=180, height=2, command=self.white_team_timeout
+        tab, text="White Team\nTime Out", font=self.fonts["timeout_button"], bg="white", fg="black",
+        justify="center", wraplength=180, height=2, command=self.white_team_timeout
         )
         self.white_timeout_button.grid(row=9, column=0, rowspan=2, padx=1, pady=1, sticky="nsew")
 
@@ -182,8 +183,8 @@ class GameManagementApp:
         self.black_minus_button.grid(row=10, column=4, padx=1, pady=1, sticky="nsew")
 
         self.black_timeout_button = tk.Button(
-            tab, text="Black Team\nTime Out", font=self.fonts["button"], bg="black", fg="white",
-            justify="center", wraplength=180, height=2, command=self.black_team_timeout
+        tab, text="Black Team\nTime Out", font=self.fonts["timeout_button"], bg="black", fg="white",
+        justify="center", wraplength=180, height=2, command=self.black_team_timeout
         )
         self.black_timeout_button.grid(row=9, column=5, rowspan=2, padx=1, pady=1, sticky="nsew")
 
@@ -594,7 +595,31 @@ class GameManagementApp:
             self.timer_label.config(text=f"{int(mins):02d}:{int(secs):02d}")
 
     def scale_fonts(self, event):
-        pass
+            # Get the current width and height of the window
+        cur_width = self.master.winfo_width()
+        base_width = 1200  # initial window width
+        scale = cur_width / base_width
+        scale = max(0.5, min(2.0, scale))
+
+        base_sizes = {
+            "court_time": 36,
+            "half": 36,
+            "team": 30,
+            "score": 200,
+            "timer": 90,
+            "game_no": 12,
+            "button": 20,
+            "timeout_button": 20,  # Base size for timeout buttons
+        }
+
+        reduced_button_scale = 0.7  # Less aggressive scaling for timeout buttons
+
+        for key in self.fonts:
+            if key == "timeout_button":
+                new_size = int(base_sizes[key] * scale * reduced_button_scale)
+            else:
+                new_size = int(base_sizes[key] * scale)
+            self.fonts[key].config(size=new_size)
 
     def add_goal_with_confirmation(self, score_var, team_name):
         cur_period = self.full_sequence[self.current_index]
