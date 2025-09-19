@@ -10,3 +10,24 @@ The idea is to use a Raspberry Pi5 computer, tiny amplifier, Bluetooth or wi-fi 
 
 The goal is to make a solution for UWN scoring that anyone can use, based on easy to obtain hardware, hence th desire to use a Raspberry Pi 5.  Aiming to use a DigiAMP+ HAT, NVMe Base for Raspberry Pi 5 for robustness of data storage, Zigbee communications between Zigbee USB dongle and Zigbee buttons for Chief Ref ability to signal, TOA SC610 8 Ohm 10W IP65 Horn Speaker for above water siren and a Lubell Labs Underwater loudspeaker (why? Because that is what we already use) LL916 is the modern version of the ones NZUWH already uses.
 
+## GitHub Copilot Development Support
+
+This repository includes comprehensive GitHub Copilot instructions to help developers efficiently work with the UWH scoring application:
+
+- **[GITHUB_COPILOT_INSTRUCTIONS.md](GITHUB_COPILOT_INSTRUCTIONS.md)** - Complete development guide with context, patterns, and best practices
+- **[COPILOT_QUICK_REFERENCE.md](COPILOT_QUICK_REFERENCE.md)** - Quick reference for common prompts and tasks  
+- **[COPILOT_EXAMPLES.md](COPILOT_EXAMPLES.md)** - Real-world examples of adding features like penalty tracking, statistics, audio alerts, remote control, and data persistence
+
+These guides enable both new and experienced contributors to leverage GitHub Copilot effectively for:
+- Feature development and UI modifications
+- Code debugging and optimization  
+- Hardware integration (Raspberry Pi, audio, networking)
+- Testing and validation
+- Following project-specific coding patterns
+
+### Quick Start for Developers
+1. Read the [Quick Reference](COPILOT_QUICK_REFERENCE.md) for essential prompts
+2. Use application-specific terms (GameManagementApp, uwh.py, scoreboard tab) in your Copilot prompts  
+3. Reference the [Examples](COPILOT_EXAMPLES.md) for complex feature implementations
+4. Follow the patterns in [Instructions](GITHUB_COPILOT_INSTRUCTIONS.md) for consistent code style
+
