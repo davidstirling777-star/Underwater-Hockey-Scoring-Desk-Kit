@@ -165,8 +165,8 @@ class GameManagementApp:
         )
         self.referee_timeout_button.grid(row=9, rowspan=2, column=2, columnspan=2, padx=1, pady=1, sticky="nsew")
 
-        self.test_121_label = tk.Label(tab, text="Test 121", font=self.fonts["game_no"], bg="light grey")
-        self.test_121_label.grid(row=2, column=2, columnspan=2, padx=1, pady=1, sticky="nsew")
+        self.game_label = tk.Label(tab, text="Game 121", font=self.fonts["game_no"], bg="light grey")
+        self.game_label.grid(row=2, column=2, columnspan=2, padx=1, pady=1, sticky="nsew")
 
         self.black_goal_button = tk.Button(
             tab, text="Add Goal Black", font=self.fonts["button"], bg="light grey", fg="black",
