@@ -12,7 +12,7 @@ class GameManagementApp:
         self.notebook.pack(expand=True, fill='both', padx=10, pady=10)
 
         self.variables = {
-            "team_timeouts_allowed": {"default": True, "checkbox": True, "unit": "", "label": "Team time outs allowed?"},
+            "team_timeouts_allowed": {"default": True, "checkbox": True, "unit": "", "label": "Team time-outs allowed?"},
             "start_first_game_at_this_time": {"default": 1, "checkbox": False, "unit": "hh:mm"},
             "half_period": {"default": 1, "checkbox": False, "unit": "minutes"},
             "half_time_break": {"default": 1, "checkbox": False, "unit": "minutes"},
@@ -34,12 +34,11 @@ class GameManagementApp:
             "timer": font.Font(family="Arial", size=90, weight="bold"),
             "game_no": font.Font(family="Arial", size=12),
             "button": font.Font(family="Arial", size=20, weight="bold"),
-            "timeout_button": font.Font(family="Arial", size=20, weight="bold"),  # New font for timeouts
+            "timeout_button": font.Font(family="Arial", size=20, weight="bold"),
         }
 
         self.white_score_var = tk.IntVar(value=0)
         self.black_score_var = tk.IntVar(value=0)
-
         self.timer_running = False
         self.timer_seconds = 0
         self.court_time_dt = None
@@ -47,36 +46,36 @@ class GameManagementApp:
         self.court_time_job = None
         self.court_time_paused = False
         self.timer_job = None
-
         self.reset_timer_button = None
-
         self.in_timeout = False
         self.pending_timeout = None
         self.white_timeouts_this_half = 0
         self.black_timeouts_this_half = 0
         self.current_half = 0
         self.active_timeout_team = None
-
         self.sudden_death_timer_job = None
         self.sudden_death_seconds = 0
         self.sudden_death_goal_scored = False
-
         self.full_sequence = []
         self.current_index = 0
         self.game_started = False
-
         self.widgets = []
         self.last_valid_values = {}
-
         self.team_timeouts_allowed_var = tk.BooleanVar(value=self.variables["team_timeouts_allowed"]["default"])
         self.overtime_allowed_var = tk.BooleanVar(value=self.variables["overtime_allowed"]["default"])
+        self.referee_timeout_active = False
+        self.referee_timeout_elapsed = 0
+        self.referee_timeout_default_bg = "red"
+        self.referee_timeout_default_fg = "black"
+        self.referee_timeout_active_bg = "black"
+        self.referee_timeout_active_fg = "red"
+        self.saved_state = {}
 
         self.create_scoreboard_tab()
         self.create_settings_tab()
         self.load_settings()
         self.build_game_sequence()
         self.reset_timer()
-
         self.master.bind('<Configure>', self.scale_fonts)
         self.initial_width = self.master.winfo_width()
         self.master.update_idletasks()
@@ -117,7 +116,6 @@ class GameManagementApp:
     def create_scoreboard_tab(self):
         tab = ttk.Frame(self.notebook)
         self.notebook.add(tab, text="Scoreboard")
-
         for i in range(11):
             tab.grid_rowconfigure(i, weight=1)
         for i in range(6):
@@ -125,94 +123,185 @@ class GameManagementApp:
 
         self.court_time_label = tk.Label(tab, text="Court Time is", font=self.fonts["court_time"], bg="lightgrey")
         self.court_time_label.grid(row=0, column=0, columnspan=6, padx=1, pady=1, sticky="nsew")
-
         self.half_label = tk.Label(tab, text="", font=self.fonts["half"], bg="lightcoral")
         self.half_label.grid(row=1, column=0, columnspan=6, padx=1, pady=1, sticky="nsew")
-
         self.white_label = tk.Label(tab, text="White", font=self.fonts["team"], bg="white", fg="black")
         self.white_label.grid(row=2, column=0, columnspan=2, padx=1, pady=1, sticky="nsew")
-
         self.white_score = tk.Label(tab, textvariable=self.white_score_var, font=self.fonts["score"], bg="white", fg="black")
         self.white_score.grid(row=3, column=0, rowspan=6, columnspan=2, padx=1, pady=1, sticky="nsew")
-
         self.timer_label = tk.Label(tab, text="00:00", font=self.fonts["timer"], bg="lightgrey", fg="black")
         self.timer_label.grid(row=3, column=2, rowspan=6, columnspan=2, padx=1, pady=1, sticky="nsew")
-
         self.black_label = tk.Label(tab, text="Black", font=self.fonts["team"], bg="black", fg="white")
         self.black_label.grid(row=2, column=4, columnspan=2, padx=1, pady=1, sticky="nsew")
-
         self.black_score = tk.Label(tab, textvariable=self.black_score_var, font=self.fonts["score"], bg="black", fg="white")
         self.black_score.grid(row=3, column=4, rowspan=6, columnspan=2, padx=1, pady=1, sticky="nsew")
 
         self.white_timeout_button = tk.Button(
-        tab, text="White Team\nTime Out", font=self.fonts["timeout_button"], bg="white", fg="black",
-        justify="center", wraplength=180, height=2, command=self.white_team_timeout
+            tab, text="White Team\nTime-Out", font=self.fonts["timeout_button"], bg="white", fg="black",
+            activebackground="white", activeforeground="black",
+            justify="center", wraplength=180, height=2, command=self.white_team_timeout
         )
         self.white_timeout_button.grid(row=9, column=0, rowspan=2, padx=1, pady=1, sticky="nsew")
 
         self.white_goal_button = tk.Button(
-            tab, text="Add Goal White", font=self.fonts["button"], bg="light grey",
+            tab, text="Add Goal White", font=self.fonts["button"], bg="light grey", fg="black",
+            activebackground="light grey", activeforeground="black",
             command=lambda: self.add_goal_with_confirmation(self.white_score_var, "White")
         )
         self.white_goal_button.grid(row=9, column=1, padx=1, pady=1, sticky="nsew")
 
         self.white_minus_button = tk.Button(
-            tab, text="-ve Goal White", font=self.fonts["button"], bg="light grey",
+            tab, text="-ve Goal White", font=self.fonts["button"], bg="light grey", fg="black",
+            activebackground="light grey", activeforeground="black",
             command=lambda: self.adjust_score_with_confirm(self.white_score_var, "White")
         )
-        self.white_minus_button.grid(row=10, column=1, padx=1, pady=1, sticky="nsew")   
+        self.white_minus_button.grid(row=10, column=1, padx=1, pady=1, sticky="nsew")
 
-        self.ref_timeout_button = tk.Button(
-            tab, text="Ref Time Out", font=self.fonts["button"], bg="red"
+        self.referee_timeout_button = tk.Button(
+            tab, text="Referee Time-Out", font=self.fonts["button"],
+            bg=self.referee_timeout_default_bg, fg=self.referee_timeout_default_fg,
+            activebackground=self.referee_timeout_default_bg, activeforeground=self.referee_timeout_default_fg,
+            command=self.toggle_referee_timeout
         )
-        self.ref_timeout_button.grid(row=9, rowspan=2,column=2, columnspan=2, padx=1, pady=1, sticky="nsew")
+        self.referee_timeout_button.grid(row=9, rowspan=2, column=2, columnspan=2, padx=1, pady=1, sticky="nsew")
 
         self.test_121_label = tk.Label(tab, text="Test 121", font=self.fonts["game_no"], bg="light grey")
         self.test_121_label.grid(row=2, column=2, columnspan=2, padx=1, pady=1, sticky="nsew")
 
         self.black_goal_button = tk.Button(
-            tab, text="Add Goal Black", font=self.fonts["button"], bg="light grey",
+            tab, text="Add Goal Black", font=self.fonts["button"], bg="light grey", fg="black",
+            activebackground="light grey", activeforeground="black",
             command=lambda: self.add_goal_with_confirmation(self.black_score_var, "Black")
         )
         self.black_goal_button.grid(row=9, column=4, padx=1, pady=1, sticky="nsew")
 
         self.black_minus_button = tk.Button(
-            tab, text="-ve Goal Black", font=self.fonts["button"], bg="light grey",
+            tab, text="-ve Goal Black", font=self.fonts["button"], bg="light grey", fg="black",
+            activebackground="light grey", activeforeground="black",
             command=lambda: self.adjust_score_with_confirm(self.black_score_var, "Black")
         )
         self.black_minus_button.grid(row=10, column=4, padx=1, pady=1, sticky="nsew")
 
         self.black_timeout_button = tk.Button(
-        tab, text="Black Team\nTime Out", font=self.fonts["timeout_button"], bg="black", fg="white",
-        justify="center", wraplength=180, height=2, command=self.black_team_timeout
+            tab, text="Black Team\nTime-Out", font=self.fonts["timeout_button"], bg="black", fg="white",
+            activebackground="black", activeforeground="white",
+            justify="center", wraplength=180, height=2, command=self.black_team_timeout
         )
         self.black_timeout_button.grid(row=9, column=5, rowspan=2, padx=1, pady=1, sticky="nsew")
 
         self.update_team_timeouts_allowed()
 
-    def update_team_timeouts_allowed(self):
-        allowed = self.team_timeouts_allowed_var.get()
-        state = tk.NORMAL if allowed else tk.DISABLED
-        self.white_timeout_button.config(state=state)
-        self.black_timeout_button.config(state=state)
+    def toggle_referee_timeout(self):
+        if not self.referee_timeout_active:
+            self.referee_timeout_active = True
+            self.referee_timeout_button.config(
+                bg=self.referee_timeout_active_bg,
+                fg=self.referee_timeout_active_fg,
+                activebackground=self.referee_timeout_active_bg,
+                activeforeground=self.referee_timeout_active_fg
+            )
+            self.saved_state = {
+                "timer_seconds": self.timer_seconds,
+                "timer_running": self.timer_running,
+                "timer_job": self.timer_job,
+                "current_index": self.current_index,
+                "half_label_text": self.half_label.cget("text"),
+                "half_label_bg": self.half_label.cget("bg"),
+                # Save whether court_time was paused and the job id
+                "court_time_paused": self.court_time_paused,
+                "court_time_job": self.court_time_job,
+            }
+            # Cancel countdown timer
+            if self.timer_job:
+                self.master.after_cancel(self.timer_job)
+                self.timer_job = None
+            self.timer_running = False
+            # Cancel court time timer
+            if self.court_time_job:
+                self.master.after_cancel(self.court_time_job)
+                self.court_time_job = None
+            self.court_time_paused = True
+            self.referee_timeout_elapsed = 0
+            self.half_label.config(text="Referee Time-Out")
+            self.half_label.config(bg="red")
+            self.referee_timeout_countup()
+        else:
+            self.referee_timeout_active = False
+            self.referee_timeout_button.config(
+                bg=self.referee_timeout_default_bg,
+                fg=self.referee_timeout_default_fg,
+                activebackground=self.referee_timeout_default_bg,
+                activeforeground=self.referee_timeout_default_fg
+            )
+            self.timer_seconds = self.saved_state["timer_seconds"]
+            self.timer_running = self.saved_state["timer_running"]
+            self.current_index = self.saved_state["current_index"]
+            self.half_label.config(text=self.saved_state["half_label_text"])
+            self.half_label.config(bg=self.saved_state["half_label_bg"])
+            self.court_time_paused = self.saved_state.get("court_time_paused", False)
+            self.update_timer_display()
+            # Restart countdown timer if needed
+            if self.timer_running:
+                self.timer_job = self.master.after(1000, self.countdown_timer)
+            # Restart court time timer if needed
+            if not self.court_time_paused:
+                self.court_time_job = self.master.after(1000, self.update_court_time)
 
-    def update_overtime_variables_state(self):
-        overtime_enabled = self.overtime_allowed_var.get()
-        for widget in self.widgets:
-            name = widget.get("name", "")
-            if name in ["overtime_game_break", "overtime_half_period", "overtime_half_time_break"]:
-                label = widget.get("label_widget")
-                entry = widget.get("entry")
-                if overtime_enabled:
-                    if label:
-                        label.config(fg="black")
-                    if entry:
-                        entry.config(state="normal")
-                else:
-                    if label:
-                        label.config(fg="grey")
-                    if entry:
-                        entry.config(state="disabled")
+    def referee_timeout_countup(self):
+        if not self.referee_timeout_active:
+            return
+        self.referee_timeout_elapsed += 1
+        mins, secs = divmod(self.referee_timeout_elapsed, 60)
+        self.timer_label.config(text=f"{int(mins):02d}:{int(secs):02d}")
+        self.timer_job = self.master.after(1000, self.referee_timeout_countup)
+
+    def adjust_score_with_confirm(self, score_var, team_name):
+        if not messagebox.askyesno(
+            "Subtract Goal",
+            f"Are you sure you want to remove goal from {team_name}?"
+        ):
+            return
+        cur_period = self.full_sequence[self.current_index]
+        is_break = (cur_period['type'] == 'break'
+            or cur_period['name'] in ["White Team Time-Out", "Black Team Time-Out"])
+        if is_break:
+            if not messagebox.askyesno(
+                "Adjust Goal During Break?",
+                f"You are about to adjust a goal for {team_name} during a break or half time. Are you sure?"
+            ):
+                return
+        if score_var.get() > 0:
+            score_var.set(score_var.get() - 1)
+        if cur_period['name'] == 'Sudden Death':
+            return
+
+    def add_goal_with_confirmation(self, score_var, team_name):
+        cur_period = self.full_sequence[self.current_index]
+        is_break = (cur_period['type'] == 'break'
+            or cur_period['name'] in ["White Team Time-Out", "Black Team Time-Out"])
+        if is_break:
+            if not messagebox.askyesno(
+                "Add Goal During Break?",
+                f"You are about to add a goal for {team_name} during a break or half time. Are you sure?"
+            ):
+                return
+        score_var.set(score_var.get() + 1)
+        if cur_period['name'] in ['Overtime Game Break', 'Sudden Death Game Break']:
+            if self.white_score_var.get() != self.black_score_var.get():
+                self.current_index = self.find_period_index('Between Game Break')
+                self.start_current_period()
+                return
+            elif self.white_score_var.get() == self.black_score_var.get():
+                for idx in range(self.current_index + 1, len(self.full_sequence)):
+                    next_period = self.full_sequence[idx]
+                    if next_period['name'] in ['Overtime First Half', 'Sudden Death']:
+                        self.current_index = idx
+                        self.start_current_period()
+                        return
+        if cur_period['name'] == 'Sudden Death' and not getattr(self, 'sudden_death_goal_scored', False):
+            self.sudden_death_goal_scored = True
+            self.stop_sudden_death_timer()
+            self.next_period()
 
     def create_settings_tab(self):
         tab = ttk.Frame(self.notebook)
@@ -221,13 +310,11 @@ class GameManagementApp:
         frame.pack(fill=tk.BOTH, expand=True)
         for i in range(5):
             frame.grid_columnconfigure(i, weight=0 if i < 4 else 1)
-
         default_font = font.nametofont("TkDefaultFont")
         new_size = default_font.cget("size") + 2
         headers = ["Use?", "Variable", "Value", "Units"]
         for i, h in enumerate(headers):
             tk.Label(frame, text=h, font=(default_font.cget("family"), new_size, "bold")).grid(row=0, column=i, sticky="w", padx=5, pady=5)
-
         row_idx = 1
         for var_name, var_info in self.variables.items():
             if var_info["checkbox"]:
@@ -236,7 +323,7 @@ class GameManagementApp:
                 check_var = self.team_timeouts_allowed_var
                 cb = ttk.Checkbutton(frame, variable=check_var)
                 cb.grid(row=row_idx, column=0, sticky="w", pady=5)
-                label_text = var_info.get("label", "Team time outs allowed?")
+                label_text = var_info.get("label", "Team Time-Outs allowed?")
                 label_widget = tk.Label(frame, text=label_text, font=(default_font.cget("family"), new_size, "bold"))
                 label_widget.grid(row=row_idx, column=1, sticky="w", pady=5)
                 check_var.trace_add("write", lambda *args: self.update_team_timeouts_allowed())
@@ -271,12 +358,10 @@ class GameManagementApp:
             entry.bind("<FocusOut>", lambda e, name=var_name: self._on_settings_variable_change())
             entry.bind("<Return>", lambda e, name=var_name: self._on_settings_variable_change())
             row_idx += 1
-
         button_frame = ttk.Frame(tab)
         button_frame.pack(pady=10)
         self.reset_timer_button = ttk.Button(button_frame, text="Reset Timer", command=self.reset_timer)
         self.reset_timer_button.grid(row=0, column=0, padx=10)
-
         self.update_overtime_variables_state()
 
     def _on_settings_variable_change(self, *args):
@@ -303,8 +388,204 @@ class GameManagementApp:
         v = self.variables
         return v["sudden_death_game_break"].get("used", True)
 
+    def update_team_timeouts_allowed(self):
+        allowed = self.team_timeouts_allowed_var.get()
+        state = tk.NORMAL if allowed else tk.DISABLED
+        self.white_timeout_button.config(state=state)
+        self.black_timeout_button.config(state=state)
+
+    def update_overtime_variables_state(self):
+        overtime_enabled = self.overtime_allowed_var.get()
+        for widget in self.widgets:
+            name = widget.get("name", "")
+            if name in ["overtime_game_break", "overtime_half_period", "overtime_half_time_break"]:
+                label = widget.get("label_widget")
+                entry = widget.get("entry")
+                if overtime_enabled:
+                    if label:
+                        label.config(fg="black")
+                    if entry:
+                        entry.config(state="normal")
+                else:
+                    if label:
+                        label.config(fg="grey")
+                    if entry:
+                        entry.config(state="disabled")
+
+    def scale_fonts(self, event):
+        cur_width = self.master.winfo_width()
+        base_width = 1200
+        scale = cur_width / base_width
+        scale = max(0.5, min(2.0, scale))
+        base_sizes = {
+            "court_time": 36,
+            "half": 36,
+            "team": 30,
+            "score": 200,
+            "timer": 90,
+            "game_no": 12,
+            "button": 20,
+            "timeout_button": 20,
+        }
+        reduced_button_scale = 0.7
+        for key in self.fonts:
+            if key == "timeout_button":
+                new_size = int(base_sizes[key] * scale * reduced_button_scale)
+            else:
+                new_size = int(base_sizes[key] * scale)
+            self.fonts[key].config(size=new_size)
+
+    def reset_timer(self):
+        self.white_score_var.set(0)
+        self.black_score_var.set(0)
+        self.current_index = 0
+        self.timer_running = True
+        self.sudden_death_goal_scored = False
+        if self.timer_job:
+            self.master.after_cancel(self.timer_job)
+            self.timer_job = None
+        self.sudden_death_timer_job = None
+        self.sudden_death_seconds = 0
+        if self.full_sequence:
+            self.timer_seconds = self.full_sequence[0]["duration"]
+            self.half_label.config(text=self.full_sequence[0]["name"])
+            self.update_half_label_background(self.full_sequence[0]["name"])
+        else:
+            self.timer_seconds = 0
+            self.half_label.config(text="")
+        self.update_timer_display()
+        self.court_time_dt = datetime.datetime.now()
+        self.court_time_seconds = 0
+        self.court_time_paused = False
+        self.update_court_time()
+        self.start_current_period()
+
+    def update_court_time(self):
+        if self.court_time_paused:
+            self.court_time_job = self.master.after(1000, self.update_court_time)
+            return
+        if self.court_time_dt is None:
+            self.court_time_dt = datetime.datetime.now()
+        current_dt = self.court_time_dt + datetime.timedelta(seconds=self.court_time_seconds)
+        time_string = current_dt.strftime('%I:%M:%S %p').lstrip('0')
+        self.court_time_label.config(text=f"Court Time is {time_string}")
+        self.court_time_seconds += 1
+        self.court_time_job = self.master.after(1000, self.update_court_time)
+
+    def update_timer_display(self):
+        if self.referee_timeout_active:
+            mins, secs = divmod(self.referee_timeout_elapsed, 60)
+            self.timer_label.config(text=f"{int(mins):02d}:{int(secs):02d}")
+            return
+        cur_period = self.full_sequence[self.current_index] if self.full_sequence and self.current_index < len(self.full_sequence) else None
+        if cur_period and cur_period['name'] == 'Sudden Death':
+            mins, secs = divmod(self.sudden_death_seconds, 60)
+            self.timer_label.config(text=f"{int(mins):02d}:{int(secs):02d}")
+        else:
+            mins, secs = divmod(self.timer_seconds, 60)
+            self.timer_label.config(text=f"{int(mins):02d}:{int(secs):02d}")
+
+    def start_current_period(self):
+        if self.current_index >= len(self.full_sequence):
+            self.current_index = self.find_period_index('Between Game Break')
+        cur_period = self.full_sequence[self.current_index]
+        self.half_label.config(text=cur_period['name'])
+        self.update_half_label_background(cur_period['name'])
+        paused_periods = [
+            'Overtime Game Break',
+            'Overtime First Half',
+            'Overtime Half Time',
+            'Overtime Second Half',
+            'Sudden Death Game Break',
+            'Sudden Death'
+        ]
+        if cur_period['name'] in paused_periods:
+            self.court_time_paused = True
+        else:
+            self.court_time_paused = False
+        if cur_period['name'] == 'Sudden Death':
+            self.timer_running = True
+            self.sudden_death_seconds = 0
+            self.update_timer_display()
+            self.start_sudden_death_timer()
+            self.reset_timeouts_for_half()
+        else:
+            self.timer_seconds = cur_period['duration'] if cur_period['duration'] is not None else 0
+            self.update_timer_display()
+            self.timer_running = True
+            if self.timer_job:
+                self.master.after_cancel(self.timer_job)
+                self.timer_job = None
+            self.timer_job = self.master.after(1000, self.countdown_timer)
+            self.reset_timeouts_for_half()
+
+    def next_period(self):
+        if self.timer_job:
+            self.master.after_cancel(self.timer_job)
+            self.timer_job = None
+        if self.current_index >= len(self.full_sequence):
+            self.current_index = self.find_period_index('Between Game Break')
+            self.start_current_period()
+            return
+        cur_period = self.full_sequence[self.current_index]
+        period_name = cur_period['name']
+        if period_name == 'Overtime Second Half':
+            if self.white_score_var.get() != self.black_score_var.get():
+                self.current_index = self.find_period_index('Between Game Break')
+                self.start_current_period()
+                return
+        if period_name == 'Sudden Death' and self.sudden_death_goal_scored:
+            self.current_index = self.find_period_index('Between Game Break')
+            self.start_current_period()
+            return
+        self.current_index += 1
+        if self.current_index < len(self.full_sequence):
+            next_period = self.full_sequence[self.current_index]
+            if next_period['name'] == 'Between Game Break':
+                self.current_index = self.find_period_index('First Half')
+                self.start_current_period()
+                return
+        if self.current_index >= len(self.full_sequence):
+            self.current_index = self.find_period_index('Between Game Break')
+            self.start_current_period()
+            return
+        self.start_current_period()
+
+    def start_sudden_death_timer(self):
+        if not self.timer_running:
+            return
+        self.sudden_death_seconds += 1
+        self.update_timer_display()
+        self.sudden_death_timer_job = self.master.after(1000, self.start_sudden_death_timer)
+
+    def stop_sudden_death_timer(self):
+        if self.sudden_death_timer_job:
+            self.master.after_cancel(self.sudden_death_timer_job)
+            self.sudden_death_timer_job = None
+
+    def goto_between_game_break(self):
+        idx = self.find_period_index('Between Game Break')
+        self.current_index = idx
+        self.start_current_period()
+
+    def countdown_timer(self):
+        if self.timer_job:
+            self.master.after_cancel(self.timer_job)
+            self.timer_job = None
+        self.update_timer_display()
+        if not self.timer_running:
+            return
+        if self.timer_seconds > 0:
+            self.timer_seconds -= 1
+            cur_period = self.full_sequence[self.current_index] if self.full_sequence and self.current_index < len(self.full_sequence) else None
+            if cur_period and cur_period['name'] == 'Between Game Break' and self.timer_seconds == 30:
+                self.white_score_var.set(0)
+                self.black_score_var.set(0)
+            self.timer_job = self.master.after(1000, self.countdown_timer)
+        else:
+            self.next_period()
+
     def reset_timeouts_for_half(self):
-        # FIX: Only disable the button for a team that has used their timeout.
         period = self.full_sequence[self.current_index]
         if period['type'] in ['regular']:
             if self.white_timeouts_this_half < 1:
@@ -336,8 +617,8 @@ class GameManagementApp:
         timeout_seconds = self.get_minutes('timeout_period')
         self.timer_seconds = timeout_seconds
         self.timer_running = True
-        self.half_label.config(text="White Team Timeout")
-        self.update_half_label_background("White Team Timeout")
+        self.half_label.config(text="White Team Time-Out")
+        self.update_half_label_background("White Team Time-Out")
         self.update_timer_display()
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
@@ -361,8 +642,8 @@ class GameManagementApp:
         timeout_seconds = self.get_minutes('timeout_period')
         self.timer_seconds = timeout_seconds
         self.timer_running = True
-        self.half_label.config(text="Black Team Timeout")
-        self.update_half_label_background("Black Team Timeout")
+        self.half_label.config(text="Black Team Time-Out")
+        self.update_half_label_background("Black Team Time-Out")
         self.update_timer_display()
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
@@ -379,25 +660,12 @@ class GameManagementApp:
 
     def show_timeout_popup(self, team):
         popup = tk.Toplevel(self.master)
-        popup.title("Timeout Limit")
+        popup.title("Time-Out Limit")
         popup.geometry("350x100")
         label = tk.Label(popup, text="One time-out period per team per half", font=self.fonts["button"])
         label.pack(pady=20)
         btn = tk.Button(popup, text="OK", font=self.fonts["button"], command=popup.destroy)
         btn.pack(pady=5)
-        # FIX: Do NOT disable both teams' timeout buttons, just keep the popup.
-
-    def update_court_time(self):
-        if self.court_time_paused:
-            self.court_time_job = self.master.after(1000, self.update_court_time)
-            return
-        if self.court_time_dt is None:
-            self.court_time_dt = datetime.datetime.now()
-        current_dt = self.court_time_dt + datetime.timedelta(seconds=self.court_time_seconds)
-        time_string = current_dt.strftime('%I:%M:%S %p').lstrip('0')
-        self.court_time_label.config(text=f"Court Time is {time_string}")
-        self.court_time_seconds += 1
-        self.court_time_job = self.master.after(1000, self.update_court_time)
 
     def timeout_countdown(self):
         if self.timer_job:
@@ -439,8 +707,9 @@ class GameManagementApp:
             "between_game_break",
             "start_first_game_at_this_time",
             "sudden_death_game_break",
-            "white_team_timeout",
-            "black_team_timeout"
+            "white_team_time-out",
+            "black_team_time-out",
+            "referee_time-out"
         }
         internal_name = period_name.lower().replace(" ", "_")
         if internal_name in red_periods:
@@ -448,236 +717,6 @@ class GameManagementApp:
         else:
             self.half_label.config(bg="lightblue")
 
-    def countdown_timer(self):
-        if self.timer_job:
-            self.master.after_cancel(self.timer_job)
-            self.timer_job = None
-        self.update_timer_display()
-        if not self.timer_running:
-            return
-        if self.timer_seconds > 0:
-            self.timer_seconds -= 1
-
-            cur_period = self.full_sequence[self.current_index] if self.full_sequence and self.current_index < len(self.full_sequence) else None
-            if cur_period and cur_period['name'] == 'Between Game Break' and self.timer_seconds == 30:
-                self.white_score_var.set(0)
-                self.black_score_var.set(0)
-
-            self.timer_job = self.master.after(1000, self.countdown_timer)
-        else:
-            self.next_period()
-
-    def reset_timer(self):
-        self.white_score_var.set(0)
-        self.black_score_var.set(0)
-        self.current_index = 0
-        self.timer_running = True
-        self.sudden_death_goal_scored = False
-        if self.timer_job:
-            self.master.after_cancel(self.timer_job)
-            self.timer_job = None
-        self.sudden_death_timer_job = None
-        self.sudden_death_seconds = 0
-        if self.full_sequence:
-            self.timer_seconds = self.full_sequence[0]["duration"]
-            self.half_label.config(text=self.full_sequence[0]["name"])
-            self.update_half_label_background(self.full_sequence[0]["name"])
-        else:
-            self.timer_seconds = 0
-            self.half_label.config(text="")
-        self.update_timer_display()
-        self.court_time_dt = datetime.datetime.now()
-        self.court_time_seconds = 0
-        self.court_time_paused = False
-        self.update_court_time()
-        self.start_current_period()
-
-    def start_current_period(self):
-        if self.current_index >= len(self.full_sequence):
-            self.current_index = self.find_period_index('Between Game Break')
-        cur_period = self.full_sequence[self.current_index]
-        self.half_label.config(text=cur_period['name'])
-        self.update_half_label_background(cur_period['name'])
-
-        paused_periods = [
-            'Overtime Game Break',
-            'Overtime First Half',
-            'Overtime Half Time',
-            'Overtime Second Half',
-            'Sudden Death Game Break',
-            'Sudden Death'
-        ]
-        if cur_period['name'] in paused_periods:
-            self.court_time_paused = True
-        else:
-            self.court_time_paused = False
-
-        if cur_period['name'] == 'Sudden Death':
-            self.timer_running = True
-            self.sudden_death_seconds = 0
-            self.update_timer_display()
-            self.start_sudden_death_timer()
-            self.reset_timeouts_for_half()
-        else:
-            self.timer_seconds = cur_period['duration'] if cur_period['duration'] is not None else 0
-            self.update_timer_display()
-            self.timer_running = True
-            if self.timer_job:
-                self.master.after_cancel(self.timer_job)
-                self.timer_job = None
-            self.timer_job = self.master.after(1000, self.countdown_timer)
-            self.reset_timeouts_for_half()
-
-    def next_period(self):
-        if self.timer_job:
-            self.master.after_cancel(self.timer_job)
-            self.timer_job = None
-
-        if self.current_index >= len(self.full_sequence):
-            self.current_index = self.find_period_index('Between Game Break')
-            self.start_current_period()
-            return
-
-        cur_period = self.full_sequence[self.current_index]
-        period_name = cur_period['name']
-
-        if period_name == 'Overtime Second Half':
-            if self.white_score_var.get() != self.black_score_var.get():
-                self.current_index = self.find_period_index('Between Game Break')
-                self.start_current_period()
-                return
-
-        if period_name == 'Sudden Death' and self.sudden_death_goal_scored:
-            self.current_index = self.find_period_index('Between Game Break')
-            self.start_current_period()
-            return
-
-        self.current_index += 1
-
-        if self.current_index < len(self.full_sequence):
-            next_period = self.full_sequence[self.current_index]
-            if next_period['name'] == 'Between Game Break':
-                self.current_index = self.find_period_index('First Half')
-                self.start_current_period()
-                return
-
-        if self.current_index >= len(self.full_sequence):
-            self.current_index = self.find_period_index('Between Game Break')
-            self.start_current_period()
-            return
-
-        self.start_current_period()
-
-    def start_sudden_death_timer(self):
-        if not self.timer_running:
-            return
-        self.sudden_death_seconds += 1
-        self.update_timer_display()
-        self.sudden_death_timer_job = self.master.after(1000, self.start_sudden_death_timer)
-
-    def stop_sudden_death_timer(self):
-        if self.sudden_death_timer_job:
-            self.master.after_cancel(self.sudden_death_timer_job)
-            self.sudden_death_timer_job = None
-
-    def goto_between_game_break(self):
-        idx = self.find_period_index('Between Game Break')
-        self.current_index = idx
-        self.start_current_period()
-
-    def update_timer_display(self):
-        cur_period = self.full_sequence[self.current_index] if self.full_sequence and self.current_index < len(self.full_sequence) else None
-        if cur_period and cur_period['name'] == 'Sudden Death':
-            mins, secs = divmod(self.sudden_death_seconds, 60)
-            self.timer_label.config(text=f"{int(mins):02d}:{int(secs):02d}")
-        else:
-            mins, secs = divmod(self.timer_seconds, 60)
-            self.timer_label.config(text=f"{int(mins):02d}:{int(secs):02d}")
-
-    def scale_fonts(self, event):
-            # Get the current width and height of the window
-        cur_width = self.master.winfo_width()
-        base_width = 1200  # initial window width
-        scale = cur_width / base_width
-        scale = max(0.5, min(2.0, scale))
-
-        base_sizes = {
-            "court_time": 36,
-            "half": 36,
-            "team": 30,
-            "score": 200,
-            "timer": 90,
-            "game_no": 12,
-            "button": 20,
-            "timeout_button": 20,  # Base size for timeout buttons
-        }
-
-        reduced_button_scale = 0.7  # Less aggressive scaling for timeout buttons
-
-        for key in self.fonts:
-            if key == "timeout_button":
-                new_size = int(base_sizes[key] * scale * reduced_button_scale)
-            else:
-                new_size = int(base_sizes[key] * scale)
-            self.fonts[key].config(size=new_size)
-
-    def add_goal_with_confirmation(self, score_var, team_name):
-        cur_period = self.full_sequence[self.current_index]
-        is_break = (cur_period['type'] == 'break'
-            or cur_period['name'] in ["White Team Timeout", "Black Team Timeout"])
-
-        if is_break:
-            if not messagebox.askyesno(
-                "Add Goal During Break?",
-                f"You are about to add a goal for {team_name} during a break or half time. Are you sure?"
-            ):
-                return
-
-        score_var.set(score_var.get() + 1)
-
-        if cur_period['name'] in ['Overtime Game Break', 'Sudden Death Game Break']:
-            if self.white_score_var.get() != self.black_score_var.get():
-                self.current_index = self.find_period_index('Between Game Break')
-                self.start_current_period()
-                return
-            elif self.white_score_var.get() == self.black_score_var.get():
-                for idx in range(self.current_index + 1, len(self.full_sequence)):
-                    next_period = self.full_sequence[idx]
-                    if next_period['name'] in ['Overtime First Half', 'Sudden Death']:
-                        self.current_index = idx
-                        self.start_current_period()
-                        return
-
-        # FIX: Complete Sudden Death logic
-        if cur_period['name'] == 'Sudden Death' and not getattr(self, 'sudden_death_goal_scored', False):
-            self.sudden_death_goal_scored = True
-            self.stop_sudden_death_timer()
-            self.next_period()
-
-    def adjust_score_with_confirm(self, score_var, team_name):
-        cur_period = self.full_sequence[self.current_index]
-        is_break = (cur_period['type'] == 'break'
-            or cur_period['name'] in ["White Team Timeout", "Black Team Timeout"])
-        if is_break:
-            if not messagebox.askyesno(
-                "Adjust Goal During Break?",
-                f"You are about to adjust a goal for {team_name} during a break or half time. Are you sure?"
-            ):
-                return
-
-        # Show confirmation dialog for goal removal
-        if not messagebox.askyesno(
-            "Subtract Goal",
-            f"Are you sure you want to remove goal from {team_name}?"
-        ):
-            return
-
-        if score_var.get() > 0:
-            score_var.set(score_var.get() - 1)
-
-        # Note: Removed sudden death ending logic - goal removal should NOT end sudden death
-
-# If this script is run directly, start the GUI
 if __name__ == "__main__":
     root = tk.Tk()
     app = GameManagementApp(root)
