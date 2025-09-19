@@ -665,13 +665,17 @@ class GameManagementApp:
             ):
                 return
 
+        # Show confirmation dialog for goal removal
+        if not messagebox.askyesno(
+            "Subtract Goal",
+            f"Are you sure you want to remove goal from {team_name}?"
+        ):
+            return
+
         if score_var.get() > 0:
             score_var.set(score_var.get() - 1)
 
-        if cur_period['name'] == 'Sudden Death' and not getattr(self, 'sudden_death_goal_scored', False):
-            self.sudden_death_goal_scored = True
-            self.stop_sudden_death_timer()
-            self.next_period()
+        # Note: Removed sudden death ending logic - goal removal should NOT end sudden death
 
 # If this script is run directly, start the GUI
 if __name__ == "__main__":
