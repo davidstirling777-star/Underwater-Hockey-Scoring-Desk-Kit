@@ -71,6 +71,9 @@ class GameManagementApp:
         self.referee_timeout_active_fg = "red"
         self.saved_state = {}
 
+        # Penalty storage
+        self.stored_penalties = []
+
         self.create_scoreboard_tab()
         self.create_settings_tab()
         self.load_settings()
@@ -200,7 +203,88 @@ class GameManagementApp:
         self.update_team_timeouts_allowed()
 
     def show_penalties(self):
-        messagebox.showinfo("Penalties", "Penalties feature coming soon!")
+        import tkinter as tk
+        from tkinter import ttk, messagebox
+
+        penalty_window = tk.Toplevel(self.master)
+        penalty_window.title("Penalties")
+        penalty_window.geometry("250x400")
+
+        button_frame = ttk.Frame(penalty_window, padding="10")
+        button_frame.pack(side="top", fill="x")
+        selected_team = tk.StringVar()
+
+        def select_team(team):
+            selected_team.set(team)
+            button_white.config(relief=tk.SUNKEN if team == "White" else tk.RAISED)
+            button_black.config(relief=tk.SUNKEN if team == "Black" else tk.RAISED)
+
+        button_white = ttk.Button(button_frame, text="White", command=lambda: select_team("White"))
+        button_white.pack(side="left", padx=5, expand=True)
+        button_black = ttk.Button(button_frame, text="Black", command=lambda: select_team("Black"))
+        button_black.pack(side="left", padx=5, expand=True)
+
+        numbers = list(range(1, 16))
+        dropdown_options = ["Pick Cap Number"] + numbers
+        dropdown_variable = tk.StringVar(value=dropdown_options[0])
+        dropdown = ttk.Combobox(penalty_window, textvariable=dropdown_variable, values=dropdown_options, state="readonly", height=16)
+        dropdown.pack(pady=10)
+
+        radio_frame = ttk.Frame(penalty_window)
+        radio_frame.pack(side="top", anchor="w", pady=10, fill="both")
+        radio_variable = tk.StringVar()
+        radio_button_1 = tk.Radiobutton(radio_frame, text="1 minute", variable=radio_variable, value="1 minute", indicatoron=True)
+        radio_button_2 = tk.Radiobutton(radio_frame, text="2 minutes", variable=radio_variable, value="2 minutes", indicatoron=True)
+        radio_button_3 = tk.Radiobutton(radio_frame, text="5 minutes", variable=radio_variable, value="5 minutes", indicatoron=True)
+        radio_button_4 = tk.Radiobutton(radio_frame, text="Rest of the match", variable=radio_variable, value="Rest of the match", indicatoron=True)
+        radio_button_1.pack(anchor="w")
+        radio_button_2.pack(anchor="w")
+        radio_button_3.pack(anchor="w")
+        radio_button_4.pack(anchor="w")
+
+        summary_frame = ttk.Frame(penalty_window)
+        summary_frame.pack(side="top", fill="both", expand=True)
+        summary_label = ttk.Label(summary_frame, text="Stored Penalties (max 6):")
+        summary_label.pack(anchor="w")
+        penalty_listbox = tk.Listbox(summary_frame, height=6)
+        penalty_listbox.pack(fill="both", expand=True)
+
+        def refresh_penalty_listbox():
+            penalty_listbox.delete(0, tk.END)
+            for p in getattr(self, 'stored_penalties', []):
+                penalty_listbox.insert(tk.END, f"{p['team']} #{p['cap']} {p['duration']}")
+
+        refresh_penalty_listbox()
+
+        def start_penalty():
+            team = selected_team.get()
+            cap = dropdown_variable.get()
+            duration = radio_variable.get()
+            if team not in ["White", "Black"]:
+                messagebox.showerror("Error", "Choose White or Black team.")
+                return
+            if cap == "Pick Cap Number":
+                messagebox.showerror("Error", "Choose a cap number.")
+                return
+            if duration == "":
+                messagebox.showerror("Error", "Choose a penalty duration.")
+                return
+            if len(self.stored_penalties) >= 6:
+                messagebox.showerror("Error", "Maximum 6 penalties can be stored.")
+                return
+            self.stored_penalties.append({"team": team, "cap": cap, "duration": duration})
+            refresh_penalty_listbox()
+            selected_team.set("")
+            dropdown_variable.set(dropdown_options[0])
+            radio_variable.set("")
+
+        start_button_frame = ttk.Frame(penalty_window)
+        start_button_frame.pack(side="bottom", fill="x", pady=10)
+        start_button = ttk.Button(start_button_frame, text="Start", command=start_penalty)
+        start_button.pack(expand=True, fill="x")
+
+        penalty_window.transient(self.master)
+        penalty_window.grab_set()
 
     def toggle_referee_timeout(self):
         if not self.referee_timeout_active:
@@ -293,10 +377,8 @@ class GameManagementApp:
                 return
         score_var.set(score_var.get() + 1)
 
-        # NEW LOGIC: If scores become tied during Between Game Break, go to Overtime or Sudden Death Game Break
         if cur_period['name'] == 'Between Game Break':
             if self.white_score_var.get() == self.black_score_var.get():
-                # Move to Overtime Game Break if present, else Sudden Death Game Break
                 for idx in range(self.current_index + 1, len(self.full_sequence)):
                     next_period = self.full_sequence[idx]
                     if next_period['name'] == 'Overtime Game Break':
@@ -307,7 +389,6 @@ class GameManagementApp:
                         self.current_index = idx
                         self.start_current_period()
                         return
-        # NEW LOGIC: If scores become tied during Sudden Death Game Break, go to Sudden Death
         elif cur_period['name'] == 'Sudden Death Game Break':
             if self.white_score_var.get() == self.black_score_var.get():
                 for idx in range(self.current_index + 1, len(self.full_sequence)):
@@ -317,7 +398,6 @@ class GameManagementApp:
                         self.start_current_period()
                         return
 
-        # ---- Existing logic for Overtime/Sudden Death transitions ----
         if cur_period['name'] in ['Overtime Game Break', 'Sudden Death Game Break']:
             if self.white_score_var.get() != self.black_score_var.get():
                 self.current_index = self.find_period_index('Between Game Break')
@@ -561,7 +641,6 @@ class GameManagementApp:
             return
         cur_period = self.full_sequence[self.current_index]
         period_name = cur_period['name']
-        # --- BUG FIX: End game after Second Half if scores are not tied ---
         if period_name == 'Second Half':
             if self.white_score_var.get() != self.black_score_var.get():
                 self.current_index = self.find_period_index('Between Game Break')
@@ -614,11 +693,11 @@ class GameManagementApp:
         if not self.timer_running:
             return
         if self.timer_seconds > 0:
-            # --- RESET GOALS WHEN TIMER IS EXACTLY 30 SECONDS ---
             cur_period = self.full_sequence[self.current_index] if self.full_sequence and self.current_index < len(self.full_sequence) else None
             if cur_period and cur_period['name'] == 'Between Game Break' and self.timer_seconds == 30:
                 self.white_score_var.set(0)
                 self.black_score_var.set(0)
+                self.stored_penalties.clear()  # Clear stored penalties at same instant
             self.timer_seconds -= 1
             self.timer_job = self.master.after(1000, self.countdown_timer)
         else:
@@ -796,7 +875,6 @@ class GameManagementApp:
             self.display_game_label.config(text=self.game_label.cget("text"))
             self.display_white_label.config(text=self.white_label.cget("text"))
             self.display_black_label.config(text=self.black_label.cget("text"))
-            # Responsive: update every 100 ms
             self.display_window.after(100, update_display)
         update_display()
 
