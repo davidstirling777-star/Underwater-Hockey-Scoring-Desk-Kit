@@ -164,7 +164,14 @@ class GameManagementApp:
             activebackground=self.referee_timeout_default_bg, activeforeground=self.referee_timeout_default_fg,
             command=self.toggle_referee_timeout
         )
-        self.referee_timeout_button.grid(row=9, rowspan=2, column=2, columnspan=2, padx=1, pady=1, sticky="nsew")
+        self.referee_timeout_button.grid(row=9, column=2, columnspan=2, padx=1, pady=1, sticky="nsew")
+
+        self.penalties_button = tk.Button(
+            tab, text="Penalties", font=self.fonts["button"], bg="orange", fg="black",
+            activebackground="orange", activeforeground="black",
+            command=self.show_penalties
+        )
+        self.penalties_button.grid(row=10, column=2, columnspan=2, padx=1, pady=1, sticky="nsew")
 
         self.game_label = tk.Label(tab, text="Game 121", font=self.fonts["game_no"], bg="light grey")
         self.game_label.grid(row=2, column=2, columnspan=2, padx=1, pady=1, sticky="nsew")
@@ -191,6 +198,9 @@ class GameManagementApp:
         self.black_timeout_button.grid(row=9, column=5, rowspan=2, padx=1, pady=1, sticky="nsew")
 
         self.update_team_timeouts_allowed()
+
+    def show_penalties(self):
+        messagebox.showinfo("Penalties", "Penalties feature coming soon!")
 
     def toggle_referee_timeout(self):
         if not self.referee_timeout_active:
@@ -525,6 +535,12 @@ class GameManagementApp:
             return
         cur_period = self.full_sequence[self.current_index]
         period_name = cur_period['name']
+        # --- BUG FIX: End game after Second Half if scores are not tied ---
+        if period_name == 'Second Half':
+            if self.white_score_var.get() != self.black_score_var.get():
+                self.current_index = self.find_period_index('Between Game Break')
+                self.start_current_period()
+                return
         if period_name == 'Overtime Second Half':
             if self.white_score_var.get() != self.black_score_var.get():
                 self.current_index = self.find_period_index('Between Game Break')
@@ -713,7 +729,6 @@ class GameManagementApp:
         else:
             self.half_label.config(bg="lightblue")
 
-    # --- Display window methods ---
     def create_display_window(self):
         self.display_window = tk.Toplevel(self.master)
         self.display_window.title("Display Window")
@@ -754,7 +769,8 @@ class GameManagementApp:
             self.display_game_label.config(text=self.game_label.cget("text"))
             self.display_white_label.config(text=self.white_label.cget("text"))
             self.display_black_label.config(text=self.black_label.cget("text"))
-            self.display_window.after(500, update_display)
+            # Responsive: update every 50 ms. Increase this number for lower GPU and CPU usage
+            self.display_window.after(50, update_display)
         update_display()
 
 if __name__ == "__main__":
