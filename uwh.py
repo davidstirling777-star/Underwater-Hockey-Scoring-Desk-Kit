@@ -292,6 +292,32 @@ class GameManagementApp:
             ):
                 return
         score_var.set(score_var.get() + 1)
+
+        # NEW LOGIC: If scores become tied during Between Game Break, go to Overtime or Sudden Death Game Break
+        if cur_period['name'] == 'Between Game Break':
+            if self.white_score_var.get() == self.black_score_var.get():
+                # Move to Overtime Game Break if present, else Sudden Death Game Break
+                for idx in range(self.current_index + 1, len(self.full_sequence)):
+                    next_period = self.full_sequence[idx]
+                    if next_period['name'] == 'Overtime Game Break':
+                        self.current_index = idx
+                        self.start_current_period()
+                        return
+                    if next_period['name'] == 'Sudden Death Game Break':
+                        self.current_index = idx
+                        self.start_current_period()
+                        return
+        # NEW LOGIC: If scores become tied during Sudden Death Game Break, go to Sudden Death
+        elif cur_period['name'] == 'Sudden Death Game Break':
+            if self.white_score_var.get() == self.black_score_var.get():
+                for idx in range(self.current_index + 1, len(self.full_sequence)):
+                    next_period = self.full_sequence[idx]
+                    if next_period['name'] == 'Sudden Death':
+                        self.current_index = idx
+                        self.start_current_period()
+                        return
+
+        # ---- Existing logic for Overtime/Sudden Death transitions ----
         if cur_period['name'] in ['Overtime Game Break', 'Sudden Death Game Break']:
             if self.white_score_var.get() != self.black_score_var.get():
                 self.current_index = self.find_period_index('Between Game Break')
@@ -588,11 +614,12 @@ class GameManagementApp:
         if not self.timer_running:
             return
         if self.timer_seconds > 0:
-            self.timer_seconds -= 1
+            # --- RESET GOALS WHEN TIMER IS EXACTLY 30 SECONDS ---
             cur_period = self.full_sequence[self.current_index] if self.full_sequence and self.current_index < len(self.full_sequence) else None
             if cur_period and cur_period['name'] == 'Between Game Break' and self.timer_seconds == 30:
                 self.white_score_var.set(0)
                 self.black_score_var.set(0)
+            self.timer_seconds -= 1
             self.timer_job = self.master.after(1000, self.countdown_timer)
         else:
             self.next_period()
@@ -769,8 +796,8 @@ class GameManagementApp:
             self.display_game_label.config(text=self.game_label.cget("text"))
             self.display_white_label.config(text=self.white_label.cget("text"))
             self.display_black_label.config(text=self.black_label.cget("text"))
-            # Responsive: update every 50 ms. Increase this number for lower GPU and CPU usage
-            self.display_window.after(50, update_display)
+            # Responsive: update every 100 ms
+            self.display_window.after(100, update_display)
         update_display()
 
 if __name__ == "__main__":
