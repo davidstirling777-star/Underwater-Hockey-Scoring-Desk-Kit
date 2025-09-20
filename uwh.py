@@ -80,6 +80,7 @@ class GameManagementApp:
         self.initial_width = self.master.winfo_width()
         self.master.update_idletasks()
         self.scale_fonts(None)
+        self.create_display_window()
 
     def get_minutes(self, varname):
         try:
@@ -207,16 +208,13 @@ class GameManagementApp:
                 "current_index": self.current_index,
                 "half_label_text": self.half_label.cget("text"),
                 "half_label_bg": self.half_label.cget("bg"),
-                # Save whether court_time was paused and the job id
                 "court_time_paused": self.court_time_paused,
                 "court_time_job": self.court_time_job,
             }
-            # Cancel countdown timer
             if self.timer_job:
                 self.master.after_cancel(self.timer_job)
                 self.timer_job = None
             self.timer_running = False
-            # Cancel court time timer
             if self.court_time_job:
                 self.master.after_cancel(self.court_time_job)
                 self.court_time_job = None
@@ -240,10 +238,8 @@ class GameManagementApp:
             self.half_label.config(bg=self.saved_state["half_label_bg"])
             self.court_time_paused = self.saved_state.get("court_time_paused", False)
             self.update_timer_display()
-            # Restart countdown timer if needed
             if self.timer_running:
                 self.timer_job = self.master.after(1000, self.countdown_timer)
-            # Restart court time timer if needed
             if not self.court_time_paused:
                 self.court_time_job = self.master.after(1000, self.update_court_time)
 
@@ -716,6 +712,50 @@ class GameManagementApp:
             self.half_label.config(bg="red")
         else:
             self.half_label.config(bg="lightblue")
+
+    # --- Display window methods ---
+    def create_display_window(self):
+        self.display_window = tk.Toplevel(self.master)
+        self.display_window.title("Display Window")
+        self.display_window.geometry('1200x800')
+
+        tab = ttk.Frame(self.display_window)
+        tab.pack(fill="both", expand=True, padx=10, pady=10)
+
+        for i in range(11):
+            tab.grid_rowconfigure(i, weight=1)
+        for i in range(6):
+            tab.grid_columnconfigure(i, weight=1)
+
+        self.display_court_time_label = tk.Label(tab, text="Court Time is", font=self.fonts["court_time"], bg="lightgrey")
+        self.display_court_time_label.grid(row=0, column=0, columnspan=6, padx=1, pady=1, sticky="nsew")
+        self.display_half_label = tk.Label(tab, text="", font=self.fonts["half"], bg="lightcoral")
+        self.display_half_label.grid(row=1, column=0, columnspan=6, padx=1, pady=1, sticky="nsew")
+        self.display_white_label = tk.Label(tab, text="White", font=self.fonts["team"], bg="white", fg="black")
+        self.display_white_label.grid(row=2, column=0, columnspan=2, padx=1, pady=1, sticky="nsew")
+        self.display_white_score = tk.Label(tab, textvariable=self.white_score_var, font=self.fonts["score"], bg="white", fg="black")
+        self.display_white_score.grid(row=3, column=0, rowspan=6, columnspan=2, padx=1, pady=1, sticky="nsew")
+        self.display_timer_label = tk.Label(tab, text="00:00", font=self.fonts["timer"], bg="lightgrey", fg="black")
+        self.display_timer_label.grid(row=3, column=2, rowspan=6, columnspan=2, padx=1, pady=1, sticky="nsew")
+        self.display_black_label = tk.Label(tab, text="Black", font=self.fonts["team"], bg="black", fg="white")
+        self.display_black_label.grid(row=2, column=4, columnspan=2, padx=1, pady=1, sticky="nsew")
+        self.display_black_score = tk.Label(tab, textvariable=self.black_score_var, font=self.fonts["score"], bg="black", fg="white")
+        self.display_black_score.grid(row=3, column=4, rowspan=6, columnspan=2, padx=1, pady=1, sticky="nsew")
+        self.display_game_label = tk.Label(tab, text="Game 121", font=self.fonts["game_no"], bg="light grey")
+        self.display_game_label.grid(row=2, column=2, columnspan=2, padx=1, pady=1, sticky="nsew")
+
+        self.sync_display_widgets()
+
+    def sync_display_widgets(self):
+        def update_display():
+            self.display_court_time_label.config(text=self.court_time_label.cget("text"))
+            self.display_half_label.config(text=self.half_label.cget("text"), bg=self.half_label.cget("bg"))
+            self.display_timer_label.config(text=self.timer_label.cget("text"))
+            self.display_game_label.config(text=self.game_label.cget("text"))
+            self.display_white_label.config(text=self.white_label.cget("text"))
+            self.display_black_label.config(text=self.black_label.cget("text"))
+            self.display_window.after(500, update_display)
+        update_display()
 
 if __name__ == "__main__":
     root = tk.Tk()
