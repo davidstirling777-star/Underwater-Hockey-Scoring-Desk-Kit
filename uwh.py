@@ -71,6 +71,11 @@ class GameManagementApp:
         self.referee_timeout_active_fg = "red"
         self.saved_state = {}
         self.stored_penalties = []
+        
+        # Penalty timer system
+        self.active_penalties = []  # List of active penalty timers
+        self.penalty_timers_paused = False
+        self.penalty_timer_jobs = []  # List of timer jobs for penalties
 
         self.create_scoreboard_tab()
         self.create_settings_tab()
@@ -249,10 +254,28 @@ class GameManagementApp:
 
         def refresh_penalty_listbox():
             penalty_listbox.delete(0, tk.END)
+            for penalty in getattr(self, 'active_penalties', []):
+                if penalty["is_rest_of_match"]:
+                    time_str = "REST OF MATCH"
+                else:
+                    mins, secs = divmod(penalty["seconds_remaining"], 60)
+                    time_str = f"{int(mins):02d}:{int(secs):02d}"
+                penalty_listbox.insert(tk.END, f"{penalty['team']} #{penalty['cap']} {time_str}")
+            
+            # Also add stored penalties that aren't active timers (backward compatibility)
             for p in getattr(self, 'stored_penalties', []):
-                penalty_listbox.insert(tk.END, f"{p['team']} #{p['cap']} {p['duration']}")
+                if not any(ap["team"] == p["team"] and ap["cap"] == p["cap"] and ap["duration"] == p["duration"] 
+                          for ap in getattr(self, 'active_penalties', [])):
+                    penalty_listbox.insert(tk.END, f"{p['team']} #{p['cap']} {p['duration']}")
 
         refresh_penalty_listbox()
+
+        # Periodic refresh of penalty listbox to show countdown
+        def periodic_refresh():
+            if penalty_window.winfo_exists():
+                refresh_penalty_listbox()
+                penalty_window.after(1000, periodic_refresh)
+        penalty_window.after(1000, periodic_refresh)
 
         def start_penalty():
             team = selected_team.get()
@@ -270,16 +293,48 @@ class GameManagementApp:
             if len(self.stored_penalties) >= 6:
                 messagebox.showerror("Error", "Maximum 6 penalties can be stored.")
                 return
-            self.stored_penalties.append({"team": team, "cap": cap, "duration": duration})
-            refresh_penalty_listbox()
-            selected_team.set("")
-            dropdown_variable.set(dropdown_options[0])
-            radio_variable.set("")
+            
+            # Start the penalty timer
+            if self.start_penalty_timer(team, cap, duration):
+                refresh_penalty_listbox()
+                selected_team.set("")
+                dropdown_variable.set(dropdown_options[0])
+                radio_variable.set("")
+            else:
+                messagebox.showerror("Error", "Failed to start penalty timer.")
+
+        def remove_penalty():
+            selection = penalty_listbox.curselection()
+            if not selection:
+                messagebox.showerror("Error", "Please select a penalty to remove.")
+                return
+            
+            idx = selection[0]
+            active_count = len(getattr(self, 'active_penalties', []))
+            
+            if idx < active_count:
+                # Removing an active penalty
+                penalty_to_remove = self.active_penalties[idx]
+                self.remove_penalty(penalty_to_remove)
+                refresh_penalty_listbox()
+            else:
+                # Removing a stored penalty (backward compatibility)
+                stored_idx = idx - active_count
+                if 0 <= stored_idx < len(self.stored_penalties):
+                    self.stored_penalties.pop(stored_idx)
+                    refresh_penalty_listbox()
 
         start_button_frame = ttk.Frame(penalty_window)
         start_button_frame.pack(side="bottom", fill="x", pady=10)
-        start_button = ttk.Button(start_button_frame, text="Start", command=start_penalty)
-        start_button.pack(expand=True, fill="x")
+        
+        button_container = ttk.Frame(start_button_frame)
+        button_container.pack(expand=True, fill="x")
+        
+        start_button = ttk.Button(button_container, text="Start Penalty", command=start_penalty)
+        start_button.pack(side="left", expand=True, fill="x", padx=(0, 5))
+        
+        remove_button = ttk.Button(button_container, text="Remove Selected", command=remove_penalty)
+        remove_button.pack(side="right", expand=True, fill="x", padx=(5, 0))
 
         penalty_window.transient(self.master)
         penalty_window.grab_set()
@@ -311,6 +366,8 @@ class GameManagementApp:
                 self.master.after_cancel(self.court_time_job)
                 self.court_time_job = None
             self.court_time_paused = True
+            # Pause all penalty timers during referee timeout
+            self.pause_all_penalty_timers()
             self.referee_timeout_elapsed = 0
             self.half_label.config(text="Referee Time-Out")
             self.half_label.config(bg="red")
@@ -329,6 +386,8 @@ class GameManagementApp:
             self.half_label.config(text=self.saved_state["half_label_text"])
             self.half_label.config(bg=self.saved_state["half_label_bg"])
             self.court_time_paused = self.saved_state.get("court_time_paused", False)
+            # Resume all penalty timers when referee timeout ends
+            self.resume_all_penalty_timers()
             self.update_timer_display()
             if self.timer_running:
                 self.timer_job = self.master.after(1000, self.countdown_timer)
@@ -796,6 +855,8 @@ class GameManagementApp:
                 self.white_score_var.set(0)
                 self.black_score_var.set(0)
                 self.stored_penalties.clear()
+                # Clear all active penalty timers as well
+                self.clear_all_penalties()
             self.timer_seconds -= 1
             self.timer_job = self.master.after(1000, self.countdown_timer)
         else:
@@ -830,6 +891,8 @@ class GameManagementApp:
         self.active_timeout_team = "white"
         self.court_time_paused = True
         self.save_timer_state()
+        # Pause all penalty timers during team timeout
+        self.pause_all_penalty_timers()
         timeout_seconds = self.get_minutes('timeout_period')
         self.timer_seconds = timeout_seconds
         self.timer_running = True
@@ -855,6 +918,8 @@ class GameManagementApp:
         self.active_timeout_team = "black"
         self.court_time_paused = True
         self.save_timer_state()
+        # Pause all penalty timers during team timeout
+        self.pause_all_penalty_timers()
         timeout_seconds = self.get_minutes('timeout_period')
         self.timer_seconds = timeout_seconds
         self.timer_running = True
@@ -900,6 +965,8 @@ class GameManagementApp:
         self.in_timeout = False
         self.active_timeout_team = None
         self.court_time_paused = False
+        # Resume all penalty timers when timeout ends
+        self.resume_all_penalty_timers()
         self.timer_running = self.saved_timer_running
         self.timer_seconds = self.saved_timer_seconds
         self.current_index = self.saved_index
@@ -975,6 +1042,101 @@ class GameManagementApp:
             self.display_black_label.config(text=self.black_label.cget("text"))
             self.display_window.after(200, update_display)
         update_display()
+
+    def convert_duration_to_seconds(self, duration):
+        """Convert penalty duration string to seconds"""
+        if duration == "1 minute":
+            return 60
+        elif duration == "2 minutes":
+            return 120
+        elif duration == "5 minutes":
+            return 300
+        elif duration == "Rest of the match":
+            return -1  # Special value for rest of match
+        return 0
+
+    def start_penalty_timer(self, team, cap, duration):
+        """Start a new penalty timer"""
+        seconds = self.convert_duration_to_seconds(duration)
+        if seconds == 0:
+            return False
+        
+        penalty = {
+            "team": team,
+            "cap": cap,
+            "duration": duration,
+            "seconds_remaining": seconds,
+            "timer_job": None,
+            "is_rest_of_match": seconds == -1
+        }
+        
+        self.active_penalties.append(penalty)
+        self.stored_penalties.append({"team": team, "cap": cap, "duration": duration})
+        
+        if not penalty["is_rest_of_match"]:
+            self.schedule_penalty_countdown(penalty)
+        
+        return True
+
+    def schedule_penalty_countdown(self, penalty):
+        """Schedule the next penalty countdown tick"""
+        if not self.penalty_timers_paused and penalty["seconds_remaining"] > 0:
+            penalty["timer_job"] = self.master.after(1000, lambda: self.penalty_countdown(penalty))
+
+    def penalty_countdown(self, penalty):
+        """Handle penalty timer countdown"""
+        if penalty not in self.active_penalties:
+            return  # Penalty was removed
+            
+        if penalty["timer_job"]:
+            self.master.after_cancel(penalty["timer_job"])
+            penalty["timer_job"] = None
+
+        if self.penalty_timers_paused or penalty["is_rest_of_match"]:
+            return  # Paused or rest of match penalty
+
+        if penalty["seconds_remaining"] > 0:
+            penalty["seconds_remaining"] -= 1
+            self.schedule_penalty_countdown(penalty)
+        else:
+            # Penalty expired
+            self.remove_penalty(penalty)
+
+    def remove_penalty(self, penalty):
+        """Remove a penalty from active penalties"""
+        if penalty in self.active_penalties:
+            if penalty["timer_job"]:
+                self.master.after_cancel(penalty["timer_job"])
+                penalty["timer_job"] = None
+            self.active_penalties.remove(penalty)
+            
+            # Also remove from stored_penalties if it exists
+            for stored in self.stored_penalties[:]:
+                if (stored["team"] == penalty["team"] and 
+                    stored["cap"] == penalty["cap"] and 
+                    stored["duration"] == penalty["duration"]):
+                    self.stored_penalties.remove(stored)
+                    break
+
+    def pause_all_penalty_timers(self):
+        """Pause all penalty timers"""
+        self.penalty_timers_paused = True
+        for penalty in self.active_penalties:
+            if penalty["timer_job"]:
+                self.master.after_cancel(penalty["timer_job"])
+                penalty["timer_job"] = None
+
+    def resume_all_penalty_timers(self):
+        """Resume all penalty timers"""
+        self.penalty_timers_paused = False
+        for penalty in self.active_penalties:
+            if not penalty["is_rest_of_match"] and penalty["seconds_remaining"] > 0:
+                self.schedule_penalty_countdown(penalty)
+
+    def clear_all_penalties(self):
+        """Clear all active penalties"""
+        for penalty in self.active_penalties[:]:
+            self.remove_penalty(penalty)
 
 if __name__ == "__main__":
     root = tk.Tk()
