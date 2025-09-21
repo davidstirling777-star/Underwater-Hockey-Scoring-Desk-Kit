@@ -345,7 +345,7 @@ class GameManagementApp:
 
     def adjust_score_with_confirm(self, score_var, team_name):
         if score_var.get() == 0:
-    return  # Do nothing if score is 0
+            return  # Do nothing if score is 0
         if not messagebox.askyesno(
             "Subtract Goal",
             f"Are you sure you want to remove goal from {team_name}?"
