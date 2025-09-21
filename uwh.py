@@ -13,18 +13,18 @@ class GameManagementApp:
 
         self.variables = {
             "team_timeouts_allowed": {"default": True, "checkbox": True, "unit": "", "label": "Team time-outs allowed?"},
+            "team_timeout_period": {"default": 1, "checkbox": False, "unit": "minutes"},
             "start_first_game_at_this_time": {"default": 1, "checkbox": False, "unit": "hh:mm"},
             "half_period": {"default": 1, "checkbox": False, "unit": "minutes"},
             "half_time_break": {"default": 1, "checkbox": False, "unit": "minutes"},
             "overtime_allowed": {"default": True, "checkbox": True, "unit": "", "label": "Overtime allowed?"},
-            "overtime_game_break": {"default": 1, "checkbox": True, "unit": "minutes"},
-            "overtime_half_period": {"default": 1, "checkbox": True, "unit": "minutes"},
-            "overtime_half_time_break": {"default": 1, "checkbox": True, "unit": "minutes"},
+            "overtime_game_break": {"default": 1, "checkbox": False, "unit": "minutes"},
+            "overtime_half_period": {"default": 1, "checkbox": False, "unit": "minutes"},
+            "overtime_half_time_break": {"default": 1, "checkbox": False, "unit": "minutes"},
             "sudden_death_game_break": {"default": 1, "checkbox": True, "unit": "minutes"},
             "between_game_break": {"default": 1, "checkbox": False, "unit": "minutes"},
-            "timeout_period": {"default": 1, "checkbox": True, "unit": "minutes"},
             "crib_time": {"default": 1, "checkbox": True, "unit": "seconds"}
-        }
+}
 
         self.fonts = {
             "court_time": font.Font(family="Arial", size=36),
