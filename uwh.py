@@ -1022,25 +1022,32 @@ class GameManagementApp:
 
         for i in range(11):
             tab.grid_rowconfigure(i, weight=1)
-        for i in range(6):
+        for i in range(9):  # <-- Change to 9 columns
             tab.grid_columnconfigure(i, weight=1)
 
+        # Replicate Scoreboard tab widget placement for display window
+
         self.display_court_time_label = tk.Label(tab, text="Court Time is", font=self.fonts["court_time"], bg="lightgrey")
-        self.display_court_time_label.grid(row=0, column=0, columnspan=6, padx=1, pady=1, sticky="nsew")
+        self.display_court_time_label.grid(row=0, column=0, columnspan=9, padx=1, pady=1, sticky="nsew")
+
         self.display_half_label = tk.Label(tab, text="", font=self.fonts["half"], bg="lightcoral")
-        self.display_half_label.grid(row=1, column=0, columnspan=6, padx=1, pady=1, sticky="nsew")
+        self.display_half_label.grid(row=1, column=0, columnspan=9, padx=1, pady=1, sticky="nsew")
+
         self.display_white_label = tk.Label(tab, text="White", font=self.fonts["team"], bg="white", fg="black")
-        self.display_white_label.grid(row=2, column=0, columnspan=2, padx=1, pady=1, sticky="nsew")
-        self.display_white_score = tk.Label(tab, textvariable=self.white_score_var, font=self.fonts["score"], bg="white", fg="black")
-        self.display_white_score.grid(row=3, column=0, rowspan=8, columnspan=2, padx=1, pady=1, sticky="nsew")
-        self.display_timer_label = tk.Label(tab, text="00:00", font=self.fonts["timer"], bg="lightgrey", fg="black")
-        self.display_timer_label.grid(row=3, column=2, rowspan=8, columnspan=2, padx=1, pady=1, sticky="nsew")
+        self.display_white_label.grid(row=2, column=0, columnspan=3, padx=1, pady=1, sticky="nsew")
         self.display_black_label = tk.Label(tab, text="Black", font=self.fonts["team"], bg="black", fg="white")
-        self.display_black_label.grid(row=2, column=4, columnspan=2, padx=1, pady=1, sticky="nsew")
-        self.display_black_score = tk.Label(tab, textvariable=self.black_score_var, font=self.fonts["score"], bg="black", fg="white")
-        self.display_black_score.grid(row=3, column=4, rowspan=8, columnspan=2, padx=1, pady=1, sticky="nsew")
+        self.display_black_label.grid(row=2, column=6, columnspan=3, padx=1, pady=1, sticky="nsew")
+
         self.display_game_label = tk.Label(tab, text="Game 121", font=self.fonts["game_no"], bg="light grey")
-        self.display_game_label.grid(row=2, column=2, columnspan=2, padx=1, pady=1, sticky="nsew")
+        self.display_game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
+
+        self.display_white_score = tk.Label(tab, textvariable=self.white_score_var, font=self.fonts["score"], bg="white", fg="black")
+        self.display_white_score.grid(row=3, column=0, rowspan=8, columnspan=3, padx=1, pady=1, sticky="nsew")
+        self.display_black_score = tk.Label(tab, textvariable=self.black_score_var, font=self.fonts["score"], bg="black", fg="white")
+        self.display_black_score.grid(row=3, column=6, rowspan=8, columnspan=3, padx=1, pady=1, sticky="nsew")
+
+        self.display_timer_label = tk.Label(tab, text="00:00", font=self.fonts["timer"], bg="lightgrey", fg="black")
+        self.display_timer_label.grid(row=3, column=3, rowspan=8, columnspan=3, padx=1, pady=1, sticky="nsew")
 
         self.sync_display_widgets()
 
