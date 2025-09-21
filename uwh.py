@@ -24,7 +24,7 @@ class GameManagementApp:
             "sudden_death_game_break": {"default": 1, "checkbox": True, "unit": "minutes"},
             "between_game_break": {"default": 1, "checkbox": False, "unit": "minutes"},
             "crib_time": {"default": 1, "checkbox": True, "unit": "seconds"}
-}
+        }
 
         self.fonts = {
             "court_time": font.Font(family="Arial", size=36),
@@ -467,6 +467,11 @@ class GameManagementApp:
             self.last_valid_values[var_name] = entry.get()
             entry.bind("<FocusOut>", lambda e, name=var_name: self._on_settings_variable_change())
             entry.bind("<Return>", lambda e, name=var_name: self._on_settings_variable_change())
+
+            # ADD THIS BLOCK:
+            if var_name == "team_timeout_period":
+                self.team_timeout_period_entry = entry
+                self.team_timeout_period_label = label_widget
             row_idx += 1
         button_frame = ttk.Frame(tab)
         button_frame.pack(pady=10)
@@ -503,6 +508,15 @@ class GameManagementApp:
         state = tk.NORMAL if allowed else tk.DISABLED
         self.white_timeout_button.config(state=state)
         self.black_timeout_button.config(state=state)
+
+        # Enable/disable the team_timeout_period entry and label
+        if hasattr(self, "team_timeout_period_entry"):
+            if allowed:
+                self.team_timeout_period_entry.config(state="normal")
+                self.team_timeout_period_label.config(fg="black")
+            else:
+                self.team_timeout_period_entry.config(state="disabled")
+                self.team_timeout_period_label.config(fg="grey")
 
     def update_overtime_variables_state(self):
         overtime_enabled = self.overtime_allowed_var.get()
@@ -571,15 +585,32 @@ class GameManagementApp:
         self.start_current_period()
 
     def update_court_time(self):
+        if self.court_time_dt is None:
+            # Set the start time
+            self.court_time_dt = datetime.datetime.now()
+            self.court_time_seconds = 0
+            self._court_time_paused_at = None
+
         if self.court_time_paused:
+            if not hasattr(self, '_court_time_paused_at') or self._court_time_paused_at is None:
+                # Record the time when paused
+                self._court_time_paused_at = datetime.datetime.now()
             self.court_time_job = self.master.after(1000, self.update_court_time)
             return
-        if self.court_time_dt is None:
-            self.court_time_dt = datetime.datetime.now()
-        current_dt = self.court_time_dt + datetime.timedelta(seconds=self.court_time_seconds)
+        else:
+            # If we were paused, update the court_time_dt to skip the pause duration
+            if hasattr(self, '_court_time_paused_at') and self._court_time_paused_at is not None:
+                paused_duration = datetime.datetime.now() - self._court_time_paused_at
+                self.court_time_dt += paused_duration
+                self._court_time_paused_at = None
+
+        # Compute the elapsed time robustly
+        now = datetime.datetime.now()
+        elapsed = int((now - self.court_time_dt).total_seconds())
+        self.court_time_seconds = elapsed
+        current_dt = self.court_time_dt + datetime.timedelta(seconds=elapsed)
         time_string = current_dt.strftime('%I:%M:%S %p').lstrip('0')
         self.court_time_label.config(text=f"Court Time is {time_string}")
-        self.court_time_seconds += 1
         self.court_time_job = self.master.after(1000, self.update_court_time)
 
     def update_timer_display(self):
