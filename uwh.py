@@ -125,83 +125,95 @@ class GameManagementApp:
         self.notebook.add(tab, text="Scoreboard")
         for i in range(11):
             tab.grid_rowconfigure(i, weight=1)
-        for i in range(6):
+        for i in range(9):
             tab.grid_columnconfigure(i, weight=1)
 
+        # Court time widget
         self.court_time_label = tk.Label(tab, text="Court Time is", font=self.fonts["court_time"], bg="lightgrey")
-        self.court_time_label.grid(row=0, column=0, columnspan=6, padx=1, pady=1, sticky="nsew")
-        self.half_label = tk.Label(tab, text="", font=self.fonts["half"], bg="lightcoral")
-        self.half_label.grid(row=1, column=0, columnspan=6, padx=1, pady=1, sticky="nsew")
-        self.white_label = tk.Label(tab, text="White", font=self.fonts["team"], bg="white", fg="black")
-        self.white_label.grid(row=2, column=0, columnspan=2, padx=1, pady=1, sticky="nsew")
-        self.white_score = tk.Label(tab, textvariable=self.white_score_var, font=self.fonts["score"], bg="white", fg="black")
-        self.white_score.grid(row=3, column=0, rowspan=6, columnspan=2, padx=1, pady=1, sticky="nsew")
-        self.timer_label = tk.Label(tab, text="00:00", font=self.fonts["timer"], bg="lightgrey", fg="black")
-        self.timer_label.grid(row=3, column=2, rowspan=6, columnspan=2, padx=1, pady=1, sticky="nsew")
-        self.black_label = tk.Label(tab, text="Black", font=self.fonts["team"], bg="black", fg="white")
-        self.black_label.grid(row=2, column=4, columnspan=2, padx=1, pady=1, sticky="nsew")
-        self.black_score = tk.Label(tab, textvariable=self.black_score_var, font=self.fonts["score"], bg="black", fg="white")
-        self.black_score.grid(row=3, column=4, rowspan=6, columnspan=2, padx=1, pady=1, sticky="nsew")
+        self.court_time_label.grid(row=0, column=0, columnspan=9, padx=1, pady=1, sticky="nsew")
 
+        # Game Status (Half) widget
+        self.half_label = tk.Label(tab, text="", font=self.fonts["half"], bg="lightcoral")
+        self.half_label.grid(row=1, column=0, columnspan=9, padx=1, pady=1, sticky="nsew")
+
+        # Team names
+        self.white_label = tk.Label(tab, text="White", font=self.fonts["team"], bg="white", fg="black")
+        self.white_label.grid(row=2, column=0, columnspan=3, padx=1, pady=1, sticky="nsew")
+        self.black_label = tk.Label(tab, text="Black", font=self.fonts["team"], bg="black", fg="white")
+        self.black_label.grid(row=2, column=6, columnspan=3, padx=1, pady=1, sticky="nsew")
+
+        # Game 121 widget
+        self.game_label = tk.Label(tab, text="Game 121", font=self.fonts["game_no"], bg="light grey")
+        self.game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
+
+        # Score widgets
+        self.white_score = tk.Label(tab, textvariable=self.white_score_var, font=self.fonts["score"], bg="white", fg="black")
+        self.white_score.grid(row=3, column=0, rowspan=6, columnspan=3, padx=1, pady=1, sticky="nsew")
+        self.black_score = tk.Label(tab, textvariable=self.black_score_var, font=self.fonts["score"], bg="black", fg="white")
+        self.black_score.grid(row=3, column=6, rowspan=6, columnspan=3, padx=1, pady=1, sticky="nsew")
+
+        # Timer widget (center)
+        self.timer_label = tk.Label(tab, text="00:00", font=self.fonts["timer"], bg="lightgrey", fg="black")
+        self.timer_label.grid(row=3, column=3, rowspan=6, columnspan=3, padx=1, pady=1, sticky="nsew")
+
+        # Team time-out buttons
         self.white_timeout_button = tk.Button(
             tab, text="White Team\nTime-Out", font=self.fonts["timeout_button"], bg="white", fg="black",
             activebackground="white", activeforeground="black",
             justify="center", wraplength=180, height=2, command=self.white_team_timeout
         )
-        self.white_timeout_button.grid(row=9, column=0, rowspan=2, padx=1, pady=1, sticky="nsew")
+        self.white_timeout_button.grid(row=9, column=0, rowspan=2, columnspan=1, padx=1, pady=1, sticky="nsew")
+        self.black_timeout_button = tk.Button(
+            tab, text="Black Team\nTime-Out", font=self.fonts["timeout_button"], bg="black", fg="white",
+            activebackground="black", activeforeground="white",
+            justify="center", wraplength=180, height=2, command=self.black_team_timeout
+        )
+        self.black_timeout_button.grid(row=9, column=8, rowspan=2, columnspan=1, padx=1, pady=1, sticky="nsew")
 
+        # Add goal widgets
         self.white_goal_button = tk.Button(
             tab, text="Add Goal White", font=self.fonts["button"], bg="light grey", fg="black",
             activebackground="light grey", activeforeground="black",
             command=lambda: self.add_goal_with_confirmation(self.white_score_var, "White")
         )
-        self.white_goal_button.grid(row=9, column=1, padx=1, pady=1, sticky="nsew")
+        self.white_goal_button.grid(row=9, column=1, columnspan=2, padx=1, pady=1, sticky="nsew")
+        self.black_goal_button = tk.Button(
+            tab, text="Add Goal Black", font=self.fonts["button"], bg="light grey", fg="black",
+            activebackground="light grey", activeforeground="black",
+            command=lambda: self.add_goal_with_confirmation(self.black_score_var, "Black")
+        )
+        self.black_goal_button.grid(row=9, column=6, columnspan=2, padx=1, pady=1, sticky="nsew")
 
+        # -ve goal widgets
         self.white_minus_button = tk.Button(
             tab, text="-ve Goal White", font=self.fonts["button"], bg="light grey", fg="black",
             activebackground="light grey", activeforeground="black",
             command=lambda: self.adjust_score_with_confirm(self.white_score_var, "White")
         )
-        self.white_minus_button.grid(row=10, column=1, padx=1, pady=1, sticky="nsew")
+        self.white_minus_button.grid(row=10, column=1, columnspan=2, padx=1, pady=1, sticky="nsew")
+        self.black_minus_button = tk.Button(
+            tab, text="-ve Goal Black", font=self.fonts["button"], bg="light grey", fg="black",
+            activebackground="light grey", activeforeground="black",
+            command=lambda: self.adjust_score_with_confirm(self.black_score_var, "Black")
+        )
+        self.black_minus_button.grid(row=10, column=6, columnspan=2, padx=1, pady=1, sticky="nsew")
 
+        # Referee time-out widget
         self.referee_timeout_button = tk.Button(
             tab, text="Referee Time-Out", font=self.fonts["button"],
             bg=self.referee_timeout_default_bg, fg=self.referee_timeout_default_fg,
             activebackground=self.referee_timeout_default_bg, activeforeground=self.referee_timeout_default_fg,
             command=self.toggle_referee_timeout
         )
-        self.referee_timeout_button.grid(row=9, column=2, columnspan=2, padx=1, pady=1, sticky="nsew")
+        self.referee_timeout_button.grid(row=9, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
 
+        # Penalties widget
         self.penalties_button = tk.Button(
             tab, text="Penalties", font=self.fonts["button"], bg="orange", fg="black",
             activebackground="orange", activeforeground="black",
             command=self.show_penalties
         )
-        self.penalties_button.grid(row=10, column=2, columnspan=2, padx=1, pady=1, sticky="nsew")
-
-        self.game_label = tk.Label(tab, text="Game 121", font=self.fonts["game_no"], bg="light grey")
-        self.game_label.grid(row=2, column=2, columnspan=2, padx=1, pady=1, sticky="nsew")
-
-        self.black_goal_button = tk.Button(
-            tab, text="Add Goal Black", font=self.fonts["button"], bg="light grey", fg="black",
-            activebackground="light grey", activeforeground="black",
-            command=lambda: self.add_goal_with_confirmation(self.black_score_var, "Black")
-        )
-        self.black_goal_button.grid(row=9, column=4, padx=1, pady=1, sticky="nsew")
-
-        self.black_minus_button = tk.Button(
-            tab, text="-ve Goal Black", font=self.fonts["button"], bg="light grey", fg="black",
-            activebackground="light grey", activeforeground="black",
-            command=lambda: self.adjust_score_with_confirm(self.black_score_var, "Black")
-        )
-        self.black_minus_button.grid(row=10, column=4, padx=1, pady=1, sticky="nsew")
-
-        self.black_timeout_button = tk.Button(
-            tab, text="Black Team\nTime-Out", font=self.fonts["timeout_button"], bg="black", fg="white",
-            activebackground="black", activeforeground="white",
-            justify="center", wraplength=180, height=2, command=self.black_team_timeout
-        )
-        self.black_timeout_button.grid(row=9, column=5, rowspan=2, padx=1, pady=1, sticky="nsew")
+        self.penalties_button.grid(row=10, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
 
         self.update_team_timeouts_allowed()
 
