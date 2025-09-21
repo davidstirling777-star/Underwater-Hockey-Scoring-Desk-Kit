@@ -505,18 +505,59 @@ class GameManagementApp:
 
     def update_team_timeouts_allowed(self):
         allowed = self.team_timeouts_allowed_var.get()
-        state = tk.NORMAL if allowed else tk.DISABLED
-        self.white_timeout_button.config(state=state)
-        self.black_timeout_button.config(state=state)
 
-        # Enable/disable the team_timeout_period entry and label
-        if hasattr(self, "team_timeout_period_entry"):
+        # Helper function to set button state and appearance robustly
+        def set_button_state(btn, allowed, disabled_bg="#d3d3d3", disabled_fg="#888"):
+            if btn is not None:
+                try:
+                    if allowed:
+                        btn.config(state=tk.NORMAL)
+                        # Optionally restore original colors if you store them
+                        btn.config(bg=btn.cget("bg"), fg=btn.cget("fg"))
+                    else:
+                        btn.config(state=tk.DISABLED)
+                        btn.config(bg=disabled_bg, fg=disabled_fg)
+                except Exception:
+                    pass
+
+        # Set the state for the timeout buttons
+        set_button_state(getattr(self, 'white_timeout_button', None), allowed)
+        set_button_state(getattr(self, 'black_timeout_button', None), allowed)
+
+        # Handle placeholders if present (optional, depends on your UI design)
+        if hasattr(self, "white_timeout_placeholder") and self.white_timeout_placeholder is not None:
             if allowed:
-                self.team_timeout_period_entry.config(state="normal")
-                self.team_timeout_period_label.config(fg="black")
+                self.white_timeout_placeholder.grid_remove()
+                if hasattr(self, "white_timeout_button") and self.white_timeout_button is not None:
+                    self.white_timeout_button.grid()
             else:
-                self.team_timeout_period_entry.config(state="disabled")
-                self.team_timeout_period_label.config(fg="grey")
+                if hasattr(self, "white_timeout_button") and self.white_timeout_button is not None:
+                    self.white_timeout_button.grid_remove()
+                self.white_timeout_placeholder.grid()
+
+        if hasattr(self, "black_timeout_placeholder") and self.black_timeout_placeholder is not None:
+            if allowed:
+                self.black_timeout_placeholder.grid_remove()
+                if hasattr(self, "black_timeout_button") and self.black_timeout_button is not None:
+                    self.black_timeout_button.grid()
+            else:
+                if hasattr(self, "black_timeout_button") and self.black_timeout_button is not None:
+                    self.black_timeout_button.grid_remove()
+                self.black_timeout_placeholder.grid()
+
+        # Enable/disable the team_timeout_period entry and label if they exist
+        if hasattr(self, "team_timeout_period_entry") and self.team_timeout_period_entry is not None:
+            try:
+                entry_state = "normal" if allowed else "disabled"
+                self.team_timeout_period_entry.config(state=entry_state)
+            except Exception:
+                pass
+        if hasattr(self, "team_timeout_period_label") and self.team_timeout_period_label is not None:
+            try:
+                label_fg = "black" if allowed else "grey"
+                self.team_timeout_period_label.config(fg=label_fg)
+            except Exception:
+                pass
 
     def update_overtime_variables_state(self):
         overtime_enabled = self.overtime_allowed_var.get()
