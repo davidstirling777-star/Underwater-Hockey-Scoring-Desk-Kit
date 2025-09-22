@@ -37,6 +37,16 @@ class GameManagementApp:
             "timeout_button": font.Font(family="Arial", size=20, weight="bold"),
         }
 
+        # --- Display window fonts (independent) ---
+        self.display_fonts = {
+            "court_time": font.Font(family="Arial", size=36),
+            "half": font.Font(family="Arial", size=36, weight="bold"),
+            "team": font.Font(family="Arial", size=30, weight="bold"),
+            "score": font.Font(family="Arial", size=200, weight="bold"),
+            "timer": font.Font(family="Arial", size=90, weight="bold"),
+            "game_no": font.Font(family="Arial", size=12),
+        }
+
         self.white_score_var = tk.IntVar(value=0)
         self.black_score_var = tk.IntVar(value=0)
         self.timer_running = False
@@ -650,8 +660,14 @@ class GameManagementApp:
                     if entry:
                         entry.config(state="disabled")
 
-    def scale_fonts(self, event):
-        cur_width = self.master.winfo_width()
+    def scale_fonts(self, event=None):
+        # Robust scaling for scoreboard/main window fonts
+        try:
+            cur_width = self.master.winfo_width()
+            if cur_width <= 0:
+                cur_width = self.initial_width if hasattr(self, 'initial_width') else 1200
+        except Exception:
+            cur_width = 1200
         base_width = 1200
         scale = cur_width / base_width
         scale = max(0.5, min(2.0, scale))
@@ -666,12 +682,124 @@ class GameManagementApp:
             "timeout_button": 20,
         }
         reduced_button_scale = 0.7
-        for key in self.fonts:
+        for key, fnt in self.fonts.items():
             if key == "timeout_button":
                 new_size = int(base_sizes[key] * scale * reduced_button_scale)
             else:
                 new_size = int(base_sizes[key] * scale)
-            self.fonts[key].config(size=new_size)
+            try:
+                fnt.config(size=new_size)
+            except Exception:
+                pass
+
+    def scale_fonts(self, event=None):
+        try:
+            cur_width = self.master.winfo_width()
+            if cur_width <= 0:
+                cur_width = self.initial_width if hasattr(self, 'initial_width') else 1200
+        except Exception:
+            cur_width = 1200
+        base_width = 1200
+        scale = cur_width / base_width
+        scale = max(0.5, min(2.0, scale))
+        base_sizes = {
+            "court_time": 36,
+            "half": 36,
+            "team": 30,
+            "score": 200,
+            "timer": 90,
+            "game_no": 12,
+            "button": 20,
+            "timeout_button": 20,
+        }
+        reduced_button_scale = 0.7
+        for key, fnt in self.fonts.items():
+            if key == "timeout_button":
+                new_size = int(base_sizes[key] * scale * reduced_button_scale)
+            else:
+                new_size = int(base_sizes[key] * scale)
+            try:
+                fnt.config(size=new_size)
+            except Exception:
+                pass
+
+    def scale_display_fonts(self, event=None):
+        try:
+            cur_width = self.display_window.winfo_width()
+            if cur_width <= 0:
+                cur_width = self.display_initial_width if hasattr(self, 'display_initial_width') else 1200
+        except Exception:
+            cur_width = 1200
+        base_width = 1200
+        scale = cur_width / base_width
+        scale = max(0.5, min(2.0, scale))
+        base_sizes = {
+            "court_time": 36,
+            "half": 36,
+            "team": 30,
+            "score": 200,
+            "timer": 90,
+            "game_no": 12,
+        }
+        for key, fnt in self.display_fonts.items():
+            new_size = int(base_sizes[key] * scale)
+            try:
+                fnt.config(size=new_size)
+            except Exception:
+                pass
+
+    def create_display_window(self):
+        self.display_window = tk.Toplevel(self.master)
+        self.display_window.title("Display Window")
+        self.display_window.geometry('1200x800')
+
+        tab = ttk.Frame(self.display_window)
+        tab.pack(fill="both", expand=True, padx=10, pady=10)
+
+        for i in range(11):
+            tab.grid_rowconfigure(i, weight=1)
+        for i in range(9):
+            tab.grid_columnconfigure(i, weight=1)
+
+        # *** CRITICAL: Use self.display_fonts, NOT self.fonts! ***
+        self.display_court_time_label = tk.Label(tab, text="Court Time is", font=self.display_fonts["court_time"], bg="lightgrey")
+        self.display_court_time_label.grid(row=0, column=0, columnspan=9, padx=1, pady=1, sticky="nsew")
+
+        self.display_half_label = tk.Label(tab, text="", font=self.display_fonts["half"], bg="lightcoral")
+        self.display_half_label.grid(row=1, column=0, columnspan=9, padx=1, pady=1, sticky="nsew")
+
+        self.display_white_label = tk.Label(tab, text="White", font=self.display_fonts["team"], bg="white", fg="black")
+        self.display_white_label.grid(row=2, column=0, columnspan=3, padx=1, pady=1, sticky="nsew")
+        self.display_black_label = tk.Label(tab, text="Black", font=self.display_fonts["team"], bg="black", fg="white")
+        self.display_black_label.grid(row=2, column=6, columnspan=3, padx=1, pady=1, sticky="nsew")
+
+        self.display_game_label = tk.Label(tab, text="Game 121", font=self.display_fonts["game_no"], bg="light grey")
+        self.display_game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
+
+        self.display_white_score = tk.Label(tab, textvariable=self.white_score_var, font=self.display_fonts["score"], bg="white", fg="black")
+        self.display_white_score.grid(row=3, column=0, rowspan=8, columnspan=3, padx=1, pady=1, sticky="nsew")
+        self.display_black_score = tk.Label(tab, textvariable=self.black_score_var, font=self.display_fonts["score"], bg="black", fg="white")
+        self.display_black_score.grid(row=3, column=6, rowspan=8, columnspan=3, padx=1, pady=1, sticky="nsew")
+
+        self.display_timer_label = tk.Label(tab, text="00:00", font=self.display_fonts["timer"], bg="lightgrey", fg="black")
+        self.display_timer_label.grid(row=3, column=3, rowspan=8, columnspan=3, padx=1, pady=1, sticky="nsew")
+
+        self.display_window.bind('<Configure>', self.scale_display_fonts)
+        self.display_initial_width = self.display_window.winfo_width() or 1200
+        self.display_window.update_idletasks()
+        self.scale_display_fonts(None)
+        self.sync_display_widgets()
+
+    def sync_display_widgets(self):
+        def update_display():
+            self.display_court_time_label.config(text=self.court_time_label.cget("text"))
+            self.display_half_label.config(text=self.half_label.cget("text"), bg=self.half_label.cget("bg"))
+            self.display_timer_label.config(text=self.timer_label.cget("text"))
+            self.display_game_label.config(text=self.game_label.cget("text"))
+            self.display_white_label.config(text=self.white_label.cget("text"))
+            self.display_black_label.config(text=self.black_label.cget("text"))
+            self.display_window.after(200, update_display)
+        update_display()
 
     def reset_timer(self):
         self.white_score_var.set(0)
@@ -1027,28 +1155,32 @@ class GameManagementApp:
 
         # Replicate Scoreboard tab widget placement for display window
 
-        self.display_court_time_label = tk.Label(tab, text="Court Time is", font=self.fonts["court_time"], bg="lightgrey")
+        self.display_court_time_label = tk.Label(tab, text="Court Time is", font=self.display_fonts["court_time"], bg="lightgrey")
         self.display_court_time_label.grid(row=0, column=0, columnspan=9, padx=1, pady=1, sticky="nsew")
 
-        self.display_half_label = tk.Label(tab, text="", font=self.fonts["half"], bg="lightcoral")
+        self.display_half_label = tk.Label(tab, text="", font=self.display_fonts["half"], bg="lightcoral")
         self.display_half_label.grid(row=1, column=0, columnspan=9, padx=1, pady=1, sticky="nsew")
 
-        self.display_white_label = tk.Label(tab, text="White", font=self.fonts["team"], bg="white", fg="black")
+        self.display_white_label = tk.Label(tab, text="White", font=self.display_fonts["team"], bg="white", fg="black")
         self.display_white_label.grid(row=2, column=0, columnspan=3, padx=1, pady=1, sticky="nsew")
-        self.display_black_label = tk.Label(tab, text="Black", font=self.fonts["team"], bg="black", fg="white")
+        self.display_black_label = tk.Label(tab, text="Black", font=self.display_fonts["team"], bg="black", fg="white")
         self.display_black_label.grid(row=2, column=6, columnspan=3, padx=1, pady=1, sticky="nsew")
 
-        self.display_game_label = tk.Label(tab, text="Game 121", font=self.fonts["game_no"], bg="light grey")
+        self.display_game_label = tk.Label(tab, text="Game 121", font=self.display_fonts["game_no"], bg="light grey")
         self.display_game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
 
-        self.display_white_score = tk.Label(tab, textvariable=self.white_score_var, font=self.fonts["score"], bg="white", fg="black")
+        self.display_white_score = tk.Label(tab, textvariable=self.white_score_var, font=self.display_fonts["score"], bg="white", fg="black")
         self.display_white_score.grid(row=3, column=0, rowspan=8, columnspan=3, padx=1, pady=1, sticky="nsew")
-        self.display_black_score = tk.Label(tab, textvariable=self.black_score_var, font=self.fonts["score"], bg="black", fg="white")
+        self.display_black_score = tk.Label(tab, textvariable=self.black_score_var, font=self.display_fonts["score"], bg="black", fg="white")
         self.display_black_score.grid(row=3, column=6, rowspan=8, columnspan=3, padx=1, pady=1, sticky="nsew")
 
-        self.display_timer_label = tk.Label(tab, text="00:00", font=self.fonts["timer"], bg="lightgrey", fg="black")
+        self.display_timer_label = tk.Label(tab, text="00:00", font=self.display_fonts["timer"], bg="lightgrey", fg="black")
         self.display_timer_label.grid(row=3, column=3, rowspan=8, columnspan=3, padx=1, pady=1, sticky="nsew")
 
+        self.display_window.bind('<Configure>', self.scale_display_fonts)
+        self.display_initial_width = self.display_window.winfo_width() or 1200
+        self.display_window.update_idletasks()
+        self.scale_display_fonts(None)
         self.sync_display_widgets()
 
     def sync_display_widgets(self):
