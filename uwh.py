@@ -11,6 +11,7 @@ class GameManagementApp:
         self.notebook = ttk.Notebook(master)
         self.notebook.pack(expand=True, fill='both', padx=10, pady=10)
 
+        # --- Variable and font setup ---
         self.variables = {
             "team_timeouts_allowed": {"default": True, "checkbox": True, "unit": "", "label": "Team time-outs allowed?"},
             "team_timeout_period": {"default": 1, "checkbox": False, "unit": "minutes"},
@@ -88,6 +89,7 @@ class GameManagementApp:
         self.penalty_timers_paused = False
         self.penalty_timer_jobs = []
 
+        # --- Setup UI tabs and core game logic ---
         self.create_scoreboard_tab()
         self.create_settings_tab()
         self.load_settings()
@@ -97,22 +99,133 @@ class GameManagementApp:
         self.initial_width = self.master.winfo_width()
         self.master.update_idletasks()
         self.scale_fonts(None)
-        self.create_display_window()
 
-        # --- Penalty Management Integration ---
+        # --- Display window and penalty grid must be created before display updates ---
+        self.create_display_window()
         self.start_penalty_display_updates()
         self.sync_penalty_display_to_external()
 
     # --- Penalty Display Functions ---
     def update_penalty_display(self):
-        # Show penalties if active, otherwise show game label
+        # --- Scoreboard window ---
         if self.active_penalties:
-            text = self.format_penalty_display()
-            self.game_label.config(text=text)
-            self.display_game_label.config(text=text)
+            # Remove game_label if visible
+            if self.game_label.winfo_ismapped():
+                self.game_label.grid_remove()
+            # Only grid penalty_grid_frame if not already mapped
+            if not self.penalty_grid_frame.winfo_ismapped():
+                self.penalty_grid_frame.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
+            self.update_penalty_grid()
         else:
+            # Remove penalty grid if visible
+            if self.penalty_grid_frame.winfo_ismapped():
+                self.penalty_grid_frame.grid_remove()
+            # Only grid game_label if not already mapped
+            if not self.game_label.winfo_ismapped():
+                self.game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
             self.game_label.config(text="Game 121")
+
+        # --- Display window ---
+        if self.active_penalties:
+            # Remove display_game_label if visible
+            if self.display_game_label.winfo_ismapped():
+                self.display_game_label.grid_remove()
+            # Only grid display_penalty_grid_frame if not already mapped
+            if not self.display_penalty_grid_frame.winfo_ismapped():
+                self.display_penalty_grid_frame.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
+            self.update_display_penalty_grid()
+        else:
+            # Remove display_penalty_grid_frame if visible
+            if self.display_penalty_grid_frame.winfo_ismapped():
+                self.display_penalty_grid_frame.grid_remove()
+            # Only grid display_game_label if not already mapped
+            if not self.display_game_label.winfo_ismapped():
+                self.display_game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
             self.display_game_label.config(text="Game 121")
+
+    def update_penalty_grid(self):
+        def penalty_sort_key(p):
+            return p["seconds_remaining"] if not p["is_rest_of_match"] else 999999
+        white_penalties = sorted(
+            [p for p in self.active_penalties if p["team"] == "White"],
+            key=penalty_sort_key
+        )[:3]
+        black_penalties = sorted(
+            [p for p in self.active_penalties if p["team"] == "Black"],
+            key=penalty_sort_key
+        )[:3]
+        for i in range(3):
+            if i < len(white_penalties):
+                p = white_penalties[i]
+                cap_str = f"#{p['cap']}"
+                if p["is_rest_of_match"]:
+                    time_str = "rest"
+                else:
+                    mins, secs = divmod(p["seconds_remaining"], 60)
+                    time_str = f"{mins}:{secs:02d}"
+                label_text = f"{cap_str}  {time_str}"
+            else:
+                label_text = ""
+            self.penalty_labels[i][0].config(text=label_text)
+            # Black column
+            if i < len(black_penalties):
+                p = black_penalties[i]
+                cap_str = f"#{p['cap']}"
+                if p["is_rest_of_match"]:
+                    time_str = "rest"
+                else:
+                    mins, secs = divmod(p["seconds_remaining"], 60)
+                    time_str = f"{mins}:{secs:02d}"
+                label_text = f"{cap_str}  {time_str}"
+            else:
+                label_text = ""
+            self.penalty_labels[i][1].config(text=label_text)
+
+    def update_display_penalty_grid(self):
+        def penalty_sort_key(p):
+            return p["seconds_remaining"] if not p["is_rest_of_match"] else 999999
+        white_penalties = sorted(
+            [p for p in self.active_penalties if p["team"] == "White"],
+            key=penalty_sort_key
+        )[:3]
+        black_penalties = sorted(
+            [p for p in self.active_penalties if p["team"] == "Black"],
+            key=penalty_sort_key
+        )[:3]
+        for i in range(3):
+            if i < len(white_penalties):
+                p = white_penalties[i]
+                cap_str = f"#{p['cap']}"
+                if p["is_rest_of_match"]:
+                    time_str = "rest"
+                else:
+                    mins, secs = divmod(p["seconds_remaining"], 60)
+                    time_str = f"{mins}:{secs:02d}"
+                label_text = f"{cap_str}  {time_str}"
+            else:
+                label_text = ""
+            self.display_penalty_labels[i][0].config(text=label_text)
+            # Black column
+            if i < len(black_penalties):
+                p = black_penalties[i]
+                cap_str = f"#{p['cap']}"
+                if p["is_rest_of_match"]:
+                    time_str = "rest"
+                else:
+                    mins, secs = divmod(p["seconds_remaining"], 60)
+                    time_str = f"{mins}:{secs:02d}"
+                label_text = f"{cap_str}  {time_str}"
+            else:
+                label_text = ""
+            self.display_penalty_labels[i][1].config(text=label_text)
+
+
+
+
+
+
+
+
 
     def format_penalty_display(self):
         # Show up to 3 penalties per team, format: "#cap, duration, time"
@@ -148,25 +261,59 @@ class GameManagementApp:
 
 
 
+
+
     def create_penalty_grid_widget(self, parent):
-        """Initializes the penalty grid widget for in-window display."""
+        """Initializes the penalty grid widget for in-window display (no headers, styled columns, centered)."""
         self.penalty_grid_frame = tk.Frame(parent)
-        self.penalty_grid_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
-        # Column headers
-        tk.Label(self.penalty_grid_frame, text="White", font=("Arial", 16, "bold")).grid(row=0, column=0, padx=5)
-        tk.Label(self.penalty_grid_frame, text="Black", font=("Arial", 16, "bold")).grid(row=0, column=1, padx=5)
-        # Penalty info cells
+        # Make grid cells expand to center content
+        for col in range(2):
+            self.penalty_grid_frame.grid_columnconfigure(col, weight=1)
+        for row in range(3):
+            self.penalty_grid_frame.grid_rowconfigure(row, weight=1)
         self.penalty_labels = [[None for _ in range(2)] for _ in range(3)]
         for row in range(3):
-            for col in range(2):
-                lbl = tk.Label(self.penalty_grid_frame, text="", font=("Arial", 14), width=28, anchor="w", relief="ridge")
-                lbl.grid(row=row+1, column=col, padx=3, pady=2, sticky="ew")
-                self.penalty_labels[row][col] = lbl
+            # White column (col 0): fg black, bg white
+            lbl_white = tk.Label(self.penalty_grid_frame, text="", font=("Arial", 10),
+                                 width=8, anchor="center", relief="ridge", fg="black", bg="white", justify="center")
+            lbl_white.grid(row=row, column=0, padx=4, pady=2, sticky="nsew")
+            self.penalty_labels[row][0] = lbl_white
+            # Black column (col 1): fg white, bg black
+            lbl_black = tk.Label(self.penalty_grid_frame, text="", font=("Arial", 10),
+                                 width=8, anchor="center", relief="ridge", fg="white", bg="black", justify="center")
+            lbl_black.grid(row=row, column=1, padx=4, pady=2, sticky="nsew")
+            self.penalty_labels[row][1] = lbl_black
+
+
+
+    def create_penalty_grid_widget(self, parent, is_display=False):
+        """Initializes the penalty grid widget for in-window and display-window. No headers, styled columns, centered."""
+        frame = tk.Frame(parent)
+        for col in range(2):
+            frame.grid_columnconfigure(col, weight=1)
+        for row in range(3):
+            frame.grid_rowconfigure(row, weight=1)
+        labels = [[None for _ in range(2)] for _ in range(3)]
+        for row in range(3):
+            # White column (col 0): fg black, bg white
+            lbl_white = tk.Label(frame, text="", font=("Arial", 10), width=8,
+                                 anchor="center", relief="ridge", fg="black", bg="white", justify="center")
+            lbl_white.grid(row=row, column=0, padx=4, pady=2, sticky="nsew")
+            labels[row][0] = lbl_white
+            # Black column (col 1): fg white, bg black
+            lbl_black = tk.Label(frame, text="", font=("Arial", 10), width=8,
+                                 anchor="center", relief="ridge", fg="white", bg="black", justify="center")
+            lbl_black.grid(row=row, column=1, padx=4, pady=2, sticky="nsew")
+            labels[row][1] = lbl_black
+        return frame, labels
+
+
+
+
 
     def update_penalty_grid(self):
         """Updates the penalty grid for both teams, sorted by shortest remaining time (REST at bottom)."""
         def penalty_sort_key(p):
-            # REST penalties are sorted at the end (999999 seconds)
             return p["seconds_remaining"] if not p["is_rest_of_match"] else 999999
 
         # Get up to 3 active penalties for each team, sorted by shortest time left
@@ -180,24 +327,36 @@ class GameManagementApp:
         )[:3]
 
         for i in range(3):
-            for team, penalties, col in [("White", white_penalties, 0), ("Black", black_penalties, 1)]:
-                if i < len(penalties):
-                    p = penalties[i]
-                    if p["is_rest_of_match"]:
-                        time_str = "REST"
-                    else:
-                        mins, secs = divmod(p["seconds_remaining"], 60)
-                        time_str = f"{mins:02d}:{secs:02d}"
-                    label_text = f"Player: {p['cap']} | Duration: {p['duration']} min | Left: {time_str}"
+            # White column
+            if i < len(white_penalties):
+                p = white_penalties[i]
+                cap_str = f"#{p['cap']}"
+                if p["is_rest_of_match"]:
+                    time_str = "rest"
                 else:
-                    label_text = ""
-                self.penalty_labels[i][col].config(text=label_text)
+                    mins, secs = divmod(p["seconds_remaining"], 60)
+                    time_str = f"{mins}:{secs:02d}"
+                label_text = f"{cap_str}  {time_str}"
+            else:
+                label_text = ""
+            self.penalty_labels[i][0].config(text=label_text)
+
+            # Black column
+            if i < len(black_penalties):
+                p = black_penalties[i]
+                cap_str = f"#{p['cap']}"
+                if p["is_rest_of_match"]:
+                    time_str = "rest"
+                else:
+                    mins, secs = divmod(p["seconds_remaining"], 60)
+                    time_str = f"{mins}:{secs:02d}"
+                label_text = f"{cap_str}  {time_str}"
+            else:
+                label_text = ""
+            self.penalty_labels[i][1].config(text=label_text)
 
         # Schedule next update for real-time countdown
         self.master.after(1000, self.update_penalty_grid)
-
-
-
 
 
 
@@ -254,8 +413,34 @@ class GameManagementApp:
         self.black_label = tk.Label(tab, text="Black", font=self.fonts["team"], bg="black", fg="white")
         self.black_label.grid(row=2, column=6, columnspan=3, padx=1, pady=1, sticky="nsew")
 
+
+
+
+
+
+
         self.game_label = tk.Label(tab, text="Game 121", font=self.fonts["game_no"], bg="light grey")
         self.game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
+        self.penalty_grid_frame, self.penalty_labels = self.create_penalty_grid_widget(tab)
+        self.penalty_grid_frame.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
+        self.penalty_grid_frame.grid_remove()  # hide initially
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         self.white_score = tk.Label(tab, textvariable=self.white_score_var, font=self.fonts["score"], bg="white", fg="black")
         self.white_score.grid(row=3, column=0, rowspan=6, columnspan=3, padx=1, pady=1, sticky="nsew")
@@ -311,7 +496,7 @@ class GameManagementApp:
             command=self.toggle_referee_timeout
         )
         self.referee_timeout_button.grid(row=9, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
-
+        
         self.penalties_button = tk.Button(
             tab, text="Penalties", font=self.fonts["button"], bg="orange", fg="black",
             activebackground="orange", activeforeground="black",
@@ -882,6 +1067,9 @@ class GameManagementApp:
 
         self.display_game_label = tk.Label(tab, text="Game 121", font=self.display_fonts["game_no"], bg="light grey")
         self.display_game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
+        self.display_penalty_grid_frame, self.display_penalty_labels = self.create_penalty_grid_widget(tab, is_display=True)
+        self.display_penalty_grid_frame.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
+        self.display_penalty_grid_frame.grid_remove()  # hide initially
 
         self.display_white_score = tk.Label(tab, textvariable=self.white_score_var, font=self.display_fonts["score"], bg="white", fg="black")
         self.display_white_score.grid(row=3, column=0, rowspan=8, columnspan=3, padx=1, pady=1, sticky="nsew")
@@ -1334,6 +1522,7 @@ class GameManagementApp:
 
     def penalty_countdown(self, penalty):
         if penalty not in self.active_penalties:
+            self.update_penalty_display()  # Ensure UI updates if penalty removed
             return  # Penalty was removed
         if penalty["timer_job"]:
             self.master.after_cancel(penalty["timer_job"])
@@ -1347,6 +1536,10 @@ class GameManagementApp:
         else:
             self.remove_penalty(penalty)
             self.update_penalty_display()
+
+
+
+
 
     def remove_penalty(self, penalty):
         if penalty in self.active_penalties:
