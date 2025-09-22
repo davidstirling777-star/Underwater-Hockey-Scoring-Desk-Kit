@@ -37,7 +37,6 @@ class GameManagementApp:
             "timeout_button": font.Font(family="Arial", size=20, weight="bold"),
         }
 
-        # --- Display window fonts (independent) ---
         self.display_fonts = {
             "court_time": font.Font(family="Arial", size=36),
             "half": font.Font(family="Arial", size=36, weight="bold"),
@@ -51,10 +50,12 @@ class GameManagementApp:
         self.black_score_var = tk.IntVar(value=0)
         self.timer_running = False
         self.timer_seconds = 0
-        self.court_time_dt = None
-        self.court_time_seconds = 0
+
+        # Court time system
+        self.court_time_seconds = None  # Will be synchronized to local time at startup/reset
         self.court_time_job = None
         self.court_time_paused = False
+
         self.timer_job = None
         self.reset_timer_button = None
         self.in_timeout = False
@@ -83,9 +84,9 @@ class GameManagementApp:
         self.stored_penalties = []
         
         # Penalty timer system
-        self.active_penalties = []  # List of active penalty timers
+        self.active_penalties = []
         self.penalty_timers_paused = False
-        self.penalty_timer_jobs = []  # List of timer jobs for penalties
+        self.penalty_timer_jobs = []
 
         self.create_scoreboard_tab()
         self.create_settings_tab()
@@ -138,35 +139,28 @@ class GameManagementApp:
         for i in range(9):
             tab.grid_columnconfigure(i, weight=1)
 
-        # Court time widget
         self.court_time_label = tk.Label(tab, text="Court Time is", font=self.fonts["court_time"], bg="lightgrey")
         self.court_time_label.grid(row=0, column=0, columnspan=9, padx=1, pady=1, sticky="nsew")
 
-        # Game Status (Half) widget
         self.half_label = tk.Label(tab, text="", font=self.fonts["half"], bg="lightcoral")
         self.half_label.grid(row=1, column=0, columnspan=9, padx=1, pady=1, sticky="nsew")
 
-        # Team names
         self.white_label = tk.Label(tab, text="White", font=self.fonts["team"], bg="white", fg="black")
         self.white_label.grid(row=2, column=0, columnspan=3, padx=1, pady=1, sticky="nsew")
         self.black_label = tk.Label(tab, text="Black", font=self.fonts["team"], bg="black", fg="white")
         self.black_label.grid(row=2, column=6, columnspan=3, padx=1, pady=1, sticky="nsew")
 
-        # Game 121 widget
         self.game_label = tk.Label(tab, text="Game 121", font=self.fonts["game_no"], bg="light grey")
         self.game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
 
-        # Score widgets
         self.white_score = tk.Label(tab, textvariable=self.white_score_var, font=self.fonts["score"], bg="white", fg="black")
         self.white_score.grid(row=3, column=0, rowspan=6, columnspan=3, padx=1, pady=1, sticky="nsew")
         self.black_score = tk.Label(tab, textvariable=self.black_score_var, font=self.fonts["score"], bg="black", fg="white")
         self.black_score.grid(row=3, column=6, rowspan=6, columnspan=3, padx=1, pady=1, sticky="nsew")
 
-        # Timer widget (center)
         self.timer_label = tk.Label(tab, text="00:00", font=self.fonts["timer"], bg="lightgrey", fg="black")
         self.timer_label.grid(row=3, column=3, rowspan=6, columnspan=3, padx=1, pady=1, sticky="nsew")
 
-        # Team time-out buttons
         self.white_timeout_button = tk.Button(
             tab, text="White Team\nTime-Out", font=self.fonts["timeout_button"], bg="white", fg="black",
             activebackground="white", activeforeground="black",
@@ -180,7 +174,6 @@ class GameManagementApp:
         )
         self.black_timeout_button.grid(row=9, column=8, rowspan=2, columnspan=1, padx=1, pady=1, sticky="nsew")
 
-        # Add goal widgets
         self.white_goal_button = tk.Button(
             tab, text="Add Goal White", font=self.fonts["button"], bg="light grey", fg="black",
             activebackground="light grey", activeforeground="black",
@@ -194,7 +187,6 @@ class GameManagementApp:
         )
         self.black_goal_button.grid(row=9, column=6, columnspan=2, padx=1, pady=1, sticky="nsew")
 
-        # -ve goal widgets
         self.white_minus_button = tk.Button(
             tab, text="-ve Goal White", font=self.fonts["button"], bg="light grey", fg="black",
             activebackground="light grey", activeforeground="black",
@@ -208,7 +200,6 @@ class GameManagementApp:
         )
         self.black_minus_button.grid(row=10, column=6, columnspan=2, padx=1, pady=1, sticky="nsew")
 
-        # Referee time-out widget
         self.referee_timeout_button = tk.Button(
             tab, text="Referee Time-Out", font=self.fonts["button"],
             bg=self.referee_timeout_default_bg, fg=self.referee_timeout_default_fg,
@@ -217,7 +208,6 @@ class GameManagementApp:
         )
         self.referee_timeout_button.grid(row=9, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
 
-        # Penalties widget
         self.penalties_button = tk.Button(
             tab, text="Penalties", font=self.fonts["button"], bg="orange", fg="black",
             activebackground="orange", activeforeground="black",
@@ -388,7 +378,6 @@ class GameManagementApp:
                 self.master.after_cancel(self.court_time_job)
                 self.court_time_job = None
             self.court_time_paused = True
-            # Pause all penalty timers during referee timeout
             self.pause_all_penalty_timers()
             self.referee_timeout_elapsed = 0
             self.half_label.config(text="Referee Time-Out")
@@ -408,7 +397,6 @@ class GameManagementApp:
             self.half_label.config(text=self.saved_state["half_label_text"])
             self.half_label.config(bg=self.saved_state["half_label_bg"])
             self.court_time_paused = self.saved_state.get("court_time_paused", False)
-            # Resume all penalty timers when referee timeout ends
             self.resume_all_penalty_timers()
             self.update_timer_display()
             if self.timer_running:
@@ -820,38 +808,33 @@ class GameManagementApp:
             self.timer_seconds = 0
             self.half_label.config(text="")
         self.update_timer_display()
-        self.court_time_dt = datetime.datetime.now()
-        self.court_time_seconds = 0
+
+        # ---- Synchronize court time to local time on reset/startup ----
+        now = datetime.datetime.now()
+        self.court_time_seconds = now.hour * 3600 + now.minute * 60 + now.second
         self.court_time_paused = False
         self.update_court_time()
         self.start_current_period()
 
     def update_court_time(self):
-        if self.court_time_dt is None:
-            # Set the start time
-            self.court_time_dt = datetime.datetime.now()
-            self.court_time_seconds = 0
-            self._court_time_paused_at = None
+        # Cancel previous scheduled job to avoid multiple timers running
+        if self.court_time_job is not None:
+            self.master.after_cancel(self.court_time_job)
+            self.court_time_job = None
+
+        if self.court_time_seconds is None:
+            now = datetime.datetime.now()
+            self.court_time_seconds = now.hour * 3600 + now.minute * 60 + now.second
 
         if self.court_time_paused:
-            if not hasattr(self, '_court_time_paused_at') or self._court_time_paused_at is None:
-                # Record the time when paused
-                self._court_time_paused_at = datetime.datetime.now()
             self.court_time_job = self.master.after(1000, self.update_court_time)
             return
-        else:
-            # If we were paused, update the court_time_dt to skip the pause duration
-            if hasattr(self, '_court_time_paused_at') and self._court_time_paused_at is not None:
-                paused_duration = datetime.datetime.now() - self._court_time_paused_at
-                self.court_time_dt += paused_duration
-                self._court_time_paused_at = None
 
-        # Compute the elapsed time robustly
-        now = datetime.datetime.now()
-        elapsed = int((now - self.court_time_dt).total_seconds())
-        self.court_time_seconds = elapsed
-        current_dt = self.court_time_dt + datetime.timedelta(seconds=elapsed)
-        time_string = current_dt.strftime('%I:%M:%S %p').lstrip('0')
+        self.court_time_seconds += 1
+
+        hours, remainder = divmod(self.court_time_seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        time_string = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
         self.court_time_label.config(text=f"Court Time is {time_string}")
         self.court_time_job = self.master.after(1000, self.update_court_time)
 
