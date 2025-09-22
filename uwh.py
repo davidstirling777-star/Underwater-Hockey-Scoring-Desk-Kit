@@ -229,15 +229,19 @@ class GameManagementApp:
         button_frame.pack(side="top", fill="x")
         selected_team = tk.StringVar()
 
+        # Use tk.Button and manage relief to show "depressed" state
+        button_white = tk.Button(button_frame, text="White", width=10, command=lambda: select_team("White"))
+        button_white.pack(side="left", padx=5, expand=True)
+        button_black = tk.Button(button_frame, text="Black", width=10, command=lambda: select_team("Black"))
+        button_black.pack(side="left", padx=5, expand=True)
+
         def select_team(team):
             selected_team.set(team)
             button_white.config(relief=tk.SUNKEN if team == "White" else tk.RAISED)
             button_black.config(relief=tk.SUNKEN if team == "Black" else tk.RAISED)
 
-        button_white = ttk.Button(button_frame, text="White", command=lambda: select_team("White"))
-        button_white.pack(side="left", padx=5, expand=True)
-        button_black = ttk.Button(button_frame, text="Black", command=lambda: select_team("Black"))
-        button_black.pack(side="left", padx=5, expand=True)
+        # Initialize relief state
+        select_team(selected_team.get())
 
         numbers = list(range(1, 16))
         dropdown_options = ["Pick Cap Number"] + numbers
@@ -261,7 +265,7 @@ class GameManagementApp:
         summary_frame.pack(side="top", fill="both", expand=True)
         summary_label = ttk.Label(summary_frame, text="Stored Penalties (max 6):")
         summary_label.pack(anchor="w")
-        penalty_listbox = tk.Listbox(summary_frame, height=6)
+        penalty_listbox = tk.Listbox(summary_frame, height=6, exportselection=0)
         penalty_listbox.pack(fill="both", expand=True)
 
         def refresh_penalty_listbox():
@@ -273,12 +277,16 @@ class GameManagementApp:
                     mins, secs = divmod(penalty["seconds_remaining"], 60)
                     time_str = f"{int(mins):02d}:{int(secs):02d}"
                 penalty_listbox.insert(tk.END, f"{penalty['team']} #{penalty['cap']} {time_str}")
-            
+
             # Also add stored penalties that aren't active timers (backward compatibility)
             for p in getattr(self, 'stored_penalties', []):
-                if not any(ap["team"] == p["team"] and ap["cap"] == p["cap"] and ap["duration"] == p["duration"] 
+                if not any(ap["team"] == p["team"] and ap["cap"] == p["cap"] and ap["duration"] == p["duration"]
                           for ap in getattr(self, 'active_penalties', [])):
                     penalty_listbox.insert(tk.END, f"{p['team']} #{p['cap']} {p['duration']}")
+
+            # Auto-select first item if present
+            if penalty_listbox.size() > 0 and not penalty_listbox.curselection():
+                penalty_listbox.selection_set(0)
 
         refresh_penalty_listbox()
 
@@ -305,11 +313,12 @@ class GameManagementApp:
             if len(self.stored_penalties) >= 6:
                 messagebox.showerror("Error", "Maximum 6 penalties can be stored.")
                 return
-            
+
             # Start the penalty timer
             if self.start_penalty_timer(team, cap, duration):
                 refresh_penalty_listbox()
                 selected_team.set("")
+                select_team("")  # update button reliefs
                 dropdown_variable.set(dropdown_options[0])
                 radio_variable.set("")
             else:
@@ -320,10 +329,10 @@ class GameManagementApp:
             if not selection:
                 messagebox.showerror("Error", "Please select a penalty to remove.")
                 return
-            
+
             idx = selection[0]
             active_count = len(getattr(self, 'active_penalties', []))
-            
+
             if idx < active_count:
                 # Removing an active penalty
                 penalty_to_remove = self.active_penalties[idx]
@@ -338,13 +347,13 @@ class GameManagementApp:
 
         start_button_frame = ttk.Frame(penalty_window)
         start_button_frame.pack(side="bottom", fill="x", pady=10)
-        
+
         button_container = ttk.Frame(start_button_frame)
         button_container.pack(expand=True, fill="x")
-        
+
         start_button = ttk.Button(button_container, text="Start Penalty", command=start_penalty)
         start_button.pack(side="left", expand=True, fill="x", padx=(0, 5))
-        
+
         remove_button = ttk.Button(button_container, text="Remove Selected", command=remove_penalty)
         remove_button.pack(side="right", expand=True, fill="x", padx=(5, 0))
 
