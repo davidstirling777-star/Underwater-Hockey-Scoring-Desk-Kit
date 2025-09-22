@@ -269,6 +269,10 @@ class GameManagementApp:
         penalty_listbox.pack(fill="both", expand=True)
 
         def refresh_penalty_listbox():
+            # Save current selection
+            selection = penalty_listbox.curselection()
+            selected_index = selection[0] if selection else None
+
             penalty_listbox.delete(0, tk.END)
             for penalty in getattr(self, 'active_penalties', []):
                 if penalty["is_rest_of_match"]:
@@ -278,15 +282,17 @@ class GameManagementApp:
                     time_str = f"{int(mins):02d}:{int(secs):02d}"
                 penalty_listbox.insert(tk.END, f"{penalty['team']} #{penalty['cap']} {time_str}")
 
-            # Also add stored penalties that aren't active timers (backward compatibility)
             for p in getattr(self, 'stored_penalties', []):
                 if not any(ap["team"] == p["team"] and ap["cap"] == p["cap"] and ap["duration"] == p["duration"]
                           for ap in getattr(self, 'active_penalties', [])):
                     penalty_listbox.insert(tk.END, f"{p['team']} #{p['cap']} {p['duration']}")
 
-            # Auto-select first item if present
-            if penalty_listbox.size() > 0 and not penalty_listbox.curselection():
-                penalty_listbox.selection_set(0)
+            # Restore selection if possible
+            if selected_index is not None and penalty_listbox.size() > selected_index:
+                penalty_listbox.selection_set(selected_index)
+                penalty_listbox.activate(selected_index)
+            elif penalty_listbox.size() > 0:
+                penalty_listbox.selection_clear(0, tk.END)
 
         refresh_penalty_listbox()
 
