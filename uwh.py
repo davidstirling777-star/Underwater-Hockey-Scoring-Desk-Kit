@@ -49,7 +49,7 @@ class GameManagementApp:
 
         self.white_score_var = tk.IntVar(value=0)
         self.black_score_var = tk.IntVar(value=0)
-        self.timer_running = False
+        self.timer_running = True
         self.timer_seconds = 0
 
         # Court time system
@@ -89,12 +89,10 @@ class GameManagementApp:
         self.penalty_timers_paused = False
         self.penalty_timer_jobs = []
 
-        # --- Setup UI tabs and core game logic ---
         self.create_scoreboard_tab()
         self.create_settings_tab()
         self.load_settings()
         self.build_game_sequence()
-        self.reset_timer()
         self.master.bind('<Configure>', self.scale_fonts)
         self.initial_width = self.master.winfo_width()
         self.master.update_idletasks()
@@ -104,8 +102,8 @@ class GameManagementApp:
         self.create_display_window()
         self.start_penalty_display_updates()
         self.sync_penalty_display_to_external()
+        self.reset_timer()  # <-- moved here, after display window creation
 
-    # --- Penalty Display Functions ---
     def update_penalty_display(self):
         # --- Scoreboard window ---
         if self.active_penalties:
@@ -221,7 +219,6 @@ class GameManagementApp:
         self.display_window.after(1000, self.sync_penalty_display_to_external)
 
     def create_penalty_grid_widget(self, parent, is_display=False):
-        """Initializes the penalty grid widget for in-window and display-window. No headers, styled columns, centered."""
         frame = tk.Frame(parent)
         for col in range(2):
             frame.grid_columnconfigure(col, weight=1)
@@ -229,12 +226,10 @@ class GameManagementApp:
             frame.grid_rowconfigure(row, weight=1)
         labels = [[None for _ in range(2)] for _ in range(3)]
         for row in range(3):
-            # White column (col 0): fg black, bg white
             lbl_white = tk.Label(frame, text="", font=("Arial", 10), width=8,
                                  anchor="center", relief="ridge", fg="black", bg="white", justify="center")
             lbl_white.grid(row=row, column=0, padx=4, pady=2, sticky="nsew")
             labels[row][0] = lbl_white
-            # Black column (col 1): fg white, bg black
             lbl_black = tk.Label(frame, text="", font=("Arial", 10), width=8,
                                  anchor="center", relief="ridge", fg="white", bg="black", justify="center")
             lbl_black.grid(row=row, column=1, padx=4, pady=2, sticky="nsew")
@@ -296,7 +291,6 @@ class GameManagementApp:
                 fnt.config(size=new_size)
             except Exception:
                 pass
-
 
     def get_minutes(self, varname):
         try:
@@ -431,7 +425,6 @@ class GameManagementApp:
         button_frame.pack(side="top", fill="x")
         selected_team = tk.StringVar()
 
-        # Use tk.Button and manage relief to show "depressed" state
         button_white = tk.Button(button_frame, text="White", width=10, command=lambda: select_team("White"))
         button_white.pack(side="left", padx=5, expand=True)
         button_black = tk.Button(button_frame, text="Black", width=10, command=lambda: select_team("Black"))
@@ -442,7 +435,6 @@ class GameManagementApp:
             button_white.config(relief=tk.SUNKEN if team == "White" else tk.RAISED)
             button_black.config(relief=tk.SUNKEN if team == "Black" else tk.RAISED)
 
-        # Initialize relief state
         select_team(selected_team.get())
 
         numbers = list(range(1, 16))
@@ -471,7 +463,6 @@ class GameManagementApp:
         penalty_listbox.pack(fill="both", expand=True)
 
         def refresh_penalty_listbox():
-            # Save current selection
             selection = penalty_listbox.curselection()
             selected_index = selection[0] if selection else None
 
@@ -486,10 +477,9 @@ class GameManagementApp:
 
             for p in getattr(self, 'stored_penalties', []):
                 if not any(ap["team"] == p["team"] and ap["cap"] == p["cap"] and ap["duration"] == p["duration"]
-                          for ap in getattr(self, 'active_penalties', [])):
+                        for ap in getattr(self, 'active_penalties', [])):
                     penalty_listbox.insert(tk.END, f"{p['team']} #{p['cap']} {p['duration']}")
 
-            # Restore selection if possible
             if selected_index is not None and penalty_listbox.size() > selected_index:
                 penalty_listbox.selection_set(selected_index)
                 penalty_listbox.activate(selected_index)
@@ -498,7 +488,6 @@ class GameManagementApp:
 
         refresh_penalty_listbox()
 
-        # Periodic refresh of penalty listbox to show countdown
         def periodic_refresh():
             if penalty_window.winfo_exists():
                 refresh_penalty_listbox()
@@ -522,7 +511,6 @@ class GameManagementApp:
                 messagebox.showerror("Error", "Maximum 6 penalties can be stored.")
                 return
 
-            # Start the penalty timer
             if self.start_penalty_timer(team, cap, duration):
                 refresh_penalty_listbox()
                 selected_team.set("")
@@ -542,12 +530,10 @@ class GameManagementApp:
             active_count = len(getattr(self, 'active_penalties', []))
 
             if idx < active_count:
-                # Removing an active penalty
                 penalty_to_remove = self.active_penalties[idx]
                 self.remove_penalty(penalty_to_remove)
                 refresh_penalty_listbox()
             else:
-                # Removing a stored penalty (backward compatibility)
                 stored_idx = idx - active_count
                 if 0 <= stored_idx < len(self.stored_penalties):
                     self.stored_penalties.pop(stored_idx)
@@ -558,12 +544,16 @@ class GameManagementApp:
 
         button_container = ttk.Frame(start_button_frame)
         button_container.pack(expand=True, fill="x")
-
+    
         start_button = ttk.Button(button_container, text="Start Penalty", command=start_penalty)
         start_button.pack(side="left", expand=True, fill="x", padx=(0, 5))
 
         remove_button = ttk.Button(button_container, text="Remove Selected", command=remove_penalty)
         remove_button.pack(side="right", expand=True, fill="x", padx=(5, 0))
+
+        # --- PATCH: Close button below, spanning the window width ---
+        close_button = ttk.Button(penalty_window, text="Close", command=penalty_window.destroy)
+        close_button.pack(side="bottom", fill="x", padx=10, pady=(0,10))
 
         penalty_window.transient(self.master)
         penalty_window.grab_set()
@@ -756,7 +746,6 @@ class GameManagementApp:
             entry.bind("<FocusOut>", lambda e, name=var_name: self._on_settings_variable_change())
             entry.bind("<Return>", lambda e, name=var_name: self._on_settings_variable_change())
 
-            # ADD THIS BLOCK:
             if var_name == "team_timeout_period":
                 self.team_timeout_period_entry = entry
                 self.team_timeout_period_label = label_widget
@@ -794,13 +783,11 @@ class GameManagementApp:
     def update_team_timeouts_allowed(self):
         allowed = self.team_timeouts_allowed_var.get()
 
-        # Helper function to set button state and appearance robustly
         def set_button_state(btn, allowed, disabled_bg="#d3d3d3", disabled_fg="#888"):
             if btn is not None:
                 try:
                     if allowed:
                         btn.config(state=tk.NORMAL)
-                        # Optionally restore original colors if you store them
                         btn.config(bg=btn.cget("bg"), fg=btn.cget("fg"))
                     else:
                         btn.config(state=tk.DISABLED)
@@ -808,11 +795,9 @@ class GameManagementApp:
                 except Exception:
                     pass
 
-        # Set the state for the timeout buttons
         set_button_state(getattr(self, 'white_timeout_button', None), allowed)
         set_button_state(getattr(self, 'black_timeout_button', None), allowed)
 
-        # Handle placeholders if present (optional, depends on your UI design)
         if hasattr(self, "white_timeout_placeholder") and self.white_timeout_placeholder is not None:
             if allowed:
                 self.white_timeout_placeholder.grid_remove()
@@ -833,7 +818,6 @@ class GameManagementApp:
                     self.black_timeout_button.grid_remove()
                 self.black_timeout_placeholder.grid()
 
-        # Enable/disable the team_timeout_period entry and label if they exist
         if hasattr(self, "team_timeout_period_entry") and self.team_timeout_period_entry is not None:
             try:
                 entry_state = "normal" if allowed else "disabled"
@@ -865,7 +849,6 @@ class GameManagementApp:
                     if entry:
                         entry.config(state="disabled")
 
-
     def create_display_window(self):
         self.display_window = tk.Toplevel(self.master)
         self.display_window.title("Display Window")
@@ -879,7 +862,6 @@ class GameManagementApp:
         for i in range(9):
             tab.grid_columnconfigure(i, weight=1)
 
-        # *** CRITICAL: Use self.display_fonts, NOT self.fonts! ***
         self.display_court_time_label = tk.Label(tab, text="Court Time is", font=self.display_fonts["court_time"], bg="lightgrey")
         self.display_court_time_label.grid(row=0, column=0, columnspan=9, padx=1, pady=1, sticky="nsew")
 
@@ -942,7 +924,6 @@ class GameManagementApp:
             self.half_label.config(text="")
         self.update_timer_display()
 
-        # ---- Synchronize court time to local time on reset/startup ----
         now = datetime.datetime.now()
         self.court_time_seconds = now.hour * 3600 + now.minute * 60 + now.second
         self.court_time_paused = False
@@ -950,7 +931,6 @@ class GameManagementApp:
         self.start_current_period()
 
     def update_court_time(self):
-        # Cancel previous scheduled job to avoid multiple timers running
         if self.court_time_job is not None:
             self.master.after_cancel(self.court_time_job)
             self.court_time_job = None
@@ -984,17 +964,15 @@ class GameManagementApp:
             mins, secs = divmod(self.timer_seconds, 60)
             self.timer_label.config(text=f"{int(mins):02d}:{int(secs):02d}")
 
-    # ---- ADDED FUNCTION ----
     def adjust_between_game_break_for_crib_time(self):
         # Calculate the current court time as datetime
-        current_court_time = self.court_time_dt + datetime.timedelta(seconds=self.court_time_seconds)
+        current_court_time = datetime.datetime.now() - datetime.timedelta(seconds=self.court_time_seconds)
         local_time = datetime.datetime.now()
         seconds_behind = int((local_time - current_court_time).total_seconds())
         if seconds_behind <= 0:
             return  # Already aligned or ahead
         crib_time_var = self.variables['crib_time']
         crib_time = int(float(crib_time_var.get("value", crib_time_var["default"])))
-        # Go through all future Between Game Break periods
         for idx in range(self.current_index, len(self.full_sequence)):
             period = self.full_sequence[idx]
             if period['name'] == 'Between Game Break' and seconds_behind > 0:
@@ -1009,12 +987,31 @@ class GameManagementApp:
             self.current_index = self.find_period_index('Between Game Break')
         cur_period = self.full_sequence[self.current_index]
 
-        # ---- ADDED LOGIC ----
-        if cur_period['name'] == 'Between Game Break':
-            self.adjust_between_game_break_for_crib_time()
+        # PATCH: Reset team timeout counters at the start of each half
+        if cur_period['name'] in ['First Half', 'Second Half']:
+            self.white_timeouts_this_half = 0
+            self.black_timeouts_this_half = 0
 
         self.half_label.config(text=cur_period['name'])
         self.update_half_label_background(cur_period['name'])
+
+        if cur_period['name'] in ["Game Starts in:", "Between Game Break"]:
+            self.penalties_button.config(state=tk.DISABLED)
+        else:
+            self.penalties_button.config(state=tk.NORMAL)
+
+        PAUSE_PERIODS = [
+            "Half Time",
+            "Overtime Game Break",
+            "Sudden Death Game Break",
+            "White Team Time-Out",
+            "Black Team Time-Out",
+            "Referee Time-Out"
+        ]
+        if cur_period['name'] in PAUSE_PERIODS:
+            self.pause_all_penalty_timers()
+        else:
+            self.resume_all_penalty_timers()
 
         paused_periods = [
             'Overtime Game Break',
@@ -1033,7 +1030,7 @@ class GameManagementApp:
             self.sudden_death_seconds = 0
             self.update_timer_display()
             self.start_sudden_death_timer()
-            self.reset_timeouts_for_half()
+            # Don't reset timeouts here! Only at start of halves.
         else:
             self.timer_seconds = cur_period['duration'] if cur_period['duration'] is not None else 0
             self.update_timer_display()
@@ -1042,7 +1039,6 @@ class GameManagementApp:
                 self.master.after_cancel(self.timer_job)
                 self.timer_job = None
             self.timer_job = self.master.after(1000, self.countdown_timer)
-            self.reset_timeouts_for_half()
 
     def next_period(self):
         if self.timer_job:
@@ -1111,7 +1107,6 @@ class GameManagementApp:
                 self.white_score_var.set(0)
                 self.black_score_var.set(0)
                 self.stored_penalties.clear()
-                # Clear all active penalty timers as well
                 self.clear_all_penalties()
             self.timer_seconds -= 1
             self.timer_job = self.master.after(1000, self.countdown_timer)
@@ -1145,19 +1140,20 @@ class GameManagementApp:
         self.white_timeout_button.config(state=tk.DISABLED)
         self.in_timeout = True
         self.active_timeout_team = "white"
-        self.court_time_paused = True
+        self.court_time_paused = True  # Pause court time
         self.save_timer_state()
-        # Pause all penalty timers during team timeout
         self.pause_all_penalty_timers()
-        timeout_seconds = self.get_minutes('timeout_period')
-        self.timer_seconds = timeout_seconds
-        self.timer_running = True
-        self.half_label.config(text="White Team Time-Out")
-        self.update_half_label_background("White Team Time-Out")
-        self.update_timer_display()
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
+        self.timer_running = False  # pause main period timer
+        timeout_seconds = self.get_minutes('team_timeout_period')
+        self.timer_seconds = timeout_seconds
+        self.half_label.config(text="White Team Time-Out")
+        if hasattr(self, "display_half_label"):
+            self.display_half_label.config(text="White Team Time-Out")
+        self.update_half_label_background("White Team Time-Out")
+        self.update_timer_display()
         self.timer_job = self.master.after(1000, self.timeout_countdown)
 
     def black_team_timeout(self):
@@ -1172,20 +1168,51 @@ class GameManagementApp:
         self.black_timeout_button.config(state=tk.DISABLED)
         self.in_timeout = True
         self.active_timeout_team = "black"
-        self.court_time_paused = True
+        self.court_time_paused = True  # Pause court time
         self.save_timer_state()
-        # Pause all penalty timers during team timeout
         self.pause_all_penalty_timers()
-        timeout_seconds = self.get_minutes('timeout_period')
+        if self.timer_job:
+            self.master.after_cancel(self.timer_job)
+            self.timer_job = None
+        self.timer_running = False  # pause main period timer
+        timeout_seconds = self.get_minutes('team_timeout_period')
         self.timer_seconds = timeout_seconds
-        self.timer_running = True
         self.half_label.config(text="Black Team Time-Out")
+        if hasattr(self, "display_half_label"):
+            self.display_half_label.config(text="Black Team Time-Out")
         self.update_half_label_background("Black Team Time-Out")
+        self.update_timer_display()
+        self.timer_job = self.master.after(1000, self.timeout_countdown)
+
+    def timeout_countdown(self):
+        if self.timer_job:
+            self.master.after_cancel(self.timer_job)
+            self.timer_job = None
+        self.update_timer_display()
+        if not self.in_timeout:
+            return
+        if self.timer_seconds > 0:
+            self.timer_seconds -= 1
+            self.timer_job = self.master.after(1000, self.timeout_countdown)
+        else:
+            self.end_timeout()
+
+    def end_timeout(self):
+        self.in_timeout = False
+        self.active_timeout_team = None
+        self.court_time_paused = False
+        self.resume_all_penalty_timers()
+        self.timer_running = self.saved_timer_running
+        self.timer_seconds = self.saved_timer_seconds
+        self.current_index = self.saved_index
+        self.half_label.config(text=self.saved_half_label)
+        self.half_label.config(bg=self.saved_half_label_bg)
         self.update_timer_display()
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
-        self.timer_job = self.master.after(1000, self.timeout_countdown)
+        if self.timer_running:
+            self.timer_job = self.master.after(1000, self.countdown_timer)
 
     def save_timer_state(self):
         self.saved_timer_running = self.timer_running
@@ -1204,37 +1231,6 @@ class GameManagementApp:
         btn = tk.Button(popup, text="OK", font=self.fonts["button"], command=popup.destroy)
         btn.pack(pady=5)
 
-    def timeout_countdown(self):
-        if self.timer_job:
-            self.master.after_cancel(self.timer_job)
-            self.timer_job = None
-        self.update_timer_display()
-        if not self.timer_running:
-            return
-        if self.timer_seconds > 0:
-            self.timer_seconds -= 1
-            self.timer_job = self.master.after(1000, self.timeout_countdown)
-        else:
-            self.end_timeout()
-
-    def end_timeout(self):
-        self.in_timeout = False
-        self.active_timeout_team = None
-        self.court_time_paused = False
-        # Resume all penalty timers when timeout ends
-        self.resume_all_penalty_timers()
-        self.timer_running = self.saved_timer_running
-        self.timer_seconds = self.saved_timer_seconds
-        self.current_index = self.saved_index
-        self.half_label.config(text=self.saved_half_label)
-        self.half_label.config(bg=self.saved_half_label_bg)
-        self.update_timer_display()
-        if self.timer_job:
-            self.master.after_cancel(self.timer_job)
-            self.timer_job = None
-        if self.timer_running:
-            self.timer_job = self.master.after(1000, self.countdown_timer)
-
     def update_half_label_background(self, period_name):
         red_periods = {
             "game_starts_in:",
@@ -1248,16 +1244,21 @@ class GameManagementApp:
             "sudden_death_game_break",
             "white_team_time-out",
             "black_team_time-out",
-            "referee_time-out"
+            "referee_time-out",
+            "white_team_time-out",
+            "black_team_time-out",
+            "white_team_time-out",           # Added in case of display string
+            "black_team_time-out",           # Added in case of display string
+            "white_team_time-out",           # Add as needed for different casing
+            "black_team_time-out"
         }
         internal_name = period_name.lower().replace(" ", "_")
-        if internal_name in red_periods:
+        if "time_out" in internal_name or internal_name in red_periods:
             self.half_label.config(bg="red")
         else:
             self.half_label.config(bg="lightblue")
 
     def convert_duration_to_seconds(self, duration):
-        """Convert penalty duration string to seconds"""
         if duration == "1 minute":
             return 60
         elif duration == "2 minutes":
@@ -1265,11 +1266,10 @@ class GameManagementApp:
         elif duration == "5 minutes":
             return 300
         elif duration == "Rest of the match":
-            return -1  # Special value for rest of match
+            return -1
         return 0
 
     def start_penalty_timer(self, team, cap, duration):
-        """Start a new penalty timer and update display"""
         seconds = self.convert_duration_to_seconds(duration)
         if seconds == 0:
             return False
@@ -1294,13 +1294,13 @@ class GameManagementApp:
 
     def penalty_countdown(self, penalty):
         if penalty not in self.active_penalties:
-            self.update_penalty_display()  # Ensure UI updates if penalty removed
-            return  # Penalty was removed
+            self.update_penalty_display()
+            return
         if penalty["timer_job"]:
             self.master.after_cancel(penalty["timer_job"])
             penalty["timer_job"] = None
         if self.penalty_timers_paused or penalty["is_rest_of_match"]:
-            return  # Paused or rest of match penalty
+            return
         if penalty["seconds_remaining"] > 0:
             penalty["seconds_remaining"] -= 1
             self.update_penalty_display()
@@ -1316,7 +1316,6 @@ class GameManagementApp:
                 penalty["timer_job"] = None
             self.active_penalties.remove(penalty)
             self.update_penalty_display()
-            # Also remove from stored_penalties if it exists
             for stored in self.stored_penalties[:]:
                 if (stored["team"] == penalty["team"] and 
                     stored["cap"] == penalty["cap"] and 
