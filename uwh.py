@@ -60,10 +60,8 @@ class GameManagementApp:
         self.timer_job = None
         self.reset_timer_button = None
         self.in_timeout = False
-        self.pending_timeout = None
         self.white_timeouts_this_half = 0
         self.black_timeouts_this_half = 0
-        self.current_half = 0
         self.active_timeout_team = None
         self.sudden_death_timer_job = None
         self.sudden_death_seconds = 0
@@ -87,9 +85,7 @@ class GameManagementApp:
         # Penalty timer system
         self.active_penalties = []
         self.penalty_timers_paused = False
-        self.penalty_timer_jobs = []
 
-        self.create_scoreboard_tab()
         self.create_settings_tab()
         self.load_settings()
         self.build_game_sequence()
@@ -98,7 +94,8 @@ class GameManagementApp:
         self.master.update_idletasks()
         self.scale_fonts(None)
 
-        # --- Display window and penalty grid must be created before display updates ---
+        # --- Create scoreboard tab and display window before penalty display updates ---
+        self.create_scoreboard_tab()
         self.create_display_window()
         self.start_penalty_display_updates()
         self.sync_penalty_display_to_external()
