@@ -109,36 +109,27 @@ class GameManagementApp:
     def update_penalty_display(self):
         # --- Scoreboard window ---
         if self.active_penalties:
-            # Remove game_label if visible
             if self.game_label.winfo_ismapped():
                 self.game_label.grid_remove()
-            # Only grid penalty_grid_frame if not already mapped
             if not self.penalty_grid_frame.winfo_ismapped():
                 self.penalty_grid_frame.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
             self.update_penalty_grid()
         else:
-            # Remove penalty grid if visible
             if self.penalty_grid_frame.winfo_ismapped():
                 self.penalty_grid_frame.grid_remove()
-            # Only grid game_label if not already mapped
             if not self.game_label.winfo_ismapped():
                 self.game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
             self.game_label.config(text="Game 121")
-
         # --- Display window ---
         if self.active_penalties:
-            # Remove display_game_label if visible
             if self.display_game_label.winfo_ismapped():
                 self.display_game_label.grid_remove()
-            # Only grid display_penalty_grid_frame if not already mapped
             if not self.display_penalty_grid_frame.winfo_ismapped():
                 self.display_penalty_grid_frame.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
             self.update_display_penalty_grid()
         else:
-            # Remove display_penalty_grid_frame if visible
             if self.display_penalty_grid_frame.winfo_ismapped():
                 self.display_penalty_grid_frame.grid_remove()
-            # Only grid display_game_label if not already mapped
             if not self.display_game_label.winfo_ismapped():
                 self.display_game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
             self.display_game_label.config(text="Game 121")
@@ -155,6 +146,7 @@ class GameManagementApp:
             key=penalty_sort_key
         )[:3]
         for i in range(3):
+            # White column
             if i < len(white_penalties):
                 p = white_penalties[i]
                 cap_str = f"#{p['cap']}"
@@ -193,6 +185,7 @@ class GameManagementApp:
             key=penalty_sort_key
         )[:3]
         for i in range(3):
+            # White column
             if i < len(white_penalties):
                 p = white_penalties[i]
                 cap_str = f"#{p['cap']}"
@@ -219,38 +212,6 @@ class GameManagementApp:
                 label_text = ""
             self.display_penalty_labels[i][1].config(text=label_text)
 
-
-
-
-
-
-
-
-
-    def format_penalty_display(self):
-        # Show up to 3 penalties per team, format: "#cap, duration, time"
-        def format_team_penalties(team):
-            penalties = [p for p in self.active_penalties if p["team"] == team][:3]
-            items = []
-            for p in penalties:
-                cap = p["cap"]
-                dur = p["duration"]
-                if p["is_rest_of_match"]:
-                    time_str = "REST"
-                else:
-                    mins, secs = divmod(p["seconds_remaining"], 60)
-                    time_str = f"{int(mins):02d}:{int(secs):02d}"
-                items.append(f"#{cap}, {dur}, {time_str}")
-            return ", ".join(items)
-        white_text = format_team_penalties("White")
-        black_text = format_team_penalties("Black")
-        display = ""
-        if white_text:
-            display += f"White: {white_text}  "
-        if black_text:
-            display += f"Black: {black_text}"
-        return display.strip()
-
     def start_penalty_display_updates(self):
         self.update_penalty_display()
         self.master.after(1000, self.start_penalty_display_updates)
@@ -258,33 +219,6 @@ class GameManagementApp:
     def sync_penalty_display_to_external(self):
         self.display_game_label.config(text=self.game_label.cget("text"))
         self.display_window.after(1000, self.sync_penalty_display_to_external)
-
-
-
-
-
-    def create_penalty_grid_widget(self, parent):
-        """Initializes the penalty grid widget for in-window display (no headers, styled columns, centered)."""
-        self.penalty_grid_frame = tk.Frame(parent)
-        # Make grid cells expand to center content
-        for col in range(2):
-            self.penalty_grid_frame.grid_columnconfigure(col, weight=1)
-        for row in range(3):
-            self.penalty_grid_frame.grid_rowconfigure(row, weight=1)
-        self.penalty_labels = [[None for _ in range(2)] for _ in range(3)]
-        for row in range(3):
-            # White column (col 0): fg black, bg white
-            lbl_white = tk.Label(self.penalty_grid_frame, text="", font=("Arial", 10),
-                                 width=8, anchor="center", relief="ridge", fg="black", bg="white", justify="center")
-            lbl_white.grid(row=row, column=0, padx=4, pady=2, sticky="nsew")
-            self.penalty_labels[row][0] = lbl_white
-            # Black column (col 1): fg white, bg black
-            lbl_black = tk.Label(self.penalty_grid_frame, text="", font=("Arial", 10),
-                                 width=8, anchor="center", relief="ridge", fg="white", bg="black", justify="center")
-            lbl_black.grid(row=row, column=1, padx=4, pady=2, sticky="nsew")
-            self.penalty_labels[row][1] = lbl_black
-
-
 
     def create_penalty_grid_widget(self, parent, is_display=False):
         """Initializes the penalty grid widget for in-window and display-window. No headers, styled columns, centered."""
@@ -307,59 +241,61 @@ class GameManagementApp:
             labels[row][1] = lbl_black
         return frame, labels
 
-
-
-
-
-    def update_penalty_grid(self):
-        """Updates the penalty grid for both teams, sorted by shortest remaining time (REST at bottom)."""
-        def penalty_sort_key(p):
-            return p["seconds_remaining"] if not p["is_rest_of_match"] else 999999
-
-        # Get up to 3 active penalties for each team, sorted by shortest time left
-        white_penalties = sorted(
-            [p for p in self.active_penalties if p["team"] == "White"],
-            key=penalty_sort_key
-        )[:3]
-        black_penalties = sorted(
-            [p for p in self.active_penalties if p["team"] == "Black"],
-            key=penalty_sort_key
-        )[:3]
-
-        for i in range(3):
-            # White column
-            if i < len(white_penalties):
-                p = white_penalties[i]
-                cap_str = f"#{p['cap']}"
-                if p["is_rest_of_match"]:
-                    time_str = "rest"
-                else:
-                    mins, secs = divmod(p["seconds_remaining"], 60)
-                    time_str = f"{mins}:{secs:02d}"
-                label_text = f"{cap_str}  {time_str}"
+    def scale_fonts(self, event=None):
+        try:
+            cur_width = self.master.winfo_width()
+            if cur_width <= 0:
+                cur_width = self.initial_width if hasattr(self, 'initial_width') else 1200
+        except Exception:
+            cur_width = 1200
+        base_width = 1200
+        scale = cur_width / base_width
+        scale = max(0.5, min(2.0, scale))
+        base_sizes = {
+            "court_time": 36,
+            "half": 36,
+            "team": 30,
+            "score": 200,
+            "timer": 90,
+            "game_no": 12,
+            "button": 20,
+            "timeout_button": 20,
+        }
+        reduced_button_scale = 0.7
+        for key, fnt in self.fonts.items():
+            if key == "timeout_button":
+                new_size = int(base_sizes[key] * scale * reduced_button_scale)
             else:
-                label_text = ""
-            self.penalty_labels[i][0].config(text=label_text)
+                new_size = int(base_sizes[key] * scale)
+            try:
+                fnt.config(size=new_size)
+            except Exception:
+                pass
 
-            # Black column
-            if i < len(black_penalties):
-                p = black_penalties[i]
-                cap_str = f"#{p['cap']}"
-                if p["is_rest_of_match"]:
-                    time_str = "rest"
-                else:
-                    mins, secs = divmod(p["seconds_remaining"], 60)
-                    time_str = f"{mins}:{secs:02d}"
-                label_text = f"{cap_str}  {time_str}"
-            else:
-                label_text = ""
-            self.penalty_labels[i][1].config(text=label_text)
-
-        # Schedule next update for real-time countdown
-        self.master.after(1000, self.update_penalty_grid)
-
-
-
+    def scale_display_fonts(self, event=None):
+        try:
+            cur_width = self.display_window.winfo_width()
+            if cur_width <= 0:
+                cur_width = self.display_initial_width if hasattr(self, 'display_initial_width') else 1200
+        except Exception:
+            cur_width = 1200
+        base_width = 1200
+        scale = cur_width / base_width
+        scale = max(0.5, min(2.0, scale))
+        base_sizes = {
+            "court_time": 36,
+            "half": 36,
+            "team": 30,
+            "score": 200,
+            "timer": 90,
+            "game_no": 12,
+        }
+        for key, fnt in self.display_fonts.items():
+            new_size = int(base_sizes[key] * scale)
+            try:
+                fnt.config(size=new_size)
+            except Exception:
+                pass
 
 
     def get_minutes(self, varname):
@@ -413,34 +349,11 @@ class GameManagementApp:
         self.black_label = tk.Label(tab, text="Black", font=self.fonts["team"], bg="black", fg="white")
         self.black_label.grid(row=2, column=6, columnspan=3, padx=1, pady=1, sticky="nsew")
 
-
-
-
-
-
-
         self.game_label = tk.Label(tab, text="Game 121", font=self.fonts["game_no"], bg="light grey")
         self.game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
         self.penalty_grid_frame, self.penalty_labels = self.create_penalty_grid_widget(tab)
         self.penalty_grid_frame.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
         self.penalty_grid_frame.grid_remove()  # hide initially
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
         self.white_score = tk.Label(tab, textvariable=self.white_score_var, font=self.fonts["score"], bg="white", fg="black")
         self.white_score.grid(row=3, column=0, rowspan=6, columnspan=3, padx=1, pady=1, sticky="nsew")
@@ -952,93 +865,6 @@ class GameManagementApp:
                     if entry:
                         entry.config(state="disabled")
 
-    def scale_fonts(self, event=None):
-        # Robust scaling for scoreboard/main window fonts
-        try:
-            cur_width = self.master.winfo_width()
-            if cur_width <= 0:
-                cur_width = self.initial_width if hasattr(self, 'initial_width') else 1200
-        except Exception:
-            cur_width = 1200
-        base_width = 1200
-        scale = cur_width / base_width
-        scale = max(0.5, min(2.0, scale))
-        base_sizes = {
-            "court_time": 36,
-            "half": 36,
-            "team": 30,
-            "score": 200,
-            "timer": 90,
-            "game_no": 12,
-            "button": 20,
-            "timeout_button": 20,
-        }
-        reduced_button_scale = 0.7
-        for key, fnt in self.fonts.items():
-            if key == "timeout_button":
-                new_size = int(base_sizes[key] * scale * reduced_button_scale)
-            else:
-                new_size = int(base_sizes[key] * scale)
-            try:
-                fnt.config(size=new_size)
-            except Exception:
-                pass
-
-    def scale_fonts(self, event=None):
-        try:
-            cur_width = self.master.winfo_width()
-            if cur_width <= 0:
-                cur_width = self.initial_width if hasattr(self, 'initial_width') else 1200
-        except Exception:
-            cur_width = 1200
-        base_width = 1200
-        scale = cur_width / base_width
-        scale = max(0.5, min(2.0, scale))
-        base_sizes = {
-            "court_time": 36,
-            "half": 36,
-            "team": 30,
-            "score": 200,
-            "timer": 90,
-            "game_no": 12,
-            "button": 20,
-            "timeout_button": 20,
-        }
-        reduced_button_scale = 0.7
-        for key, fnt in self.fonts.items():
-            if key == "timeout_button":
-                new_size = int(base_sizes[key] * scale * reduced_button_scale)
-            else:
-                new_size = int(base_sizes[key] * scale)
-            try:
-                fnt.config(size=new_size)
-            except Exception:
-                pass
-
-    def scale_display_fonts(self, event=None):
-        try:
-            cur_width = self.display_window.winfo_width()
-            if cur_width <= 0:
-                cur_width = self.display_initial_width if hasattr(self, 'display_initial_width') else 1200
-        except Exception:
-            cur_width = 1200
-        base_width = 1200
-        scale = cur_width / base_width
-        scale = max(0.5, min(2.0, scale))
-        base_sizes = {
-            "court_time": 36,
-            "half": 36,
-            "team": 30,
-            "score": 200,
-            "timer": 90,
-            "game_no": 12,
-        }
-        for key, fnt in self.display_fonts.items():
-            new_size = int(base_sizes[key] * scale)
-            try:
-                fnt.config(size=new_size)
-            except Exception:
-                pass
 
     def create_display_window(self):
         self.display_window = tk.Toplevel(self.master)
@@ -1430,60 +1256,6 @@ class GameManagementApp:
         else:
             self.half_label.config(bg="lightblue")
 
-    def create_display_window(self):
-        self.display_window = tk.Toplevel(self.master)
-        self.display_window.title("Display Window")
-        self.display_window.geometry('1200x800')
-
-        tab = ttk.Frame(self.display_window)
-        tab.pack(fill="both", expand=True, padx=10, pady=10)
-
-        for i in range(11):
-            tab.grid_rowconfigure(i, weight=1)
-        for i in range(9):  # <-- Change to 9 columns
-            tab.grid_columnconfigure(i, weight=1)
-
-        # Replicate Scoreboard tab widget placement for display window
-
-        self.display_court_time_label = tk.Label(tab, text="Court Time is", font=self.display_fonts["court_time"], bg="lightgrey")
-        self.display_court_time_label.grid(row=0, column=0, columnspan=9, padx=1, pady=1, sticky="nsew")
-
-        self.display_half_label = tk.Label(tab, text="", font=self.display_fonts["half"], bg="lightcoral")
-        self.display_half_label.grid(row=1, column=0, columnspan=9, padx=1, pady=1, sticky="nsew")
-
-        self.display_white_label = tk.Label(tab, text="White", font=self.display_fonts["team"], bg="white", fg="black")
-        self.display_white_label.grid(row=2, column=0, columnspan=3, padx=1, pady=1, sticky="nsew")
-        self.display_black_label = tk.Label(tab, text="Black", font=self.display_fonts["team"], bg="black", fg="white")
-        self.display_black_label.grid(row=2, column=6, columnspan=3, padx=1, pady=1, sticky="nsew")
-
-        self.display_game_label = tk.Label(tab, text="Game 121", font=self.display_fonts["game_no"], bg="light grey")
-        self.display_game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
-
-        self.display_white_score = tk.Label(tab, textvariable=self.white_score_var, font=self.display_fonts["score"], bg="white", fg="black")
-        self.display_white_score.grid(row=3, column=0, rowspan=8, columnspan=3, padx=1, pady=1, sticky="nsew")
-        self.display_black_score = tk.Label(tab, textvariable=self.black_score_var, font=self.display_fonts["score"], bg="black", fg="white")
-        self.display_black_score.grid(row=3, column=6, rowspan=8, columnspan=3, padx=1, pady=1, sticky="nsew")
-
-        self.display_timer_label = tk.Label(tab, text="00:00", font=self.display_fonts["timer"], bg="lightgrey", fg="black")
-        self.display_timer_label.grid(row=3, column=3, rowspan=8, columnspan=3, padx=1, pady=1, sticky="nsew")
-
-        self.display_window.bind('<Configure>', self.scale_display_fonts)
-        self.display_initial_width = self.display_window.winfo_width() or 1200
-        self.display_window.update_idletasks()
-        self.scale_display_fonts(None)
-        self.sync_display_widgets()
-
-    def sync_display_widgets(self):
-        def update_display():
-            self.display_court_time_label.config(text=self.court_time_label.cget("text"))
-            self.display_half_label.config(text=self.half_label.cget("text"), bg=self.half_label.cget("bg"))
-            self.display_timer_label.config(text=self.timer_label.cget("text"))
-            self.display_game_label.config(text=self.game_label.cget("text"))
-            self.display_white_label.config(text=self.white_label.cget("text"))
-            self.display_black_label.config(text=self.black_label.cget("text"))
-            self.display_window.after(200, update_display)
-        update_display()
-
     def convert_duration_to_seconds(self, duration):
         """Convert penalty duration string to seconds"""
         if duration == "1 minute":
@@ -1536,10 +1308,6 @@ class GameManagementApp:
         else:
             self.remove_penalty(penalty)
             self.update_penalty_display()
-
-
-
-
 
     def remove_penalty(self, penalty):
         if penalty in self.active_penalties:
