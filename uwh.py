@@ -89,8 +89,11 @@ class GameManagementApp:
         self.penalty_timers_paused = False
         self.penalty_timer_jobs = []
 
+        # --- Create UI components before any updates are started ---
         self.create_scoreboard_tab()
         self.create_settings_tab()
+        self.create_display_window()
+        
         self.load_settings()
         self.build_game_sequence()
         self.master.bind('<Configure>', self.scale_fonts)
@@ -98,11 +101,10 @@ class GameManagementApp:
         self.master.update_idletasks()
         self.scale_fonts(None)
 
-        # --- Display window and penalty grid must be created before display updates ---
-        self.create_display_window()
+        # --- Start penalty display updates after all widgets are created ---
         self.start_penalty_display_updates()
         self.sync_penalty_display_to_external()
-        self.reset_timer()  # <-- moved here, after display window creation
+        self.reset_timer()
 
     def update_penalty_display(self):
         # --- Scoreboard window ---
@@ -132,16 +134,18 @@ class GameManagementApp:
                 self.display_game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
             self.display_game_label.config(text="Game 121")
 
+    def _penalty_sort_key(self, p):
+        """Helper method for sorting penalties by remaining time."""
+        return p["seconds_remaining"] if not p["is_rest_of_match"] else 999999
+
     def update_penalty_grid(self):
-        def penalty_sort_key(p):
-            return p["seconds_remaining"] if not p["is_rest_of_match"] else 999999
         white_penalties = sorted(
             [p for p in self.active_penalties if p["team"] == "White"],
-            key=penalty_sort_key
+            key=self._penalty_sort_key
         )[:3]
         black_penalties = sorted(
             [p for p in self.active_penalties if p["team"] == "Black"],
-            key=penalty_sort_key
+            key=self._penalty_sort_key
         )[:3]
         for i in range(3):
             # White column
@@ -172,15 +176,13 @@ class GameManagementApp:
             self.penalty_labels[i][1].config(text=label_text)
 
     def update_display_penalty_grid(self):
-        def penalty_sort_key(p):
-            return p["seconds_remaining"] if not p["is_rest_of_match"] else 999999
         white_penalties = sorted(
             [p for p in self.active_penalties if p["team"] == "White"],
-            key=penalty_sort_key
+            key=self._penalty_sort_key
         )[:3]
         black_penalties = sorted(
             [p for p in self.active_penalties if p["team"] == "Black"],
-            key=penalty_sort_key
+            key=self._penalty_sort_key
         )[:3]
         for i in range(3):
             # White column
