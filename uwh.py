@@ -987,17 +987,40 @@ class GameManagementApp:
             self.current_index = self.find_period_index('Between Game Break')
         cur_period = self.full_sequence[self.current_index]
 
-        # PATCH: Reset team timeout counters at the start of each half
-        if cur_period['name'] in ['First Half', 'Second Half']:
+        # PATCH: Reset team timeout counters at the start of each half and Between Game Break
+        if cur_period['name'] in ['First Half', 'Second Half', 'Between Game Break']:
             self.white_timeouts_this_half = 0
             self.black_timeouts_this_half = 0
 
         self.half_label.config(text=cur_period['name'])
         self.update_half_label_background(cur_period['name'])
 
-        if cur_period['name'] in ["Game Starts in:", "Between Game Break"]:
+        # Disable time-out buttons for periods where no time-outs are allowed
+        TIMEOUTS_DISABLED_PERIODS = [
+            "Game Starts in:",
+            "Half Time",
+            "Overtime Game Break",
+            "Sudden Death Game Break",
+            "Overtime First Half",
+            "Overtime Half Time",
+            "Overtime Second Half",
+            "Sudden Death",
+        ]
+        if cur_period['name'] in TIMEOUTS_DISABLED_PERIODS:
+            self.white_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
+            self.black_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
+            # Penalties button logic unchanged
+            if cur_period['name'] in ["Game Starts in:", "Between Game Break", "Half Time", "Overtime Game Break", "Sudden Death Game Break"]:
+                self.penalties_button.config(state=tk.DISABLED)
+            else:
+                self.penalties_button.config(state=tk.NORMAL)
+        elif cur_period['name'] == "Between Game Break":
+            self.white_timeout_button.config(state=tk.NORMAL, bg="white", fg="black")
+            self.black_timeout_button.config(state=tk.NORMAL, bg="black", fg="white")
             self.penalties_button.config(state=tk.DISABLED)
         else:
+            self.white_timeout_button.config(state=tk.NORMAL, bg="white", fg="black")
+            self.black_timeout_button.config(state=tk.NORMAL, bg="black", fg="white")
             self.penalties_button.config(state=tk.NORMAL)
 
         PAUSE_PERIODS = [
@@ -1027,7 +1050,7 @@ class GameManagementApp:
             self.court_time_paused = False
         if cur_period['name'] == 'Sudden Death':
             self.timer_running = True
-            self.sudden_death_seconds = 0
+            self.sudden_death_seconds = -1  # Start at -1 so display shows 00:00 first
             self.update_timer_display()
             self.start_sudden_death_timer()
             # Don't reset timeouts here! Only at start of halves.
@@ -1080,7 +1103,10 @@ class GameManagementApp:
     def start_sudden_death_timer(self):
         if not self.timer_running:
             return
-        self.sudden_death_seconds += 1
+        if self.sudden_death_seconds < 0:
+            self.sudden_death_seconds = 0
+        else:
+            self.sudden_death_seconds += 1
         self.update_timer_display()
         self.sudden_death_timer_job = self.master.after(1000, self.start_sudden_death_timer)
 
