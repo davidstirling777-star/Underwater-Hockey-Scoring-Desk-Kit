@@ -1116,7 +1116,7 @@ class GameManagementApp:
     def show_penalties(self):
         penalty_window = tk.Toplevel(self.master)
         penalty_window.title("Penalties")
-        penalty_window.geometry("250x400")
+        penalty_window.geometry("250x450")
 
         button_frame = ttk.Frame(penalty_window, padding="10")
         button_frame.pack(side="top", fill="x")
@@ -1248,7 +1248,8 @@ class GameManagementApp:
         remove_button = ttk.Button(button_container, text="Remove Selected", command=remove_penalty)
         remove_button.pack(side="right", expand=True, fill="x", padx=(5, 0))
 
-        close_button = ttk.Button(penalty_window, text="Close", command=penalty_window.destroy)
+        # --- PATCH: Close button directly under Start Penalty/Remove Selected buttons ---
+        close_button = ttk.Button(start_button_frame, text="Close", command=penalty_window.destroy)
         close_button.pack(side="bottom", fill="x", padx=10, pady=(0,10))
 
         penalty_window.transient(self.master)
