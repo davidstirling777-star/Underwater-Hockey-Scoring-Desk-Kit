@@ -620,7 +620,7 @@ class GameManagementApp:
             self.display_game_label.config(text=self.game_label.cget("text"))
             self.display_white_label.config(text=self.white_label.cget("text"))
             self.display_black_label.config(text=self.black_label.cget("text"))
-            self.display_window.after(200, update_display)
+            self.display_window.after(50, update_display)  #This value has a great effect on GPU usage.
         update_display()
 
     def reset_timer(self):
@@ -873,21 +873,22 @@ class GameManagementApp:
 
     def white_team_timeout(self):
         period = self.full_sequence[self.current_index]
+        # Immediately grey out (disable) the button when pressed
+        self.white_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
         if period['type'] != 'regular' or not self.team_timeouts_allowed_var.get():
-            self.white_timeout_button.config(state=tk.DISABLED)
             return
         if self.in_timeout:
-            if self.pending_timeout is None:
+            if self.pending_timeout is None and self.active_timeout_team != "white":
                 self.pending_timeout = "white"
-                self.half_label.config(text="Pending (White)")
+                status = f"{self.active_timeout_team.capitalize()} Team Time-Out (White Pending)"
+                self.half_label.config(text=status)
                 if hasattr(self, "display_half_label"):
-                    self.display_half_label.config(text="Pending (White)")
+                    self.display_half_label.config(text=status)
             return
         if self.white_timeouts_this_half >= 1:
             self.show_timeout_popup("White")
             return
         self.white_timeouts_this_half += 1
-        self.white_timeout_button.config(state=tk.DISABLED)
         self.in_timeout = True
         self.active_timeout_team = "white"
         self.court_time_paused = True
@@ -908,21 +909,22 @@ class GameManagementApp:
 
     def black_team_timeout(self):
         period = self.full_sequence[self.current_index]
+        # Immediately grey out (disable) the button when pressed
+        self.black_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
         if period['type'] != 'regular' or not self.team_timeouts_allowed_var.get():
-            self.black_timeout_button.config(state=tk.DISABLED)
             return
         if self.in_timeout:
-            if self.pending_timeout is None:
+            if self.pending_timeout is None and self.active_timeout_team != "black":
                 self.pending_timeout = "black"
-                self.half_label.config(text="Pending (Black)")
+                status = f"{self.active_timeout_team.capitalize()} Team Time-Out (Black Pending)"
+                self.half_label.config(text=status)
                 if hasattr(self, "display_half_label"):
-                    self.display_half_label.config(text="Pending (Black)")
+                    self.display_half_label.config(text=status)
             return
         if self.black_timeouts_this_half >= 1:
             self.show_timeout_popup("Black")
             return
         self.black_timeouts_this_half += 1
-        self.black_timeout_button.config(state=tk.DISABLED)
         self.in_timeout = True
         self.active_timeout_team = "black"
         self.court_time_paused = True
@@ -956,6 +958,7 @@ class GameManagementApp:
 
     def end_timeout(self):
         self.in_timeout = False
+        prev_active_team = self.active_timeout_team  # Store who just finished
         self.active_timeout_team = None
         self.court_time_paused = False
         self.resume_all_penalty_timers()
@@ -968,8 +971,7 @@ class GameManagementApp:
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
-        if self.timer_running:
-            self.timer_job = self.master.after(1000, self.countdown_timer)
+        # If a pending timeout exists, start it now
         if self.pending_timeout is not None:
             if self.pending_timeout == "white" and self.white_timeouts_this_half < 1:
                 self.pending_timeout = None
@@ -979,6 +981,8 @@ class GameManagementApp:
                 self.black_team_timeout()
             else:
                 self.pending_timeout = None
+        elif self.timer_running:
+            self.timer_job = self.master.after(1000, self.countdown_timer)
 
     def save_timer_state(self):
         self.saved_timer_running = self.timer_running
