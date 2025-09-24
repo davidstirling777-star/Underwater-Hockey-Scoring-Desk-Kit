@@ -74,6 +74,7 @@ class GameManagementApp:
         self.widgets = []
         self.last_valid_values = {}
         self.team_timeouts_allowed_var = tk.BooleanVar(value=self.variables["team_timeouts_allowed"]["default"])
+        self.pending_timeout_team = None  # Track which team has a pending timeout
         self.overtime_allowed_var = tk.BooleanVar(value=self.variables["overtime_allowed"]["default"])
         self.referee_timeout_active = False
         self.referee_timeout_elapsed = 0
@@ -97,6 +98,10 @@ class GameManagementApp:
         self.initial_width = self.master.winfo_width()
         self.master.update_idletasks()
         self.scale_fonts(None)
+
+        # --- Sudden Death restoration variables ---
+        self.sudden_death_restore_time = None
+        self.sudden_death_restore_active = False
 
         # --- Display window and penalty grid must be created before display updates ---
         self.create_display_window()
@@ -412,6 +417,109 @@ class GameManagementApp:
         self.penalties_button.grid(row=10, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
 
         self.update_team_timeouts_allowed()
+        
+        
+        
+    def white_team_timeout(self):
+        period = self.full_sequence[self.current_index]
+        if period['type'] != 'regular' or not self.team_timeouts_allowed_var.get():
+            self.white_timeout_button.config(state=tk.DISABLED)
+            return
+
+        # If a timeout is already in progress, set pending
+        if self.in_timeout:
+            if self.pending_timeout_team is None:
+                self.pending_timeout_team = 'white'
+                self.half_label.config(text="Pending (White)")
+                if hasattr(self, "display_half_label"):
+                    self.display_half_label.config(text="Pending (White)")
+            return
+
+        if self.white_timeouts_this_half >= 1:
+            self.show_timeout_popup("White")
+            return
+        self.white_timeouts_this_half += 1
+        self.white_timeout_button.config(state=tk.DISABLED)
+        self.in_timeout = True
+        self.active_timeout_team = "white"
+        self.court_time_paused = True
+        self.save_timer_state()
+        self.pause_all_penalty_timers()
+        if self.timer_job:
+            self.master.after_cancel(self.timer_job)
+            self.timer_job = None
+        self.timer_running = False
+        timeout_seconds = self.get_minutes('team_timeout_period')
+        self.timer_seconds = timeout_seconds
+        self.half_label.config(text="White Team Time-Out")
+        if hasattr(self, "display_half_label"):
+            self.display_half_label.config(text="White Team Time-Out")
+        self.update_half_label_background("White Team Time-Out")
+        self.update_timer_display()
+        self.timer_job = self.master.after(1000, self.timeout_countdown)
+
+    def black_team_timeout(self):
+        period = self.full_sequence[self.current_index]
+        if period['type'] != 'regular' or not self.team_timeouts_allowed_var.get():
+            self.black_timeout_button.config(state=tk.DISABLED)
+            return
+
+        # If a timeout is already in progress, set pending
+        if self.in_timeout:
+            if self.pending_timeout_team is None:
+                self.pending_timeout_team = 'black'
+                self.half_label.config(text="Pending (Black)")
+                if hasattr(self, "display_half_label"):
+                    self.display_half_label.config(text="Pending (Black)")
+            return
+
+        if self.black_timeouts_this_half >= 1:
+            self.show_timeout_popup("Black")
+            return
+        self.black_timeouts_this_half += 1
+        self.black_timeout_button.config(state=tk.DISABLED)
+        self.in_timeout = True
+        self.active_timeout_team = "black"
+        self.court_time_paused = True
+        self.save_timer_state()
+        self.pause_all_penalty_timers()
+        if self.timer_job:
+            self.master.after_cancel(self.timer_job)
+            self.timer_job = None
+        self.timer_running = False
+        timeout_seconds = self.get_minutes('team_timeout_period')
+        self.timer_seconds = timeout_seconds
+        self.half_label.config(text="Black Team Time-Out")
+        if hasattr(self, "display_half_label"):
+            self.display_half_label.config(text="Black Team Time-Out")
+        self.update_half_label_background("Black Team Time-Out")
+        self.update_timer_display()
+        self.timer_job = self.master.after(1000, self.timeout_countdown)
+
+    def end_timeout(self):
+        self.in_timeout = False
+        self.active_timeout_team = None
+        self.court_time_paused = False
+        self.resume_all_penalty_timers()
+        self.timer_running = self.saved_timer_running
+        self.timer_seconds = self.saved_timer_seconds
+        self.current_index = self.saved_index
+        self.half_label.config(text=self.saved_half_label)
+        self.half_label.config(bg=self.saved_half_label_bg)
+        self.update_timer_display()
+        if self.timer_job:
+            self.master.after_cancel(self.timer_job)
+            self.timer_job = None
+        if self.timer_running:
+            self.timer_job = self.master.after(1000, self.countdown_timer)
+
+        # After timeout ends, check if there is a pending timeout
+        if self.pending_timeout_team:
+            if self.pending_timeout_team == "white" and self.white_timeouts_this_half < 1:
+                self.white_team_timeout()
+            elif self.pending_timeout_team == "black" and self.black_timeouts_this_half < 1:
+                self.black_team_timeout()
+            self.pending_timeout_team = None
 
     def show_penalties(self):
         import tkinter as tk
@@ -619,6 +727,15 @@ class GameManagementApp:
         self.timer_label.config(text=f"{int(mins):02d}:{int(secs):02d}")
         self.timer_job = self.master.after(1000, self.referee_timeout_countup)
 
+    def restore_sudden_death_after_goal_removal(self):
+        # Restore Sudden Death state and time
+        self.sudden_death_goal_scored = False
+        self.current_index = self.find_period_index('Sudden Death')
+        self.sudden_death_seconds = self.sudden_death_restore_time
+        self.sudden_death_restore_active = False
+        self.sudden_death_restore_time = None
+        self.start_current_period()
+
     def adjust_score_with_confirm(self, score_var, team_name):
         if score_var.get() == 0:
             return  # Do nothing if score is 0
@@ -636,7 +753,16 @@ class GameManagementApp:
                 f"You are about to adjust a goal for {team_name} during a break or half time. Are you sure?"
             ):
                 return
+        # --- Sudden Death restoration logic ---
         if score_var.get() > 0:
+            # If we're in Between Game Break and Sudden Death restoration is active
+            if (cur_period['name'] == 'Between Game Break'
+                and getattr(self, 'sudden_death_restore_active', False)
+                and self.sudden_death_restore_time is not None
+                and self.timer_seconds > 30):
+                score_var.set(score_var.get() - 1)
+                self.restore_sudden_death_after_goal_removal()
+                return
             score_var.set(score_var.get() - 1)
         if cur_period['name'] == 'Sudden Death':
             return
@@ -653,26 +779,14 @@ class GameManagementApp:
                 return
         score_var.set(score_var.get() + 1)
 
-        if cur_period['name'] == 'Between Game Break':
-            if self.white_score_var.get() == self.black_score_var.get():
-                for idx in range(self.current_index + 1, len(self.full_sequence)):
-                    next_period = self.full_sequence[idx]
-                    if next_period['name'] == 'Overtime Game Break':
-                        self.current_index = idx
-                        self.start_current_period()
-                        return
-                    if next_period['name'] == 'Sudden Death Game Break':
-                        self.current_index = idx
-                        self.start_current_period()
-                        return
-        elif cur_period['name'] == 'Sudden Death Game Break':
-            if self.white_score_var.get() == self.black_score_var.get():
-                for idx in range(self.current_index + 1, len(self.full_sequence)):
-                    next_period = self.full_sequence[idx]
-                    if next_period['name'] == 'Sudden Death':
-                        self.current_index = idx
-                        self.start_current_period()
-                        return
+        # --- Sudden Death restoration logic ---
+        if cur_period['name'] == 'Sudden Death' and not getattr(self, 'sudden_death_goal_scored', False):
+            self.sudden_death_restore_time = self.sudden_death_seconds
+            self.sudden_death_restore_active = True
+            self.sudden_death_goal_scored = True
+            self.stop_sudden_death_timer()
+            self.next_period()
+            return
 
         if cur_period['name'] in ['Overtime Game Break', 'Sudden Death Game Break']:
             if self.white_score_var.get() != self.black_score_var.get():
@@ -1129,11 +1243,16 @@ class GameManagementApp:
             return
         if self.timer_seconds > 0:
             cur_period = self.full_sequence[self.current_index] if self.full_sequence and self.current_index < len(self.full_sequence) else None
-            if cur_period and cur_period['name'] == 'Between Game Break' and self.timer_seconds == 30:
-                self.white_score_var.set(0)
-                self.black_score_var.set(0)
-                self.stored_penalties.clear()
-                self.clear_all_penalties()
+            # Once less than 30 seconds is left in Between Game Break, clear Sudden Death restoration flag and time
+            if cur_period and cur_period['name'] == 'Between Game Break':
+                if self.timer_seconds == 30:
+                    self.white_score_var.set(0)
+                    self.black_score_var.set(0)
+                    self.stored_penalties.clear()
+                    self.clear_all_penalties()
+                if self.timer_seconds <= 30:
+                    self.sudden_death_restore_active = False
+                    self.sudden_death_restore_time = None
             self.timer_seconds -= 1
             self.timer_job = self.master.after(1000, self.countdown_timer)
         else:
