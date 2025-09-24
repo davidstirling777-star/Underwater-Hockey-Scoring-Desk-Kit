@@ -109,8 +109,95 @@ class GameManagementApp:
         self.sync_penalty_display_to_external()
         self.reset_timer()  # <-- moved here, after display window creation
 
+    def create_scoreboard_tab(self):
+        tab = ttk.Frame(self.notebook)
+        self.notebook.add(tab, text="Scoreboard")
+        for i in range(11):
+            tab.grid_rowconfigure(i, weight=1)
+        for i in range(9):
+            tab.grid_columnconfigure(i, weight=1)
+
+        self.court_time_label = tk.Label(tab, text="Court Time is", font=self.fonts["court_time"], bg="lightgrey")
+        self.court_time_label.grid(row=0, column=0, columnspan=9, padx=1, pady=1, sticky="nsew")
+
+        self.half_label = tk.Label(tab, text="", font=self.fonts["half"], bg="lightcoral")
+        self.half_label.grid(row=1, column=0, columnspan=9, padx=1, pady=1, sticky="nsew")
+
+        self.white_label = tk.Label(tab, text="White", font=self.fonts["team"], bg="white", fg="black")
+        self.white_label.grid(row=2, column=0, columnspan=3, padx=1, pady=1, sticky="nsew")
+        self.black_label = tk.Label(tab, text="Black", font=self.fonts["team"], bg="black", fg="white")
+        self.black_label.grid(row=2, column=6, columnspan=3, padx=1, pady=1, sticky="nsew")
+
+        self.game_label = tk.Label(tab, text="Game 121", font=self.fonts["game_no"], bg="light grey")
+        self.game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
+        self.penalty_grid_frame, self.penalty_labels = self.create_penalty_grid_widget(tab)
+        self.penalty_grid_frame.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
+        self.penalty_grid_frame.grid_remove()  # hide initially
+
+        self.white_score = tk.Label(tab, textvariable=self.white_score_var, font=self.fonts["score"], bg="white", fg="black")
+        self.white_score.grid(row=3, column=0, rowspan=6, columnspan=3, padx=1, pady=1, sticky="nsew")
+        self.black_score = tk.Label(tab, textvariable=self.black_score_var, font=self.fonts["score"], bg="black", fg="white")
+        self.black_score.grid(row=3, column=6, rowspan=6, columnspan=3, padx=1, pady=1, sticky="nsew")
+
+        self.timer_label = tk.Label(tab, text="00:00", font=self.fonts["timer"], bg="lightgrey", fg="black")
+        self.timer_label.grid(row=3, column=3, rowspan=6, columnspan=3, padx=1, pady=1, sticky="nsew")
+
+        self.white_timeout_button = tk.Button(
+            tab, text="White Team\nTime-Out", font=self.fonts["timeout_button"], bg="white", fg="black",
+            activebackground="white", activeforeground="black",
+            justify="center", wraplength=180, height=2, command=self.white_team_timeout
+        )
+        self.white_timeout_button.grid(row=9, column=0, rowspan=2, columnspan=1, padx=1, pady=1, sticky="nsew")
+        self.black_timeout_button = tk.Button(
+            tab, text="Black Team\nTime-Out", font=self.fonts["timeout_button"], bg="black", fg="white",
+            activebackground="black", activeforeground="white",
+            justify="center", wraplength=180, height=2, command=self.black_team_timeout
+        )
+        self.black_timeout_button.grid(row=9, column=8, rowspan=2, columnspan=1, padx=1, pady=1, sticky="nsew")
+
+        self.white_goal_button = tk.Button(
+            tab, text="Add Goal White", font=self.fonts["button"], bg="light grey", fg="black",
+            activebackground="light grey", activeforeground="black",
+            command=lambda: self.add_goal_with_confirmation(self.white_score_var, "White")
+        )
+        self.white_goal_button.grid(row=9, column=1, columnspan=2, padx=1, pady=1, sticky="nsew")
+        self.black_goal_button = tk.Button(
+            tab, text="Add Goal Black", font=self.fonts["button"], bg="light grey", fg="black",
+            activebackground="light grey", activeforeground="black",
+            command=lambda: self.add_goal_with_confirmation(self.black_score_var, "Black")
+        )
+        self.black_goal_button.grid(row=9, column=6, columnspan=2, padx=1, pady=1, sticky="nsew")
+
+        self.white_minus_button = tk.Button(
+            tab, text="-ve Goal White", font=self.fonts["button"], bg="light grey", fg="black",
+            activebackground="light grey", activeforeground="black",
+            command=lambda: self.adjust_score_with_confirm(self.white_score_var, "White")
+        )
+        self.white_minus_button.grid(row=10, column=1, columnspan=2, padx=1, pady=1, sticky="nsew")
+        self.black_minus_button = tk.Button(
+            tab, text="-ve Goal Black", font=self.fonts["button"], bg="light grey", fg="black",
+            activebackground="light grey", activeforeground="black",
+            command=lambda: self.adjust_score_with_confirm(self.black_score_var, "Black")
+        )
+        self.black_minus_button.grid(row=10, column=6, columnspan=2, padx=1, pady=1, sticky="nsew")
+
+        self.referee_timeout_button = tk.Button(
+            tab, text="Referee Time-Out", font=self.fonts["button"],
+            bg=self.referee_timeout_default_bg, fg=self.referee_timeout_default_fg,
+            activebackground=self.referee_timeout_default_bg, activeforeground=self.referee_timeout_default_fg,
+            command=self.toggle_referee_timeout
+        )
+        self.referee_timeout_button.grid(row=9, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
+        self.penalties_button = tk.Button(
+            tab, text="Penalties", font=self.fonts["button"], bg="orange", fg="black",
+            activebackground="orange", activeforeground="black",
+            command=self.show_penalties
+        )
+        self.penalties_button.grid(row=10, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
+
+        self.update_team_timeouts_allowed()
+
     def update_penalty_display(self):
-        # --- Scoreboard window ---
         if self.active_penalties:
             if self.game_label.winfo_ismapped():
                 self.game_label.grid_remove()
@@ -123,7 +210,6 @@ class GameManagementApp:
             if not self.game_label.winfo_ismapped():
                 self.game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
             self.game_label.config(text="Game 121")
-        # --- Display window ---
         if self.active_penalties:
             if self.display_game_label.winfo_ismapped():
                 self.display_game_label.grid_remove()
@@ -149,7 +235,6 @@ class GameManagementApp:
             key=penalty_sort_key
         )[:3]
         for i in range(3):
-            # White column
             if i < len(white_penalties):
                 p = white_penalties[i]
                 cap_str = f"#{p['cap']}"
@@ -162,7 +247,6 @@ class GameManagementApp:
             else:
                 label_text = ""
             self.penalty_labels[i][0].config(text=label_text)
-            # Black column
             if i < len(black_penalties):
                 p = black_penalties[i]
                 cap_str = f"#{p['cap']}"
@@ -188,7 +272,6 @@ class GameManagementApp:
             key=penalty_sort_key
         )[:3]
         for i in range(3):
-            # White column
             if i < len(white_penalties):
                 p = white_penalties[i]
                 cap_str = f"#{p['cap']}"
@@ -201,7 +284,6 @@ class GameManagementApp:
             else:
                 label_text = ""
             self.display_penalty_labels[i][0].config(text=label_text)
-            # Black column
             if i < len(black_penalties):
                 p = black_penalties[i]
                 cap_str = f"#{p['cap']}"
@@ -328,483 +410,6 @@ class GameManagementApp:
             if period['name'] == name:
                 return idx
         return len(self.full_sequence) - 1
-
-    def create_scoreboard_tab(self):
-        tab = ttk.Frame(self.notebook)
-        self.notebook.add(tab, text="Scoreboard")
-        for i in range(11):
-            tab.grid_rowconfigure(i, weight=1)
-        for i in range(9):
-            tab.grid_columnconfigure(i, weight=1)
-
-        self.court_time_label = tk.Label(tab, text="Court Time is", font=self.fonts["court_time"], bg="lightgrey")
-        self.court_time_label.grid(row=0, column=0, columnspan=9, padx=1, pady=1, sticky="nsew")
-
-        self.half_label = tk.Label(tab, text="", font=self.fonts["half"], bg="lightcoral")
-        self.half_label.grid(row=1, column=0, columnspan=9, padx=1, pady=1, sticky="nsew")
-
-        self.white_label = tk.Label(tab, text="White", font=self.fonts["team"], bg="white", fg="black")
-        self.white_label.grid(row=2, column=0, columnspan=3, padx=1, pady=1, sticky="nsew")
-        self.black_label = tk.Label(tab, text="Black", font=self.fonts["team"], bg="black", fg="white")
-        self.black_label.grid(row=2, column=6, columnspan=3, padx=1, pady=1, sticky="nsew")
-
-        self.game_label = tk.Label(tab, text="Game 121", font=self.fonts["game_no"], bg="light grey")
-        self.game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
-        self.penalty_grid_frame, self.penalty_labels = self.create_penalty_grid_widget(tab)
-        self.penalty_grid_frame.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
-        self.penalty_grid_frame.grid_remove()  # hide initially
-
-        self.white_score = tk.Label(tab, textvariable=self.white_score_var, font=self.fonts["score"], bg="white", fg="black")
-        self.white_score.grid(row=3, column=0, rowspan=6, columnspan=3, padx=1, pady=1, sticky="nsew")
-        self.black_score = tk.Label(tab, textvariable=self.black_score_var, font=self.fonts["score"], bg="black", fg="white")
-        self.black_score.grid(row=3, column=6, rowspan=6, columnspan=3, padx=1, pady=1, sticky="nsew")
-
-        self.timer_label = tk.Label(tab, text="00:00", font=self.fonts["timer"], bg="lightgrey", fg="black")
-        self.timer_label.grid(row=3, column=3, rowspan=6, columnspan=3, padx=1, pady=1, sticky="nsew")
-
-        self.white_timeout_button = tk.Button(
-            tab, text="White Team\nTime-Out", font=self.fonts["timeout_button"], bg="white", fg="black",
-            activebackground="white", activeforeground="black",
-            justify="center", wraplength=180, height=2, command=self.white_team_timeout
-        )
-        self.white_timeout_button.grid(row=9, column=0, rowspan=2, columnspan=1, padx=1, pady=1, sticky="nsew")
-        self.black_timeout_button = tk.Button(
-            tab, text="Black Team\nTime-Out", font=self.fonts["timeout_button"], bg="black", fg="white",
-            activebackground="black", activeforeground="white",
-            justify="center", wraplength=180, height=2, command=self.black_team_timeout
-        )
-        self.black_timeout_button.grid(row=9, column=8, rowspan=2, columnspan=1, padx=1, pady=1, sticky="nsew")
-
-        self.white_goal_button = tk.Button(
-            tab, text="Add Goal White", font=self.fonts["button"], bg="light grey", fg="black",
-            activebackground="light grey", activeforeground="black",
-            command=lambda: self.add_goal_with_confirmation(self.white_score_var, "White")
-        )
-        self.white_goal_button.grid(row=9, column=1, columnspan=2, padx=1, pady=1, sticky="nsew")
-        self.black_goal_button = tk.Button(
-            tab, text="Add Goal Black", font=self.fonts["button"], bg="light grey", fg="black",
-            activebackground="light grey", activeforeground="black",
-            command=lambda: self.add_goal_with_confirmation(self.black_score_var, "Black")
-        )
-        self.black_goal_button.grid(row=9, column=6, columnspan=2, padx=1, pady=1, sticky="nsew")
-
-        self.white_minus_button = tk.Button(
-            tab, text="-ve Goal White", font=self.fonts["button"], bg="light grey", fg="black",
-            activebackground="light grey", activeforeground="black",
-            command=lambda: self.adjust_score_with_confirm(self.white_score_var, "White")
-        )
-        self.white_minus_button.grid(row=10, column=1, columnspan=2, padx=1, pady=1, sticky="nsew")
-        self.black_minus_button = tk.Button(
-            tab, text="-ve Goal Black", font=self.fonts["button"], bg="light grey", fg="black",
-            activebackground="light grey", activeforeground="black",
-            command=lambda: self.adjust_score_with_confirm(self.black_score_var, "Black")
-        )
-        self.black_minus_button.grid(row=10, column=6, columnspan=2, padx=1, pady=1, sticky="nsew")
-
-        self.referee_timeout_button = tk.Button(
-            tab, text="Referee Time-Out", font=self.fonts["button"],
-            bg=self.referee_timeout_default_bg, fg=self.referee_timeout_default_fg,
-            activebackground=self.referee_timeout_default_bg, activeforeground=self.referee_timeout_default_fg,
-            command=self.toggle_referee_timeout
-        )
-        self.referee_timeout_button.grid(row=9, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
-        
-        self.penalties_button = tk.Button(
-            tab, text="Penalties", font=self.fonts["button"], bg="orange", fg="black",
-            activebackground="orange", activeforeground="black",
-            command=self.show_penalties
-        )
-        self.penalties_button.grid(row=10, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
-
-        self.update_team_timeouts_allowed()
-        
-        
-        
-    def white_team_timeout(self):
-        period = self.full_sequence[self.current_index]
-        if period['type'] != 'regular' or not self.team_timeouts_allowed_var.get():
-            self.white_timeout_button.config(state=tk.DISABLED)
-            return
-
-        # If a timeout is already in progress, set pending
-        if self.in_timeout:
-            if self.pending_timeout_team is None:
-                self.pending_timeout_team = 'white'
-                self.half_label.config(text="Pending (White)")
-                if hasattr(self, "display_half_label"):
-                    self.display_half_label.config(text="Pending (White)")
-            return
-
-        if self.white_timeouts_this_half >= 1:
-            self.show_timeout_popup("White")
-            return
-        self.white_timeouts_this_half += 1
-        self.white_timeout_button.config(state=tk.DISABLED)
-        self.in_timeout = True
-        self.active_timeout_team = "white"
-        self.court_time_paused = True
-        self.save_timer_state()
-        self.pause_all_penalty_timers()
-        if self.timer_job:
-            self.master.after_cancel(self.timer_job)
-            self.timer_job = None
-        self.timer_running = False
-        timeout_seconds = self.get_minutes('team_timeout_period')
-        self.timer_seconds = timeout_seconds
-        self.half_label.config(text="White Team Time-Out")
-        if hasattr(self, "display_half_label"):
-            self.display_half_label.config(text="White Team Time-Out")
-        self.update_half_label_background("White Team Time-Out")
-        self.update_timer_display()
-        self.timer_job = self.master.after(1000, self.timeout_countdown)
-
-    def black_team_timeout(self):
-        period = self.full_sequence[self.current_index]
-        if period['type'] != 'regular' or not self.team_timeouts_allowed_var.get():
-            self.black_timeout_button.config(state=tk.DISABLED)
-            return
-
-        # If a timeout is already in progress, set pending
-        if self.in_timeout:
-            if self.pending_timeout_team is None:
-                self.pending_timeout_team = 'black'
-                self.half_label.config(text="Pending (Black)")
-                if hasattr(self, "display_half_label"):
-                    self.display_half_label.config(text="Pending (Black)")
-            return
-
-        if self.black_timeouts_this_half >= 1:
-            self.show_timeout_popup("Black")
-            return
-        self.black_timeouts_this_half += 1
-        self.black_timeout_button.config(state=tk.DISABLED)
-        self.in_timeout = True
-        self.active_timeout_team = "black"
-        self.court_time_paused = True
-        self.save_timer_state()
-        self.pause_all_penalty_timers()
-        if self.timer_job:
-            self.master.after_cancel(self.timer_job)
-            self.timer_job = None
-        self.timer_running = False
-        timeout_seconds = self.get_minutes('team_timeout_period')
-        self.timer_seconds = timeout_seconds
-        self.half_label.config(text="Black Team Time-Out")
-        if hasattr(self, "display_half_label"):
-            self.display_half_label.config(text="Black Team Time-Out")
-        self.update_half_label_background("Black Team Time-Out")
-        self.update_timer_display()
-        self.timer_job = self.master.after(1000, self.timeout_countdown)
-
-    def end_timeout(self):
-        self.in_timeout = False
-        self.active_timeout_team = None
-        self.court_time_paused = False
-        self.resume_all_penalty_timers()
-        self.timer_running = self.saved_timer_running
-        self.timer_seconds = self.saved_timer_seconds
-        self.current_index = self.saved_index
-        self.half_label.config(text=self.saved_half_label)
-        self.half_label.config(bg=self.saved_half_label_bg)
-        self.update_timer_display()
-        if self.timer_job:
-            self.master.after_cancel(self.timer_job)
-            self.timer_job = None
-        if self.timer_running:
-            self.timer_job = self.master.after(1000, self.countdown_timer)
-
-        # After timeout ends, check if there is a pending timeout
-        if self.pending_timeout_team:
-            if self.pending_timeout_team == "white" and self.white_timeouts_this_half < 1:
-                self.white_team_timeout()
-            elif self.pending_timeout_team == "black" and self.black_timeouts_this_half < 1:
-                self.black_team_timeout()
-            self.pending_timeout_team = None
-
-    def show_penalties(self):
-        import tkinter as tk
-        from tkinter import ttk, messagebox
-
-        penalty_window = tk.Toplevel(self.master)
-        penalty_window.title("Penalties")
-        penalty_window.geometry("250x400")
-
-        button_frame = ttk.Frame(penalty_window, padding="10")
-        button_frame.pack(side="top", fill="x")
-        selected_team = tk.StringVar()
-
-        button_white = tk.Button(button_frame, text="White", width=10, command=lambda: select_team("White"))
-        button_white.pack(side="left", padx=5, expand=True)
-        button_black = tk.Button(button_frame, text="Black", width=10, command=lambda: select_team("Black"))
-        button_black.pack(side="left", padx=5, expand=True)
-
-        def select_team(team):
-            selected_team.set(team)
-            button_white.config(relief=tk.SUNKEN if team == "White" else tk.RAISED)
-            button_black.config(relief=tk.SUNKEN if team == "Black" else tk.RAISED)
-
-        select_team(selected_team.get())
-
-        numbers = list(range(1, 16))
-        dropdown_options = ["Pick Cap Number"] + numbers
-        dropdown_variable = tk.StringVar(value=dropdown_options[0])
-        dropdown = ttk.Combobox(penalty_window, textvariable=dropdown_variable, values=dropdown_options, state="readonly", height=16)
-        dropdown.pack(pady=10)
-
-        radio_frame = ttk.Frame(penalty_window)
-        radio_frame.pack(side="top", anchor="w", pady=10, fill="both")
-        radio_variable = tk.StringVar()
-        radio_button_1 = tk.Radiobutton(radio_frame, text="1 minute", variable=radio_variable, value="1 minute", indicatoron=True)
-        radio_button_2 = tk.Radiobutton(radio_frame, text="2 minutes", variable=radio_variable, value="2 minutes", indicatoron=True)
-        radio_button_3 = tk.Radiobutton(radio_frame, text="5 minutes", variable=radio_variable, value="5 minutes", indicatoron=True)
-        radio_button_4 = tk.Radiobutton(radio_frame, text="Rest of the match", variable=radio_variable, value="Rest of the match", indicatoron=True)
-        radio_button_1.pack(anchor="w")
-        radio_button_2.pack(anchor="w")
-        radio_button_3.pack(anchor="w")
-        radio_button_4.pack(anchor="w")
-
-        summary_frame = ttk.Frame(penalty_window)
-        summary_frame.pack(side="top", fill="both", expand=True)
-        summary_label = ttk.Label(summary_frame, text="Stored Penalties (max 6):")
-        summary_label.pack(anchor="w")
-        penalty_listbox = tk.Listbox(summary_frame, height=6, exportselection=0)
-        penalty_listbox.pack(fill="both", expand=True)
-
-        def refresh_penalty_listbox():
-            selection = penalty_listbox.curselection()
-            selected_index = selection[0] if selection else None
-
-            penalty_listbox.delete(0, tk.END)
-            for penalty in getattr(self, 'active_penalties', []):
-                if penalty["is_rest_of_match"]:
-                    time_str = "REST OF MATCH"
-                else:
-                    mins, secs = divmod(penalty["seconds_remaining"], 60)
-                    time_str = f"{int(mins):02d}:{int(secs):02d}"
-                penalty_listbox.insert(tk.END, f"{penalty['team']} #{penalty['cap']} {time_str}")
-
-            for p in getattr(self, 'stored_penalties', []):
-                if not any(ap["team"] == p["team"] and ap["cap"] == p["cap"] and ap["duration"] == p["duration"]
-                        for ap in getattr(self, 'active_penalties', [])):
-                    penalty_listbox.insert(tk.END, f"{p['team']} #{p['cap']} {p['duration']}")
-
-            if selected_index is not None and penalty_listbox.size() > selected_index:
-                penalty_listbox.selection_set(selected_index)
-                penalty_listbox.activate(selected_index)
-            elif penalty_listbox.size() > 0:
-                penalty_listbox.selection_clear(0, tk.END)
-
-        refresh_penalty_listbox()
-
-        def periodic_refresh():
-            if penalty_window.winfo_exists():
-                refresh_penalty_listbox()
-                penalty_window.after(1000, periodic_refresh)
-        penalty_window.after(1000, periodic_refresh)
-
-        def start_penalty():
-            team = selected_team.get()
-            cap = dropdown_variable.get()
-            duration = radio_variable.get()
-            if team not in ["White", "Black"]:
-                messagebox.showerror("Error", "Choose White or Black team.")
-                return
-            if cap == "Pick Cap Number":
-                messagebox.showerror("Error", "Choose a cap number.")
-                return
-            if duration == "":
-                messagebox.showerror("Error", "Choose a penalty duration.")
-                return
-            if len(self.stored_penalties) >= 6:
-                messagebox.showerror("Error", "Maximum 6 penalties can be stored.")
-                return
-
-            if self.start_penalty_timer(team, cap, duration):
-                refresh_penalty_listbox()
-                selected_team.set("")
-                select_team("")  # update button reliefs
-                dropdown_variable.set(dropdown_options[0])
-                radio_variable.set("")
-            else:
-                messagebox.showerror("Error", "Failed to start penalty timer.")
-
-        def remove_penalty():
-            selection = penalty_listbox.curselection()
-            if not selection:
-                messagebox.showerror("Error", "Please select a penalty to remove.")
-                return
-
-            idx = selection[0]
-            active_count = len(getattr(self, 'active_penalties', []))
-
-            if idx < active_count:
-                penalty_to_remove = self.active_penalties[idx]
-                self.remove_penalty(penalty_to_remove)
-                refresh_penalty_listbox()
-            else:
-                stored_idx = idx - active_count
-                if 0 <= stored_idx < len(self.stored_penalties):
-                    self.stored_penalties.pop(stored_idx)
-                    refresh_penalty_listbox()
-
-        start_button_frame = ttk.Frame(penalty_window)
-        start_button_frame.pack(side="bottom", fill="x", pady=10)
-
-        button_container = ttk.Frame(start_button_frame)
-        button_container.pack(expand=True, fill="x")
-    
-        start_button = ttk.Button(button_container, text="Start Penalty", command=start_penalty)
-        start_button.pack(side="left", expand=True, fill="x", padx=(0, 5))
-
-        remove_button = ttk.Button(button_container, text="Remove Selected", command=remove_penalty)
-        remove_button.pack(side="right", expand=True, fill="x", padx=(5, 0))
-
-        # --- PATCH: Close button below, spanning the window width ---
-        close_button = ttk.Button(penalty_window, text="Close", command=penalty_window.destroy)
-        close_button.pack(side="bottom", fill="x", padx=10, pady=(0,10))
-
-        penalty_window.transient(self.master)
-        penalty_window.grab_set()
-
-    def toggle_referee_timeout(self):
-        if not self.referee_timeout_active:
-            self.referee_timeout_active = True
-            self.referee_timeout_button.config(
-                bg=self.referee_timeout_active_bg,
-                fg=self.referee_timeout_active_fg,
-                activebackground=self.referee_timeout_active_bg,
-                activeforeground=self.referee_timeout_active_fg
-            )
-            self.saved_state = {
-                "timer_seconds": self.timer_seconds,
-                "timer_running": self.timer_running,
-                "timer_job": self.timer_job,
-                "current_index": self.current_index,
-                "half_label_text": self.half_label.cget("text"),
-                "half_label_bg": self.half_label.cget("bg"),
-                "court_time_paused": self.court_time_paused,
-                "court_time_job": self.court_time_job,
-            }
-            if self.timer_job:
-                self.master.after_cancel(self.timer_job)
-                self.timer_job = None
-            self.timer_running = False
-            if self.court_time_job:
-                self.master.after_cancel(self.court_time_job)
-                self.court_time_job = None
-            self.court_time_paused = True
-            self.pause_all_penalty_timers()
-            self.referee_timeout_elapsed = 0
-            self.half_label.config(text="Referee Time-Out")
-            self.half_label.config(bg="red")
-            self.referee_timeout_countup()
-        else:
-            self.referee_timeout_active = False
-            self.referee_timeout_button.config(
-                bg=self.referee_timeout_default_bg,
-                fg=self.referee_timeout_default_fg,
-                activebackground=self.referee_timeout_default_bg,
-                activeforeground=self.referee_timeout_default_fg
-            )
-            self.timer_seconds = self.saved_state["timer_seconds"]
-            self.timer_running = self.saved_state["timer_running"]
-            self.current_index = self.saved_state["current_index"]
-            self.half_label.config(text=self.saved_state["half_label_text"])
-            self.half_label.config(bg=self.saved_state["half_label_bg"])
-            self.court_time_paused = self.saved_state.get("court_time_paused", False)
-            self.resume_all_penalty_timers()
-            self.update_timer_display()
-            if self.timer_running:
-                self.timer_job = self.master.after(1000, self.countdown_timer)
-            if not self.court_time_paused:
-                self.court_time_job = self.master.after(1000, self.update_court_time)
-
-    def referee_timeout_countup(self):
-        if not self.referee_timeout_active:
-            return
-        self.referee_timeout_elapsed += 1
-        mins, secs = divmod(self.referee_timeout_elapsed, 60)
-        self.timer_label.config(text=f"{int(mins):02d}:{int(secs):02d}")
-        self.timer_job = self.master.after(1000, self.referee_timeout_countup)
-
-    def restore_sudden_death_after_goal_removal(self):
-        # Restore Sudden Death state and time
-        self.sudden_death_goal_scored = False
-        self.current_index = self.find_period_index('Sudden Death')
-        self.sudden_death_seconds = self.sudden_death_restore_time
-        self.sudden_death_restore_active = False
-        self.sudden_death_restore_time = None
-        self.start_current_period()
-
-    def adjust_score_with_confirm(self, score_var, team_name):
-        if score_var.get() == 0:
-            return  # Do nothing if score is 0
-        if not messagebox.askyesno(
-            "Subtract Goal",
-            f"Are you sure you want to remove goal from {team_name}?"
-        ):
-            return
-        cur_period = self.full_sequence[self.current_index]
-        is_break = (cur_period['type'] == 'break'
-            or cur_period['name'] in ["White Team Time-Out", "Black Team Time-Out"])
-        if is_break:
-            if not messagebox.askyesno(
-                "Adjust Goal During Break?",
-                f"You are about to adjust a goal for {team_name} during a break or half time. Are you sure?"
-            ):
-                return
-        # --- Sudden Death restoration logic ---
-        if score_var.get() > 0:
-            # If we're in Between Game Break and Sudden Death restoration is active
-            if (cur_period['name'] == 'Between Game Break'
-                and getattr(self, 'sudden_death_restore_active', False)
-                and self.sudden_death_restore_time is not None
-                and self.timer_seconds > 30):
-                score_var.set(score_var.get() - 1)
-                self.restore_sudden_death_after_goal_removal()
-                return
-            score_var.set(score_var.get() - 1)
-        if cur_period['name'] == 'Sudden Death':
-            return
-
-    def add_goal_with_confirmation(self, score_var, team_name):
-        cur_period = self.full_sequence[self.current_index]
-        is_break = (cur_period['type'] == 'break'
-            or cur_period['name'] in ["White Team Time-Out", "Black Team Time-Out"])
-        if is_break:
-            if not messagebox.askyesno(
-                "Add Goal During Break?",
-                f"You are about to add a goal for {team_name} during a break or half time. Are you sure?"
-            ):
-                return
-        score_var.set(score_var.get() + 1)
-
-        # --- Sudden Death restoration logic ---
-        if cur_period['name'] == 'Sudden Death' and not getattr(self, 'sudden_death_goal_scored', False):
-            self.sudden_death_restore_time = self.sudden_death_seconds
-            self.sudden_death_restore_active = True
-            self.sudden_death_goal_scored = True
-            self.stop_sudden_death_timer()
-            self.next_period()
-            return
-
-        if cur_period['name'] in ['Overtime Game Break', 'Sudden Death Game Break']:
-            if self.white_score_var.get() != self.black_score_var.get():
-                self.current_index = self.find_period_index('Between Game Break')
-                self.start_current_period()
-                return
-            elif self.white_score_var.get() == self.black_score_var.get():
-                for idx in range(self.current_index + 1, len(self.full_sequence)):
-                    next_period = self.full_sequence[idx]
-                    if next_period['name'] in ['Overtime First Half', 'Sudden Death']:
-                        self.current_index = idx
-                        self.start_current_period()
-                        return
-        if cur_period['name'] == 'Sudden Death' and not getattr(self, 'sudden_death_goal_scored', False):
-            self.sudden_death_goal_scored = True
-            self.stop_sudden_death_timer()
-            self.next_period()
-
     def create_settings_tab(self):
         tab = ttk.Frame(self.notebook)
         self.notebook.add(tab, text="Game Variables")
@@ -1043,7 +648,6 @@ class GameManagementApp:
         self.court_time_paused = False
         self.update_court_time()
         self.start_current_period()
-
     def update_court_time(self):
         if self.court_time_job is not None:
             self.master.after_cancel(self.court_time_job)
@@ -1079,12 +683,11 @@ class GameManagementApp:
             self.timer_label.config(text=f"{int(mins):02d}:{int(secs):02d}")
 
     def adjust_between_game_break_for_crib_time(self):
-        # Calculate the current court time as datetime
         current_court_time = datetime.datetime.now() - datetime.timedelta(seconds=self.court_time_seconds)
         local_time = datetime.datetime.now()
         seconds_behind = int((local_time - current_court_time).total_seconds())
         if seconds_behind <= 0:
-            return  # Already aligned or ahead
+            return
         crib_time_var = self.variables['crib_time']
         crib_time = int(float(crib_time_var.get("value", crib_time_var["default"])))
         for idx in range(self.current_index, len(self.full_sequence)):
@@ -1101,7 +704,6 @@ class GameManagementApp:
             self.current_index = self.find_period_index('Between Game Break')
         cur_period = self.full_sequence[self.current_index]
 
-        # PATCH: Reset team timeout counters at the start of each half and Between Game Break
         if cur_period['name'] in ['First Half', 'Second Half', 'Between Game Break']:
             self.white_timeouts_this_half = 0
             self.black_timeouts_this_half = 0
@@ -1109,7 +711,6 @@ class GameManagementApp:
         self.half_label.config(text=cur_period['name'])
         self.update_half_label_background(cur_period['name'])
 
-        # Disable time-out buttons for periods where no time-outs are allowed
         TIMEOUTS_DISABLED_PERIODS = [
             "Game Starts in:",
             "Half Time",
@@ -1123,7 +724,6 @@ class GameManagementApp:
         if cur_period['name'] in TIMEOUTS_DISABLED_PERIODS:
             self.white_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
             self.black_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
-            # Penalties button logic unchanged
             if cur_period['name'] in ["Game Starts in:", "Between Game Break", "Half Time", "Overtime Game Break", "Sudden Death Game Break"]:
                 self.penalties_button.config(state=tk.DISABLED)
             else:
@@ -1164,10 +764,9 @@ class GameManagementApp:
             self.court_time_paused = False
         if cur_period['name'] == 'Sudden Death':
             self.timer_running = True
-            self.sudden_death_seconds = -1  # Start at -1 so display shows 00:00 first
+            self.sudden_death_seconds = -1
             self.update_timer_display()
             self.start_sudden_death_timer()
-            # Don't reset timeouts here! Only at start of halves.
         else:
             self.timer_seconds = cur_period['duration'] if cur_period['duration'] is not None else 0
             self.update_timer_display()
@@ -1243,7 +842,6 @@ class GameManagementApp:
             return
         if self.timer_seconds > 0:
             cur_period = self.full_sequence[self.current_index] if self.full_sequence and self.current_index < len(self.full_sequence) else None
-            # Once less than 30 seconds is left in Between Game Break, clear Sudden Death restoration flag and time
             if cur_period and cur_period['name'] == 'Between Game Break':
                 if self.timer_seconds == 30:
                     self.white_score_var.set(0)
@@ -1278,6 +876,13 @@ class GameManagementApp:
         if period['type'] != 'regular' or not self.team_timeouts_allowed_var.get():
             self.white_timeout_button.config(state=tk.DISABLED)
             return
+        if self.in_timeout:
+            if self.pending_timeout is None:
+                self.pending_timeout = "white"
+                self.half_label.config(text="Pending (White)")
+                if hasattr(self, "display_half_label"):
+                    self.display_half_label.config(text="Pending (White)")
+            return
         if self.white_timeouts_this_half >= 1:
             self.show_timeout_popup("White")
             return
@@ -1285,13 +890,13 @@ class GameManagementApp:
         self.white_timeout_button.config(state=tk.DISABLED)
         self.in_timeout = True
         self.active_timeout_team = "white"
-        self.court_time_paused = True  # Pause court time
+        self.court_time_paused = True
         self.save_timer_state()
         self.pause_all_penalty_timers()
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
-        self.timer_running = False  # pause main period timer
+        self.timer_running = False
         timeout_seconds = self.get_minutes('team_timeout_period')
         self.timer_seconds = timeout_seconds
         self.half_label.config(text="White Team Time-Out")
@@ -1306,6 +911,13 @@ class GameManagementApp:
         if period['type'] != 'regular' or not self.team_timeouts_allowed_var.get():
             self.black_timeout_button.config(state=tk.DISABLED)
             return
+        if self.in_timeout:
+            if self.pending_timeout is None:
+                self.pending_timeout = "black"
+                self.half_label.config(text="Pending (Black)")
+                if hasattr(self, "display_half_label"):
+                    self.display_half_label.config(text="Pending (Black)")
+            return
         if self.black_timeouts_this_half >= 1:
             self.show_timeout_popup("Black")
             return
@@ -1313,13 +925,13 @@ class GameManagementApp:
         self.black_timeout_button.config(state=tk.DISABLED)
         self.in_timeout = True
         self.active_timeout_team = "black"
-        self.court_time_paused = True  # Pause court time
+        self.court_time_paused = True
         self.save_timer_state()
         self.pause_all_penalty_timers()
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
-        self.timer_running = False  # pause main period timer
+        self.timer_running = False
         timeout_seconds = self.get_minutes('team_timeout_period')
         self.timer_seconds = timeout_seconds
         self.half_label.config(text="Black Team Time-Out")
@@ -1358,6 +970,15 @@ class GameManagementApp:
             self.timer_job = None
         if self.timer_running:
             self.timer_job = self.master.after(1000, self.countdown_timer)
+        if self.pending_timeout is not None:
+            if self.pending_timeout == "white" and self.white_timeouts_this_half < 1:
+                self.pending_timeout = None
+                self.white_team_timeout()
+            elif self.pending_timeout == "black" and self.black_timeouts_this_half < 1:
+                self.pending_timeout = None
+                self.black_team_timeout()
+            else:
+                self.pending_timeout = None
 
     def save_timer_state(self):
         self.saved_timer_running = self.timer_running
@@ -1392,9 +1013,9 @@ class GameManagementApp:
             "referee_time-out",
             "white_team_time-out",
             "black_team_time-out",
-            "white_team_time-out",           # Added in case of display string
-            "black_team_time-out",           # Added in case of display string
-            "white_team_time-out",           # Add as needed for different casing
+            "white_team_time-out",
+            "black_team_time-out",
+            "white_team_time-out",
             "black_team_time-out"
         }
         internal_name = period_name.lower().replace(" ", "_")
@@ -1487,6 +1108,282 @@ class GameManagementApp:
             if not penalty["is_rest_of_match"] and penalty["seconds_remaining"] > 0:
                 self.schedule_penalty_countdown(penalty)
         self.update_penalty_display()
+
+    def show_penalties(self):
+        penalty_window = tk.Toplevel(self.master)
+        penalty_window.title("Penalties")
+        penalty_window.geometry("250x400")
+
+        button_frame = ttk.Frame(penalty_window, padding="10")
+        button_frame.pack(side="top", fill="x")
+        selected_team = tk.StringVar()
+
+        button_white = tk.Button(button_frame, text="White", width=10, command=lambda: select_team("White"))
+        button_white.pack(side="left", padx=5, expand=True)
+        button_black = tk.Button(button_frame, text="Black", width=10, command=lambda: select_team("Black"))
+        button_black.pack(side="left", padx=5, expand=True)
+
+        def select_team(team):
+            selected_team.set(team)
+            button_white.config(relief=tk.SUNKEN if team == "White" else tk.RAISED)
+            button_black.config(relief=tk.SUNKEN if team == "Black" else tk.RAISED)
+
+        select_team(selected_team.get())
+
+        numbers = list(range(1, 16))
+        dropdown_options = ["Pick Cap Number"] + numbers
+        dropdown_variable = tk.StringVar(value=dropdown_options[0])
+        dropdown = ttk.Combobox(penalty_window, textvariable=dropdown_variable, values=dropdown_options, state="readonly", height=16)
+        dropdown.pack(pady=10)
+
+        radio_frame = ttk.Frame(penalty_window)
+        radio_frame.pack(side="top", anchor="w", pady=10, fill="both")
+        radio_variable = tk.StringVar()
+        radio_button_1 = tk.Radiobutton(radio_frame, text="1 minute", variable=radio_variable, value="1 minute", indicatoron=True)
+        radio_button_2 = tk.Radiobutton(radio_frame, text="2 minutes", variable=radio_variable, value="2 minutes", indicatoron=True)
+        radio_button_3 = tk.Radiobutton(radio_frame, text="5 minutes", variable=radio_variable, value="5 minutes", indicatoron=True)
+        radio_button_4 = tk.Radiobutton(radio_frame, text="Rest of the match", variable=radio_variable, value="Rest of the match", indicatoron=True)
+        radio_button_1.pack(anchor="w")
+        radio_button_2.pack(anchor="w")
+        radio_button_3.pack(anchor="w")
+        radio_button_4.pack(anchor="w")
+
+        summary_frame = ttk.Frame(penalty_window)
+        summary_frame.pack(side="top", fill="both", expand=True)
+        summary_label = ttk.Label(summary_frame, text="Stored Penalties (max 6):")
+        summary_label.pack(anchor="w")
+        penalty_listbox = tk.Listbox(summary_frame, height=6, exportselection=0)
+        penalty_listbox.pack(fill="both", expand=True)
+
+        def refresh_penalty_listbox():
+            selection = penalty_listbox.curselection()
+            selected_index = selection[0] if selection else None
+
+            penalty_listbox.delete(0, tk.END)
+            for penalty in getattr(self, 'active_penalties', []):
+                if penalty["is_rest_of_match"]:
+                    time_str = "REST OF MATCH"
+                else:
+                    mins, secs = divmod(penalty["seconds_remaining"], 60)
+                    time_str = f"{int(mins):02d}:{int(secs):02d}"
+                penalty_listbox.insert(tk.END, f"{penalty['team']} #{penalty['cap']} {time_str}")
+
+            for p in getattr(self, 'stored_penalties', []):
+                if not any(ap["team"] == p["team"] and ap["cap"] == p["cap"] and ap["duration"] == p["duration"]
+                        for ap in getattr(self, 'active_penalties', [])):
+                    penalty_listbox.insert(tk.END, f"{p['team']} #{p['cap']} {p['duration']}")
+
+            if selected_index is not None and penalty_listbox.size() > selected_index:
+                penalty_listbox.selection_set(selected_index)
+                penalty_listbox.activate(selected_index)
+            elif penalty_listbox.size() > 0:
+                penalty_listbox.selection_clear(0, tk.END)
+
+        refresh_penalty_listbox()
+
+        def periodic_refresh():
+            if penalty_window.winfo_exists():
+                refresh_penalty_listbox()
+                penalty_window.after(1000, periodic_refresh)
+        penalty_window.after(1000, periodic_refresh)
+
+        def start_penalty():
+            team = selected_team.get()
+            cap = dropdown_variable.get()
+            duration = radio_variable.get()
+            if team not in ["White", "Black"]:
+                messagebox.showerror("Error", "Choose White or Black team.")
+                return
+            if cap == "Pick Cap Number":
+                messagebox.showerror("Error", "Choose a cap number.")
+                return
+            if duration == "":
+                messagebox.showerror("Error", "Choose a penalty duration.")
+                return
+            if len(self.stored_penalties) >= 6:
+                messagebox.showerror("Error", "Maximum 6 penalties can be stored.")
+                return
+
+            if self.start_penalty_timer(team, cap, duration):
+                refresh_penalty_listbox()
+                selected_team.set("")
+                select_team("")
+                dropdown_variable.set(dropdown_options[0])
+                radio_variable.set("")
+            else:
+                messagebox.showerror("Error", "Failed to start penalty timer.")
+
+        def remove_penalty():
+            selection = penalty_listbox.curselection()
+            if not selection:
+                messagebox.showerror("Error", "Please select a penalty to remove.")
+                return
+
+            idx = selection[0]
+            active_count = len(getattr(self, 'active_penalties', []))
+
+            if idx < active_count:
+                penalty_to_remove = self.active_penalties[idx]
+                self.remove_penalty(penalty_to_remove)
+                refresh_penalty_listbox()
+            else:
+                stored_idx = idx - active_count
+                if 0 <= stored_idx < len(self.stored_penalties):
+                    self.stored_penalties.pop(stored_idx)
+                    refresh_penalty_listbox()
+
+        start_button_frame = ttk.Frame(penalty_window)
+        start_button_frame.pack(side="bottom", fill="x", pady=10)
+
+        button_container = ttk.Frame(start_button_frame)
+        button_container.pack(expand=True, fill="x")
+    
+        start_button = ttk.Button(button_container, text="Start Penalty", command=start_penalty)
+        start_button.pack(side="left", expand=True, fill="x", padx=(0, 5))
+
+        remove_button = ttk.Button(button_container, text="Remove Selected", command=remove_penalty)
+        remove_button.pack(side="right", expand=True, fill="x", padx=(5, 0))
+
+        close_button = ttk.Button(penalty_window, text="Close", command=penalty_window.destroy)
+        close_button.pack(side="bottom", fill="x", padx=10, pady=(0,10))
+
+        penalty_window.transient(self.master)
+        penalty_window.grab_set()
+
+    def toggle_referee_timeout(self):
+        if not self.referee_timeout_active:
+            self.referee_timeout_active = True
+            self.referee_timeout_button.config(
+                bg=self.referee_timeout_active_bg,
+                fg=self.referee_timeout_active_fg,
+                activebackground=self.referee_timeout_active_bg,
+                activeforeground=self.referee_timeout_active_fg
+            )
+            self.saved_state = {
+                "timer_seconds": self.timer_seconds,
+                "timer_running": self.timer_running,
+                "timer_job": self.timer_job,
+                "current_index": self.current_index,
+                "half_label_text": self.half_label.cget("text"),
+                "half_label_bg": self.half_label.cget("bg"),
+                "court_time_paused": self.court_time_paused,
+                "court_time_job": self.court_time_job,
+            }
+            if self.timer_job:
+                self.master.after_cancel(self.timer_job)
+                self.timer_job = None
+            self.timer_running = False
+            if self.court_time_job:
+                self.master.after_cancel(self.court_time_job)
+                self.court_time_job = None
+            self.court_time_paused = True
+            self.pause_all_penalty_timers()
+            self.referee_timeout_elapsed = 0
+            self.half_label.config(text="Referee Time-Out")
+            self.half_label.config(bg="red")
+            self.referee_timeout_countup()
+        else:
+            self.referee_timeout_active = False
+            self.referee_timeout_button.config(
+                bg=self.referee_timeout_default_bg,
+                fg=self.referee_timeout_default_fg,
+                activebackground=self.referee_timeout_default_bg,
+                activeforeground=self.referee_timeout_default_fg
+            )
+            self.timer_seconds = self.saved_state["timer_seconds"]
+            self.timer_running = self.saved_state["timer_running"]
+            self.current_index = self.saved_state["current_index"]
+            self.half_label.config(text=self.saved_state["half_label_text"])
+            self.half_label.config(bg=self.saved_state["half_label_bg"])
+            self.court_time_paused = self.saved_state.get("court_time_paused", False)
+            self.resume_all_penalty_timers()
+            self.update_timer_display()
+            if self.timer_running:
+                self.timer_job = self.master.after(1000, self.countdown_timer)
+            if not self.court_time_paused:
+                self.court_time_job = self.master.after(1000, self.update_court_time)
+
+    def referee_timeout_countup(self):
+        if not self.referee_timeout_active:
+            return
+        self.referee_timeout_elapsed += 1
+        mins, secs = divmod(self.referee_timeout_elapsed, 60)
+        self.timer_label.config(text=f"{int(mins):02d}:{int(secs):02d}")
+        self.timer_job = self.master.after(1000, self.referee_timeout_countup)
+
+    def restore_sudden_death_after_goal_removal(self):
+        self.sudden_death_goal_scored = False
+        self.current_index = self.find_period_index('Sudden Death')
+        self.sudden_death_seconds = self.sudden_death_restore_time
+        self.sudden_death_restore_active = False
+        self.sudden_death_restore_time = None
+        self.start_current_period()
+
+    def adjust_score_with_confirm(self, score_var, team_name):
+        if score_var.get() == 0:
+            return
+        if not messagebox.askyesno(
+            "Subtract Goal",
+            f"Are you sure you want to remove goal from {team_name}?"
+        ):
+            return
+        cur_period = self.full_sequence[self.current_index]
+        is_break = (cur_period['type'] == 'break'
+            or cur_period['name'] in ["White Team Time-Out", "Black Team Time-Out"])
+        if is_break:
+            if not messagebox.askyesno(
+                "Adjust Goal During Break?",
+                f"You are about to adjust a goal for {team_name} during a break or half time. Are you sure?"
+            ):
+                return
+        if score_var.get() > 0:
+            if (cur_period['name'] == 'Between Game Break'
+                and getattr(self, 'sudden_death_restore_active', False)
+                and self.sudden_death_restore_time is not None
+                and self.timer_seconds > 30):
+                score_var.set(score_var.get() - 1)
+                self.restore_sudden_death_after_goal_removal()
+                return
+            score_var.set(score_var.get() - 1)
+        if cur_period['name'] == 'Sudden Death':
+            return
+
+    def add_goal_with_confirmation(self, score_var, team_name):
+        cur_period = self.full_sequence[self.current_index]
+        is_break = (cur_period['type'] == 'break'
+            or cur_period['name'] in ["White Team Time-Out", "Black Team Time-Out"])
+        if is_break:
+            if not messagebox.askyesno(
+                "Add Goal During Break?",
+                f"You are about to add a goal for {team_name} during a break or half time. Are you sure?"
+            ):
+                return
+        score_var.set(score_var.get() + 1)
+
+        if cur_period['name'] == 'Sudden Death' and not getattr(self, 'sudden_death_goal_scored', False):
+            self.sudden_death_restore_time = self.sudden_death_seconds
+            self.sudden_death_restore_active = True
+            self.sudden_death_goal_scored = True
+            self.stop_sudden_death_timer()
+            self.next_period()
+            return
+
+        if cur_period['name'] in ['Overtime Game Break', 'Sudden Death Game Break']:
+            if self.white_score_var.get() != self.black_score_var.get():
+                self.current_index = self.find_period_index('Between Game Break')
+                self.start_current_period()
+                return
+            elif self.white_score_var.get() == self.black_score_var.get():
+                for idx in range(self.current_index + 1, len(self.full_sequence)):
+                    next_period = self.full_sequence[idx]
+                    if next_period['name'] in ['Overtime First Half', 'Sudden Death']:
+                        self.current_index = idx
+                        self.start_current_period()
+                        return
+        if cur_period['name'] == 'Sudden Death' and not getattr(self, 'sudden_death_goal_scored', False):
+            self.sudden_death_goal_scored = True
+            self.stop_sudden_death_timer()
+            self.next_period()
 
 if __name__ == "__main__":
     root = tk.Tk()
