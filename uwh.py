@@ -410,28 +410,39 @@ class GameManagementApp:
             if period['name'] == name:
                 return idx
         return len(self.full_sequence) - 1
+        
     def create_settings_tab(self):
         tab = ttk.Frame(self.notebook)
         self.notebook.add(tab, text="Game Variables")
-        frame = ttk.Frame(tab, padding=(10, 10, 10, 10))
-        frame.pack(fill=tk.BOTH, expand=True)
-        for i in range(5):
-            frame.grid_columnconfigure(i, weight=0 if i < 4 else 1)
+        tab.grid_rowconfigure(0, weight=1)
+        tab.grid_rowconfigure(1, weight=1)
+        tab.grid_columnconfigure(0, weight=2)
+        tab.grid_columnconfigure(1, weight=1)
+
         default_font = font.nametofont("TkDefaultFont")
         new_size = default_font.cget("size") + 2
         headers = ["Use?", "Variable", "Value", "Units"]
+
+        # Widget 1
+        widget1 = ttk.Frame(tab, borderwidth=1, relief="solid")
+        widget1.grid(row=0, column=0, sticky="nsew", padx=8, pady=8)
+        for i in range(4):
+            widget1.grid_columnconfigure(i, weight=1)
+        for i in range(17):
+            widget1.grid_rowconfigure(i, weight=1)
         for i, h in enumerate(headers):
-            tk.Label(frame, text=h, font=(default_font.cget("family"), new_size, "bold")).grid(row=0, column=i, sticky="w", padx=5, pady=5)
+            tk.Label(widget1, text=h, font=(default_font.cget("family"), new_size, "bold")).grid(row=0, column=i, sticky="w", padx=5, pady=5)
         row_idx = 1
+        self.widgets = []
         for var_name, var_info in self.variables.items():
             if var_info["checkbox"]:
                 var_info["default"] = True
             if var_name == "team_timeouts_allowed":
                 check_var = self.team_timeouts_allowed_var
-                cb = ttk.Checkbutton(frame, variable=check_var)
+                cb = ttk.Checkbutton(widget1, variable=check_var)
                 cb.grid(row=row_idx, column=0, sticky="w", pady=5)
                 label_text = var_info.get("label", "Team Time-Outs allowed?")
-                label_widget = tk.Label(frame, text=label_text, font=(default_font.cget("family"), new_size, "bold"))
+                label_widget = tk.Label(widget1, text=label_text, font=(default_font.cget("family"), new_size, "bold"))
                 label_widget.grid(row=row_idx, column=1, sticky="w", pady=5)
                 check_var.trace_add("write", lambda *args: self.update_team_timeouts_allowed())
                 self.widgets.append({"name": var_name, "entry": None, "checkbox": check_var, "label_widget": label_widget})
@@ -439,10 +450,10 @@ class GameManagementApp:
                 continue
             if var_name == "overtime_allowed":
                 check_var = self.overtime_allowed_var
-                cb = ttk.Checkbutton(frame, variable=check_var)
+                cb = ttk.Checkbutton(widget1, variable=check_var)
                 cb.grid(row=row_idx, column=0, sticky="w", pady=5)
                 label_text = var_info.get("label", "Overtime allowed?")
-                label_widget = tk.Label(frame, text=label_text, font=(default_font.cget("family"), new_size, "bold"))
+                label_widget = tk.Label(widget1, text=label_text, font=(default_font.cget("family"), new_size, "bold"))
                 label_widget.grid(row=row_idx, column=1, sticky="w", pady=5)
                 check_var.trace_add("write", lambda *args: self.update_overtime_variables_state())
                 self.widgets.append({"name": var_name, "entry": None, "checkbox": check_var, "label_widget": label_widget})
@@ -450,30 +461,176 @@ class GameManagementApp:
                 continue
             check_var = tk.BooleanVar(value=True) if var_info["checkbox"] else None
             if check_var:
-                cb = ttk.Checkbutton(frame, variable=check_var)
+                cb = ttk.Checkbutton(widget1, variable=check_var)
                 cb.grid(row=row_idx, column=0, sticky="w", pady=5)
                 check_var.trace_add("write", lambda *args, name=var_name: self._on_settings_variable_change())
             label_text = f"{var_name.replace('_', ' ').title()}:"
-            label_widget = tk.Label(frame, text=label_text, font=(default_font.cget("family"), new_size, "bold"))
+            label_widget = tk.Label(widget1, text=label_text, font=(default_font.cget("family"), new_size, "bold"))
             label_widget.grid(row=row_idx, column=1, sticky="w", pady=5)
-            entry = ttk.Entry(frame, width=10)
+            entry = ttk.Entry(widget1, width=10)
             entry.insert(0, "1")
             entry.grid(row=row_idx, column=2, sticky="w", padx=5, pady=5)
-            tk.Label(frame, text=var_info["unit"], font=(default_font.cget("family"), new_size, "bold")).grid(row=row_idx, column=3, sticky="w", padx=5, pady=5)
+            tk.Label(widget1, text=var_info["unit"], font=(default_font.cget("family"), new_size, "bold")).grid(row=row_idx, column=3, sticky="w", padx=5, pady=5)
             self.widgets.append({"name": var_name, "entry": entry, "checkbox": check_var, "label_widget": label_widget})
             self.last_valid_values[var_name] = entry.get()
             entry.bind("<FocusOut>", lambda e, name=var_name: self._on_settings_variable_change())
             entry.bind("<Return>", lambda e, name=var_name: self._on_settings_variable_change())
-
             if var_name == "team_timeout_period":
                 self.team_timeout_period_entry = entry
                 self.team_timeout_period_label = label_widget
             row_idx += 1
-        button_frame = ttk.Frame(tab)
-        button_frame.pack(pady=10)
-        self.reset_timer_button = ttk.Button(button_frame, text="Reset Timer", command=self.reset_timer)
-        self.reset_timer_button.grid(row=0, column=0, padx=10)
+        self.reset_timer_button = ttk.Button(widget1, text="Reset Timer", command=self.reset_timer)
+        self.reset_timer_button.grid(row=16, column=0, columnspan=4, pady=8)
+
+        # Widget 2 ("Presets")
+        widget2 = ttk.Frame(tab, borderwidth=1, relief="solid")
+        widget2.grid(row=0, column=1, sticky="nsew", padx=8, pady=8)
+
+
+        for col in range(3):
+            widget2.grid_columnconfigure(col, weight=1)
+        # Make widget2 about 50% of previous height: only expand button rows
+        widget2.grid_rowconfigure(0, weight=0)  # Header
+        widget2.grid_rowconfigure(1, weight=0)  # Button row 1
+        widget2.grid_rowconfigure(2, weight=0)  # Button row 2
+        widget2.grid_rowconfigure(3, weight=0)  # Spacer
+        widget2.grid_rowconfigure(4, weight=0)  # Instructional text 1
+        widget2.grid_rowconfigure(5, weight=0)  # Instructional text 2
+        header_label = tk.Label(widget2, text="Presets", font=(default_font.cget("family"), new_size, "bold"))
+        header_label.grid(row=0, column=0, columnspan=3, padx=4, pady=(12,4), sticky="nsew")
+        self.widget2_buttons = []
+        self.button_data = [{} for _ in range(6)]
+        for i in range(6):
+            btn_row = 1 if i < 3 else 2
+            btn_col = i % 3
+            self.button_data[i]["text"] = str(i + 1)
+            self.button_data[i]["values"] = {}
+            self.button_data[i]["checkboxes"] = {}
+            btn = ttk.Button(widget2, text=str(i + 1), width=16)
+            btn.grid(row=btn_row, column=btn_col, padx=8, pady=12, sticky="nsew")
+            btn.bind("<ButtonPress-1>", self._make_press_handler(i))
+            btn.bind("<ButtonRelease-1>", self._make_release_handler(i))
+            self.widget2_buttons.append(btn)
+        # Optional spacer row (row 3)
+        spacer = tk.Label(widget2, text="", font=(default_font.cget("family"), new_size))
+        spacer.grid(row=3, column=0, columnspan=3, sticky="nsew")
+        # Add row 4: instructional text
+        instruction1 = tk.Label(
+            widget2,
+            text="Click the buttons above to load preset times and allowed Game Periods",
+            anchor="w", justify="left", font=(default_font.cget("family"), new_size)
+        )
+        instruction1.grid(row=4, column=0, columnspan=3, sticky="w", padx=8, pady=(4,2))
+        # Add row 5: instructional text
+        instruction2 = tk.Label(
+            widget2,
+            text="Press and hold the button for >4 seconds to alter the stored preset values",
+            anchor="w", justify="left", font=(default_font.cget("family"), new_size)
+        )
+        instruction2.grid(row=5, column=0, columnspan=3, sticky="w", padx=8, pady=(2,8))
+
+        # Widget 3 ("Sounds")
+        widget3 = ttk.Frame(tab, borderwidth=1, relief="solid")
+        widget3.grid(row=1, column=1, sticky="nsew", padx=8, pady=8)
+        widget3.grid_columnconfigure(0, weight=1)
+        widget3.grid_columnconfigure(1, weight=1)
+        widget3.grid_rowconfigure(0, weight=1)
+        widget3.grid_rowconfigure(1, weight=1)
+        widget3.grid_rowconfigure(2, weight=1)
+        sounds_label = tk.Label(widget3, text="Sounds", font=(default_font.cget("family"), new_size, "bold"))
+        sounds_label.grid(row=0, column=0, columnspan=2, padx=4, pady=(0,8), sticky="nsew")
+        tk.Label(widget3, text="Pips:", font=(default_font.cget("family"), new_size)).grid(row=1, column=0, sticky="e", padx=(8,4), pady=4)
+        self.pips_var = tk.StringVar(value="Default")
+        pips_options = ["Default", "Pip 1", "Pip 2", "Pip 3"]
+        pips_dropdown = ttk.Combobox(widget3, textvariable=self.pips_var, values=pips_options, state="readonly")
+        pips_dropdown.grid(row=1, column=1, sticky="w", padx=(4,8), pady=4)
+        tk.Label(widget3, text="Siren:", font=(default_font.cget("family"), new_size)).grid(row=2, column=0, sticky="e", padx=(8,4), pady=4)
+        self.siren_var = tk.StringVar(value="Default")
+        siren_options = ["Default", "Siren 1", "Siren 2", "Siren 3"]
+        siren_dropdown = ttk.Combobox(widget3, textvariable=self.siren_var, values=siren_options, state="readonly")
+        siren_dropdown.grid(row=2, column=1, sticky="w", padx=(4,8), pady=4)
         self.update_overtime_variables_state()
+
+    def _make_press_handler(self, idx):
+        return lambda e: self._start_button_hold(e, idx)
+
+    def _make_release_handler(self, idx):
+        return lambda e: self._button_release(e, idx)
+
+    def set_widget2_button_text(self, idx, new_text):
+        if 0 <= idx < len(self.widget2_buttons):
+            self.widget2_buttons[idx].config(text=new_text)
+
+    def _start_button_hold(self, event, idx):
+        import time
+        self._button_hold_start_time = time.time()
+        self._button_hold_index = idx
+        self._button_hold_timer = self.master.after(3000, lambda: self._open_button_dialog(idx))
+
+    def _button_release(self, event, idx):
+        import time
+        if hasattr(self, '_button_hold_timer') and self._button_hold_timer is not None:
+            self.master.after_cancel(self._button_hold_timer)
+            self._button_hold_timer = None
+        if hasattr(self, '_button_hold_start_time') and self._button_hold_start_time is not None and (time.time() - self._button_hold_start_time < 2.9):
+            self._apply_button_data(idx)
+        self._button_hold_start_time = None
+        self._button_hold_index = None
+
+    def _open_button_dialog(self, idx):
+        dlg = tk.Toplevel(self.master)
+        dlg.title(f"Button {idx+1} Settings")
+        dlg.geometry("400x700")
+        entries = {}
+        checks = {}
+        row_num = 0
+        max_btn_text_len = 16
+        tk.Label(dlg, text="Button Display Text:").grid(row=row_num, column=0, sticky="w", padx=6, pady=4)
+        btn_text_var = tk.StringVar(value=self.button_data[idx].get("text", str(idx+1)))
+        text_entry = ttk.Entry(dlg, textvariable=btn_text_var, width=max_btn_text_len)
+        text_entry.grid(row=row_num, column=1, sticky="w", padx=6, pady=4)
+        row_num += 1
+        for widget in self.widgets:
+            var_name = widget["name"]
+            label = widget["label_widget"]
+            tk.Label(dlg, text=label.cget("text")).grid(row=row_num, column=0, sticky="w", padx=6, pady=4)
+            if widget["checkbox"] is not None:
+                val = self.button_data[idx]["checkboxes"].get(var_name, widget["checkbox"].get())
+                check_var = tk.BooleanVar(value=val)
+                cb = ttk.Checkbutton(dlg, variable=check_var)
+                cb.grid(row=row_num, column=1, sticky="w", padx=6, pady=4)
+                checks[var_name] = check_var
+            else:
+                val = self.button_data[idx]["values"].get(var_name, widget["entry"].get())
+                entry_var = tk.StringVar(value=val)
+                entry = ttk.Entry(dlg, textvariable=entry_var, width=10)
+                entry.grid(row=row_num, column=1, sticky="w", padx=6, pady=4)
+                entries[var_name] = entry_var
+            row_num += 1
+        def save_and_close():
+            for v in entries:
+                self.button_data[idx]["values"][v] = entries[v].get()
+            for v in checks:
+                self.button_data[idx]["checkboxes"][v] = checks[v].get()
+            self.button_data[idx]["text"] = btn_text_var.get()[:max_btn_text_len]
+            self.set_widget2_button_text(idx, self.button_data[idx]["text"])
+            dlg.destroy()
+        save_btn = ttk.Button(dlg, text="Save", command=save_and_close)
+        save_btn.grid(row=row_num, column=0, columnspan=2, pady=16)
+        dlg.transient(self.master)
+        dlg.grab_set()
+
+    def _apply_button_data(self, idx):
+        for widget in self.widgets:
+            var_name = widget["name"]
+            if widget["checkbox"] is not None:
+                val = self.button_data[idx]["checkboxes"].get(var_name, widget["checkbox"].get())
+                widget["checkbox"].set(val)
+            else:
+                val = self.button_data[idx]["values"].get(var_name, widget["entry"].get())
+                widget["entry"].delete(0, tk.END)
+                widget["entry"].insert(0, val)
+        self.load_settings()
 
     def _on_settings_variable_change(self, *args):
         self.load_settings()
