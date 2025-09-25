@@ -381,9 +381,9 @@ class GameManagementApp:
 
     def get_minutes(self, varname):
         try:
-            return int(float(self.variables[varname].get("value", self.variables[varname]["default"]))) * 60
+            return float(self.variables[varname].get("value", self.variables[varname]["default"])) * 60
         except Exception:
-            return int(self.variables[varname]["default"]) * 60
+            return float(self.variables[varname]["default"]) * 60
 
     def build_game_sequence(self):
         seq = []
@@ -479,6 +479,17 @@ class GameManagementApp:
                 self.team_timeout_period_entry = entry
                 self.team_timeout_period_label = label_widget
             row_idx += 1
+            # Insert info label after Crib Time row
+            if var_name == "crib_time":
+                info_label = tk.Label(
+                    widget1,
+                    text="Value boxes accept decimal time e.g. 1.5 = 1 minute, 30 seconds",
+                    font=(default_font.cget("family"), new_size, "italic"),
+                    fg="blue", anchor="center", justify="center"
+                )
+                info_label.grid(row=row_idx, column=0, columnspan=4, pady=(2,8), sticky="nsew")
+                row_idx += 1
+            
         self.reset_timer_button = ttk.Button(widget1, text="Reset Timer", command=self.reset_timer)
         self.reset_timer_button.grid(row=16, column=0, columnspan=4, pady=8)
 
@@ -581,6 +592,16 @@ class GameManagementApp:
         dlg = tk.Toplevel(self.master)
         dlg.title(f"Button {idx+1} Settings")
         dlg.geometry("400x700")
+        # --- Add validation for numbers/decimals ---
+        def validate_number(P):
+            if P == "":
+                return True
+            try:
+                float(P)
+                return True
+            except ValueError:
+                return False
+        vcmd = (dlg.register(validate_number), '%P')
         entries = {}
         checks = {}
         row_num = 0
@@ -603,13 +624,17 @@ class GameManagementApp:
             else:
                 val = self.button_data[idx]["values"].get(var_name, widget["entry"].get())
                 entry_var = tk.StringVar(value=val)
-                entry = ttk.Entry(dlg, textvariable=entry_var, width=10)
+                entry = ttk.Entry(dlg, textvariable=entry_var, width=10, validate="key", validatecommand=vcmd)
                 entry.grid(row=row_num, column=1, sticky="w", padx=6, pady=4)
                 entries[var_name] = entry_var
             row_num += 1
         def save_and_close():
             for v in entries:
-                self.button_data[idx]["values"][v] = entries[v].get()
+                try:
+                    float(entries[v].get())
+                    self.button_data[idx]["values"][v] = entries[v].get()
+                except ValueError:
+                    continue
             for v in checks:
                 self.button_data[idx]["checkboxes"][v] = checks[v].get()
             self.button_data[idx]["text"] = btn_text_var.get()[:max_btn_text_len]
@@ -900,9 +925,11 @@ class GameManagementApp:
             self.black_timeout_button.config(state=tk.NORMAL, bg="black", fg="white")
             self.penalties_button.config(state=tk.NORMAL)
 
+
         PAUSE_PERIODS = [
             "Half Time",
             "Overtime Game Break",
+            "Overtime Half Time",
             "Sudden Death Game Break",
             "White Team Time-Out",
             "Black Team Time-Out",
