@@ -9,7 +9,7 @@ class GameManagementApp:
         self.master.geometry('1200x800')
 
         self.notebook = ttk.Notebook(master)
-        self.notebook.pack(expand=True, fill='both', padx=10, pady=10)
+        self.notebook.pack(expand=True, fill='both',)
 
         # --- Variable and font setup ---
         self.variables = {
@@ -618,6 +618,7 @@ class GameManagementApp:
         save_btn = ttk.Button(dlg, text="Save", command=save_and_close)
         save_btn.grid(row=row_num, column=0, columnspan=2, pady=16)
         dlg.transient(self.master)
+        dlg.wait_visibility()
         dlg.grab_set()
 
     def _apply_button_data(self, idx):
@@ -731,7 +732,7 @@ class GameManagementApp:
         self.display_window.geometry('1200x800')
 
         tab = ttk.Frame(self.display_window)
-        tab.pack(fill="both", expand=True, padx=10, pady=10)
+        tab.pack(fill="both", expand=True,)
 
         for i in range(11):
             tab.grid_rowconfigure(i, weight=1)
