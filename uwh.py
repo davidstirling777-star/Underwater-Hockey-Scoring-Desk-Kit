@@ -1275,13 +1275,14 @@ class GameManagementApp:
                 self.master.after_cancel(penalty["timer_job"])
                 penalty["timer_job"] = None
             self.active_penalties.remove(penalty)
-            self.update_penalty_display()
             for stored in self.stored_penalties[:]:
                 if (stored["team"] == penalty["team"] and 
                     stored["cap"] == penalty["cap"] and 
                     stored["duration"] == penalty["duration"]):
                     self.stored_penalties.remove(stored)
                     break
+            # Ensure widget display updates after ALL removals
+            self.update_penalty_display()
 
     def clear_all_penalties(self):
         for penalty in self.active_penalties[:]:
@@ -1496,7 +1497,14 @@ class GameManagementApp:
             self.court_time_paused = self.saved_state.get("court_time_paused", False)
             self.resume_all_penalty_timers()
             self.update_timer_display()
-            if self.timer_running:
+            # --- PATCH: Resume Team Time-Out timer if it was interrupted ---
+            if self.in_timeout:
+                # Resume the timeout countdown
+                if self.timer_job:
+                    self.master.after_cancel(self.timer_job)
+                    self.timer_job = None
+                self.timer_job = self.master.after(1000, self.timeout_countdown)
+            elif self.timer_running:
                 self.timer_job = self.master.after(1000, self.countdown_timer)
             if not self.court_time_paused:
                 self.court_time_job = self.master.after(1000, self.update_court_time)
@@ -1572,18 +1580,34 @@ class GameManagementApp:
             self.next_period()
             return
 
-        if cur_period['name'] in ['Overtime Game Break', 'Sudden Death Game Break']:
+        # --- Logic for Between Game Break after Overtime ---
+        if cur_period['name'] == 'Between Game Break':
+            prev_period = self.full_sequence[self.current_index - 1] if self.current_index > 0 else None
+            if prev_period and prev_period['name'] == 'Overtime Second Half':
+                if self.white_score_var.get() == self.black_score_var.get():
+                    if self.is_sudden_death_enabled():
+                        self.current_index = self.find_period_index('Sudden Death Game Break')
+                        self.start_current_period()
+                        return
+                    else:
+                        self.current_index = self.find_period_index('Between Game Break')
+                        self.start_current_period()
+                        return
+                elif self.white_score_var.get() != self.black_score_var.get():
+                    # If scores are now unequal after goal, always stay in Between Game Break
+                    self.current_index = self.find_period_index('Between Game Break')
+                    self.start_current_period()
+                    return
+
+        # --- Logic for Sudden Death Game Break after Overtime ---
+        if cur_period['name'] == 'Sudden Death Game Break':
+            prev_period = self.full_sequence[self.current_index - 1] if self.current_index > 0 else None
+            # If scores are now unequal, progress to Between Game Break
             if self.white_score_var.get() != self.black_score_var.get():
                 self.current_index = self.find_period_index('Between Game Break')
                 self.start_current_period()
                 return
-            elif self.white_score_var.get() == self.black_score_var.get():
-                for idx in range(self.current_index + 1, len(self.full_sequence)):
-                    next_period = self.full_sequence[idx]
-                    if next_period['name'] in ['Overtime First Half', 'Sudden Death']:
-                        self.current_index = idx
-                        self.start_current_period()
-                        return
+                    
         if cur_period['name'] == 'Sudden Death' and not getattr(self, 'sudden_death_goal_scored', False):
             self.sudden_death_goal_scored = True
             self.stop_sudden_death_timer()
