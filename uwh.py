@@ -198,27 +198,43 @@ class GameManagementApp:
         self.update_team_timeouts_allowed()
 
     def update_penalty_display(self):
-        if self.active_penalties:
+        """
+        Robustly ensures that the penalty grid is only shown if there are penalties left to serve,
+        and that 'Game 121' label is shown otherwise.
+        Applies to both main and display windows.
+        """
+        main_has_penalties = bool(self.active_penalties or self.stored_penalties)
+        # Main window: show penalty grid if any penalties; otherwise show 'Game 121'
+        if main_has_penalties:
             if self.game_label.winfo_ismapped():
                 self.game_label.grid_remove()
             if not self.penalty_grid_frame.winfo_ismapped():
                 self.penalty_grid_frame.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
             self.update_penalty_grid()
         else:
-            if self.penalty_grid_frame.winfo_ismapped():
+            # Hide penalty grid
+            try:
                 self.penalty_grid_frame.grid_remove()
+            except Exception:
+                pass
+            # Show Game 121 label always
             if not self.game_label.winfo_ismapped():
                 self.game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
             self.game_label.config(text="Game 121")
-        if self.active_penalties:
+
+        # Display window: same logic
+        display_has_penalties = bool(self.active_penalties or self.stored_penalties)
+        if display_has_penalties:
             if self.display_game_label.winfo_ismapped():
                 self.display_game_label.grid_remove()
             if not self.display_penalty_grid_frame.winfo_ismapped():
                 self.display_penalty_grid_frame.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
             self.update_display_penalty_grid()
         else:
-            if self.display_penalty_grid_frame.winfo_ismapped():
+            try:
                 self.display_penalty_grid_frame.grid_remove()
+            except Exception:
+                pass
             if not self.display_game_label.winfo_ismapped():
                 self.display_game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
             self.display_game_label.config(text="Game 121")
@@ -1255,21 +1271,27 @@ class GameManagementApp:
             penalty["timer_job"] = self.master.after(1000, lambda: self.penalty_countdown(penalty))
 
     def penalty_countdown(self, penalty):
+        """
+        Handles countdown for an individual penalty. When the timer runs down to zero,
+        removes the penalty and updates the penalty display robustly.
+        """
         if penalty not in self.active_penalties:
-            self.update_penalty_display()
+            # Don't need to call update_penalty_display here, remove_penalty does it
             return
-        if penalty["timer_job"]:
-            self.master.after_cancel(penalty["timer_job"])
+        if penalty.get("timer_job"):
+            try:
+                self.master.after_cancel(penalty["timer_job"])
+            except Exception:
+                pass
             penalty["timer_job"] = None
-        if self.penalty_timers_paused or penalty["is_rest_of_match"]:
+        if self.penalty_timers_paused or penalty.get("is_rest_of_match"):
             return
         if penalty["seconds_remaining"] > 0:
             penalty["seconds_remaining"] -= 1
             self.update_penalty_display()
             self.schedule_penalty_countdown(penalty)
         else:
-            self.remove_penalty(penalty)
-            self.update_penalty_display()
+            self.remove_penalty(penalty)  # This will update the display
 
     def remove_penalty(self, penalty):
         if penalty in self.active_penalties:
@@ -1574,6 +1596,10 @@ class GameManagementApp:
                 return
         score_var.set(score_var.get() + 1)
 
+#Saves the current Sudden Death timer value (self.sudden_death_seconds) for possible restoration (for example, if the goal is later subtracted).
+#Flags that a goal has been scored in Sudden Death (prevents this block from running again).
+#Flags that a goal has been scored in Sudden Death (prevents this block from running again).
+#Progresses the game to the next period (typically Between Game Break or End of Game).
         if cur_period['name'] == 'Sudden Death' and not getattr(self, 'sudden_death_goal_scored', False):
             self.sudden_death_restore_time = self.sudden_death_seconds
             self.sudden_death_restore_active = True
@@ -1593,6 +1619,14 @@ class GameManagementApp:
                     self.current_index = self.find_period_index('Sudden Death Game Break')
                     self.start_current_period()
                     return
+
+        # ---LOGIC: If goal added during Overtime Game Break and scores are now UNEVEN, skip Overtime ---
+        if cur_period['name'] == 'Overtime Game Break':
+            if self.white_score_var.get() != self.black_score_var.get():
+                # Skip Overtime, go straight to Between Game Break
+                self.current_index = self.find_period_index('Between Game Break')
+                self.start_current_period()
+                return
 
         # --- Logic for Sudden Death Game Break after Overtime ---
         if cur_period['name'] == 'Sudden Death Game Break':
