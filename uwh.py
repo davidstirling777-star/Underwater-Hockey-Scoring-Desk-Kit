@@ -306,18 +306,19 @@ class GameManagementApp:
         self.display_window.after(1000, self.sync_penalty_display_to_external)
 
     def create_penalty_grid_widget(self, parent, is_display=False):
-        frame = tk.Frame(parent)
+        # Add internal padding for slightly smaller appearance than the game label
+        frame = tk.Frame(parent, padx=10, pady=4)
         for col in range(2):
             frame.grid_columnconfigure(col, weight=1)
         for row in range(3):
             frame.grid_rowconfigure(row, weight=1)
         labels = [[None for _ in range(2)] for _ in range(3)]
         for row in range(3):
-            lbl_white = tk.Label(frame, text="", font=("Arial", 10), width=8,
+            lbl_white = tk.Label(frame, text="", font=("Arial", 9), width=8,
                                  anchor="center", relief="ridge", fg="black", bg="white", justify="center")
             lbl_white.grid(row=row, column=0, padx=1, pady=1, sticky="nsew")
             labels[row][0] = lbl_white
-            lbl_black = tk.Label(frame, text="", font=("Arial", 10), width=8,
+            lbl_black = tk.Label(frame, text="", font=("Arial", 9), width=8,
                                  anchor="center", relief="ridge", fg="white", bg="black", justify="center")
             lbl_black.grid(row=row, column=1, padx=1, pady=1, sticky="nsew")
             labels[row][1] = lbl_black
@@ -917,8 +918,9 @@ class GameManagementApp:
             else:
                 self.penalties_button.config(state=tk.NORMAL)
         elif cur_period['name'] == "Between Game Break":
-            self.white_timeout_button.config(state=tk.NORMAL, bg="white", fg="black")
-            self.black_timeout_button.config(state=tk.NORMAL, bg="black", fg="white")
+            # Team timeout buttons should be greyed out (disabled) during Between Game Break
+            self.white_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
+            self.black_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
             self.penalties_button.config(state=tk.DISABLED)
         else:
             self.white_timeout_button.config(state=tk.NORMAL, bg="white", fg="black")
@@ -1580,22 +1582,15 @@ class GameManagementApp:
             self.next_period()
             return
 
-        # --- Logic for Between Game Break after Overtime ---
+        # --- LOGIC: If goal added during Between Game Break and scores are now EVEN ---
         if cur_period['name'] == 'Between Game Break':
-            prev_period = self.full_sequence[self.current_index - 1] if self.current_index > 0 else None
-            if prev_period and prev_period['name'] == 'Overtime Second Half':
-                if self.white_score_var.get() == self.black_score_var.get():
-                    if self.is_sudden_death_enabled():
-                        self.current_index = self.find_period_index('Sudden Death Game Break')
-                        self.start_current_period()
-                        return
-                    else:
-                        self.current_index = self.find_period_index('Between Game Break')
-                        self.start_current_period()
-                        return
-                elif self.white_score_var.get() != self.black_score_var.get():
-                    # If scores are now unequal after goal, always stay in Between Game Break
-                    self.current_index = self.find_period_index('Between Game Break')
+            if self.white_score_var.get() == self.black_score_var.get():
+                if self.is_overtime_enabled():
+                    self.current_index = self.find_period_index('Overtime Game Break')
+                    self.start_current_period()
+                    return
+                elif self.is_sudden_death_enabled():
+                    self.current_index = self.find_period_index('Sudden Death Game Break')
                     self.start_current_period()
                     return
 
