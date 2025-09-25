@@ -10,3 +10,18 @@ The idea is to use a Raspberry Pi5 computer, tiny amplifier, Bluetooth or wi-fi 
 
 The goal is to make a solution for UWH scoring that anyone can use, based on easy to obtain hardware, hence th desire to use a Raspberry Pi 5.  Aiming to use a DigiAMP+ HAT, NVMe Base for Raspberry Pi 5 for robustness of data storage, Zigbee communications between Zigbee USB dongle and Zigbee buttons for Chief Ref ability to signal, TOA SC610 8 Ohm 10W IP65 Horn Speaker for above water siren and a Lubell Labs Underwater loudspeaker (why? Because that is what we already use) LL916 is the modern version of the ones NZUWH already uses.
 
+summary of what happens when goals are added during the three "break" periods:
+Between Game Break
+Scores After Goal	is added: What Happens
+Even	Progress to Overtime Game Break (if Overtime allowed)<br>OR Sudden Death Game Break (if Sudden Death allowed and Overtime not allowed)
+Uneven	Remain in Between Game Break. No progression; continue as normal.
+
+Overtime Game Break
+Scores After Goal	is added: What Happens
+Even	Remain in Overtime Game Break. Proceed to overtime periods according to schedule.
+Uneven	Skip Overtime! Progress directly to Between Game Break.
+
+Sudden Death Game Break
+Scores After Goal	is added: What Happens
+Even	Remain in Sudden Death Game Break. Proceed to Sudden Death period as scheduled.
+Uneven	Progress directly to Between Game Break. (Skips Sudden Death period.)
