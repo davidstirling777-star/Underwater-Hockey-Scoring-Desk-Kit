@@ -15,6 +15,7 @@ Some Features (i,e, those that I can be bothered to write about at the moment)
 
 Coping with Errors (like when a goal is score right on the buzzer!)
 Summary of what happens when goals are added during the three "break" periods:
+
 In Between Game Break
 Scores After Goal	is added: What Happens
 Even	Progress to Overtime Game Break (if Overtime allowed)<br>OR Sudden Death Game Break (if Sudden Death allowed and Overtime not allowed)
