@@ -578,6 +578,14 @@ class GameManagementApp:
                 )
                 info_label.grid(row=row_idx, column=0, columnspan=4, pady=(2,8), sticky="nsew")
                 row_idx += 1            
+        # --- PATCH: Add warning label above Reset Timer button ---
+        self.reset_warning_label = tk.Label(
+            widget1,
+            text="If you change anything in here, push the reset button!",
+            font=(default_font.cget("family"), new_size, "bold"),
+            fg="red"
+        )
+        self.reset_warning_label.grid(row=15, column=0, columnspan=4, pady=(8,0))
         self.reset_timer_button = ttk.Button(widget1, text="Reset Timer", command=self.reset_timer)
         self.reset_timer_button.grid(row=16, column=0, columnspan=4, pady=8)
 
@@ -838,7 +846,6 @@ class GameManagementApp:
     def _on_settings_variable_change(self, *args):
         self.load_settings()
         self.build_game_sequence()
-        self.reset_timer()
 
     def load_settings(self):
         # PATCH: Calculate "Start First Game In" from "Time to Start First Game" minus "Between Game Break"
