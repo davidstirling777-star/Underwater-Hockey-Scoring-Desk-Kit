@@ -230,7 +230,8 @@ class GameManagementApp:
             # Show Game 121 label always
             if not self.game_label.winfo_ismapped():
                 self.game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
-            self.game_label.config(text="Game 121")
+            # Event-driven: Update the StringVar instead of calling .config()
+            self.game_number_var.set("Game 121")
 
         # Display window: same logic
         display_has_penalties = bool(self.active_penalties or self.stored_penalties)
@@ -247,7 +248,7 @@ class GameManagementApp:
                 pass
             if not self.display_game_label.winfo_ismapped():
                 self.display_game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
-            self.display_game_label.config(text="Game 121")
+            # Event-driven: StringVar automatically updates display widget
 
     def update_penalty_grid(self):
         def penalty_sort_key(p):
@@ -328,7 +329,8 @@ class GameManagementApp:
         self.master.after(1000, self.start_penalty_display_updates)
 
     def sync_penalty_display_to_external(self):
-        self.display_game_label.config(text=self.game_label.cget("text"))
+        # Event-driven: No need to sync text since both widgets use the same StringVar
+        # Only background colors need to be synchronized
         self.display_window.after(1000, self.sync_penalty_display_to_external)
 
     def create_penalty_grid_widget(self, parent, is_display=False):
@@ -1782,7 +1784,8 @@ class GameManagementApp:
         if not self.referee_timeout_active:
             return
         mins, secs = divmod(self.referee_timeout_elapsed, 60)
-        self.timer_label.config(text=f"{int(mins):02d}:{int(secs):02d}")
+        # Event-driven: Update the StringVar instead of calling .config()
+        self.timer_var.set(f"{int(mins):02d}:{int(secs):02d}")
         self.referee_timeout_elapsed += 1
         self.timer_job = self.master.after(1000, self.referee_timeout_countup)
 
