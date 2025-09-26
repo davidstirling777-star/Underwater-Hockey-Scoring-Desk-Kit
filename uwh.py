@@ -627,6 +627,27 @@ class GameManagementApp:
         self._button_hold_start_time = None
         self._button_hold_index = None
 
+    def _apply_button_data(self, idx):
+        # Apply saved values and checkboxes for all widgets
+        for widget in self.widgets:
+            var_name = widget["name"]
+            if widget["checkbox"] is not None:
+                val = self.button_data[idx]["checkboxes"].get(var_name, widget["checkbox"].get())
+                widget["checkbox"].set(val)
+            else:
+                val = self.button_data[idx]["values"].get(var_name, widget["entry"].get())
+                widget["entry"].delete(0, tk.END)
+                widget["entry"].insert(0, val)
+        # Also populate Crib Time value in main variables from preset
+        crib_time_val = self.button_data[idx]["values"].get("crib_time", None)
+        if crib_time_val is not None:
+            for widget in self.widgets:
+                if widget["name"] == "crib_time" and widget["entry"] is not None:
+                    widget["entry"].delete(0, tk.END)
+                    widget["entry"].insert(0, crib_time_val)
+        self.load_settings()
+
+
     def _open_button_dialog(self, idx):
         dlg = tk.Toplevel(self.master)
         dlg.title(f"Button {idx+1} Settings")
