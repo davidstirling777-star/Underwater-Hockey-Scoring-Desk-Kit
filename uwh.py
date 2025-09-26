@@ -544,7 +544,8 @@ class GameManagementApp:
                     "overtime_half_period": "5",          # Overtime half period 5 minutes
                     "overtime_half_time_break": "1",      # Overtime half time break 1 minute
                     "sudden_death_game_break": "1",       # Sudden Death Game break 1 minute
-                    "between_game_break": "5"             # Between Game break 5 minutes (this is not specified in the rules?)
+                    "between_game_break": "5",            # Between Game break 5 minutes
+                    "crib_time": "60"                     # Crib time default 60 seconds
                 }
                 self.button_data[i]["checkboxes"] = {
                     "team_timeouts_allowed": True,        # Team timeouts allowed checked
@@ -649,6 +650,7 @@ class GameManagementApp:
         text_entry = ttk.Entry(dlg, textvariable=btn_text_var, width=max_btn_text_len)
         text_entry.grid(row=row_num, column=1, sticky="w", padx=6, pady=4)
         row_num += 1
+
         for widget in self.widgets:
             var_name = widget["name"]
             label = widget["label_widget"]
@@ -665,12 +667,10 @@ class GameManagementApp:
                 checks[var_name] = check_var
             else:
                 # For button 1, preset values for required options
-#add in default values for CMAS rules as per section 14.2 INTERNATIONAL RULES FOR UNDERWATER HOCKEY
-#RULES OF PLAY, Version 13.0, February 2025
                 if idx == 0 and var_name in [
                     "team_timeout_period", "half_period", "half_time_break",
                     "overtime_game_break", "overtime_half_period", "overtime_half_time_break",
-                    "sudden_death_game_break", "between_game_break"
+                    "sudden_death_game_break", "between_game_break", "crib_time"
                 ]:
                     val = self.button_data[idx]["values"].get(var_name, {
                         "team_timeout_period": "1",
@@ -680,7 +680,8 @@ class GameManagementApp:
                         "overtime_half_period": "5",
                         "overtime_half_time_break": "1",
                         "sudden_death_game_break": "1",
-                        "between_game_break": "5"
+                        "between_game_break": "5",
+                        "crib_time": "60"
                     }.get(var_name, widget["entry"].get()))
                 else:
                     val = self.button_data[idx]["values"].get(var_name, widget["entry"].get())
@@ -689,6 +690,15 @@ class GameManagementApp:
                 entry.grid(row=row_num, column=1, sticky="w", padx=6, pady=4)
                 entries[var_name] = entry_var
             row_num += 1
+
+        # --- PATCH: Add Crib Time entry below Crib Time: checkbox and above Save button ---
+        tk.Label(dlg, text="Crib Time (seconds):").grid(row=row_num, column=0, sticky="w", padx=6, pady=4)
+        crib_time_val = self.button_data[idx]["values"].get("crib_time", "60")
+        crib_time_entry_var = tk.StringVar(value=crib_time_val)
+        crib_time_entry = ttk.Entry(dlg, textvariable=crib_time_entry_var, width=10, validate="key", validatecommand=vcmd)
+        crib_time_entry.grid(row=row_num, column=1, sticky="w", padx=6, pady=4)
+        entries["crib_time"] = crib_time_entry_var
+        row_num += 1
 
         def save_and_close():
             for v in entries:
@@ -708,17 +718,24 @@ class GameManagementApp:
         dlg.wait_visibility()
         dlg.grab_set()
 
-    def _apply_button_data(self, idx):
-        for widget in self.widgets:
-            var_name = widget["name"]
-            if widget["checkbox"] is not None:
-                val = self.button_data[idx]["checkboxes"].get(var_name, widget["checkbox"].get())
-                widget["checkbox"].set(val)
-            else:
-                val = self.button_data[idx]["values"].get(var_name, widget["entry"].get())
-                widget["entry"].delete(0, tk.END)
-                widget["entry"].insert(0, val)
-        self.load_settings()
+        def _apply_button_data(self, idx):
+            for widget in self.widgets:
+                var_name = widget["name"]
+                if widget["checkbox"] is not None:
+                    val = self.button_data[idx]["checkboxes"].get(var_name, widget["checkbox"].get())
+                    widget["checkbox"].set(val)
+                else:
+                    val = self.button_data[idx]["values"].get(var_name, widget["entry"].get())
+                    widget["entry"].delete(0, tk.END)
+                    widget["entry"].insert(0, val)
+            # --- PATCH: also populate the Crib Time value in main variables from preset ---
+            crib_time_val = self.button_data[idx]["values"].get("crib_time", None)
+            if crib_time_val is not None:
+                for widget in self.widgets:
+                    if widget["name"] == "crib_time" and widget["entry"] is not None:
+                        widget["entry"].delete(0, tk.END)
+                        widget["entry"].insert(0, crib_time_val)
+            self.load_settings()
 
     def _on_settings_variable_change(self, *args):
         self.load_settings()
@@ -949,6 +966,23 @@ class GameManagementApp:
             self.current_index = self.find_period_index('Between Game Break')
         cur_period = self.full_sequence[self.current_index]
 
+        # --- PATCH: Shorten Between Game Break if game ran over ---
+        if cur_period['name'] == "Between Game Break":
+            now = datetime.datetime.now()
+            local_seconds = now.hour * 3600 + now.minute * 60 + now.second
+            court_seconds = self.court_time_seconds
+            if court_seconds > local_seconds:
+                delta = court_seconds - local_seconds
+                crib_time = 0
+                try:
+                    crib_var = self.variables['crib_time']
+                    crib_time = int(float(crib_var.get("value", crib_var["default"])))
+                except Exception:
+                    crib_time = 0
+                reduce_by = min(delta, crib_time)
+                if reduce_by > 0 and cur_period['duration'] is not None:
+                    cur_period['duration'] = max(0, cur_period['duration'] - reduce_by)
+
         if cur_period['name'] in ['First Half', 'Second Half', 'Between Game Break']:
             self.white_timeouts_this_half = 0
             self.black_timeouts_this_half = 0
@@ -987,7 +1021,6 @@ class GameManagementApp:
             self.white_timeout_button.config(state=tk.NORMAL, bg="white", fg="black")
             self.black_timeout_button.config(state=tk.NORMAL, bg="black", fg="white")
             self.penalties_button.config(state=tk.NORMAL)
-
 
         PAUSE_PERIODS = [
             "Half Time",
