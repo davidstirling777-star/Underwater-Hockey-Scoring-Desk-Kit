@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, font
 import datetime
+import re
+import time
 
 class GameManagementApp:
     def __init__(self, master):
@@ -13,7 +15,6 @@ class GameManagementApp:
 
         # --- Variable and font setup ---
         self.variables = {
-            # PATCH: Add new "time_to_start_first_game" row above start_first_game_in
             "time_to_start_first_game": {"default": "", "checkbox": False, "unit": "hh:mm", "label": "Time to Start First Game:"},
             "start_first_game_in": {"default": 1, "checkbox": False, "unit": "minutes", "label": "Start First Game in:"},
             "team_timeouts_allowed": {"default": True, "checkbox": True, "unit": "", "label": "Team time-outs allowed?"},
@@ -73,18 +74,15 @@ class GameManagementApp:
         self.pending_timeout = None
         self.white_timeouts_this_half = 0
         self.black_timeouts_this_half = 0
-        self.current_half = 0
         self.active_timeout_team = None
         self.sudden_death_timer_job = None
         self.sudden_death_seconds = 0
         self.sudden_death_goal_scored = False
         self.full_sequence = []
         self.current_index = 0
-        self.game_started = False
         self.widgets = []
         self.last_valid_values = {}
         self.team_timeouts_allowed_var = tk.BooleanVar(value=self.variables["team_timeouts_allowed"]["default"])
-        self.pending_timeout_team = None  # Track which team has a pending timeout
         self.overtime_allowed_var = tk.BooleanVar(value=self.variables["overtime_allowed"]["default"])
         self.referee_timeout_active = False
         self.referee_timeout_elapsed = 0
@@ -250,16 +248,18 @@ class GameManagementApp:
                 self.display_game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
             # Event-driven: StringVar automatically updates display widget
 
+    def _penalty_sort_key(self, p):
+        """Helper method to sort penalties by time remaining."""
+        return p["seconds_remaining"] if not p["is_rest_of_match"] else 999999
+
     def update_penalty_grid(self):
-        def penalty_sort_key(p):
-            return p["seconds_remaining"] if not p["is_rest_of_match"] else 999999
         white_penalties = sorted(
             [p for p in self.active_penalties if p["team"] == "White"],
-            key=penalty_sort_key
+            key=self._penalty_sort_key
         )[:3]
         black_penalties = sorted(
             [p for p in self.active_penalties if p["team"] == "Black"],
-            key=penalty_sort_key
+            key=self._penalty_sort_key
         )[:3]
         for i in range(3):
             if i < len(white_penalties):
@@ -288,15 +288,13 @@ class GameManagementApp:
             self.penalty_labels[i][1].config(text=label_text)
 
     def update_display_penalty_grid(self):
-        def penalty_sort_key(p):
-            return p["seconds_remaining"] if not p["is_rest_of_match"] else 999999
         white_penalties = sorted(
             [p for p in self.active_penalties if p["team"] == "White"],
-            key=penalty_sort_key
+            key=self._penalty_sort_key
         )[:3]
         black_penalties = sorted(
             [p for p in self.active_penalties if p["team"] == "Black"],
-            key=penalty_sort_key
+            key=self._penalty_sort_key
         )[:3]
         for i in range(3):
             if i < len(white_penalties):
@@ -419,8 +417,7 @@ class GameManagementApp:
 
     def build_game_sequence(self):
         seq = []
-        # Always start with "Game Starts in:", even if game_started flag
-        import datetime
+        # Always start with "Game Starts in:"
         now = datetime.datetime.now()
         time_val = self.variables.get("time_to_start_first_game", {}).get("value", "")
         bgb_val = self.variables.get("between_game_break", {}).get("value", "1").replace(",", ".")
@@ -430,7 +427,6 @@ class GameManagementApp:
             bgb_minutes = 1.0
         game_starts_in_minutes = None
         if time_val:
-            import re
             match = re.fullmatch(r"(?:[0-9]|1[0-9]|2[0-3]):[0-5][0-9]", time_val.strip())
             if match:
                 hh, mm = map(int, time_val.strip().split(":"))
@@ -439,7 +435,7 @@ class GameManagementApp:
                     target = target + datetime.timedelta(days=1)
                 delta = target - now
                 minutes_to_start = int(delta.total_seconds() // 60)
-                # PATCH: Subtract the Between Game Break
+                # Subtract the Between Game Break
                 game_starts_in_minutes = max(0, minutes_to_start - int(bgb_minutes))
         if game_starts_in_minutes is not None:
             seq.append({'name': 'Game Starts in:', 'type': 'break', 'duration': game_starts_in_minutes * 60})
@@ -460,23 +456,6 @@ class GameManagementApp:
             seq.append({'name': 'Sudden Death', 'type': 'sudden_death', 'duration': None})
         self.full_sequence = seq
         self.current_index = 0
-        self.current_index = 0
-
-    def start_sequence(self):
-        self.current_index = 0
-        self.run_next_timer()
-
-    def run_next_timer(self):
-        if self.current_index >= len(self.full_sequence):
-            return  # Sequence finished
-        current = self.full_sequence[self.current_index]
-        # Display the timer for "Game Starts in:" as run-once with the calculated residual in minutes
-        self.display_timer(current['name'], current['duration'])
-        self.set_timer(current['duration'], self.timer_finished)
-
-    def timer_finished(self):
-        self.current_index += 1
-        self.run_next_timer()
 
     def find_period_index(self, name):
         for idx, period in enumerate(self.full_sequence):
@@ -507,7 +486,7 @@ class GameManagementApp:
             tk.Label(widget1, text=h, font=(default_font.cget("family"), new_size, "bold")).grid(row=0, column=i, sticky="w", padx=5, pady=5)
         row_idx = 1
         self.widgets = []
-        # PATCH: Ensure "time_to_start_first_game" is first, then "start_first_game_in" above team_timeouts_allowed
+        # Ensure "time_to_start_first_game" is first, then "start_first_game_in" above team_timeouts_allowed
         entry_order = list(self.variables.keys())
         for special_name in ["time_to_start_first_game", "start_first_game_in"]:
             if special_name in entry_order:
@@ -547,16 +526,15 @@ class GameManagementApp:
             label_text = var_info.get("label", f"{var_name.replace('_', ' ').title()}:")
             label_widget = tk.Label(widget1, text=label_text, font=(default_font.cget("family"), new_size, "bold"))
             label_widget.grid(row=row_idx, column=1, sticky="w", pady=5)
-            # PATCH: Set up value box for time_to_start_first_game and validate as hh:mm
+            # Set up value box for time_to_start_first_game and validate as hh:mm
             entry = ttk.Entry(widget1, width=10)
             if var_name == "time_to_start_first_game":
                 entry.insert(0, "")
-                # PATCH: Only validate on focusout/return, allow any input while typing
+                # Only validate on focusout/return, allow any input while typing
                 def validate_hhmm_on_focusout(event):
                     val = event.widget.get().strip()
                     if val == "":
                         return
-                    import re
                     # Accept HH:MM (single or double digit hour)
                     if not re.fullmatch(r"(?:[0-9]|1[0-9]|2[0-3]):[0-5][0-9]", val):
                         messagebox.showerror("Input Error", "Please enter time in HH:MM 24-hour format (e.g., 19:36 or 9:36).")
@@ -701,13 +679,11 @@ class GameManagementApp:
             self.widget2_buttons[idx].config(text=new_text)
 
     def _start_button_hold(self, event, idx):
-        import time
         self._button_hold_start_time = time.time()
         self._button_hold_index = idx
         self._button_hold_timer = self.master.after(3000, lambda: self._open_button_dialog(idx))
 
     def _button_release(self, event, idx):
-        import time
         if hasattr(self, '_button_hold_timer') and self._button_hold_timer is not None:
             self.master.after_cancel(self._button_hold_timer)
             self._button_hold_timer = None
@@ -720,7 +696,7 @@ class GameManagementApp:
         # Apply saved values and checkboxes for all widgets
         for widget in self.widgets:
             var_name = widget["name"]
-            # PATCH: Do not apply preset to "start_first_game_in"
+            # Do not apply preset to "start_first_game_in"
             if var_name == "start_first_game_in":
                 continue
             if widget["checkbox"] is not None:
@@ -858,7 +834,7 @@ class GameManagementApp:
         self.build_game_sequence()
 
     def load_settings(self):
-        # PATCH: Calculate "Start First Game In" from "Time to Start First Game" minus "Between Game Break"
+        # Calculate "Start First Game In" from "Time to Start First Game" minus "Between Game Break"
         time_entry_val = None
         between_game_break_val = None
         start_first_game_in_widget = None
@@ -871,13 +847,11 @@ class GameManagementApp:
                 start_first_game_in_widget = widget["entry"]
         # Calculate start_first_game_in value if time is valid
         minutes_to_start = None
-        import datetime
         now = datetime.datetime.now()
         if time_entry_val:
             try:
-                # PATCH: Allow single or double digit hour, always two digit minute
-                import re
-                # PATCH: Use strict 24-hour regex
+                # Allow single or double digit hour, always two digit minute
+                # Use strict 24-hour regex
                 time_match = re.match(r"^([01][0-9]|2[0-3]):[0-5][0-9]$", time_entry_val)
                 if time_match:
                     hh, mm = map(int, time_entry_val.split(":"))
@@ -935,26 +909,6 @@ class GameManagementApp:
 
         set_button_state(getattr(self, 'white_timeout_button', None), allowed)
         set_button_state(getattr(self, 'black_timeout_button', None), allowed)
-
-        if hasattr(self, "white_timeout_placeholder") and self.white_timeout_placeholder is not None:
-            if allowed:
-                self.white_timeout_placeholder.grid_remove()
-                if hasattr(self, "white_timeout_button") and self.white_timeout_button is not None:
-                    self.white_timeout_button.grid()
-            else:
-                if hasattr(self, "white_timeout_button") and self.white_timeout_button is not None:
-                    self.white_timeout_button.grid_remove()
-                self.white_timeout_placeholder.grid()
-
-        if hasattr(self, "black_timeout_placeholder") and self.black_timeout_placeholder is not None:
-            if allowed:
-                self.black_timeout_placeholder.grid_remove()
-                if hasattr(self, "black_timeout_button") and self.black_timeout_button is not None:
-                    self.black_timeout_button.grid()
-            else:
-                if hasattr(self, "black_timeout_button") and self.black_timeout_button is not None:
-                    self.black_timeout_button.grid_remove()
-                self.black_timeout_placeholder.grid()
 
         if hasattr(self, "team_timeout_period_entry") and self.team_timeout_period_entry is not None:
             try:
@@ -1127,7 +1081,7 @@ class GameManagementApp:
             self.current_index = self.find_period_index('Between Game Break')
         cur_period = self.full_sequence[self.current_index]
 
-        # --- PATCH: Shorten Between Game Break if court time is behind local time (paused for ref timeout etc) ---
+        # Shorten Between Game Break if court time is behind local time (paused for ref timeout etc)
         if cur_period['name'] == "Between Game Break":
             now = datetime.datetime.now()
             local_seconds = now.hour * 3600 + now.minute * 60 + now.second
@@ -1850,7 +1804,7 @@ class GameManagementApp:
             self.next_period()
             return
 
-        # --- LOGIC: If goal added during Between Game Break and scores are now EVEN ---
+        # If goal added during Between Game Break and scores are now EVEN
         if cur_period['name'] == 'Between Game Break':
             if self.white_score_var.get() == self.black_score_var.get():
                 if self.is_overtime_enabled():
@@ -1862,7 +1816,7 @@ class GameManagementApp:
                     self.start_current_period()
                     return
 
-        # ---LOGIC: If goal added during Overtime Game Break and scores are now UNEVEN, skip Overtime ---
+        # If goal added during Overtime Game Break and scores are now UNEVEN, skip Overtime
         if cur_period['name'] == 'Overtime Game Break':
             if self.white_score_var.get() != self.black_score_var.get():
                 # Skip Overtime, go straight to Between Game Break
@@ -1870,7 +1824,7 @@ class GameManagementApp:
                 self.start_current_period()
                 return
 
-        # --- Logic for Sudden Death Game Break after Overtime ---
+        # Logic for Sudden Death Game Break after Overtime
         if cur_period['name'] == 'Sudden Death Game Break':
             prev_period = self.full_sequence[self.current_index - 1] if self.current_index > 0 else None
             # If scores are now unequal, progress to Between Game Break
