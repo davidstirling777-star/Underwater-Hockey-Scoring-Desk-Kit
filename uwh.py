@@ -526,19 +526,40 @@ class GameManagementApp:
         widget2.grid_rowconfigure(5, weight=0)  # Instructional text 2
         header_label = tk.Label(widget2, text="Presets", font=(default_font.cget("family"), new_size, "bold"))
         header_label.grid(row=0, column=0, columnspan=3, padx=4, pady=(12,4), sticky="nsew")
+
+#add in default values for CMAS rules as per section 14.2 INTERNATIONAL RULES FOR UNDERWATER HOCKEY
+#RULES OF PLAY, Version 13.0, February 2025
         self.widget2_buttons = []
         self.button_data = [{} for _ in range(6)]
         for i in range(6):
             btn_row = 1 if i < 3 else 2
             btn_col = i % 3
-            self.button_data[i]["text"] = str(i + 1)
-            self.button_data[i]["values"] = {}
-            self.button_data[i]["checkboxes"] = {}
-            btn = ttk.Button(widget2, text=str(i + 1), width=16)
+            if i == 0:
+                self.button_data[i]["text"] = "CMAS"
+                self.button_data[i]["values"] = {
+                    "team_timeout_period": "1",           # Team timeout 1 minute
+                    "half_period": "15",                  # Half period 15 minutes
+                    "half_time_break": "3",               # Half time break 3 minutes
+                    "overtime_game_break": "3",           # Overtime game break 3 minutes
+                    "overtime_half_period": "5",          # Overtime half period 5 minutes
+                    "overtime_half_time_break": "1",      # Overtime half time break 1 minute
+                    "sudden_death_game_break": "1",       # Sudden Death Game break 1 minute
+                    "between_game_break": "5"             # Between Game break 5 minutes (this is not specified in the rules?)
+                }
+                self.button_data[i]["checkboxes"] = {
+                    "team_timeouts_allowed": True,        # Team timeouts allowed checked
+                    "overtime_allowed": True              # Overtime allowed checked
+                }
+            else:
+                self.button_data[i]["text"] = str(i + 1)
+                self.button_data[i]["values"] = {}
+                self.button_data[i]["checkboxes"] = {}
+            btn = ttk.Button(widget2, text=self.button_data[i]["text"], width=16)
             btn.grid(row=btn_row, column=btn_col, padx=8, pady=12, sticky="nsew")
             btn.bind("<ButtonPress-1>", self._make_press_handler(i))
             btn.bind("<ButtonRelease-1>", self._make_release_handler(i))
             self.widget2_buttons.append(btn)
+
         # Optional spacer row (row 3)
         spacer = tk.Label(widget2, text="", font=(default_font.cget("family"), new_size))
         spacer.grid(row=3, column=0, columnspan=3, sticky="nsew")
@@ -633,18 +654,42 @@ class GameManagementApp:
             label = widget["label_widget"]
             tk.Label(dlg, text=label.cget("text")).grid(row=row_num, column=0, sticky="w", padx=6, pady=4)
             if widget["checkbox"] is not None:
-                val = self.button_data[idx]["checkboxes"].get(var_name, widget["checkbox"].get())
+                # For button 1, preset checkboxes as True for required options
+                if idx == 0 and var_name in ["team_timeouts_allowed", "overtime_allowed"]:
+                    val = True
+                else:
+                    val = self.button_data[idx]["checkboxes"].get(var_name, widget["checkbox"].get())
                 check_var = tk.BooleanVar(value=val)
                 cb = ttk.Checkbutton(dlg, variable=check_var)
                 cb.grid(row=row_num, column=1, sticky="w", padx=6, pady=4)
                 checks[var_name] = check_var
             else:
-                val = self.button_data[idx]["values"].get(var_name, widget["entry"].get())
+                # For button 1, preset values for required options
+#add in default values for CMAS rules as per section 14.2 INTERNATIONAL RULES FOR UNDERWATER HOCKEY
+#RULES OF PLAY, Version 13.0, February 2025
+                if idx == 0 and var_name in [
+                    "team_timeout_period", "half_period", "half_time_break",
+                    "overtime_game_break", "overtime_half_period", "overtime_half_time_break",
+                    "sudden_death_game_break", "between_game_break"
+                ]:
+                    val = self.button_data[idx]["values"].get(var_name, {
+                        "team_timeout_period": "1",
+                        "half_period": "15",
+                        "half_time_break": "3",
+                        "overtime_game_break": "3",
+                        "overtime_half_period": "5",
+                        "overtime_half_time_break": "1",
+                        "sudden_death_game_break": "1",
+                        "between_game_break": "5"
+                    }.get(var_name, widget["entry"].get()))
+                else:
+                    val = self.button_data[idx]["values"].get(var_name, widget["entry"].get())
                 entry_var = tk.StringVar(value=val)
                 entry = ttk.Entry(dlg, textvariable=entry_var, width=10, validate="key", validatecommand=vcmd)
                 entry.grid(row=row_num, column=1, sticky="w", padx=6, pady=4)
                 entries[var_name] = entry_var
             row_num += 1
+
         def save_and_close():
             for v in entries:
                 try:
