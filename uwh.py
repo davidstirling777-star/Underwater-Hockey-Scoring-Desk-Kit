@@ -15,7 +15,6 @@ class GameManagementApp:
 
         # --- Variable and font setup ---
         self.variables = {
-            # PATCH: Add new "time_to_start_first_game" row above start_first_game_in
             "time_to_start_first_game": {"default": "", "checkbox": False, "unit": "hh:mm", "label": "Time to Start First Game:"},
             "start_first_game_in": {"default": 1, "checkbox": False, "unit": "minutes", "label": "Start First Game in:"},
             "team_timeouts_allowed": {"default": True, "checkbox": True, "unit": "", "label": "Team time-outs allowed?"},
@@ -436,7 +435,7 @@ class GameManagementApp:
                     target = target + datetime.timedelta(days=1)
                 delta = target - now
                 minutes_to_start = int(delta.total_seconds() // 60)
-                # PATCH: Subtract the Between Game Break
+                # Subtract the Between Game Break
                 game_starts_in_minutes = max(0, minutes_to_start - int(bgb_minutes))
         if game_starts_in_minutes is not None:
             seq.append({'name': 'Game Starts in:', 'type': 'break', 'duration': game_starts_in_minutes * 60})
@@ -487,7 +486,7 @@ class GameManagementApp:
             tk.Label(widget1, text=h, font=(default_font.cget("family"), new_size, "bold")).grid(row=0, column=i, sticky="w", padx=5, pady=5)
         row_idx = 1
         self.widgets = []
-        # PATCH: Ensure "time_to_start_first_game" is first, then "start_first_game_in" above team_timeouts_allowed
+        # Ensure "time_to_start_first_game" is first, then "start_first_game_in" above team_timeouts_allowed
         entry_order = list(self.variables.keys())
         for special_name in ["time_to_start_first_game", "start_first_game_in"]:
             if special_name in entry_order:
@@ -527,11 +526,11 @@ class GameManagementApp:
             label_text = var_info.get("label", f"{var_name.replace('_', ' ').title()}:")
             label_widget = tk.Label(widget1, text=label_text, font=(default_font.cget("family"), new_size, "bold"))
             label_widget.grid(row=row_idx, column=1, sticky="w", pady=5)
-            # PATCH: Set up value box for time_to_start_first_game and validate as hh:mm
+            # Set up value box for time_to_start_first_game and validate as hh:mm
             entry = ttk.Entry(widget1, width=10)
             if var_name == "time_to_start_first_game":
                 entry.insert(0, "")
-                # PATCH: Only validate on focusout/return, allow any input while typing
+                # Only validate on focusout/return, allow any input while typing
                 def validate_hhmm_on_focusout(event):
                     val = event.widget.get().strip()
                     if val == "":
@@ -697,7 +696,7 @@ class GameManagementApp:
         # Apply saved values and checkboxes for all widgets
         for widget in self.widgets:
             var_name = widget["name"]
-            # PATCH: Do not apply preset to "start_first_game_in"
+            # Do not apply preset to "start_first_game_in"
             if var_name == "start_first_game_in":
                 continue
             if widget["checkbox"] is not None:
@@ -835,7 +834,7 @@ class GameManagementApp:
         self.build_game_sequence()
 
     def load_settings(self):
-        # PATCH: Calculate "Start First Game In" from "Time to Start First Game" minus "Between Game Break"
+        # Calculate "Start First Game In" from "Time to Start First Game" minus "Between Game Break"
         time_entry_val = None
         between_game_break_val = None
         start_first_game_in_widget = None
@@ -851,8 +850,8 @@ class GameManagementApp:
         now = datetime.datetime.now()
         if time_entry_val:
             try:
-                # PATCH: Allow single or double digit hour, always two digit minute
-                # PATCH: Use strict 24-hour regex
+                # Allow single or double digit hour, always two digit minute
+                # Use strict 24-hour regex
                 time_match = re.match(r"^([01][0-9]|2[0-3]):[0-5][0-9]$", time_entry_val)
                 if time_match:
                     hh, mm = map(int, time_entry_val.split(":"))
@@ -1082,7 +1081,7 @@ class GameManagementApp:
             self.current_index = self.find_period_index('Between Game Break')
         cur_period = self.full_sequence[self.current_index]
 
-        # --- PATCH: Shorten Between Game Break if court time is behind local time (paused for ref timeout etc) ---
+        # Shorten Between Game Break if court time is behind local time (paused for ref timeout etc)
         if cur_period['name'] == "Between Game Break":
             now = datetime.datetime.now()
             local_seconds = now.hour * 3600 + now.minute * 60 + now.second
@@ -1805,7 +1804,7 @@ class GameManagementApp:
             self.next_period()
             return
 
-        # --- LOGIC: If goal added during Between Game Break and scores are now EVEN ---
+        # If goal added during Between Game Break and scores are now EVEN
         if cur_period['name'] == 'Between Game Break':
             if self.white_score_var.get() == self.black_score_var.get():
                 if self.is_overtime_enabled():
@@ -1817,7 +1816,7 @@ class GameManagementApp:
                     self.start_current_period()
                     return
 
-        # ---LOGIC: If goal added during Overtime Game Break and scores are now UNEVEN, skip Overtime ---
+        # If goal added during Overtime Game Break and scores are now UNEVEN, skip Overtime
         if cur_period['name'] == 'Overtime Game Break':
             if self.white_score_var.get() != self.black_score_var.get():
                 # Skip Overtime, go straight to Between Game Break
@@ -1825,7 +1824,7 @@ class GameManagementApp:
                 self.start_current_period()
                 return
 
-        # --- Logic for Sudden Death Game Break after Overtime ---
+        # Logic for Sudden Death Game Break after Overtime
         if cur_period['name'] == 'Sudden Death Game Break':
             prev_period = self.full_sequence[self.current_index - 1] if self.current_index > 0 else None
             # If scores are now unequal, progress to Between Game Break
