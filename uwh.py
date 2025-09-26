@@ -987,13 +987,13 @@ class GameManagementApp:
             self.current_index = self.find_period_index('Between Game Break')
         cur_period = self.full_sequence[self.current_index]
 
-        # --- PATCH: Shorten Between Game Break if game ran over ---
+        # --- PATCH: Shorten Between Game Break if court time is behind local time (paused for ref timeout etc) ---
         if cur_period['name'] == "Between Game Break":
             now = datetime.datetime.now()
             local_seconds = now.hour * 3600 + now.minute * 60 + now.second
             court_seconds = self.court_time_seconds
-            if court_seconds > local_seconds:
-                delta = court_seconds - local_seconds
+            if local_seconds > court_seconds:
+                delta = local_seconds - court_seconds
                 crib_time = 0
                 try:
                     crib_var = self.variables['crib_time']
