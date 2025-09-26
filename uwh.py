@@ -49,8 +49,16 @@ class GameManagementApp:
             "game_no": font.Font(family="Arial", size=12),
         }
 
+        # Event-driven Tkinter variables for all display widgets
         self.white_score_var = tk.IntVar(value=0)
         self.black_score_var = tk.IntVar(value=0)
+        self.timer_var = tk.StringVar(value="00:00")
+        self.court_time_var = tk.StringVar(value="Court Time is 00:00:00")
+        self.half_label_var = tk.StringVar(value="")
+        self.game_number_var = tk.StringVar(value="Game 121")
+        self.white_team_var = tk.StringVar(value="White")
+        self.black_team_var = tk.StringVar(value="Black")
+        
         self.timer_running = True
         self.timer_seconds = 0
 
@@ -119,18 +127,18 @@ class GameManagementApp:
         for i in range(9):
             tab.grid_columnconfigure(i, weight=1)
 
-        self.court_time_label = tk.Label(tab, text="Court Time is", font=self.fonts["court_time"], bg="lightgrey")
+        self.court_time_label = tk.Label(tab, textvariable=self.court_time_var, font=self.fonts["court_time"], bg="lightgrey")
         self.court_time_label.grid(row=0, column=0, columnspan=9, padx=1, pady=1, sticky="nsew")
 
-        self.half_label = tk.Label(tab, text="", font=self.fonts["half"], bg="lightcoral")
+        self.half_label = tk.Label(tab, textvariable=self.half_label_var, font=self.fonts["half"], bg="lightcoral")
         self.half_label.grid(row=1, column=0, columnspan=9, padx=1, pady=1, sticky="nsew")
 
-        self.white_label = tk.Label(tab, text="White", font=self.fonts["team"], bg="white", fg="black")
+        self.white_label = tk.Label(tab, textvariable=self.white_team_var, font=self.fonts["team"], bg="white", fg="black")
         self.white_label.grid(row=2, column=0, columnspan=3, padx=1, pady=1, sticky="nsew")
-        self.black_label = tk.Label(tab, text="Black", font=self.fonts["team"], bg="black", fg="white")
+        self.black_label = tk.Label(tab, textvariable=self.black_team_var, font=self.fonts["team"], bg="black", fg="white")
         self.black_label.grid(row=2, column=6, columnspan=3, padx=1, pady=1, sticky="nsew")
 
-        self.game_label = tk.Label(tab, text="Game 121", font=self.fonts["game_no"], bg="light grey")
+        self.game_label = tk.Label(tab, textvariable=self.game_number_var, font=self.fonts["game_no"], bg="light grey")
         self.game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
         self.penalty_grid_frame, self.penalty_labels = self.create_penalty_grid_widget(tab)
         self.penalty_grid_frame.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
@@ -141,7 +149,7 @@ class GameManagementApp:
         self.black_score = tk.Label(tab, textvariable=self.black_score_var, font=self.fonts["score"], bg="black", fg="white")
         self.black_score.grid(row=3, column=6, rowspan=6, columnspan=3, padx=1, pady=1, sticky="nsew")
 
-        self.timer_label = tk.Label(tab, text="00:00", font=self.fonts["timer"], bg="lightgrey", fg="black")
+        self.timer_label = tk.Label(tab, textvariable=self.timer_var, font=self.fonts["timer"], bg="lightgrey", fg="black")
         self.timer_label.grid(row=3, column=3, rowspan=6, columnspan=3, padx=1, pady=1, sticky="nsew")
 
         self.white_timeout_button = tk.Button(
@@ -222,7 +230,8 @@ class GameManagementApp:
             # Show Game 121 label always
             if not self.game_label.winfo_ismapped():
                 self.game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
-            self.game_label.config(text="Game 121")
+            # Event-driven: Update the StringVar instead of calling .config()
+            self.game_number_var.set("Game 121")
 
         # Display window: same logic
         display_has_penalties = bool(self.active_penalties or self.stored_penalties)
@@ -239,7 +248,7 @@ class GameManagementApp:
                 pass
             if not self.display_game_label.winfo_ismapped():
                 self.display_game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
-            self.display_game_label.config(text="Game 121")
+            # Event-driven: StringVar automatically updates display widget
 
     def update_penalty_grid(self):
         def penalty_sort_key(p):
@@ -320,7 +329,8 @@ class GameManagementApp:
         self.master.after(1000, self.start_penalty_display_updates)
 
     def sync_penalty_display_to_external(self):
-        self.display_game_label.config(text=self.game_label.cget("text"))
+        # Event-driven: No need to sync text since both widgets use the same StringVar
+        # Only background colors need to be synchronized
         self.display_window.after(1000, self.sync_penalty_display_to_external)
 
     def create_penalty_grid_widget(self, parent, is_display=False):
@@ -990,18 +1000,18 @@ class GameManagementApp:
         for i in range(9):
             tab.grid_columnconfigure(i, weight=1)
 
-        self.display_court_time_label = tk.Label(tab, text="Court Time is", font=self.display_fonts["court_time"], bg="lightgrey")
+        self.display_court_time_label = tk.Label(tab, textvariable=self.court_time_var, font=self.display_fonts["court_time"], bg="lightgrey")
         self.display_court_time_label.grid(row=0, column=0, columnspan=9, padx=1, pady=1, sticky="nsew")
 
-        self.display_half_label = tk.Label(tab, text="", font=self.display_fonts["half"], bg="lightcoral")
+        self.display_half_label = tk.Label(tab, textvariable=self.half_label_var, font=self.display_fonts["half"], bg="lightcoral")
         self.display_half_label.grid(row=1, column=0, columnspan=9, padx=1, pady=1, sticky="nsew")
 
-        self.display_white_label = tk.Label(tab, text="White", font=self.display_fonts["team"], bg="white", fg="black")
+        self.display_white_label = tk.Label(tab, textvariable=self.white_team_var, font=self.display_fonts["team"], bg="white", fg="black")
         self.display_white_label.grid(row=2, column=0, columnspan=3, padx=1, pady=1, sticky="nsew")
-        self.display_black_label = tk.Label(tab, text="Black", font=self.display_fonts["team"], bg="black", fg="white")
+        self.display_black_label = tk.Label(tab, textvariable=self.black_team_var, font=self.display_fonts["team"], bg="black", fg="white")
         self.display_black_label.grid(row=2, column=6, columnspan=3, padx=1, pady=1, sticky="nsew")
 
-        self.display_game_label = tk.Label(tab, text="Game 121", font=self.display_fonts["game_no"], bg="light grey")
+        self.display_game_label = tk.Label(tab, textvariable=self.game_number_var, font=self.display_fonts["game_no"], bg="light grey")
         self.display_game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
         self.display_penalty_grid_frame, self.display_penalty_labels = self.create_penalty_grid_widget(tab, is_display=True)
         self.display_penalty_grid_frame.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
@@ -1012,7 +1022,7 @@ class GameManagementApp:
         self.display_black_score = tk.Label(tab, textvariable=self.black_score_var, font=self.display_fonts["score"], bg="black", fg="white")
         self.display_black_score.grid(row=3, column=6, rowspan=8, columnspan=3, padx=1, pady=1, sticky="nsew")
 
-        self.display_timer_label = tk.Label(tab, text="00:00", font=self.display_fonts["timer"], bg="lightgrey", fg="black")
+        self.display_timer_label = tk.Label(tab, textvariable=self.timer_var, font=self.display_fonts["timer"], bg="lightgrey", fg="black")
         self.display_timer_label.grid(row=3, column=3, rowspan=8, columnspan=3, padx=1, pady=1, sticky="nsew")
 
         self.display_window.bind('<Configure>', self.scale_display_fonts)
@@ -1022,15 +1032,13 @@ class GameManagementApp:
         self.sync_display_widgets()
 
     def sync_display_widgets(self):
-        def update_display():
-            self.display_court_time_label.config(text=self.court_time_label.cget("text"))
-            self.display_half_label.config(text=self.half_label.cget("text"), bg=self.half_label.cget("bg"))
-            self.display_timer_label.config(text=self.timer_label.cget("text"))
-            self.display_game_label.config(text=self.game_label.cget("text"))
-            self.display_white_label.config(text=self.white_label.cget("text"))
-            self.display_black_label.config(text=self.black_label.cget("text"))
-            self.display_window.after(50, update_display)  #This value has a great effect on GPU usage.
-        update_display()
+        # Event-driven approach: No polling needed since all widgets use textvariable
+        # Background colors still need to be synchronized for the half label
+        def sync_backgrounds():
+            # Only sync background colors that can't be handled by textvariable
+            self.display_half_label.config(bg=self.half_label.cget("bg"))
+            self.master.after(100, sync_backgrounds)  # Reduced frequency for background sync only
+        sync_backgrounds()
 
     def reset_timer(self):
         self.white_score_var.set(0)
@@ -1045,11 +1053,13 @@ class GameManagementApp:
         self.sudden_death_seconds = 0
         if self.full_sequence:
             self.timer_seconds = self.full_sequence[0]["duration"]
-            self.half_label.config(text=self.full_sequence[0]["name"])
+            # Event-driven: Update the StringVar instead of calling .config()
+            self.half_label_var.set(self.full_sequence[0]["name"])
             self.update_half_label_background(self.full_sequence[0]["name"])
         else:
             self.timer_seconds = 0
-            self.half_label.config(text="")
+            # Event-driven: Update the StringVar instead of calling .config()
+            self.half_label_var.set("")
         self.update_timer_display()
 
         now = datetime.datetime.now()
@@ -1075,21 +1085,25 @@ class GameManagementApp:
         hours, remainder = divmod(self.court_time_seconds, 3600)
         minutes, seconds = divmod(remainder, 60)
         time_string = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
-        self.court_time_label.config(text=f"Court Time is {time_string}")
+        # Event-driven: Update the StringVar instead of calling .config()
+        self.court_time_var.set(f"Court Time is {time_string}")
         self.court_time_job = self.master.after(1000, self.update_court_time)
 
     def update_timer_display(self):
         if self.referee_timeout_active:
             mins, secs = divmod(self.referee_timeout_elapsed, 60)
-            self.timer_label.config(text=f"{int(mins):02d}:{int(secs):02d}")
+            # Event-driven: Update the StringVar instead of calling .config()
+            self.timer_var.set(f"{int(mins):02d}:{int(secs):02d}")
             return
         cur_period = self.full_sequence[self.current_index] if self.full_sequence and self.current_index < len(self.full_sequence) else None
         if cur_period and cur_period['name'] == 'Sudden Death':
             mins, secs = divmod(self.sudden_death_seconds, 60)
-            self.timer_label.config(text=f"{int(mins):02d}:{int(secs):02d}")
+            # Event-driven: Update the StringVar instead of calling .config()
+            self.timer_var.set(f"{int(mins):02d}:{int(secs):02d}")
         else:
             mins, secs = divmod(self.timer_seconds, 60)
-            self.timer_label.config(text=f"{int(mins):02d}:{int(secs):02d}")
+            # Event-driven: Update the StringVar instead of calling .config()
+            self.timer_var.set(f"{int(mins):02d}:{int(secs):02d}")
 
     def adjust_between_game_break_for_crib_time(self):
         current_court_time = datetime.datetime.now() - datetime.timedelta(seconds=self.court_time_seconds)
@@ -1134,7 +1148,8 @@ class GameManagementApp:
             self.white_timeouts_this_half = 0
             self.black_timeouts_this_half = 0
 
-        self.half_label.config(text=cur_period['name'])
+        # Event-driven: Update the StringVar instead of calling .config()
+        self.half_label_var.set(cur_period['name'])
         self.update_half_label_background(cur_period['name'])
 
         TIMEOUTS_DISABLED_PERIODS = [
@@ -1314,9 +1329,8 @@ class GameManagementApp:
             if self.pending_timeout is None and self.active_timeout_team != "white":
                 self.pending_timeout = "white"
                 status = f"{self.active_timeout_team.capitalize()} Team Time-Out (White Pending)"
-                self.half_label.config(text=status)
-                if hasattr(self, "display_half_label"):
-                    self.display_half_label.config(text=status)
+                # Event-driven: Update the StringVar instead of calling .config()
+                self.half_label_var.set(status)
             return
         if self.white_timeouts_this_half >= 1:
             self.show_timeout_popup("White")
@@ -1333,9 +1347,8 @@ class GameManagementApp:
         self.timer_running = False
         timeout_seconds = self.get_minutes('team_timeout_period')
         self.timer_seconds = timeout_seconds
-        self.half_label.config(text="White Team Time-Out")
-        if hasattr(self, "display_half_label"):
-            self.display_half_label.config(text="White Team Time-Out")
+        # Event-driven: Update the StringVar instead of calling .config()
+        self.half_label_var.set("White Team Time-Out")
         self.update_half_label_background("White Team Time-Out")
         self.update_timer_display()
         self.timer_job = self.master.after(1000, self.timeout_countdown)
@@ -1350,9 +1363,8 @@ class GameManagementApp:
             if self.pending_timeout is None and self.active_timeout_team != "black":
                 self.pending_timeout = "black"
                 status = f"{self.active_timeout_team.capitalize()} Team Time-Out (Black Pending)"
-                self.half_label.config(text=status)
-                if hasattr(self, "display_half_label"):
-                    self.display_half_label.config(text=status)
+                # Event-driven: Update the StringVar instead of calling .config()
+                self.half_label_var.set(status)
             return
         if self.black_timeouts_this_half >= 1:
             self.show_timeout_popup("Black")
@@ -1369,9 +1381,8 @@ class GameManagementApp:
         self.timer_running = False
         timeout_seconds = self.get_minutes('team_timeout_period')
         self.timer_seconds = timeout_seconds
-        self.half_label.config(text="Black Team Time-Out")
-        if hasattr(self, "display_half_label"):
-            self.display_half_label.config(text="Black Team Time-Out")
+        # Event-driven: Update the StringVar instead of calling .config()
+        self.half_label_var.set("Black Team Time-Out")
         self.update_half_label_background("Black Team Time-Out")
         self.update_timer_display()
         self.timer_job = self.master.after(1000, self.timeout_countdown)
@@ -1398,7 +1409,8 @@ class GameManagementApp:
         self.timer_running = self.saved_timer_running
         self.timer_seconds = self.saved_timer_seconds
         self.current_index = self.saved_index
-        self.half_label.config(text=self.saved_half_label)
+        # Event-driven: Update the StringVar instead of calling .config()
+        self.half_label_var.set(self.saved_half_label)
         self.half_label.config(bg=self.saved_half_label_bg)
         self.update_timer_display()
         if self.timer_job:
@@ -1421,7 +1433,8 @@ class GameManagementApp:
         self.saved_timer_running = self.timer_running
         self.saved_timer_seconds = self.timer_seconds
         self.saved_index = self.current_index
-        self.saved_half_label = self.half_label.cget("text")
+        # Event-driven: Get text from StringVar instead of widget
+        self.saved_half_label = self.half_label_var.get()
         self.saved_half_label_bg = self.half_label.cget("bg")
         self.saved_sudden_death_goal_scored = getattr(self, "sudden_death_goal_scored", False)
 
@@ -1709,7 +1722,8 @@ class GameManagementApp:
                 "timer_running": self.timer_running,
                 "timer_job": self.timer_job,
                 "current_index": self.current_index,
-                "half_label_text": self.half_label.cget("text"),
+                # Event-driven: Get text from StringVar instead of widget
+                "half_label_text": self.half_label_var.get(),
                 "half_label_bg": self.half_label.cget("bg"),
                 "court_time_paused": self.court_time_paused,
                 "court_time_job": self.court_time_job,
@@ -1724,7 +1738,8 @@ class GameManagementApp:
             self.court_time_paused = True
             self.pause_all_penalty_timers()
             self.referee_timeout_elapsed = 0
-            self.half_label.config(text="Referee Time-Out")
+            # Event-driven: Update the StringVar instead of calling .config()
+            self.half_label_var.set("Referee Time-Out")
             self.half_label.config(bg="red")
             self.referee_timeout_countup()
             # --- PATCH: Explicitly enable penalties button during referee timeout ---
@@ -1741,7 +1756,8 @@ class GameManagementApp:
             self.timer_seconds = self.saved_state["timer_seconds"]
             self.timer_running = self.saved_state["timer_running"]
             self.current_index = self.saved_state["current_index"]
-            self.half_label.config(text=self.saved_state["half_label_text"])
+            # Event-driven: Update the StringVar instead of calling .config()
+            self.half_label_var.set(self.saved_state["half_label_text"])
             self.half_label.config(bg=self.saved_state["half_label_bg"])
             self.court_time_paused = self.saved_state.get("court_time_paused", False)
             self.resume_all_penalty_timers()
@@ -1768,7 +1784,8 @@ class GameManagementApp:
         if not self.referee_timeout_active:
             return
         mins, secs = divmod(self.referee_timeout_elapsed, 60)
-        self.timer_label.config(text=f"{int(mins):02d}:{int(secs):02d}")
+        # Event-driven: Update the StringVar instead of calling .config()
+        self.timer_var.set(f"{int(mins):02d}:{int(secs):02d}")
         self.referee_timeout_elapsed += 1
         self.timer_job = self.master.after(1000, self.referee_timeout_countup)
 
