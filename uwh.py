@@ -875,6 +875,11 @@ class GameManagementApp:
                                    length=80, font=(default_font.cget("family"), new_size-2))
         water_vol_slider.grid(row=7, column=5, rowspan=4, padx=4, pady=2, sticky="nsew")
         
+        # Add placeholder labels to ensure all 11 rows are used in the grid
+        for row in range(8, 11):
+            placeholder = tk.Label(widget3, text="", font=(default_font.cget("family"), new_size-2))
+            placeholder.grid(row=row, column=0, sticky="nsew")
+        
         self.update_overtime_variables_state()
 
     def _make_press_handler(self, idx):
