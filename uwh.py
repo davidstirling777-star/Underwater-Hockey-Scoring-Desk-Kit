@@ -1871,7 +1871,6 @@ class GameManagementApp:
 
 #Saves the current Sudden Death timer value (self.sudden_death_seconds) for possible restoration (for example, if the goal is later subtracted).
 #Flags that a goal has been scored in Sudden Death (prevents this block from running again).
-#Flags that a goal has been scored in Sudden Death (prevents this block from running again).
 #Progresses the game to the next period (typically Between Game Break or End of Game).
         if cur_period['name'] == 'Sudden Death' and not getattr(self, 'sudden_death_goal_scored', False):
             self.sudden_death_restore_time = self.sudden_death_seconds
