@@ -615,19 +615,19 @@ class GameManagementApp:
     def create_settings_tab(self):
         tab = ttk.Frame(self.notebook)
         self.notebook.add(tab, text="Game Variables")
-        tab.grid_rowconfigure(0, weight=1)
-        tab.grid_rowconfigure(1, weight=1)
-        tab.grid_rowconfigure(2, weight=1)  # Add row for expanded sounds widget
-        tab.grid_columnconfigure(0, weight=2)
-        tab.grid_columnconfigure(1, weight=1)
+        tab.grid_rowconfigure(0, weight=3)  # Widget 1 gets most of the space
+        tab.grid_rowconfigure(1, weight=2)  # Widget 2 (Presets) gets less space
+        tab.grid_rowconfigure(2, weight=1)  # Widget 3 (Sounds) gets reduced height (30% less)
+        tab.grid_columnconfigure(0, weight=2)  # Widget 1 on left
+        tab.grid_columnconfigure(1, weight=1)  # Widget 2 & 3 stack on right (60% width)
 
         default_font = font.nametofont("TkDefaultFont")
         new_size = default_font.cget("size") + 2
         headers = ["Use?", "Variable", "Value", "Units"]
 
-        # Widget 1
+        # Widget 1 (Game Variables) - Left side, spans all rows
         widget1 = ttk.Frame(tab, borderwidth=1, relief="solid")
-        widget1.grid(row=0, column=0, sticky="nsew", padx=8, pady=8)
+        widget1.grid(row=0, column=0, rowspan=3, sticky="nsew", padx=8, pady=8)
         for i in range(4):
             widget1.grid_columnconfigure(i, weight=1)
         for i in range(17):
@@ -727,17 +727,16 @@ class GameManagementApp:
         self.reset_timer_button = ttk.Button(widget1, text="Reset Timer", command=self.reset_timer)
         self.reset_timer_button.grid(row=16, column=0, columnspan=4, pady=8)
 
-        # Widget 2 ("Presets")
+        # Widget 2 ("Presets") - Top right, reduced size
         widget2 = ttk.Frame(tab, borderwidth=1, relief="solid")
         widget2.grid(row=0, column=1, sticky="nsew", padx=8, pady=8)
 
-
         for col in range(3):
             widget2.grid_columnconfigure(col, weight=1)
-        # Make widget2 about 50% of previous height: only expand button rows
+        # Reduced height configuration for Widget 2
         widget2.grid_rowconfigure(0, weight=0)  # Header
-        widget2.grid_rowconfigure(1, weight=0)  # Button row 1
-        widget2.grid_rowconfigure(2, weight=0)  # Button row 2
+        widget2.grid_rowconfigure(1, weight=1)  # Button row 1
+        widget2.grid_rowconfigure(2, weight=1)  # Button row 2
         widget2.grid_rowconfigure(3, weight=0)  # Spacer
         widget2.grid_rowconfigure(4, weight=0)  # Instructional text 1
         widget2.grid_rowconfigure(5, weight=0)  # Instructional text 2
@@ -796,23 +795,20 @@ class GameManagementApp:
         )
         instruction2.grid(row=5, column=0, columnspan=3, sticky="w", padx=8, pady=(2,8))
 
-        # Widget 3 ("Sounds") - Spans 2 rows for 150% depth
+        # Widget 3 ("Sounds") - Bottom right, 60% width and 30% less height
         widget3 = ttk.Frame(tab, borderwidth=1, relief="solid")
-        widget3.grid(row=1, column=1, rowspan=2, sticky="nsew", padx=8, pady=8)
+        widget3.grid(row=2, column=1, sticky="nsew", padx=8, pady=8)
         
-        # Configure grid layout for reorganized sounds widget
-        widget3.grid_columnconfigure(0, weight=0)  # Label column
-        widget3.grid_columnconfigure(1, weight=1)  # Dropdown/slider column
-        widget3.grid_columnconfigure(2, weight=0)  # Play button column
-        widget3.grid_columnconfigure(3, weight=0)  # AIR volume slider column
-        widget3.grid_columnconfigure(4, weight=0)  # WATER volume slider column
+        # Configure grid layout for reorganized sounds widget - 11 rows and 6 columns
+        for i in range(6):
+            widget3.grid_columnconfigure(i, weight=1)  # All columns expandable
         
-        # Configure rows for reorganized layout
-        for i in range(8):
+        # Configure 11 rows for reorganized layout
+        for i in range(11):
             widget3.grid_rowconfigure(i, weight=1)
         
         sounds_label = tk.Label(widget3, text="Sounds", font=(default_font.cget("family"), new_size, "bold"))
-        sounds_label.grid(row=0, column=0, columnspan=5, padx=4, pady=(0,8), sticky="nsew")
+        sounds_label.grid(row=0, column=0, columnspan=6, padx=4, pady=(0,8), sticky="nsew")
         
         # Get dynamic list of sound files
         sound_files = self.get_sound_files()
@@ -827,57 +823,57 @@ class GameManagementApp:
         
         # Test channel volume sliders (moved to top of widget)  
         test_vol_label = tk.Label(widget3, text="Test Channel Volumes", font=(default_font.cget("family"), new_size, "bold"))
-        test_vol_label.grid(row=1, column=0, columnspan=3, padx=4, pady=(4,8), sticky="nsew")
+        test_vol_label.grid(row=1, column=0, columnspan=4, padx=4, pady=(4,8), sticky="nsew")
         
         # Pips volume slider
         pips_vol_label = tk.Label(widget3, text="Pips Vol:", font=(default_font.cget("family"), new_size-1))
-        pips_vol_label.grid(row=2, column=0, sticky="e", padx=(8,4), pady=2)
+        pips_vol_label.grid(row=2, column=0, sticky="nsew", padx=(8,4), pady=2)
         pips_vol_slider = tk.Scale(widget3, from_=0, to=100, orient="horizontal", variable=self.pips_volume,
                                   length=120, font=(default_font.cget("family"), new_size-2))
-        pips_vol_slider.grid(row=2, column=1, sticky="ew", padx=4, pady=2)
+        pips_vol_slider.grid(row=2, column=1, columnspan=2, sticky="nsew", padx=4, pady=2)
         
         # Siren volume slider
         siren_vol_label = tk.Label(widget3, text="Siren Vol:", font=(default_font.cget("family"), new_size-1))
-        siren_vol_label.grid(row=3, column=0, sticky="e", padx=(8,4), pady=2)
+        siren_vol_label.grid(row=3, column=0, sticky="nsew", padx=(8,4), pady=2)
         siren_vol_slider = tk.Scale(widget3, from_=0, to=100, orient="horizontal", variable=self.siren_volume,
                                    length=120, font=(default_font.cget("family"), new_size-2))
-        siren_vol_slider.grid(row=3, column=1, sticky="ew", padx=4, pady=2)
+        siren_vol_slider.grid(row=3, column=1, columnspan=2, sticky="nsew", padx=4, pady=2)
         
         # Pips row (with AIR channel volume slider beside it)
-        tk.Label(widget3, text="Pips:", font=(default_font.cget("family"), new_size)).grid(row=4, column=0, sticky="e", padx=(8,4), pady=4)
+        tk.Label(widget3, text="Pips:", font=(default_font.cget("family"), new_size)).grid(row=4, column=0, sticky="nsew", padx=(8,4), pady=4)
         self.pips_var = tk.StringVar(value="Default")
         pips_dropdown = ttk.Combobox(widget3, textvariable=self.pips_var, values=pips_options, state="readonly")
-        pips_dropdown.grid(row=4, column=1, sticky="ew", padx=4, pady=4)
+        pips_dropdown.grid(row=4, column=1, sticky="nsew", padx=4, pady=4)
         pips_play_button = tk.Button(
             widget3, text="Play", font=(default_font.cget("family"), new_size), 
             command=lambda: self.play_sound_with_volume(self.pips_var.get(), "pips")
         )
-        pips_play_button.grid(row=4, column=2, sticky="w", padx=(4,8), pady=4)
+        pips_play_button.grid(row=4, column=2, sticky="nsew", padx=(4,8), pady=4)
         
         # AIR volume slider (vertical, beside Pips row)
         air_label = tk.Label(widget3, text="AIR", font=(default_font.cget("family"), new_size-1))
-        air_label.grid(row=4, column=3, padx=4, pady=2)
+        air_label.grid(row=4, column=4, padx=4, pady=2, sticky="nsew")
         air_vol_slider = tk.Scale(widget3, from_=100, to=0, orient="vertical", variable=self.air_volume,
                                  length=80, font=(default_font.cget("family"), new_size-2))
-        air_vol_slider.grid(row=5, column=3, padx=4, pady=2)
+        air_vol_slider.grid(row=5, column=4, rowspan=3, padx=4, pady=2, sticky="nsew")
         
         # Siren row (with WATER channel volume slider beside it)
-        tk.Label(widget3, text="Siren:", font=(default_font.cget("family"), new_size)).grid(row=6, column=0, sticky="e", padx=(8,4), pady=4)
+        tk.Label(widget3, text="Siren:", font=(default_font.cget("family"), new_size)).grid(row=6, column=0, sticky="nsew", padx=(8,4), pady=4)
         self.siren_var = tk.StringVar(value="Default")
         siren_dropdown = ttk.Combobox(widget3, textvariable=self.siren_var, values=siren_options, state="readonly")
-        siren_dropdown.grid(row=6, column=1, sticky="ew", padx=4, pady=4)
+        siren_dropdown.grid(row=6, column=1, sticky="nsew", padx=4, pady=4)
         siren_play_button = tk.Button(
             widget3, text="Play", font=(default_font.cget("family"), new_size),
             command=lambda: self.play_sound_with_volume(self.siren_var.get(), "siren")
         )
-        siren_play_button.grid(row=6, column=2, sticky="w", padx=(4,8), pady=4)
+        siren_play_button.grid(row=6, column=2, sticky="nsew", padx=(4,8), pady=4)
         
         # WATER volume slider (vertical, beside Siren row)
         water_label = tk.Label(widget3, text="WATER", font=(default_font.cget("family"), new_size-1))
-        water_label.grid(row=6, column=4, padx=4, pady=2)
+        water_label.grid(row=6, column=5, padx=4, pady=2, sticky="nsew")
         water_vol_slider = tk.Scale(widget3, from_=100, to=0, orient="vertical", variable=self.water_volume,
                                    length=80, font=(default_font.cget("family"), new_size-2))
-        water_vol_slider.grid(row=7, column=4, padx=4, pady=2)
+        water_vol_slider.grid(row=7, column=5, rowspan=4, padx=4, pady=2, sticky="nsew")
         
         self.update_overtime_variables_state()
 
