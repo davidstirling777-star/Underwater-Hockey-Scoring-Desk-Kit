@@ -100,8 +100,15 @@ class GameManagementApp:
         self.penalty_timers_paused = False
         self.penalty_timer_jobs = []
 
+        # Initialize volume variables for sounds
+        self.pips_volume = tk.DoubleVar(value=50.0)  # Default to 50%
+        self.siren_volume = tk.DoubleVar(value=50.0)  # Default to 50%
+        self.air_volume = tk.DoubleVar(value=50.0)   # Default to 50%
+        self.water_volume = tk.DoubleVar(value=50.0) # Default to 50%
+
         self.create_scoreboard_tab()
         self.create_settings_tab()
+        self.create_sounds_tab()
         self.load_settings()
         self.build_game_sequence()
         self.master.bind('<Configure>', self.scale_fonts)
@@ -617,9 +624,8 @@ class GameManagementApp:
         self.notebook.add(tab, text="Game Variables")
         tab.grid_rowconfigure(0, weight=3)  # Widget 1 gets most of the space
         tab.grid_rowconfigure(1, weight=2)  # Widget 2 (Presets) gets less space
-        tab.grid_rowconfigure(2, weight=1)  # Widget 3 (Sounds) gets reduced height (30% less)
         tab.grid_columnconfigure(0, weight=2)  # Widget 1 on left
-        tab.grid_columnconfigure(1, weight=1)  # Widget 2 & 3 stack on right (60% width)
+        tab.grid_columnconfigure(1, weight=1)  # Widget 2 on right
 
         default_font = font.nametofont("TkDefaultFont")
         new_size = default_font.cget("size") + 2
@@ -627,7 +633,7 @@ class GameManagementApp:
 
         # Widget 1 (Game Variables) - Left side, spans all rows
         widget1 = ttk.Frame(tab, borderwidth=1, relief="solid")
-        widget1.grid(row=0, column=0, rowspan=3, sticky="nsew", padx=8, pady=8)
+        widget1.grid(row=0, column=0, rowspan=2, sticky="nsew", padx=8, pady=8)
         for i in range(4):
             widget1.grid_columnconfigure(i, weight=1)
         for i in range(17):
@@ -795,19 +801,32 @@ class GameManagementApp:
         )
         instruction2.grid(row=5, column=0, columnspan=3, sticky="w", padx=8, pady=(2,8))
 
-        # Widget 3 ("Sounds") - Bottom right, 60% width and 30% less height
-        widget3 = ttk.Frame(tab, borderwidth=1, relief="solid")
-        widget3.grid(row=2, column=1, sticky="nsew", padx=8, pady=8)
+        self.update_overtime_variables_state()
+
+    def create_sounds_tab(self):
+        tab = ttk.Frame(self.notebook)
+        self.notebook.add(tab, text="Sounds")
         
-        # Configure grid layout for reorganized sounds widget - 11 rows and 6 columns
+        # Configure main grid layout for the sounds tab
+        tab.grid_rowconfigure(0, weight=1)
+        tab.grid_columnconfigure(0, weight=1)
+        
+        # Create the main sounds widget frame
+        sounds_widget = ttk.Frame(tab, borderwidth=1, relief="solid")
+        sounds_widget.grid(row=0, column=0, sticky="nsew", padx=8, pady=8)
+        
+        # Configure grid layout for sounds widget - 11 rows and 6 columns
         for i in range(6):
-            widget3.grid_columnconfigure(i, weight=1)  # All columns expandable
+            sounds_widget.grid_columnconfigure(i, weight=1)  # All columns expandable
         
-        # Configure 11 rows for reorganized layout
+        # Configure 11 rows for layout
         for i in range(11):
-            widget3.grid_rowconfigure(i, weight=1)
+            sounds_widget.grid_rowconfigure(i, weight=1)
         
-        sounds_label = tk.Label(widget3, text="Sounds", font=(default_font.cget("family"), new_size, "bold"))
+        default_font = font.nametofont("TkDefaultFont")
+        new_size = default_font.cget("size") + 2
+        
+        sounds_label = tk.Label(sounds_widget, text="Sounds", font=(default_font.cget("family"), new_size, "bold"))
         sounds_label.grid(row=0, column=0, columnspan=6, padx=4, pady=(0,8), sticky="nsew")
         
         # Get dynamic list of sound files
@@ -815,72 +834,64 @@ class GameManagementApp:
         pips_options = ["Default"] + sound_files if sound_files != ["No sound files found"] else sound_files
         siren_options = ["Default"] + sound_files if sound_files != ["No sound files found"] else sound_files
         
-        # Initialize volume variables
-        self.pips_volume = tk.DoubleVar(value=50.0)  # Default to 50%
-        self.siren_volume = tk.DoubleVar(value=50.0)  # Default to 50%
-        self.air_volume = tk.DoubleVar(value=50.0)   # Default to 50%
-        self.water_volume = tk.DoubleVar(value=50.0) # Default to 50%
-        
         # Test channel volume sliders (moved to top of widget)  
-        test_vol_label = tk.Label(widget3, text="Test Channel Volumes", font=(default_font.cget("family"), new_size, "bold"))
+        test_vol_label = tk.Label(sounds_widget, text="Test Channel Volumes", font=(default_font.cget("family"), new_size, "bold"))
         test_vol_label.grid(row=1, column=0, columnspan=4, padx=4, pady=(4,8), sticky="nsew")
         
         # Pips volume slider
-        pips_vol_label = tk.Label(widget3, text="Pips Vol:", font=(default_font.cget("family"), new_size-1))
+        pips_vol_label = tk.Label(sounds_widget, text="Pips Vol:", font=(default_font.cget("family"), new_size-1))
         pips_vol_label.grid(row=2, column=0, sticky="nsew", padx=(8,4), pady=2)
-        pips_vol_slider = tk.Scale(widget3, from_=0, to=100, orient="horizontal", variable=self.pips_volume,
+        pips_vol_slider = tk.Scale(sounds_widget, from_=0, to=100, orient="horizontal", variable=self.pips_volume,
                                   length=120, font=(default_font.cget("family"), new_size-2))
         pips_vol_slider.grid(row=2, column=1, columnspan=2, sticky="nsew", padx=4, pady=2)
         
         # Siren volume slider
-        siren_vol_label = tk.Label(widget3, text="Siren Vol:", font=(default_font.cget("family"), new_size-1))
+        siren_vol_label = tk.Label(sounds_widget, text="Siren Vol:", font=(default_font.cget("family"), new_size-1))
         siren_vol_label.grid(row=3, column=0, sticky="nsew", padx=(8,4), pady=2)
-        siren_vol_slider = tk.Scale(widget3, from_=0, to=100, orient="horizontal", variable=self.siren_volume,
+        siren_vol_slider = tk.Scale(sounds_widget, from_=0, to=100, orient="horizontal", variable=self.siren_volume,
                                    length=120, font=(default_font.cget("family"), new_size-2))
         siren_vol_slider.grid(row=3, column=1, columnspan=2, sticky="nsew", padx=4, pady=2)
         
         # Pips row (with AIR channel volume slider beside it)
-        tk.Label(widget3, text="Pips:", font=(default_font.cget("family"), new_size)).grid(row=4, column=0, sticky="nsew", padx=(8,4), pady=4)
+        tk.Label(sounds_widget, text="Pips:", font=(default_font.cget("family"), new_size)).grid(row=4, column=0, sticky="nsew", padx=(8,4), pady=4)
         self.pips_var = tk.StringVar(value="Default")
-        pips_dropdown = ttk.Combobox(widget3, textvariable=self.pips_var, values=pips_options, state="readonly")
+        pips_dropdown = ttk.Combobox(sounds_widget, textvariable=self.pips_var, values=pips_options, state="readonly")
         pips_dropdown.grid(row=4, column=1, sticky="nsew", padx=4, pady=4)
         pips_play_button = tk.Button(
-            widget3, text="Play", font=(default_font.cget("family"), new_size), 
+            sounds_widget, text="Play", font=(default_font.cget("family"), new_size), 
             command=lambda: self.play_sound_with_volume(self.pips_var.get(), "pips")
         )
         pips_play_button.grid(row=4, column=2, sticky="nsew", padx=(4,8), pady=4)
         
-        # AIR volume slider (vertical, beside Pips row)
-        air_label = tk.Label(widget3, text="AIR", font=(default_font.cget("family"), new_size-1))
+        # AIR volume slider (vertical, beside Pips row) - increased rowspan
+        air_label = tk.Label(sounds_widget, text="AIR", font=(default_font.cget("family"), new_size-1))
         air_label.grid(row=4, column=4, padx=4, pady=2, sticky="nsew")
-        air_vol_slider = tk.Scale(widget3, from_=100, to=0, orient="vertical", variable=self.air_volume,
+        air_vol_slider = tk.Scale(sounds_widget, from_=100, to=0, orient="vertical", variable=self.air_volume,
                                  length=80, font=(default_font.cget("family"), new_size-2))
         air_vol_slider.grid(row=5, column=4, rowspan=3, padx=4, pady=2, sticky="nsew")
         
         # Siren row (with WATER channel volume slider beside it)
-        tk.Label(widget3, text="Siren:", font=(default_font.cget("family"), new_size)).grid(row=6, column=0, sticky="nsew", padx=(8,4), pady=4)
+        tk.Label(sounds_widget, text="Siren:", font=(default_font.cget("family"), new_size)).grid(row=6, column=0, sticky="nsew", padx=(8,4), pady=4)
         self.siren_var = tk.StringVar(value="Default")
-        siren_dropdown = ttk.Combobox(widget3, textvariable=self.siren_var, values=siren_options, state="readonly")
+        siren_dropdown = ttk.Combobox(sounds_widget, textvariable=self.siren_var, values=siren_options, state="readonly")
         siren_dropdown.grid(row=6, column=1, sticky="nsew", padx=4, pady=4)
         siren_play_button = tk.Button(
-            widget3, text="Play", font=(default_font.cget("family"), new_size),
+            sounds_widget, text="Play", font=(default_font.cget("family"), new_size),
             command=lambda: self.play_sound_with_volume(self.siren_var.get(), "siren")
         )
         siren_play_button.grid(row=6, column=2, sticky="nsew", padx=(4,8), pady=4)
         
-        # WATER volume slider (vertical, beside Siren row)
-        water_label = tk.Label(widget3, text="WATER", font=(default_font.cget("family"), new_size-1))
+        # WATER volume slider (vertical, beside Siren row) - increased rowspan
+        water_label = tk.Label(sounds_widget, text="WATER", font=(default_font.cget("family"), new_size-1))
         water_label.grid(row=6, column=5, padx=4, pady=2, sticky="nsew")
-        water_vol_slider = tk.Scale(widget3, from_=100, to=0, orient="vertical", variable=self.water_volume,
+        water_vol_slider = tk.Scale(sounds_widget, from_=100, to=0, orient="vertical", variable=self.water_volume,
                                    length=80, font=(default_font.cget("family"), new_size-2))
         water_vol_slider.grid(row=7, column=5, rowspan=4, padx=4, pady=2, sticky="nsew")
         
         # Add placeholder labels to ensure all 11 rows are used in the grid
         for row in range(8, 11):
-            placeholder = tk.Label(widget3, text="", font=(default_font.cget("family"), new_size-2))
+            placeholder = tk.Label(sounds_widget, text="", font=(default_font.cget("family"), new_size-2))
             placeholder.grid(row=row, column=0, sticky="nsew")
-        
-        self.update_overtime_variables_state()
 
     def _make_press_handler(self, idx):
         return lambda e: self._start_button_hold(e, idx)
