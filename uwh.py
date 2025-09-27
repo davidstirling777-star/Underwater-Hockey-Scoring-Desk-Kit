@@ -262,6 +262,98 @@ class GameManagementApp:
         except Exception as e:
             messagebox.showerror("Sound Error", f"Unexpected error playing {filename}: {e}")
 
+    def play_sound_with_volume(self, filename, sound_type):
+        """
+        Play a sound file with volume control using amixer for channel volumes and sound-specific volume.
+        Uses aplay for WAV files and omxplayer for MP3 files (Raspberry Pi compatible).
+        """
+        if filename == "No sound files found" or filename == "Default":
+            messagebox.showinfo("Sound Test", f"Cannot play '{filename}' - not a valid sound file")
+            return
+            
+        try:
+            file_path = os.path.join(os.getcwd(), filename)
+            if not os.path.exists(file_path):
+                messagebox.showerror("Sound Error", f"Sound file '{filename}' not found")
+                return
+            
+            # Set channel volumes using amixer before playback
+            air_vol = int(self.air_volume.get())
+            water_vol = int(self.water_volume.get())
+            
+            # Set AIR channel volume (typically left channel - card 0, control 0)
+            try:
+                subprocess.run(['amixer', '-c', '0', 'sset', 'Left', f'{air_vol}%'], 
+                             check=False, capture_output=True)
+            except:
+                # Fallback - try different control names
+                try:
+                    subprocess.run(['amixer', 'sset', 'PCM', f'{air_vol}%'], 
+                                 check=False, capture_output=True)
+                except:
+                    pass  # Ignore amixer errors in development environments
+            
+            # Set WATER channel volume (typically right channel - card 0, control 1)  
+            try:
+                subprocess.run(['amixer', '-c', '0', 'sset', 'Right', f'{water_vol}%'], 
+                             check=False, capture_output=True)
+            except:
+                # Fallback - try different control names
+                try:
+                    subprocess.run(['amixer', 'sset', 'Speaker', f'{water_vol}%'], 
+                                 check=False, capture_output=True)
+                except:
+                    pass  # Ignore amixer errors in development environments
+                
+            # Get sound-specific volume
+            if sound_type == "pips":
+                sound_vol = self.pips_volume.get() / 100.0
+            elif sound_type == "siren":
+                sound_vol = self.siren_volume.get() / 100.0
+            else:
+                sound_vol = 0.5  # Default 50%
+                
+            # Determine command based on file extension
+            if filename.lower().endswith('.wav'):
+                # Use aplay for WAV files with volume control if available
+                try:
+                    # Try to use aplay with volume control
+                    subprocess.run(['aplay', '--volume', str(int(sound_vol * 65536)), file_path], 
+                                 check=True, capture_output=True)
+                except:
+                    # Fallback to regular aplay if volume control not supported
+                    subprocess.run(['aplay', file_path], check=True, capture_output=True)
+            elif filename.lower().endswith('.mp3'):
+                # Use omxplayer for MP3 files with volume control
+                vol_arg = str(int((sound_vol - 1.0) * 2000))  # omxplayer volume range
+                try:
+                    subprocess.run(['omxplayer', '--no-osd', '--vol', vol_arg, file_path], 
+                                 check=True, capture_output=True)
+                except:
+                    # Fallback to regular omxplayer if volume control not supported
+                    subprocess.run(['omxplayer', '--no-osd', file_path], check=True, capture_output=True)
+            else:
+                messagebox.showerror("Sound Error", f"Unsupported file format: {filename}")
+                return
+                
+            # Show success feedback with volume info
+            messagebox.showinfo("Sound Test", 
+                f"Successfully played: {filename}\n"
+                f"{sound_type.title()} Volume: {int(sound_vol*100)}%\n"
+                f"AIR Volume: {air_vol}%\n"
+                f"WATER Volume: {water_vol}%")
+            
+        except subprocess.CalledProcessError as e:
+            messagebox.showerror("Sound Error", f"Failed to play {filename}. Command failed: {e}")
+        except FileNotFoundError:
+            # Fallback for development environments without aplay/omxplayer
+            messagebox.showwarning("Sound Warning", 
+                f"Audio player not found. Would play: {filename}\n"
+                f"With {sound_type} volume: {int(sound_vol*100) if 'sound_vol' in locals() else 50}%\n"
+                f"AIR: {air_vol}%, WATER: {water_vol}%")
+        except Exception as e:
+            messagebox.showerror("Sound Error", f"Unexpected error playing {filename}: {e}")
+
     def update_penalty_display(self):
         """
         Robustly ensures that the penalty grid is only shown if there are penalties left to serve,
@@ -525,6 +617,7 @@ class GameManagementApp:
         self.notebook.add(tab, text="Game Variables")
         tab.grid_rowconfigure(0, weight=1)
         tab.grid_rowconfigure(1, weight=1)
+        tab.grid_rowconfigure(2, weight=1)  # Add row for expanded sounds widget
         tab.grid_columnconfigure(0, weight=2)
         tab.grid_columnconfigure(1, weight=1)
 
@@ -703,23 +796,34 @@ class GameManagementApp:
         )
         instruction2.grid(row=5, column=0, columnspan=3, sticky="w", padx=8, pady=(2,8))
 
-        # Widget 3 ("Sounds")
+        # Widget 3 ("Sounds") - Spans 2 rows for 150% depth
         widget3 = ttk.Frame(tab, borderwidth=1, relief="solid")
-        widget3.grid(row=1, column=1, sticky="nsew", padx=8, pady=8)
+        widget3.grid(row=1, column=1, rowspan=2, sticky="nsew", padx=8, pady=8)
+        
+        # Configure grid layout for expanded sounds widget
         widget3.grid_columnconfigure(0, weight=0)  # Label column
         widget3.grid_columnconfigure(1, weight=1)  # Dropdown column
         widget3.grid_columnconfigure(2, weight=0)  # Play button column
-        widget3.grid_rowconfigure(0, weight=1)
-        widget3.grid_rowconfigure(1, weight=1)
-        widget3.grid_rowconfigure(2, weight=1)
+        widget3.grid_columnconfigure(3, weight=0)  # Volume slider column
+        widget3.grid_columnconfigure(4, weight=0)  # AIR/WATER sliders column
+        
+        # Configure rows for expanded layout
+        for i in range(8):
+            widget3.grid_rowconfigure(i, weight=1)
         
         sounds_label = tk.Label(widget3, text="Sounds", font=(default_font.cget("family"), new_size, "bold"))
-        sounds_label.grid(row=0, column=0, columnspan=3, padx=4, pady=(0,8), sticky="nsew")
+        sounds_label.grid(row=0, column=0, columnspan=5, padx=4, pady=(0,8), sticky="nsew")
         
         # Get dynamic list of sound files
         sound_files = self.get_sound_files()
         pips_options = ["Default"] + sound_files if sound_files != ["No sound files found"] else sound_files
         siren_options = ["Default"] + sound_files if sound_files != ["No sound files found"] else sound_files
+        
+        # Initialize volume variables
+        self.pips_volume = tk.DoubleVar(value=50.0)  # Default to 50%
+        self.siren_volume = tk.DoubleVar(value=50.0)  # Default to 50%
+        self.air_volume = tk.DoubleVar(value=50.0)   # Default to 50%
+        self.water_volume = tk.DoubleVar(value=50.0) # Default to 50%
         
         # Pips row
         tk.Label(widget3, text="Pips:", font=(default_font.cget("family"), new_size)).grid(row=1, column=0, sticky="e", padx=(8,4), pady=4)
@@ -728,20 +832,52 @@ class GameManagementApp:
         pips_dropdown.grid(row=1, column=1, sticky="ew", padx=4, pady=4)
         pips_play_button = tk.Button(
             widget3, text="Play", font=(default_font.cget("family"), new_size), 
-            command=lambda: self.play_sound(self.pips_var.get())
+            command=lambda: self.play_sound_with_volume(self.pips_var.get(), "pips")
         )
         pips_play_button.grid(row=1, column=2, sticky="w", padx=(4,8), pady=4)
         
+        # Pips volume slider
+        pips_vol_label = tk.Label(widget3, text="Vol:", font=(default_font.cget("family"), new_size-2))
+        pips_vol_label.grid(row=2, column=0, sticky="e", padx=(8,4), pady=2)
+        pips_vol_slider = tk.Scale(widget3, from_=0, to=100, orient="horizontal", variable=self.pips_volume,
+                                  length=120, font=(default_font.cget("family"), new_size-2))
+        pips_vol_slider.grid(row=2, column=1, sticky="ew", padx=4, pady=2)
+        
         # Siren row
-        tk.Label(widget3, text="Siren:", font=(default_font.cget("family"), new_size)).grid(row=2, column=0, sticky="e", padx=(8,4), pady=4)
+        tk.Label(widget3, text="Siren:", font=(default_font.cget("family"), new_size)).grid(row=3, column=0, sticky="e", padx=(8,4), pady=4)
         self.siren_var = tk.StringVar(value="Default")
         siren_dropdown = ttk.Combobox(widget3, textvariable=self.siren_var, values=siren_options, state="readonly")
-        siren_dropdown.grid(row=2, column=1, sticky="ew", padx=4, pady=4)
+        siren_dropdown.grid(row=3, column=1, sticky="ew", padx=4, pady=4)
         siren_play_button = tk.Button(
             widget3, text="Play", font=(default_font.cget("family"), new_size),
-            command=lambda: self.play_sound(self.siren_var.get())
+            command=lambda: self.play_sound_with_volume(self.siren_var.get(), "siren")
         )
-        siren_play_button.grid(row=2, column=2, sticky="w", padx=(4,8), pady=4)
+        siren_play_button.grid(row=3, column=2, sticky="w", padx=(4,8), pady=4)
+        
+        # Siren volume slider
+        siren_vol_label = tk.Label(widget3, text="Vol:", font=(default_font.cget("family"), new_size-2))
+        siren_vol_label.grid(row=4, column=0, sticky="e", padx=(8,4), pady=2)
+        siren_vol_slider = tk.Scale(widget3, from_=0, to=100, orient="horizontal", variable=self.siren_volume,
+                                   length=120, font=(default_font.cget("family"), new_size-2))
+        siren_vol_slider.grid(row=4, column=1, sticky="ew", padx=4, pady=2)
+        
+        # Channel volume controls (AIR and WATER)
+        channel_label = tk.Label(widget3, text="Channel Volumes", font=(default_font.cget("family"), new_size, "bold"))
+        channel_label.grid(row=5, column=0, columnspan=3, padx=4, pady=(8,4), sticky="nsew")
+        
+        # AIR volume slider (vertical)
+        air_label = tk.Label(widget3, text="AIR", font=(default_font.cget("family"), new_size-1))
+        air_label.grid(row=6, column=3, padx=4, pady=2)
+        air_vol_slider = tk.Scale(widget3, from_=100, to=0, orient="vertical", variable=self.air_volume,
+                                 length=80, font=(default_font.cget("family"), new_size-2))
+        air_vol_slider.grid(row=7, column=3, padx=4, pady=2)
+        
+        # WATER volume slider (vertical)
+        water_label = tk.Label(widget3, text="WATER", font=(default_font.cget("family"), new_size-1))
+        water_label.grid(row=6, column=4, padx=4, pady=2)
+        water_vol_slider = tk.Scale(widget3, from_=100, to=0, orient="vertical", variable=self.water_volume,
+                                   length=80, font=(default_font.cget("family"), new_size-2))
+        water_vol_slider.grid(row=7, column=4, padx=4, pady=2)
         
         self.update_overtime_variables_state()
 
