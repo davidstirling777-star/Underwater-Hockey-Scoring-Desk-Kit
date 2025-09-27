@@ -6,6 +6,14 @@ import time
 import os
 import subprocess
 
+# Import Zigbee siren controller
+try:
+    from zigbee_siren import ZigbeeSirenController
+    ZIGBEE_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: Zigbee siren functionality not available: {e}")
+    ZIGBEE_AVAILABLE = False
+
 class GameManagementApp:
     def __init__(self, master):
         self.master = master
@@ -100,8 +108,25 @@ class GameManagementApp:
         self.penalty_timers_paused = False
         self.penalty_timer_jobs = []
 
+        # Zigbee siren controller initialization
+        self.zigbee_siren = None
+        self.siren_active = False
+        self.siren_process = None
+        if ZIGBEE_AVAILABLE:
+            try:
+                self.zigbee_siren = ZigbeeSirenController()
+                self.zigbee_siren.set_callbacks(
+                    on_button_press=self._on_zigbee_button_press,
+                    on_button_release=self._on_zigbee_button_release,
+                    on_connection_change=self._on_zigbee_connection_change
+                )
+            except Exception as e:
+                print(f"Warning: Failed to initialize Zigbee siren controller: {e}")
+                self.zigbee_siren = None
+
         self.create_scoreboard_tab()
         self.create_settings_tab()
+        self.create_zigbee_siren_tab()
         self.load_settings()
         self.build_game_sequence()
         self.master.bind('<Configure>', self.scale_fonts)
@@ -2050,6 +2075,250 @@ class GameManagementApp:
             self.sudden_death_goal_scored = True
             self.stop_sudden_death_timer()
             self.next_period()
+
+    def create_zigbee_siren_tab(self):
+        """Create the Zigbee Siren tab for wireless button integration."""
+        tab = ttk.Frame(self.notebook)
+        self.notebook.add(tab, text="Zigbee Siren")
+        
+        # Configure grid layout
+        for i in range(10):
+            tab.grid_rowconfigure(i, weight=1)
+        for i in range(6):
+            tab.grid_columnconfigure(i, weight=1)
+
+        default_font = font.nametofont("TkDefaultFont")
+        new_size = default_font.cget("size") + 2
+        header_font = (default_font.cget("family"), new_size + 4, "bold")
+        status_font = (default_font.cget("family"), new_size)
+        
+        # Header
+        header_label = tk.Label(tab, text="Zigbee Siren Control", font=header_font)
+        header_label.grid(row=0, column=0, columnspan=6, pady=(10, 20), sticky="nsew")
+        
+        # Connection Status Section
+        connection_frame = ttk.LabelFrame(tab, text="Connection Status", padding=10)
+        connection_frame.grid(row=1, column=0, columnspan=6, padx=20, pady=10, sticky="nsew")
+        
+        # MQTT Status
+        tk.Label(connection_frame, text="MQTT Status:", font=status_font).grid(row=0, column=0, sticky="w", padx=(0, 10))
+        self.mqtt_status_label = tk.Label(connection_frame, text="Disconnected", font=status_font, fg="red")
+        self.mqtt_status_label.grid(row=0, column=1, sticky="w")
+        
+        # Zigbee Availability
+        tk.Label(connection_frame, text="Zigbee Available:", font=status_font).grid(row=1, column=0, sticky="w", padx=(0, 10))
+        zigbee_status = "Yes" if ZIGBEE_AVAILABLE else "No (paho-mqtt not installed)"
+        zigbee_color = "green" if ZIGBEE_AVAILABLE else "red"
+        tk.Label(connection_frame, text=zigbee_status, font=status_font, fg=zigbee_color).grid(row=1, column=1, sticky="w")
+        
+        # MQTT Broker Info
+        if self.zigbee_siren:
+            broker_info = f"{self.zigbee_siren.mqtt_broker}:{self.zigbee_siren.mqtt_port}"
+        else:
+            broker_info = "localhost:1883 (default)"
+        tk.Label(connection_frame, text="MQTT Broker:", font=status_font).grid(row=2, column=0, sticky="w", padx=(0, 10))
+        tk.Label(connection_frame, text=broker_info, font=status_font).grid(row=2, column=1, sticky="w")
+        
+        # Button Status Section
+        button_frame = ttk.LabelFrame(tab, text="Button Status", padding=10)
+        button_frame.grid(row=2, column=0, columnspan=6, padx=20, pady=10, sticky="nsew")
+        
+        tk.Label(button_frame, text="Button State:", font=status_font).grid(row=0, column=0, sticky="w", padx=(0, 10))
+        self.button_state_label = tk.Label(button_frame, text="Released", font=status_font, fg="gray")
+        self.button_state_label.grid(row=0, column=1, sticky="w")
+        
+        tk.Label(button_frame, text="Siren Status:", font=status_font).grid(row=1, column=0, sticky="w", padx=(0, 10))
+        self.siren_status_label = tk.Label(button_frame, text="Inactive", font=status_font, fg="gray")
+        self.siren_status_label.grid(row=1, column=1, sticky="w")
+        
+        # Control Section
+        control_frame = ttk.LabelFrame(tab, text="Manual Control", padding=10)
+        control_frame.grid(row=3, column=0, columnspan=6, padx=20, pady=10, sticky="nsew")
+        
+        # Start/Stop Zigbee Controller
+        self.zigbee_control_button = tk.Button(
+            control_frame, text="Start Zigbee Controller", font=status_font,
+            command=self._toggle_zigbee_controller, bg="lightgreen"
+        )
+        self.zigbee_control_button.grid(row=0, column=0, padx=10, pady=5, sticky="ew")
+        
+        # Manual Siren Test
+        self.manual_siren_button = tk.Button(
+            control_frame, text="Test Siren", font=status_font,
+            command=self._manual_siren_test, bg="orange"
+        )
+        self.manual_siren_button.grid(row=0, column=1, padx=10, pady=5, sticky="ew")
+        
+        # Configuration Section
+        config_frame = ttk.LabelFrame(tab, text="Configuration", padding=10)
+        config_frame.grid(row=4, column=0, columnspan=6, padx=20, pady=10, sticky="nsew")
+        
+        tk.Label(config_frame, text="Button Device Name:", font=status_font).grid(row=0, column=0, sticky="w", padx=(0, 10))
+        device_name = self.zigbee_siren.button_device_name if self.zigbee_siren else "siren_button"
+        tk.Label(config_frame, text=device_name, font=status_font).grid(row=0, column=1, sticky="w")
+        
+        tk.Label(config_frame, text="Zigbee2MQTT Topic:", font=status_font).grid(row=1, column=0, sticky="w", padx=(0, 10))
+        topic = self.zigbee_siren.zigbee2mqtt_topic if self.zigbee_siren else "zigbee2mqtt"
+        tk.Label(config_frame, text=topic, font=status_font).grid(row=1, column=1, sticky="w")
+        
+        # Status Updates Section
+        status_frame = ttk.LabelFrame(tab, text="Recent Activity", padding=10)
+        status_frame.grid(row=5, column=0, columnspan=6, padx=20, pady=10, sticky="nsew")
+        
+        # Activity log
+        self.activity_text = tk.Text(status_frame, height=6, font=(default_font.cget("family"), new_size-1))
+        scrollbar = tk.Scrollbar(status_frame, orient="vertical", command=self.activity_text.yview)
+        self.activity_text.configure(yscrollcommand=scrollbar.set)
+        
+        self.activity_text.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
+        scrollbar.grid(row=0, column=1, sticky="ns")
+        
+        status_frame.grid_rowconfigure(0, weight=1)
+        status_frame.grid_columnconfigure(0, weight=1)
+        
+        # Initial log entry
+        self._log_activity("Zigbee Siren tab initialized")
+        if not ZIGBEE_AVAILABLE:
+            self._log_activity("Warning: paho-mqtt not available - install with 'pip install paho-mqtt'")
+        
+        # Start updating status periodically
+        self._update_zigbee_status()
+    
+    def _toggle_zigbee_controller(self):
+        """Toggle the Zigbee controller on/off."""
+        if not self.zigbee_siren:
+            self._log_activity("Error: Zigbee controller not available")
+            return
+            
+        if not self.zigbee_siren._running:
+            if self.zigbee_siren.start():
+                self.zigbee_control_button.config(text="Stop Zigbee Controller", bg="lightcoral")
+                self._log_activity("Zigbee controller started")
+            else:
+                self._log_activity("Failed to start Zigbee controller")
+        else:
+            self.zigbee_siren.stop()
+            self.zigbee_control_button.config(text="Start Zigbee Controller", bg="lightgreen")
+            self._log_activity("Zigbee controller stopped")
+    
+    def _manual_siren_test(self):
+        """Manually test the siren functionality."""
+        if not self.siren_active:
+            self._activate_siren()
+            self._log_activity("Manual siren test - ON")
+            # Auto-stop after 3 seconds for manual test
+            self.master.after(3000, lambda: self._deactivate_siren() or self._log_activity("Manual siren test - OFF"))
+        else:
+            self._deactivate_siren()
+            self._log_activity("Manual siren test - OFF")
+    
+    def _on_zigbee_button_press(self):
+        """Callback when Zigbee button is pressed."""
+        self._activate_siren()
+        self._log_activity("Zigbee button pressed - Siren activated")
+    
+    def _on_zigbee_button_release(self):
+        """Callback when Zigbee button is released."""
+        self._deactivate_siren()
+        self._log_activity("Zigbee button released - Siren deactivated")
+    
+    def _on_zigbee_connection_change(self, connected: bool):
+        """Callback when Zigbee connection status changes."""
+        status = "Connected" if connected else "Disconnected"
+        self._log_activity(f"MQTT connection: {status}")
+    
+    def _activate_siren(self):
+        """Activate the siren using existing siren logic."""
+        if self.siren_active:
+            return
+            
+        self.siren_active = True
+        
+        # Use existing siren functionality from the sounds tab
+        siren_file = getattr(self, 'siren_var', tk.StringVar(value="Default")).get()
+        if siren_file == "Default" or siren_file == "No sound files found":
+            # Fallback to system beep or basic siren sound
+            try:
+                # Try to play a basic system sound in a loop
+                import threading
+                def play_continuous_siren():
+                    while self.siren_active:
+                        try:
+                            # Use system beep as fallback
+                            subprocess.run(['paplay', '/usr/share/sounds/alsa/Front_Left.wav'], 
+                                         capture_output=True, timeout=1)
+                        except:
+                            # Last resort - Python bell
+                            print('\a')  # System bell
+                        time.sleep(0.5)
+                
+                siren_thread = threading.Thread(target=play_continuous_siren, daemon=True)
+                siren_thread.start()
+                
+            except Exception as e:
+                print(f"Siren activation error: {e}")
+        else:
+            # Use the selected siren file with volume control
+            try:
+                # Start continuous siren playback in background
+                def play_siren_loop():
+                    while self.siren_active:
+                        try:
+                            if hasattr(self, 'play_sound_with_volume'):
+                                self.play_sound_with_volume(siren_file, "siren")
+                            else:
+                                self.play_sound(siren_file)
+                            time.sleep(0.1)  # Brief pause between loops
+                        except Exception as e:
+                            print(f"Siren loop error: {e}")
+                            break
+                
+                import threading
+                siren_thread = threading.Thread(target=play_siren_loop, daemon=True)
+                siren_thread.start()
+                
+            except Exception as e:
+                print(f"Siren activation error: {e}")
+    
+    def _deactivate_siren(self):
+        """Deactivate the siren."""
+        self.siren_active = False
+    
+    def _log_activity(self, message: str):
+        """Log activity to the activity text widget."""
+        if hasattr(self, 'activity_text'):
+            timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+            self.activity_text.insert(tk.END, f"[{timestamp}] {message}\n")
+            self.activity_text.see(tk.END)
+            
+            # Limit log to last 100 lines
+            lines = self.activity_text.get("1.0", tk.END).split('\n')
+            if len(lines) > 100:
+                self.activity_text.delete("1.0", f"{len(lines)-100}.0")
+    
+    def _update_zigbee_status(self):
+        """Update the Zigbee status display periodically."""
+        if hasattr(self, 'mqtt_status_label') and hasattr(self, 'button_state_label') and hasattr(self, 'siren_status_label'):
+            # Update MQTT status
+            if self.zigbee_siren and self.zigbee_siren.is_connected():
+                self.mqtt_status_label.config(text="Connected", fg="green")
+            else:
+                self.mqtt_status_label.config(text="Disconnected", fg="red")
+            
+            # Update button status
+            if self.zigbee_siren and self.zigbee_siren.is_button_pressed():
+                self.button_state_label.config(text="Pressed", fg="red")
+            else:
+                self.button_state_label.config(text="Released", fg="gray")
+            
+            # Update siren status
+            if self.siren_active:
+                self.siren_status_label.config(text="Active", fg="red")
+            else:
+                self.siren_status_label.config(text="Inactive", fg="gray")
+        
+        # Schedule next update
+        self.master.after(1000, self._update_zigbee_status)
 
 if __name__ == "__main__":
     root = tk.Tk()
