@@ -3,6 +3,8 @@ from tkinter import ttk, messagebox, font
 import datetime
 import re
 import time
+import os
+import subprocess
 
 class GameManagementApp:
     def __init__(self, master):
@@ -204,6 +206,61 @@ class GameManagementApp:
         self.penalties_button.grid(row=10, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
 
         self.update_team_timeouts_allowed()
+
+    def get_sound_files(self):
+        """
+        Scan the current directory for supported sound files (.wav, .mp3).
+        Returns a list of sound files found.
+        """
+        sound_files = []
+        supported_extensions = ['.wav', '.mp3']
+        
+        try:
+            current_dir = os.getcwd()
+            for filename in os.listdir(current_dir):
+                if any(filename.lower().endswith(ext) for ext in supported_extensions):
+                    sound_files.append(filename)
+        except Exception as e:
+            print(f"Error scanning for sound files: {e}")
+        
+        return sorted(sound_files) if sound_files else ["No sound files found"]
+    
+    def play_sound(self, filename):
+        """
+        Play a sound file using the appropriate system command.
+        Uses aplay for WAV files and omxplayer for MP3 files (Raspberry Pi compatible).
+        """
+        if filename == "No sound files found" or filename == "Default":
+            messagebox.showinfo("Sound Test", f"Cannot play '{filename}' - not a valid sound file")
+            return
+            
+        try:
+            file_path = os.path.join(os.getcwd(), filename)
+            if not os.path.exists(file_path):
+                messagebox.showerror("Sound Error", f"Sound file '{filename}' not found")
+                return
+                
+            # Determine command based on file extension
+            if filename.lower().endswith('.wav'):
+                # Use aplay for WAV files (works well on Raspberry Pi with DigiAMP+ HAT)
+                subprocess.run(['aplay', file_path], check=True, capture_output=True)
+            elif filename.lower().endswith('.mp3'):
+                # Use omxplayer for MP3 files (Raspberry Pi optimized)
+                subprocess.run(['omxplayer', '--no-osd', file_path], check=True, capture_output=True)
+            else:
+                messagebox.showerror("Sound Error", f"Unsupported file format: {filename}")
+                return
+                
+            # Show success feedback
+            messagebox.showinfo("Sound Test", f"Successfully played: {filename}")
+            
+        except subprocess.CalledProcessError as e:
+            messagebox.showerror("Sound Error", f"Failed to play {filename}. Command failed: {e}")
+        except FileNotFoundError:
+            # Fallback for development environments without aplay/omxplayer
+            messagebox.showwarning("Sound Warning", f"Audio player not found. Would play: {filename}")
+        except Exception as e:
+            messagebox.showerror("Sound Error", f"Unexpected error playing {filename}: {e}")
 
     def update_penalty_display(self):
         """
@@ -649,23 +706,43 @@ class GameManagementApp:
         # Widget 3 ("Sounds")
         widget3 = ttk.Frame(tab, borderwidth=1, relief="solid")
         widget3.grid(row=1, column=1, sticky="nsew", padx=8, pady=8)
-        widget3.grid_columnconfigure(0, weight=1)
-        widget3.grid_columnconfigure(1, weight=1)
+        widget3.grid_columnconfigure(0, weight=0)  # Label column
+        widget3.grid_columnconfigure(1, weight=1)  # Dropdown column
+        widget3.grid_columnconfigure(2, weight=0)  # Play button column
         widget3.grid_rowconfigure(0, weight=1)
         widget3.grid_rowconfigure(1, weight=1)
         widget3.grid_rowconfigure(2, weight=1)
+        
         sounds_label = tk.Label(widget3, text="Sounds", font=(default_font.cget("family"), new_size, "bold"))
-        sounds_label.grid(row=0, column=0, columnspan=2, padx=4, pady=(0,8), sticky="nsew")
+        sounds_label.grid(row=0, column=0, columnspan=3, padx=4, pady=(0,8), sticky="nsew")
+        
+        # Get dynamic list of sound files
+        sound_files = self.get_sound_files()
+        pips_options = ["Default"] + sound_files if sound_files != ["No sound files found"] else sound_files
+        siren_options = ["Default"] + sound_files if sound_files != ["No sound files found"] else sound_files
+        
+        # Pips row
         tk.Label(widget3, text="Pips:", font=(default_font.cget("family"), new_size)).grid(row=1, column=0, sticky="e", padx=(8,4), pady=4)
         self.pips_var = tk.StringVar(value="Default")
-        pips_options = ["Default", "Pip 1", "Pip 2", "Pip 3"]
         pips_dropdown = ttk.Combobox(widget3, textvariable=self.pips_var, values=pips_options, state="readonly")
-        pips_dropdown.grid(row=1, column=1, sticky="w", padx=(4,8), pady=4)
+        pips_dropdown.grid(row=1, column=1, sticky="ew", padx=4, pady=4)
+        pips_play_button = tk.Button(
+            widget3, text="Play", font=(default_font.cget("family"), new_size), 
+            command=lambda: self.play_sound(self.pips_var.get())
+        )
+        pips_play_button.grid(row=1, column=2, sticky="w", padx=(4,8), pady=4)
+        
+        # Siren row
         tk.Label(widget3, text="Siren:", font=(default_font.cget("family"), new_size)).grid(row=2, column=0, sticky="e", padx=(8,4), pady=4)
         self.siren_var = tk.StringVar(value="Default")
-        siren_options = ["Default", "Siren 1", "Siren 2", "Siren 3"]
         siren_dropdown = ttk.Combobox(widget3, textvariable=self.siren_var, values=siren_options, state="readonly")
-        siren_dropdown.grid(row=2, column=1, sticky="w", padx=(4,8), pady=4)
+        siren_dropdown.grid(row=2, column=1, sticky="ew", padx=4, pady=4)
+        siren_play_button = tk.Button(
+            widget3, text="Play", font=(default_font.cget("family"), new_size),
+            command=lambda: self.play_sound(self.siren_var.get())
+        )
+        siren_play_button.grid(row=2, column=2, sticky="w", padx=(4,8), pady=4)
+        
         self.update_overtime_variables_state()
 
     def _make_press_handler(self, idx):
