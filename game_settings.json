@@ -1,8 +1,8 @@
 {
-  "pips_sound": "test_pip.wav",
-  "siren_sound": "test_siren.mp3",
-  "pips_volume": 90.0,
-  "siren_volume": 80.0,
-  "air_volume": 70.0,
-  "water_volume": 60.0
+  "pips_sound": "Default",
+  "siren_sound": "Default", 
+  "pips_volume": 50.0,
+  "siren_volume": 50.0,
+  "air_volume": 50.0,
+  "water_volume": 50.0
 }
