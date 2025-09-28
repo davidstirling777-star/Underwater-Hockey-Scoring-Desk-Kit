@@ -137,6 +137,23 @@ class GameManagementApp:
             "crib_time": {"default": 1, "checkbox": True, "unit": "seconds"}
         }
 
+        # PATCH: Initialize 'value' and 'used' fields properly for all variables
+        for var_name, var_info in self.variables.items():
+            if var_info["checkbox"]:
+                # Variables with checkboxes: separate 'value' and 'used' fields
+                if var_name in ["team_timeouts_allowed", "overtime_allowed"]:
+                    # Pure boolean variables (no numeric component)
+                    self.variables[var_name]["value"] = var_info["default"]  # True
+                    self.variables[var_name]["used"] = var_info["default"]   # True
+                else:
+                    # Mixed variables (checkbox + entry): numeric value, boolean used
+                    self.variables[var_name]["value"] = str(var_info["default"])  # "1" 
+                    self.variables[var_name]["used"] = True  # enabled by default
+            else:
+                # Variables without checkboxes: only 'value' field, always used
+                self.variables[var_name]["value"] = str(var_info["default"])
+                self.variables[var_name]["used"] = True
+
         self.fonts = {
             "court_time": font.Font(family="Arial", size=36),
             "half": font.Font(family="Arial", size=36, weight="bold"),
@@ -682,11 +699,14 @@ class GameManagementApp:
     def get_minutes(self, varname):
         try:
             val = self.variables[varname].get("value", self.variables[varname]["default"])
+            # PATCH: Handle boolean values by falling back to default
+            if isinstance(val, bool):
+                val = self.variables[varname]["default"]
             val = str(val).replace(',', '.')
             return float(val) * 60
         except Exception:
             val = str(self.variables[varname]["default"]).replace(',', '.')
-            return float(val) * 6
+            return float(val) * 60
 
     def build_game_sequence(self):
         seq = []
@@ -773,7 +793,9 @@ class GameManagementApp:
         entry_order = ["time_to_start_first_game", "start_first_game_in"] + entry_order
         for var_name in entry_order:
             var_info = self.variables[var_name]
-            if var_info["checkbox"]:
+            # PATCH: Don't overwrite numeric defaults for checkbox variables that also have entries
+            # Only set default to True for pure checkbox variables (no numeric component)
+            if var_info["checkbox"] and var_name in ["team_timeouts_allowed", "overtime_allowed"]:
                 var_info["default"] = True
             if var_name == "team_timeouts_allowed":
                 check_var = self.team_timeouts_allowed_var
@@ -1410,12 +1432,31 @@ as configured in the Sounds tab."""
         for widget in self.widgets:
             entry = widget["entry"]
             var_name = widget["name"]
-            if entry is not None:
+            var_info = self.variables[var_name]
+            
+            # PATCH: For variables with both checkbox and entry widgets
+            if entry is not None and widget["checkbox"] is not None:
+                # Entry always sets 'value' as float-convertible string
+                value = entry.get().replace(',', '.')
+                try:
+                    # Validate it's numeric
+                    float(value)
+                    self.variables[var_name]["value"] = value
+                except ValueError:
+                    # Fallback to default if invalid
+                    self.variables[var_name]["value"] = str(var_info["default"])
+                # Checkbox always sets 'used' as boolean
+                self.variables[var_name]["used"] = widget["checkbox"].get()
+            elif entry is not None:
+                # Entry-only variables (no checkbox)
                 value = entry.get().replace(',', '.')
                 self.variables[var_name]["value"] = value
-            if widget["checkbox"] is not None:
+                self.variables[var_name]["used"] = True
+            elif widget["checkbox"] is not None:
+                # Checkbox-only variables (no entry)
                 self.variables[var_name]["used"] = widget["checkbox"].get()
             else:
+                # Neither entry nor checkbox (shouldn't happen)
                 self.variables[var_name]["used"] = True
 
     def save_sound_settings_method(self):
