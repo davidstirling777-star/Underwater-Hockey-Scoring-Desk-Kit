@@ -35,5 +35,50 @@
     "sudden_death_game_break": true,
     "between_game_break": 1,
     "crib_time": true
-  }
+  },
+  "presetSettings": [
+    {
+      "text": "CMAS",
+      "values": {
+        "team_timeout_period": "1",
+        "half_period": "15",
+        "half_time_break": "3",
+        "overtime_game_break": "3",
+        "overtime_half_period": "5",
+        "overtime_half_time_break": "1",
+        "sudden_death_game_break": "1",
+        "between_game_break": "5",
+        "crib_time": "60"
+      },
+      "checkboxes": {
+        "team_timeouts_allowed": true,
+        "overtime_allowed": true
+      }
+    },
+    {
+      "text": "2",
+      "values": {},
+      "checkboxes": {}
+    },
+    {
+      "text": "3",
+      "values": {},
+      "checkboxes": {}
+    },
+    {
+      "text": "4",
+      "values": {},
+      "checkboxes": {}
+    },
+    {
+      "text": "5",
+      "values": {},
+      "checkboxes": {}
+    },
+    {
+      "text": "6",
+      "values": {},
+      "checkboxes": {}
+    }
+  ]
 }
