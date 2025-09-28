@@ -1,0 +1,11 @@
+{
+  "mqtt_broker": "localhost",
+  "mqtt_port": 1883,
+  "mqtt_username": "",
+  "mqtt_password": "",
+  "mqtt_topic": "zigbee2mqtt/+",
+  "siren_button_device": "siren_button",
+  "connection_timeout": 60,
+  "reconnect_delay": 5,
+  "enable_logging": true
+}

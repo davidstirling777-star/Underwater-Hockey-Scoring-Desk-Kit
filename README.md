@@ -10,6 +10,19 @@ The inital idea is to use a Raspberry Pi5 computer, tiny amplifier (Raspberry Di
 
 The goal is to make a solution for UWH scoring that anyone can use, based on easy to obtain hardware, hence th desire to use a Raspberry Pi 5.  Aiming to use a DigiAMP+ HAT, NVMe Base for Raspberry Pi 5 for robustness of data storage, Wi-Fi buttons or Zigbee communications between Zigbee USB dongle and Zigbee buttons for Chief Ref ability to signal, TOA SC610 8 Ohm 10W IP65 Horn Speaker for above water siren and a Lubell Labs Underwater loudspeaker (why? Because that is what we already use) LL916 is the modern version of the ones NZUWH already uses.
 
+## New Features
+
+### Zigbee2MQTT Wireless Siren Control
+The system now includes full Zigbee2MQTT integration for wireless siren control:
+- **Wireless Chief Referee Controls**: Use Zigbee buttons to trigger sirens remotely
+- **MQTT Integration**: Full Zigbee2MQTT compatibility with automatic reconnection
+- **Configuration UI**: Dedicated "Zigbee Siren" tab for easy setup and monitoring  
+- **Seamless Integration**: Uses existing sound files, volume controls, and audio channels
+- **Robust Error Handling**: Graceful fallback when wireless is unavailable
+- **Real-time Logging**: Activity monitoring and troubleshooting tools
+
+See `ZIGBEE_SETUP.md` for complete installation and configuration instructions.
+
 Some Features (i,e, those that I can be bothered to write about at the moment)
 
 
