@@ -29,7 +29,10 @@ except ImportError:
     MQTT_AVAILABLE = False
     mqtt = None
 
-# Configuration file for Zigbee settings
+# Configuration file for unified settings
+SETTINGS_FILE = "settings.json"
+
+# Legacy file for backward compatibility migration
 ZIGBEE_CONFIG_FILE = "zigbee_config.json"
 
 # Default configuration
@@ -83,7 +86,22 @@ class ZigbeeSirenController:
             self.logger.info("Install with: pip install paho-mqtt")
     
     def load_config(self) -> Dict[str, Any]:
-        """Load configuration from JSON file or create default."""
+        """Load configuration from unified settings file with migration support."""
+        # First try to load from unified settings file
+        if os.path.exists(SETTINGS_FILE):
+            try:
+                with open(SETTINGS_FILE, 'r') as f:
+                    unified_settings = json.load(f)
+                    config = unified_settings.get("zigbeeSettings", {})
+                    if config:
+                        # Merge with defaults for any missing keys
+                        merged_config = DEFAULT_CONFIG.copy()
+                        merged_config.update(config)
+                        return merged_config
+            except Exception as e:
+                self.logger.error(f"Error loading unified config: {e}. Trying legacy file.")
+        
+        # Fallback to legacy zigbee_config.json for migration
         if os.path.exists(ZIGBEE_CONFIG_FILE):
             try:
                 with open(ZIGBEE_CONFIG_FILE, 'r') as f:
@@ -91,19 +109,65 @@ class ZigbeeSirenController:
                 # Merge with defaults for any missing keys
                 merged_config = DEFAULT_CONFIG.copy()
                 merged_config.update(config)
+                
+                # Migrate to unified settings
+                self.logger.info("Migrating Zigbee settings to unified config file")
+                self.save_config(merged_config)
                 return merged_config
             except Exception as e:
-                self.logger.error(f"Error loading config: {e}. Using defaults.")
+                self.logger.error(f"Error loading legacy config: {e}. Using defaults.")
         
-        # Save default config
+        # Save default config to unified settings
         self.save_config(DEFAULT_CONFIG)
         return DEFAULT_CONFIG.copy()
     
     def save_config(self, config: Dict[str, Any]) -> None:
-        """Save configuration to JSON file."""
+        """Save configuration to unified settings file."""
         try:
-            with open(ZIGBEE_CONFIG_FILE, 'w') as f:
-                json.dump(config, f, indent=2)
+            # Load current unified settings
+            unified_settings = {}
+            if os.path.exists(SETTINGS_FILE):
+                try:
+                    with open(SETTINGS_FILE, 'r') as f:
+                        unified_settings = json.load(f)
+                except Exception:
+                    pass
+            
+            # Ensure structure exists
+            if "zigbeeSettings" not in unified_settings:
+                unified_settings["zigbeeSettings"] = {}
+            if "soundSettings" not in unified_settings:
+                unified_settings["soundSettings"] = {
+                    "pips_sound": "Default",
+                    "siren_sound": "Default", 
+                    "pips_volume": 50.0,
+                    "siren_volume": 50.0,
+                    "air_volume": 50.0,
+                    "water_volume": 50.0
+                }
+            if "gameSettings" not in unified_settings:
+                unified_settings["gameSettings"] = {
+                    "time_to_start_first_game": "",
+                    "start_first_game_in": 1,
+                    "team_timeouts_allowed": True,
+                    "team_timeout_period": 1,
+                    "half_period": 1,
+                    "half_time_break": 1,
+                    "overtime_allowed": True,
+                    "overtime_game_break": 1,
+                    "overtime_half_period": 1,
+                    "overtime_half_time_break": 1,
+                    "sudden_death_game_break": 1,
+                    "between_game_break": 1,
+                    "crib_time": 3
+                }
+            
+            # Update Zigbee settings
+            unified_settings["zigbeeSettings"] = config
+            
+            # Save unified settings
+            with open(SETTINGS_FILE, 'w') as f:
+                json.dump(unified_settings, f, indent=2)
             self.config = config
         except Exception as e:
             self.logger.error(f"Error saving config: {e}")
