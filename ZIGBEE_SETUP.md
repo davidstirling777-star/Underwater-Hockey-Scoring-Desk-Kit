@@ -132,7 +132,7 @@ The web interface will be available at `http://your-pi-ip:8080`.
 **Port:** `1883` (default MQTT port)
 **Username/Password:** Leave blank if no authentication is configured
 **MQTT Topic:** `zigbee2mqtt/+` (monitors all Zigbee2MQTT devices)
-**Button Device Name:** Enter the exact name you gave your button in Zigbee2MQTT
+**Button Device Names:** Enter device names (comma-separated for multiple buttons, e.g., `siren_button, referee_button_1`)
 
 ### 3. Test Connection
 - Click "Test Connection" to verify MQTT connectivity
@@ -260,16 +260,42 @@ You can edit this file directly or use the application's configuration tabs to m
 
 ### Multiple Button Support
 
-To support multiple buttons, you can modify the device matching logic in `zigbee_siren.py`:
+The UWH application now supports multiple Zigbee buttons for triggering the wireless siren. This allows multiple referees or officials to have their own button devices.
 
-```python
-# Support multiple device names
-BUTTON_DEVICES = ["siren_button", "referee_button_1", "referee_button_2"]
+#### Configuring Multiple Buttons in the UI
 
-# In _process_button_event method:
-if device_name in BUTTON_DEVICES:
-    self._trigger_siren()
+1. Open the UWH application and go to the "Zigbee Siren" tab
+2. In the "Button Device Names" field, enter multiple device names separated by commas:
+   - Example: `siren_button, referee_button_1, referee_button_2`
+   - Spaces around commas are automatically trimmed
+3. Click "Save Configuration" to store the settings
+4. Click "Connect" to start monitoring all configured devices
+
+#### Configuring Multiple Buttons in settings.json
+
+You can also directly edit the `settings.json` file to configure multiple buttons:
+
+```json
+{
+  "zigbeeSettings": {
+    "mqtt_broker": "localhost",
+    "mqtt_port": 1883,
+    "mqtt_topic": "zigbee2mqtt/+",
+    "siren_button_devices": ["siren_button", "referee_button_1", "referee_button_2"],
+    "siren_button_device": "siren_button"
+  }
+}
 ```
+
+- **siren_button_devices**: Array of device names that can trigger the siren
+- **siren_button_device**: Single device name (kept for backward compatibility)
+
+#### Backward Compatibility
+
+The application maintains full backward compatibility with existing single-button configurations:
+- Old configurations using `siren_button_device` are automatically migrated to the new list format
+- Both old and new configuration formats are supported
+- The UI automatically converts between single device strings and comma-separated lists
 
 ### Custom Button Actions
 
