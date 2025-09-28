@@ -32,9 +32,9 @@
     "overtime_game_break": 1,
     "overtime_half_period": 1,
     "overtime_half_time_break": 1,
-    "sudden_death_game_break": true,
+    "sudden_death_game_break": 1,
     "between_game_break": 1,
-    "crib_time": true
+    "crib_time": 1
   },
   "presetSettings": [
     {

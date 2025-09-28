@@ -1666,15 +1666,48 @@ The wireless siren will use the same sound file and volume settings as configure
         for var_name, var_info in self.variables.items():
             if var_name in game_settings:
                 value = game_settings[var_name]
-                self.variables[var_name]["value"] = value
-                # Also update widgets if they exist
+                
+                # Check if this variable has both checkbox and entry
+                has_checkbox = var_info.get("checkbox", False)
+                has_entry = False
+                for widget in self.widgets:
+                    if widget["name"] == var_name and widget["entry"] is not None:
+                        has_entry = True
+                        break
+                
+                if has_checkbox and has_entry:
+                    # For variables with both checkbox and entry (like sudden_death_game_break, crib_time)
+                    if isinstance(value, bool):
+                        # Legacy format - convert to numeric value and enable
+                        self.variables[var_name]["value"] = str(var_info["default"])
+                        self.variables[var_name]["used"] = value
+                    else:
+                        # New format - value is numeric, assume enabled
+                        self.variables[var_name]["value"] = str(value)
+                        self.variables[var_name]["used"] = True
+                elif has_checkbox:
+                    # Pure checkbox variables (like team_timeouts_allowed, overtime_allowed)
+                    self.variables[var_name]["used"] = value
+                else:
+                    # Entry-only variables
+                    self.variables[var_name]["value"] = str(value)
+                
+                # Update widgets if they exist
                 for widget in self.widgets:
                     if widget["name"] == var_name:
                         if widget["entry"] is not None:
                             widget["entry"].delete(0, tk.END)
-                            widget["entry"].insert(0, str(value))
+                            if has_checkbox and has_entry:
+                                # Use the numeric value for mixed variables
+                                widget["entry"].insert(0, self.variables[var_name]["value"])
+                            else:
+                                widget["entry"].insert(0, str(value))
                         if widget["checkbox"] is not None:
-                            widget["checkbox"].set(value if isinstance(value, bool) else True)
+                            if has_checkbox and has_entry:
+                                # Use the "used" flag for mixed variables
+                                widget["checkbox"].set(self.variables[var_name]["used"])
+                            else:
+                                widget["checkbox"].set(value if isinstance(value, bool) else True)
                         break
 
     def save_game_settings(self):
@@ -1685,8 +1718,28 @@ The wireless siren will use the same sound file and volume settings as configure
         # Collect current game settings from variables (updated by load_settings)
         for var_name, var_info in self.variables.items():
             if var_info.get("checkbox", False):
-                # For checkbox variables, use the "used" value
-                game_settings[var_name] = var_info.get("used", var_info["default"])
+                # Check if this is a pure checkbox variable or has both checkbox and entry
+                has_entry = False
+                for widget in self.widgets:
+                    if widget["name"] == var_name and widget["entry"] is not None:
+                        has_entry = True
+                        break
+                
+                if has_entry:
+                    # For variables with both checkbox and entry (like sudden_death_game_break, crib_time)
+                    # Save the numeric value from the entry, not the boolean
+                    value = var_info.get("value", var_info["default"])
+                    if var_name != "time_to_start_first_game":
+                        try:
+                            game_settings[var_name] = float(value) if '.' in str(value) else int(value)
+                        except (ValueError, TypeError):
+                            game_settings[var_name] = var_info["default"]
+                    else:
+                        game_settings[var_name] = value
+                else:
+                    # For pure checkbox variables (like team_timeouts_allowed, overtime_allowed)
+                    # Save the "used" boolean value
+                    game_settings[var_name] = var_info.get("used", var_info["default"])
             else:
                 # For other variables, use the current value
                 value = var_info.get("value", var_info["default"])
