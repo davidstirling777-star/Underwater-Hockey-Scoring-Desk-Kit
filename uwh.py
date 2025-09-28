@@ -653,6 +653,12 @@ class GameManagementApp:
         default_font = font.nametofont("TkDefaultFont")
         new_size = default_font.cget("size") + 2
         headers = ["Use?", "Variable", "Value", "Units"]
+        
+        # Configure custom style for Preset buttons
+        style = ttk.Style()
+        style.configure('Preset.TButton', 
+                       padding=(4, 2),
+                       font=(default_font.cget("family"), default_font.cget("size") + 1))
 
         # Widget 1 (Game Variables) - Left side, spans all rows
         widget1 = ttk.Frame(tab, borderwidth=1, relief="solid")
@@ -800,8 +806,8 @@ class GameManagementApp:
                 self.button_data[i]["text"] = str(i + 1)
                 self.button_data[i]["values"] = {}
                 self.button_data[i]["checkboxes"] = {}
-            btn = ttk.Button(widget2, text=self.button_data[i]["text"], width=16)
-            btn.grid(row=btn_row, column=btn_col, padx=8, pady=12, sticky="nsew")
+            btn = ttk.Button(widget2, text=self.button_data[i]["text"], width=14, style='Preset.TButton')
+            btn.grid(row=btn_row, column=btn_col, padx=8, pady=12, sticky="n")
             btn.bind("<ButtonPress-1>", self._make_press_handler(i))
             btn.bind("<ButtonRelease-1>", self._make_release_handler(i))
             self.widget2_buttons.append(btn)
