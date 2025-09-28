@@ -69,15 +69,22 @@ class ZigbeeSirenController:
         self.connected = False
         self.connection_thread: Optional[threading.Thread] = None
         self.should_stop = threading.Event()
+        
+        # Set up logging BEFORE loading config (migration needs logger)
+        self.logger = logging.getLogger(__name__)
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        )
+        
+        # Load configuration (may trigger migration which needs logger)
         self.config = self.load_config()
         
-        # Set up logging
-        self.logger = logging.getLogger(__name__)
+        # Update logging level based on config
         if self.config["enable_logging"]:
-            logging.basicConfig(
-                level=logging.INFO,
-                format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-            )
+            self.logger.setLevel(logging.INFO)
+        else:
+            self.logger.setLevel(logging.WARNING)
         
         # Connection status callback for UI updates
         self.connection_status_callback: Optional[Callable[[bool, str], None]] = None
@@ -121,11 +128,11 @@ class ZigbeeSirenController:
                     unified_settings = json.load(f)
                     config = unified_settings.get("zigbeeSettings", {})
                     if config:
-                        # Merge with defaults for any missing keys
+                        # Migrate device configuration BEFORE merging with defaults
+                        config = self._migrate_device_config(config)
+                        # Then merge with defaults for any missing keys
                         merged_config = DEFAULT_CONFIG.copy()
                         merged_config.update(config)
-                        # Migrate device configuration
-                        merged_config = self._migrate_device_config(merged_config)
                         return merged_config
             except Exception as e:
                 self.logger.error(f"Error loading unified config: {e}. Trying legacy file.")
@@ -135,11 +142,11 @@ class ZigbeeSirenController:
             try:
                 with open(ZIGBEE_CONFIG_FILE, 'r') as f:
                     config = json.load(f)
-                # Merge with defaults for any missing keys
+                # Migrate device configuration BEFORE merging with defaults
+                config = self._migrate_device_config(config)
+                # Then merge with defaults for any missing keys
                 merged_config = DEFAULT_CONFIG.copy()
                 merged_config.update(config)
-                # Migrate device configuration
-                merged_config = self._migrate_device_config(merged_config)
                 
                 # Migrate to unified settings
                 self.logger.info("Migrating Zigbee settings to unified config file")

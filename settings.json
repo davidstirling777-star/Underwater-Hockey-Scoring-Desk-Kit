@@ -13,6 +13,9 @@
     "mqtt_username": "",
     "mqtt_password": "",
     "mqtt_topic": "zigbee2mqtt/+",
+    "siren_button_devices": [
+      "siren_button"
+    ],
     "siren_button_device": "siren_button",
     "connection_timeout": 60,
     "reconnect_delay": 5,
@@ -29,8 +32,8 @@
     "overtime_game_break": 1,
     "overtime_half_period": 1,
     "overtime_half_time_break": 1,
-    "sudden_death_game_break": false,
+    "sudden_death_game_break": 1,
     "between_game_break": 1,
-    "crib_time": false
+    "crib_time": 3
   }
 }
