@@ -42,7 +42,8 @@ DEFAULT_CONFIG = {
     "mqtt_username": "",
     "mqtt_password": "",
     "mqtt_topic": "zigbee2mqtt/+",
-    "siren_button_device": "siren_button",
+    "siren_button_devices": ["siren_button"],  # Now supports multiple devices as a list
+    "siren_button_device": "siren_button",     # Keep for backward compatibility
     "connection_timeout": 60,
     "reconnect_delay": 5,
     "enable_logging": True
@@ -68,15 +69,22 @@ class ZigbeeSirenController:
         self.connected = False
         self.connection_thread: Optional[threading.Thread] = None
         self.should_stop = threading.Event()
+        
+        # Set up logging BEFORE loading config (migration needs logger)
+        self.logger = logging.getLogger(__name__)
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        )
+        
+        # Load configuration (may trigger migration which needs logger)
         self.config = self.load_config()
         
-        # Set up logging
-        self.logger = logging.getLogger(__name__)
+        # Update logging level based on config
         if self.config["enable_logging"]:
-            logging.basicConfig(
-                level=logging.INFO,
-                format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-            )
+            self.logger.setLevel(logging.INFO)
+        else:
+            self.logger.setLevel(logging.WARNING)
         
         # Connection status callback for UI updates
         self.connection_status_callback: Optional[Callable[[bool, str], None]] = None
@@ -84,6 +92,32 @@ class ZigbeeSirenController:
         if not MQTT_AVAILABLE:
             self.logger.warning("paho-mqtt not available. Zigbee siren functionality disabled.")
             self.logger.info("Install with: pip install paho-mqtt")
+    
+    def _migrate_device_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """Migrate old single device config to new multiple device format."""
+        # If we have the old single device format, convert to new list format
+        if "siren_button_device" in config and "siren_button_devices" not in config:
+            single_device = config["siren_button_device"]
+            if isinstance(single_device, str) and single_device:
+                # Convert single device string to list
+                config["siren_button_devices"] = [single_device]
+                self.logger.info(f"Migrated single device '{single_device}' to device list format")
+        
+        # If we have the new format but not the old, ensure backward compatibility
+        if "siren_button_devices" in config and "siren_button_device" not in config:
+            device_list = config["siren_button_devices"]
+            if isinstance(device_list, list) and device_list:
+                # Set the first device as the legacy single device for compatibility
+                config["siren_button_device"] = device_list[0]
+        
+        # Ensure siren_button_devices is always a list
+        if "siren_button_devices" not in config:
+            config["siren_button_devices"] = [config.get("siren_button_device", "siren_button")]
+        elif isinstance(config["siren_button_devices"], str):
+            # Handle case where it might be stored as a string
+            config["siren_button_devices"] = [config["siren_button_devices"]]
+        
+        return config
     
     def load_config(self) -> Dict[str, Any]:
         """Load configuration from unified settings file with migration support."""
@@ -94,7 +128,9 @@ class ZigbeeSirenController:
                     unified_settings = json.load(f)
                     config = unified_settings.get("zigbeeSettings", {})
                     if config:
-                        # Merge with defaults for any missing keys
+                        # Migrate device configuration BEFORE merging with defaults
+                        config = self._migrate_device_config(config)
+                        # Then merge with defaults for any missing keys
                         merged_config = DEFAULT_CONFIG.copy()
                         merged_config.update(config)
                         return merged_config
@@ -106,7 +142,9 @@ class ZigbeeSirenController:
             try:
                 with open(ZIGBEE_CONFIG_FILE, 'r') as f:
                     config = json.load(f)
-                # Merge with defaults for any missing keys
+                # Migrate device configuration BEFORE merging with defaults
+                config = self._migrate_device_config(config)
+                # Then merge with defaults for any missing keys
                 merged_config = DEFAULT_CONFIG.copy()
                 merged_config.update(config)
                 
@@ -118,8 +156,10 @@ class ZigbeeSirenController:
                 self.logger.error(f"Error loading legacy config: {e}. Using defaults.")
         
         # Save default config to unified settings
-        self.save_config(DEFAULT_CONFIG)
-        return DEFAULT_CONFIG.copy()
+        default_config = DEFAULT_CONFIG.copy()
+        default_config = self._migrate_device_config(default_config)
+        self.save_config(default_config)
+        return default_config
     
     def save_config(self, config: Dict[str, Any]) -> None:
         """Save configuration to unified settings file."""
@@ -321,9 +361,20 @@ class ZigbeeSirenController:
                 self.logger.warning(f"Invalid JSON in message: {payload}")
                 return
             
-            # Check if this is from our siren button device
+            # Check if this is from any of our configured siren button devices
             device_name = topic.split('/')[-1]  # Extract device name from topic
-            if device_name == self.config["siren_button_device"]:
+            
+            # Get the list of configured devices
+            configured_devices = self.config.get("siren_button_devices", [])
+            
+            # For backward compatibility, also check the old single device config
+            if "siren_button_device" in self.config:
+                legacy_device = self.config["siren_button_device"]
+                if legacy_device and legacy_device not in configured_devices:
+                    configured_devices.append(legacy_device)
+            
+            # Process if device matches any of our configured devices
+            if device_name in configured_devices:
                 self._process_button_event(device_name, data)
                 
         except Exception as e:
@@ -384,12 +435,19 @@ class ZigbeeSirenController:
     
     def get_status(self) -> Dict[str, Any]:
         """Get current status information."""
+        devices = self.config.get("siren_button_devices", [])
+        # Include legacy device for compatibility if not in list
+        legacy_device = self.config.get("siren_button_device", "")
+        if legacy_device and legacy_device not in devices:
+            devices = devices + [legacy_device]
+        
         return {
             "connected": self.connected,
             "mqtt_available": MQTT_AVAILABLE,
             "broker": f"{self.config['mqtt_broker']}:{self.config['mqtt_port']}",
             "topic": self.config["mqtt_topic"],
-            "device": self.config["siren_button_device"]
+            "devices": devices,
+            "device": self.config.get("siren_button_device", "")  # Keep for backward compatibility
         }
     
     def test_connection(self) -> bool:

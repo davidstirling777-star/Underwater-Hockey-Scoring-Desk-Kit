@@ -78,7 +78,8 @@ def get_default_unified_settings():
             "mqtt_username": "",
             "mqtt_password": "",
             "mqtt_topic": "zigbee2mqtt/+",
-            "siren_button_device": "siren_button",
+            "siren_button_devices": ["siren_button"],  # Now supports multiple devices as a list
+            "siren_button_device": "siren_button",     # Keep for backward compatibility
             "connection_timeout": 60,
             "reconnect_delay": 5,
             "enable_logging": True
@@ -1153,11 +1154,19 @@ class GameManagementApp:
         self.config_widgets["mqtt_topic"].grid(row=row, column=1, columnspan=3, sticky="ew", padx=5, pady=2)
         
         row += 1
-        tk.Label(config_frame, text="Button Device Name:", font=("Arial", 10)).grid(
+        tk.Label(config_frame, text="Button Device Names (comma-separated):", font=("Arial", 10)).grid(
             row=row, column=0, sticky="w", padx=5, pady=2)
-        self.config_widgets["siren_button_device"] = tk.Entry(config_frame, font=("Arial", 10))
-        self.config_widgets["siren_button_device"].insert(0, config["siren_button_device"])
-        self.config_widgets["siren_button_device"].grid(row=row, column=1, columnspan=3, sticky="ew", padx=5, pady=2)
+        
+        # Handle both new list format and old single device format
+        device_value = ""
+        if "siren_button_devices" in config and isinstance(config["siren_button_devices"], list):
+            device_value = ", ".join(config["siren_button_devices"])
+        elif "siren_button_device" in config:
+            device_value = config["siren_button_device"]
+        
+        self.config_widgets["siren_button_devices"] = tk.Entry(config_frame, font=("Arial", 10))
+        self.config_widgets["siren_button_devices"].insert(0, device_value)
+        self.config_widgets["siren_button_devices"].grid(row=row, column=1, columnspan=3, sticky="ew", padx=5, pady=2)
         
         # Configure column weights
         config_frame.grid_columnconfigure(1, weight=1)
@@ -1181,16 +1190,15 @@ class GameManagementApp:
 
 1. Install Zigbee2MQTT on your system
 2. Install MQTT library: pip install paho-mqtt  
-3. Configure your Zigbee button device in Zigbee2MQTT
-4. Set the device name above to match your button
+3. Configure your Zigbee button devices in Zigbee2MQTT
+4. Set the device names above (comma-separated for multiple buttons)
 5. Configure MQTT broker connection details
 6. Click Connect to start wireless siren monitoring
 
-The wireless siren will use the same sound file and volume settings
-as configured in the Sounds tab."""
+The wireless siren will use the same sound file and volume settings as configured in the Sounds tab."""
         
         info_label = tk.Label(info_frame, text=info_text, font=("Arial", 9), 
-                            justify="left", anchor="nw")
+                            justify="left", anchor="nw", wraplength=0)
         info_label.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
         
         # Log Section
@@ -1565,6 +1573,12 @@ as configured in the Sounds tab."""
                 value = widget.get()
                 if key == "mqtt_port":
                     config[key] = int(value) if value.isdigit() else 1883
+                elif key == "siren_button_devices":
+                    # Convert comma-separated string to list
+                    device_names = [name.strip() for name in value.split(",") if name.strip()]
+                    config["siren_button_devices"] = device_names
+                    # Also set legacy single device for backward compatibility
+                    config["siren_button_device"] = device_names[0] if device_names else "siren_button"
                 else:
                     config[key] = value
             
