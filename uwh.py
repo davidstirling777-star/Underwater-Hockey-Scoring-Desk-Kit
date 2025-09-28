@@ -8,22 +8,108 @@ import subprocess
 import json
 from zigbee_siren import ZigbeeSirenController, is_mqtt_available
 
-SETTINGS_FILE = "game_settings.json"
+SETTINGS_FILE = "settings.json"
 
-def load_sound_settings():
-    """Load sound settings from JSON file."""
+def migrate_legacy_settings():
+    """Migrate settings from legacy separate files to unified settings.json"""
+    unified_settings = get_default_unified_settings()
+    migrated = False
+    
+    # Migrate game_settings.json (sound settings)
+    if os.path.exists("game_settings.json"):
+        try:
+            with open("game_settings.json", "r") as f:
+                legacy_sound_settings = json.load(f)
+            unified_settings["soundSettings"].update(legacy_sound_settings)
+            migrated = True
+            print("Migrated sound settings from game_settings.json")
+        except Exception as e:
+            print(f"Error migrating game_settings.json: {e}")
+    
+    # Migrate zigbee_config.json (zigbee settings)
+    if os.path.exists("zigbee_config.json"):
+        try:
+            with open("zigbee_config.json", "r") as f:
+                legacy_zigbee_settings = json.load(f)
+            unified_settings["zigbeeSettings"].update(legacy_zigbee_settings)
+            migrated = True
+            print("Migrated Zigbee settings from zigbee_config.json")
+        except Exception as e:
+            print(f"Error migrating zigbee_config.json: {e}")
+    
+    if migrated:
+        save_unified_settings(unified_settings)
+        print("Migration completed. Legacy files preserved.")
+    
+    return unified_settings
+
+def load_unified_settings():
+    """Load unified settings from JSON file."""
     if os.path.exists(SETTINGS_FILE):
         with open(SETTINGS_FILE, "r") as f:
             try:
                 return json.load(f)
             except Exception:
-                return {}
-    return {}
+                # If settings.json exists but is corrupted, try migration
+                return migrate_legacy_settings()
+    else:
+        # If settings.json doesn't exist, try migration first
+        return migrate_legacy_settings()
 
-def save_sound_settings(settings):
-    """Save sound settings to JSON file."""
+def save_unified_settings(settings):
+    """Save unified settings to JSON file."""
     with open(SETTINGS_FILE, "w") as f:
         json.dump(settings, f, indent=2)
+
+def get_default_unified_settings():
+    """Get default unified settings structure."""
+    return {
+        "soundSettings": {
+            "pips_sound": "Default",
+            "siren_sound": "Default", 
+            "pips_volume": 50.0,
+            "siren_volume": 50.0,
+            "air_volume": 50.0,
+            "water_volume": 50.0
+        },
+        "zigbeeSettings": {
+            "mqtt_broker": "localhost",
+            "mqtt_port": 1883,
+            "mqtt_username": "",
+            "mqtt_password": "",
+            "mqtt_topic": "zigbee2mqtt/+",
+            "siren_button_device": "siren_button",
+            "connection_timeout": 60,
+            "reconnect_delay": 5,
+            "enable_logging": True
+        },
+        "gameSettings": {
+            "time_to_start_first_game": "",
+            "start_first_game_in": 1,
+            "team_timeouts_allowed": True,
+            "team_timeout_period": 1,
+            "half_period": 1,
+            "half_time_break": 1,
+            "overtime_allowed": True,
+            "overtime_game_break": 1,
+            "overtime_half_period": 1,
+            "overtime_half_time_break": 1,
+            "sudden_death_game_break": 1,
+            "between_game_break": 1,
+            "crib_time": 3
+        }
+    }
+
+def load_sound_settings():
+    """Load sound settings from unified JSON file."""
+    unified_settings = load_unified_settings()
+    return unified_settings.get("soundSettings", {})
+
+def save_sound_settings(settings):
+    """Save sound settings to unified JSON file."""
+    unified_settings = load_unified_settings()
+    unified_settings["soundSettings"] = settings
+    save_unified_settings(unified_settings)
 
 class GameManagementApp:
     def __init__(self, master):
@@ -139,6 +225,7 @@ class GameManagementApp:
         self.create_settings_tab()
         self.create_sounds_tab()
         self.create_zigbee_siren_tab()
+        self.load_game_settings()  # Load game settings from unified file
         self.load_settings()
         self.build_game_sequence()
         self.master.bind('<Configure>', self.scale_fonts)
@@ -1276,6 +1363,8 @@ as configured in the Sounds tab."""
     def _on_settings_variable_change(self, *args):
         self.load_settings()
         self.build_game_sequence()
+        # Save game settings when variables change
+        self.save_game_settings()
 
     def load_settings(self):
         # Calculate "Start First Game In" from "Time to Start First Game" minus "Between Game Break"
@@ -1343,6 +1432,50 @@ as configured in the Sounds tab."""
         # Show a message to confirm settings were saved
         messagebox.showinfo("Settings Saved", "Sound settings have been saved.")
 
+    def load_game_settings(self):
+        """Load game settings from unified JSON file."""
+        unified_settings = load_unified_settings()
+        game_settings = unified_settings.get("gameSettings", {})
+        
+        # Load settings into variables
+        for var_name, var_info in self.variables.items():
+            if var_name in game_settings:
+                value = game_settings[var_name]
+                self.variables[var_name]["value"] = value
+                # Also update widgets if they exist
+                for widget in self.widgets:
+                    if widget["name"] == var_name:
+                        if widget["entry"] is not None:
+                            widget["entry"].delete(0, tk.END)
+                            widget["entry"].insert(0, str(value))
+                        if widget["checkbox"] is not None:
+                            widget["checkbox"].set(value if isinstance(value, bool) else True)
+                        break
+
+    def save_game_settings(self):
+        """Save current game settings to unified JSON file."""
+        unified_settings = load_unified_settings()
+        game_settings = {}
+        
+        # Collect current game settings from variables (updated by load_settings)
+        for var_name, var_info in self.variables.items():
+            if var_info.get("checkbox", False):
+                # For checkbox variables, use the "used" value
+                game_settings[var_name] = var_info.get("used", var_info["default"])
+            else:
+                # For other variables, use the current value
+                value = var_info.get("value", var_info["default"])
+                if var_name != "time_to_start_first_game":
+                    try:
+                        game_settings[var_name] = float(value) if '.' in str(value) else int(value)
+                    except (ValueError, TypeError):
+                        game_settings[var_name] = value
+                else:
+                    game_settings[var_name] = value
+        
+        unified_settings["gameSettings"] = game_settings
+        save_unified_settings(unified_settings)
+
     # Zigbee Siren Methods
     def start_zigbee_connection(self):
         """Start the Zigbee siren connection."""
@@ -1398,7 +1531,14 @@ as configured in the Sounds tab."""
             current_config = self.zigbee_controller.config.copy()
             current_config.update(config)
             
+            # Save to both the Zigbee controller and unified settings
             self.zigbee_controller.save_config(current_config)
+            
+            # Also save to unified settings file
+            unified_settings = load_unified_settings()
+            unified_settings["zigbeeSettings"] = current_config
+            save_unified_settings(unified_settings)
+            
             self.add_to_zigbee_log("Configuration saved")
             messagebox.showinfo("Configuration", "Zigbee configuration saved successfully!")
         except Exception as e:

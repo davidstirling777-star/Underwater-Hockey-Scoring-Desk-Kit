@@ -139,6 +139,16 @@ The web interface will be available at `http://your-pi-ip:8080`.
 - Click "Save Configuration" to store your settings
 - Click "Connect" to start monitoring for button presses
 
+### 4. Configuration File Location
+
+All UWH application settings are now stored in a unified `settings.json` file in the application directory. This file contains:
+
+- **soundSettings**: Audio preferences (sound files, volume levels)
+- **zigbeeSettings**: MQTT connection and Zigbee device settings
+- **gameSettings**: Game timing and rule configuration
+
+The application automatically creates this file with default settings on first run. You can edit it directly or use the application's UI tabs to modify settings. Changes made through the UI are automatically saved to this file.
+
 ### 4. Test Siren
 - Click "Test Wireless Siren" to test the siren manually
 - Press your physical Zigbee button to test wireless triggering
@@ -226,13 +236,27 @@ sudo systemctl restart mosquitto
 
 If using a different MQTT topic structure, modify the configuration:
 
-```python
-# In zigbee_config.json
+```json
+# In settings.json (under zigbeeSettings section)
 {
-  "mqtt_topic": "my_zigbee/+",
-  "siren_button_device": "my_button_name"
+  "soundSettings": { ... },
+  "zigbeeSettings": {
+    "mqtt_topic": "my_zigbee/+",
+    "siren_button_device": "my_button_name",
+    "mqtt_broker": "localhost",
+    "mqtt_port": 1883,
+    ...
+  },
+  "gameSettings": { ... }
 }
 ```
+
+The UWH application now uses a unified `settings.json` file that contains all configuration settings:
+- **soundSettings**: Audio configuration (volumes, sound files)
+- **zigbeeSettings**: MQTT and Zigbee device configuration  
+- **gameSettings**: Game timing and rule configuration
+
+You can edit this file directly or use the application's configuration tabs to modify settings.
 
 ### Multiple Button Support
 
