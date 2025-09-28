@@ -98,7 +98,52 @@ def get_default_unified_settings():
             "sudden_death_game_break": 1,
             "between_game_break": 1,
             "crib_time": 3
-        }
+        },
+        "presetSettings": [
+            {
+                "text": "CMAS",
+                "values": {
+                    "team_timeout_period": "1",           # Team timeout 1 minute
+                    "half_period": "15",                  # Half period 15 minutes
+                    "half_time_break": "3",               # Half time break 3 minutes
+                    "overtime_game_break": "3",           # Overtime game break 3 minutes
+                    "overtime_half_period": "5",          # Overtime half period 5 minutes
+                    "overtime_half_time_break": "1",      # Overtime half time break 1 minute
+                    "sudden_death_game_break": "1",       # Sudden Death Game break 1 minute
+                    "between_game_break": "5",            # Between Game break 5 minutes
+                    "crib_time": "60"                     # Crib time default 60 seconds
+                },
+                "checkboxes": {
+                    "team_timeouts_allowed": True,        # Team timeouts allowed checked
+                    "overtime_allowed": True              # Overtime allowed checked
+                }
+            },
+            {
+                "text": "2",
+                "values": {},
+                "checkboxes": {}
+            },
+            {
+                "text": "3",
+                "values": {},
+                "checkboxes": {}
+            },
+            {
+                "text": "4",
+                "values": {},
+                "checkboxes": {}
+            },
+            {
+                "text": "5",
+                "values": {},
+                "checkboxes": {}
+            },
+            {
+                "text": "6",
+                "values": {},
+                "checkboxes": {}
+            }
+        ]
     }
 
 def load_sound_settings():
@@ -110,6 +155,17 @@ def save_sound_settings(settings):
     """Save sound settings to unified JSON file."""
     unified_settings = load_unified_settings()
     unified_settings["soundSettings"] = settings
+    save_unified_settings(unified_settings)
+
+def load_preset_settings():
+    """Load preset settings from unified JSON file."""
+    unified_settings = load_unified_settings()
+    return unified_settings.get("presetSettings", get_default_unified_settings()["presetSettings"])
+
+def save_preset_settings(presets):
+    """Save preset settings to unified JSON file."""
+    unified_settings = load_unified_settings()
+    unified_settings["presetSettings"] = presets
     save_unified_settings(unified_settings)
 
 class GameManagementApp:
@@ -761,7 +817,7 @@ class GameManagementApp:
         tab = ttk.Frame(self.notebook)
         self.notebook.add(tab, text="Game Variables")
         tab.grid_rowconfigure(0, weight=3)  # Widget 1 gets most of the space
-        tab.grid_rowconfigure(1, weight=2)  # Widget 2 (Presets) gets less space
+        tab.grid_rowconfigure(1, weight=1)  # Widget 2 (Presets) gets less space - reduced from 2 to 1 (50% height)
         tab.grid_columnconfigure(0, weight=2)  # Widget 1 on left
         tab.grid_columnconfigure(1, weight=1)  # Widget 2 on right
 
@@ -898,31 +954,13 @@ class GameManagementApp:
 #add in default values for CMAS rules as per section 14.2 INTERNATIONAL RULES FOR UNDERWATER HOCKEY
 #RULES OF PLAY, Version 13.0, February 2025
         self.widget2_buttons = []
-        self.button_data = [{} for _ in range(6)]
+        # Load presets from JSON settings
+        preset_data = load_preset_settings()
+        self.button_data = preset_data.copy()  # Make a copy to avoid modifying the original
+        
         for i in range(6):
             btn_row = 1 if i < 3 else 2
             btn_col = i % 3
-            if i == 0:
-                self.button_data[i]["text"] = "CMAS"
-                self.button_data[i]["values"] = {
-                    "team_timeout_period": "1",           # Team timeout 1 minute
-                    "half_period": "15",                  # Half period 15 minutes
-                    "half_time_break": "3",               # Half time break 3 minutes
-                    "overtime_game_break": "3",           # Overtime game break 3 minutes
-                    "overtime_half_period": "5",          # Overtime half period 5 minutes
-                    "overtime_half_time_break": "1",      # Overtime half time break 1 minute
-                    "sudden_death_game_break": "1",       # Sudden Death Game break 1 minute
-                    "between_game_break": "5",            # Between Game break 5 minutes
-                    "crib_time": "60"                     # Crib time default 60 seconds
-                }
-                self.button_data[i]["checkboxes"] = {
-                    "team_timeouts_allowed": True,        # Team timeouts allowed checked
-                    "overtime_allowed": True              # Overtime allowed checked
-                }
-            else:
-                self.button_data[i]["text"] = str(i + 1)
-                self.button_data[i]["values"] = {}
-                self.button_data[i]["checkboxes"] = {}
             btn = ttk.Button(widget2, text=self.button_data[i]["text"], width=14, style='Preset.TButton')
             btn.grid(row=btn_row, column=btn_col, padx=8, pady=12, sticky="n")
             btn.bind("<ButtonPress-1>", self._make_press_handler(i))
@@ -1364,6 +1402,8 @@ The wireless siren will use the same sound file and volume settings as configure
                 self.button_data[idx]["checkboxes"][v] = checks[v].get()
             self.button_data[idx]["text"] = btn_text_var.get()[:max_btn_text_len]
             self.set_widget2_button_text(idx, self.button_data[idx]["text"])
+            # Save presets to JSON file
+            save_preset_settings(self.button_data)
             dlg.destroy()
         save_btn = ttk.Button(dlg, text="Save", command=save_and_close)
         save_btn.grid(row=row_num, column=0, columnspan=2, pady=16)
