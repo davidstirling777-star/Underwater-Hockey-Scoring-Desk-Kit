@@ -5,6 +5,24 @@ import re
 import time
 import os
 import subprocess
+import json
+
+SETTINGS_FILE = "game_settings.json"
+
+def load_sound_settings():
+    """Load sound settings from JSON file."""
+    if os.path.exists(SETTINGS_FILE):
+        with open(SETTINGS_FILE, "r") as f:
+            try:
+                return json.load(f)
+            except Exception:
+                return {}
+    return {}
+
+def save_sound_settings(settings):
+    """Save sound settings to JSON file."""
+    with open(SETTINGS_FILE, "w") as f:
+        json.dump(settings, f, indent=2)
 
 class GameManagementApp:
     def __init__(self, master):
@@ -100,11 +118,16 @@ class GameManagementApp:
         self.penalty_timers_paused = False
         self.penalty_timer_jobs = []
 
-        # Initialize volume variables for sounds
-        self.pips_volume = tk.DoubleVar(value=50.0)  # Default to 50%
-        self.siren_volume = tk.DoubleVar(value=50.0)  # Default to 50%
-        self.air_volume = tk.DoubleVar(value=50.0)   # Default to 50%
-        self.water_volume = tk.DoubleVar(value=50.0) # Default to 50%
+        # Initialize volume variables for sounds - load from settings
+        sound_settings = load_sound_settings()
+        self.pips_volume = tk.DoubleVar(value=sound_settings.get("pips_volume", 50.0))
+        self.siren_volume = tk.DoubleVar(value=sound_settings.get("siren_volume", 50.0))
+        self.air_volume = tk.DoubleVar(value=sound_settings.get("air_volume", 50.0))
+        self.water_volume = tk.DoubleVar(value=sound_settings.get("water_volume", 50.0))
+        
+        # Initialize sound selection variables
+        self.pips_var = tk.StringVar(value=sound_settings.get("pips_sound", "Default"))
+        self.siren_var = tk.StringVar(value=sound_settings.get("siren_sound", "Default"))
 
         self.create_scoreboard_tab()
         self.create_settings_tab()
@@ -811,87 +834,99 @@ class GameManagementApp:
         tab.grid_rowconfigure(0, weight=1)
         tab.grid_columnconfigure(0, weight=1)
         
-        # Create the main sounds widget frame
-        sounds_widget = ttk.Frame(tab, borderwidth=1, relief="solid")
+        # Create the main sounds widget frame - using LabelFrame like demo
+        sounds_widget = tk.LabelFrame(tab, text="Sounds", borderwidth=2, relief="solid")
         sounds_widget.grid(row=0, column=0, sticky="nsew", padx=8, pady=8)
         
-        # Configure grid layout for sounds widget - 11 rows and 6 columns
-        for i in range(6):
-            sounds_widget.grid_columnconfigure(i, weight=1)  # All columns expandable
-        
-        # Configure 11 rows for layout
-        for i in range(11):
-            sounds_widget.grid_rowconfigure(i, weight=1)
-        
-        default_font = font.nametofont("TkDefaultFont")
-        new_size = default_font.cget("size") + 2
-        
-        sounds_label = tk.Label(sounds_widget, text="Sounds", font=(default_font.cget("family"), new_size, "bold"))
-        sounds_label.grid(row=0, column=0, columnspan=6, padx=4, pady=(0,8), sticky="nsew")
+        # Configure grid layout for sounds widget - 10 rows and 6 columns (like demo)
+        for r in range(10):
+            sounds_widget.grid_rowconfigure(r, weight=1)
+        for c in range(6):
+            sounds_widget.grid_columnconfigure(c, weight=1)
+        sounds_widget.grid_columnconfigure(3, weight=0)  # Column 3 has fixed width
         
         # Get dynamic list of sound files
         sound_files = self.get_sound_files()
         pips_options = ["Default"] + sound_files if sound_files != ["No sound files found"] else sound_files
         siren_options = ["Default"] + sound_files if sound_files != ["No sound files found"] else sound_files
         
-        # Test channel volume sliders (moved to top of widget)  
-        test_vol_label = tk.Label(sounds_widget, text="Test Channel Volumes", font=(default_font.cget("family"), new_size, "bold"))
-        test_vol_label.grid(row=1, column=0, columnspan=4, padx=4, pady=(4,8), sticky="nsew")
-        
-        # Pips volume slider
-        pips_vol_label = tk.Label(sounds_widget, text="Pips Vol:", font=(default_font.cget("family"), new_size-1))
-        pips_vol_label.grid(row=2, column=0, sticky="nsew", padx=(8,4), pady=2)
-        pips_vol_slider = tk.Scale(sounds_widget, from_=0, to=100, orient="horizontal", variable=self.pips_volume,
-                                  length=120, font=(default_font.cget("family"), new_size-2))
-        pips_vol_slider.grid(row=2, column=1, columnspan=2, sticky="nsew", padx=4, pady=2)
-        
-        # Siren volume slider
-        siren_vol_label = tk.Label(sounds_widget, text="Siren Vol:", font=(default_font.cget("family"), new_size-1))
-        siren_vol_label.grid(row=3, column=0, sticky="nsew", padx=(8,4), pady=2)
-        siren_vol_slider = tk.Scale(sounds_widget, from_=0, to=100, orient="horizontal", variable=self.siren_volume,
-                                   length=120, font=(default_font.cget("family"), new_size-2))
-        siren_vol_slider.grid(row=3, column=1, columnspan=2, sticky="nsew", padx=4, pady=2)
-        
-        # Pips row (with AIR channel volume slider beside it)
-        tk.Label(sounds_widget, text="Pips:", font=(default_font.cget("family"), new_size)).grid(row=4, column=0, sticky="nsew", padx=(8,4), pady=4)
-        self.pips_var = tk.StringVar(value="Default")
+        # Row 0, column 0: Save Settings button
+        save_btn = tk.Button(sounds_widget, text="Save Settings", font=("Arial", 11), command=self.save_sound_settings_method)
+        save_btn.grid(row=0, column=0)
+
+        # Row 0, column 4, columnspan=2: "Volume"
+        tk.Label(sounds_widget, text="Volume", font=("Arial", 12)).grid(row=0, column=4, columnspan=2, sticky="nsew")
+
+        # Row 1, column 4: "Air"
+        tk.Label(sounds_widget, text="Air", font=("Arial", 12)).grid(row=1, column=4, sticky="nsew")
+
+        # Row 1, column 5: "Water"
+        tk.Label(sounds_widget, text="Water", font=("Arial", 12)).grid(row=1, column=5, sticky="nsew")
+
+        # Row 2, column 0: "Pips"
+        tk.Label(sounds_widget, text="Pips", font=("Arial", 12)).grid(row=2, column=0, sticky="nsew")
+
+        # Row 2, column 1, columnspan=2: Pips dropdown (sticky="ew", padx=(0, 10))
         pips_dropdown = ttk.Combobox(sounds_widget, textvariable=self.pips_var, values=pips_options, state="readonly")
-        pips_dropdown.grid(row=4, column=1, sticky="nsew", padx=4, pady=4)
-        pips_play_button = tk.Button(
-            sounds_widget, text="Play", font=(default_font.cget("family"), new_size), 
-            command=lambda: self.play_sound_with_volume(self.pips_var.get(), "pips")
+        pips_dropdown.grid(row=2, column=1, columnspan=2, sticky="ew", padx=(0, 10))
+
+        # Row 2, column 3: Play button for pips demo sound
+        pips_play_btn = tk.Button(sounds_widget, text="Play", font=("Arial", 11), width=5,
+                                  command=lambda: self.play_sound_with_volume(self.pips_var.get(), "pips"))
+        pips_play_btn.grid(row=2, column=3)
+
+        # Row 3, column 0: "Pips Vol"
+        tk.Label(sounds_widget, text="Pips Vol", font=("Arial", 11)).grid(row=3, column=0, sticky="ew")
+
+        # Row 3, column 1, columnspan=2: Pips slider (sticky="ew"), no value text
+        pips_vol_slider = tk.Scale(
+            sounds_widget, from_=0, to=100, orient="horizontal", variable=self.pips_volume,
+            font=("Arial", 10), showvalue=False
         )
-        pips_play_button.grid(row=4, column=2, sticky="nsew", padx=(4,8), pady=4)
-        
-        # AIR volume slider (vertical, beside Pips row) - increased rowspan
-        air_label = tk.Label(sounds_widget, text="AIR", font=(default_font.cget("family"), new_size-1))
-        air_label.grid(row=4, column=4, padx=4, pady=2, sticky="nsew")
-        air_vol_slider = tk.Scale(sounds_widget, from_=100, to=0, orient="vertical", variable=self.air_volume,
-                                 length=80, font=(default_font.cget("family"), new_size-2))
-        air_vol_slider.grid(row=5, column=4, rowspan=3, padx=4, pady=2, sticky="nsew")
-        
-        # Siren row (with WATER channel volume slider beside it)
-        tk.Label(sounds_widget, text="Siren:", font=(default_font.cget("family"), new_size)).grid(row=6, column=0, sticky="nsew", padx=(8,4), pady=4)
-        self.siren_var = tk.StringVar(value="Default")
+        pips_vol_slider.grid(row=3, column=1, columnspan=2, sticky="ew")
+
+        # Row 5, column 0: "Siren"
+        tk.Label(sounds_widget, text="Siren", font=("Arial", 12)).grid(row=5, column=0, sticky="nsew")
+
+        # Row 5, column 1, columnspan=2: Siren dropdown (sticky="ew", padx=(0, 10))
         siren_dropdown = ttk.Combobox(sounds_widget, textvariable=self.siren_var, values=siren_options, state="readonly")
-        siren_dropdown.grid(row=6, column=1, sticky="nsew", padx=4, pady=4)
-        siren_play_button = tk.Button(
-            sounds_widget, text="Play", font=(default_font.cget("family"), new_size),
-            command=lambda: self.play_sound_with_volume(self.siren_var.get(), "siren")
+        siren_dropdown.grid(row=5, column=1, columnspan=2, sticky="ew", padx=(0, 10))
+
+        # Row 5, column 3: Play button for siren demo sound
+        siren_play_btn = tk.Button(sounds_widget, text="Play", font=("Arial", 11), width=5,
+                                   command=lambda: self.play_sound_with_volume(self.siren_var.get(), "siren"))
+        siren_play_btn.grid(row=5, column=3)
+
+        # Row 6, column 0: "Siren Vol"
+        tk.Label(sounds_widget, text="Siren Vol", font=("Arial", 11)).grid(row=6, column=0, sticky="ew")
+
+        # Row 6, column 1, columnspan=2: Siren slider (sticky="ew"), no value text
+        siren_vol_slider = tk.Scale(
+            sounds_widget, from_=0, to=100, orient="horizontal", variable=self.siren_volume,
+            font=("Arial", 10), showvalue=False
         )
-        siren_play_button.grid(row=6, column=2, sticky="nsew", padx=(4,8), pady=4)
-        
-        # WATER volume slider (vertical, beside Siren row) - increased rowspan
-        water_label = tk.Label(sounds_widget, text="WATER", font=(default_font.cget("family"), new_size-1))
-        water_label.grid(row=6, column=5, padx=4, pady=2, sticky="nsew")
-        water_vol_slider = tk.Scale(sounds_widget, from_=100, to=0, orient="vertical", variable=self.water_volume,
-                                   length=80, font=(default_font.cget("family"), new_size-2))
-        water_vol_slider.grid(row=7, column=5, rowspan=4, padx=4, pady=2, sticky="nsew")
-        
-        # Add placeholder labels to ensure all 11 rows are used in the grid
-        for row in range(8, 11):
-            placeholder = tk.Label(sounds_widget, text="", font=(default_font.cget("family"), new_size-2))
-            placeholder.grid(row=row, column=0, sticky="nsew")
+        siren_vol_slider.grid(row=6, column=1, columnspan=2, sticky="ew")
+
+        # Air slider: row=2, column=4, rowspan=5, sticky="ns" (no text)
+        air_vol_slider = tk.Scale(
+            sounds_widget, from_=100, to=0, orient="vertical", variable=self.air_volume,
+            font=("Arial", 10), showvalue=False
+        )
+        air_vol_slider.grid(row=2, column=4, rowspan=5, sticky="ns")
+
+        # Water slider: row=2, column=5, rowspan=5, sticky="ns" (no text)
+        water_vol_slider = tk.Scale(
+            sounds_widget, from_=100, to=0, orient="vertical", variable=self.water_volume,
+            font=("Arial", 10), showvalue=False
+        )
+        water_vol_slider.grid(row=2, column=5, rowspan=5, sticky="ns")
+
+        # Demo info at the bottom (optional)
+        tk.Label(
+            sounds_widget,
+            text="Demo: 10 rows, 6 columns, custom layout for Sounds widget.",
+            fg="blue"
+        ).grid(row=9, column=0, columnspan=6, sticky="nsew")
 
     def _make_press_handler(self, idx):
         return lambda e: self._start_button_hold(e, idx)
@@ -1109,6 +1144,20 @@ class GameManagementApp:
                 self.variables[var_name]["used"] = widget["checkbox"].get()
             else:
                 self.variables[var_name]["used"] = True
+
+    def save_sound_settings_method(self):
+        """Save current sound settings to JSON file."""
+        settings = {
+            "pips_sound": self.pips_var.get(),
+            "siren_sound": self.siren_var.get(),
+            "pips_volume": self.pips_volume.get(),
+            "siren_volume": self.siren_volume.get(),
+            "air_volume": self.air_volume.get(),
+            "water_volume": self.water_volume.get()
+        }
+        save_sound_settings(settings)
+        # Show a message to confirm settings were saved
+        messagebox.showinfo("Settings Saved", "Sound settings have been saved.")
 
     def is_overtime_enabled(self):
         return self.overtime_allowed_var.get()
