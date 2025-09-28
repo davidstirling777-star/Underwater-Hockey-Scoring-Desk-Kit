@@ -289,6 +289,9 @@ class GameManagementApp:
         # Initialize sound selection variables
         self.pips_var = tk.StringVar(value=sound_settings.get("pips_sound", "Default"))
         self.siren_var = tk.StringVar(value=sound_settings.get("siren_sound", "Default"))
+        
+        # Track audio device warning to prevent loops
+        self.audio_device_warning_shown = False
 
         # Initialize Zigbee siren controller
         self.zigbee_controller = ZigbeeSirenController(siren_callback=self.trigger_wireless_siren)
@@ -404,6 +407,45 @@ class GameManagementApp:
         self.penalties_button.grid(row=10, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
 
         self.update_team_timeouts_allowed()
+
+    def check_audio_device_available(self):
+        """
+        Check if audio devices are available for playback.
+        Returns True if audio devices are available, False otherwise.
+        """
+        try:
+            # Try to check for audio devices using aplay (Linux/Raspberry Pi)
+            result = subprocess.run(['aplay', '-l'], capture_output=True, text=True, timeout=5)
+            if result.returncode == 0 and result.stdout.strip():
+                return True
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+            pass
+        
+        try:
+            # Alternative check using amixer
+            result = subprocess.run(['amixer', 'scontrols'], capture_output=True, text=True, timeout=5)
+            if result.returncode == 0 and result.stdout.strip():
+                return True
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+            pass
+        
+        return False
+
+    def handle_no_audio_device_warning(self, sound_var, sound_type):
+        """
+        Handle the case when no audio device is available.
+        Shows warning once per session and resets sound selection to "Default".
+        """
+        if not self.audio_device_warning_shown:
+            messagebox.showwarning(
+                "Audio Device Warning", 
+                f"No audio device detected. Cannot play {sound_type} sounds.\n"
+                f"Sound selection will be reset to 'Default'."
+            )
+            self.audio_device_warning_shown = True
+        
+        # Reset sound selection to "Default" to prevent loop
+        sound_var.set("Default")
 
     def get_sound_files(self):
         """
@@ -905,8 +947,33 @@ class GameManagementApp:
                 entry.bind("<Return>", validate_hhmm_on_focusout)
             else:
                 entry.insert(0, "1")
-                entry.bind("<FocusOut>", lambda e, name=var_name: self._on_settings_variable_change())
-                entry.bind("<Return>", lambda e, name=var_name: self._on_settings_variable_change())
+                # Special validation for crib_time - only accepts numbers
+                if var_name == "crib_time":
+                    def validate_crib_time_on_focusout(event):
+                        val = event.widget.get().strip()
+                        if val == "":
+                            return
+                        # Accept valid numbers (int or float with . or ,)
+                        try:
+                            # Replace comma with dot for European decimal notation
+                            val_normalized = val.replace(',', '.')
+                            float(val_normalized)  # Test if it's a valid number
+                            # Update last valid value if validation passes
+                            self.last_valid_values[var_name] = val
+                            self._on_settings_variable_change()
+                        except ValueError:
+                            # Show error and restore last valid value
+                            messagebox.showerror("Input Error", f"Please enter a valid number for {var_name.replace('_', ' ').title()}.")
+                            event.widget.delete(0, tk.END)
+                            event.widget.insert(0, self.last_valid_values[var_name])
+                            event.widget.focus_set()
+                            event.widget.selection_range(0, tk.END)
+                    
+                    entry.bind("<FocusOut>", validate_crib_time_on_focusout)
+                    entry.bind("<Return>", validate_crib_time_on_focusout)
+                else:
+                    entry.bind("<FocusOut>", lambda e, name=var_name: self._on_settings_variable_change())
+                    entry.bind("<Return>", lambda e, name=var_name: self._on_settings_variable_change())
             entry.grid(row=row_idx, column=2, sticky="w", padx=5, pady=5)
             tk.Label(widget1, text=var_info["unit"], font=(default_font.cget("family"), new_size, "bold")).grid(row=row_idx, column=3, sticky="w", padx=5, pady=5)
             self.widgets.append({"name": var_name, "entry": entry, "checkbox": check_var, "label_widget": label_widget})
@@ -1019,8 +1086,7 @@ class GameManagementApp:
             text=explanation_text,
             font=(default_font.cget("family"), default_font.cget("size")),
             justify="left",
-            anchor="nw",
-            wraplength=300  # Wrap text to fit widget width
+            anchor="nw"
         )
         explanation_label.grid(row=1, column=0, padx=8, pady=(4,8), sticky="nsew")
 
@@ -1069,6 +1135,15 @@ class GameManagementApp:
         # Row 2, column 1, columnspan=2: Pips dropdown (sticky="ew", padx=(0, 10))
         pips_dropdown = ttk.Combobox(sounds_widget, textvariable=self.pips_var, values=pips_options, state="readonly")
         pips_dropdown.grid(row=2, column=1, columnspan=2, sticky="ew", padx=(0, 10))
+        
+        # Add validation callback for pips selection
+        def validate_pips_selection(*args):
+            selected = self.pips_var.get()
+            if selected != "Default" and selected != "No sound files found":
+                if not self.check_audio_device_available():
+                    self.handle_no_audio_device_warning(self.pips_var, "pips")
+        
+        self.pips_var.trace_add("write", validate_pips_selection)
 
         # Row 2, column 3: Play button for pips demo sound
         pips_play_btn = tk.Button(sounds_widget, text="Play", font=("Arial", 11), width=5,
@@ -1091,6 +1166,15 @@ class GameManagementApp:
         # Row 5, column 1, columnspan=2: Siren dropdown (sticky="ew", padx=(0, 10))
         siren_dropdown = ttk.Combobox(sounds_widget, textvariable=self.siren_var, values=siren_options, state="readonly")
         siren_dropdown.grid(row=5, column=1, columnspan=2, sticky="ew", padx=(0, 10))
+        
+        # Add validation callback for siren selection
+        def validate_siren_selection(*args):
+            selected = self.siren_var.get()
+            if selected != "Default" and selected != "No sound files found":
+                if not self.check_audio_device_available():
+                    self.handle_no_audio_device_warning(self.siren_var, "siren")
+        
+        self.siren_var.trace_add("write", validate_siren_selection)
 
         # Row 5, column 3: Play button for siren demo sound
         siren_play_btn = tk.Button(sounds_widget, text="Play", font=("Arial", 11), width=5,
@@ -1120,13 +1204,6 @@ class GameManagementApp:
             font=("Arial", 10), showvalue=False
         )
         water_vol_slider.grid(row=2, column=5, rowspan=5, sticky="ns")
-
-        # Demo info at the bottom (optional)
-        tk.Label(
-            sounds_widget,
-            text="Demo: 10 rows, 6 columns, custom layout for Sounds widget.",
-            fg="blue"
-        ).grid(row=9, column=0, columnspan=6, sticky="nsew")
 
     def create_zigbee_siren_tab(self):
         """Create the Zigbee Siren configuration tab."""
