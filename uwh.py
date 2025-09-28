@@ -947,9 +947,9 @@ class GameManagementApp:
                 entry.bind("<Return>", validate_hhmm_on_focusout)
             else:
                 entry.insert(0, "1")
-                # Special validation for crib_time - only accepts numbers
-                if var_name == "crib_time":
-                    def validate_crib_time_on_focusout(event):
+                # Special validation for numeric-only variables - only accepts numbers
+                if var_name in ["crib_time", "sudden_death_game_break"]:
+                    def validate_numeric_on_focusout(event, field_name=var_name):
                         val = event.widget.get().strip()
                         if val == "":
                             return
@@ -959,18 +959,18 @@ class GameManagementApp:
                             val_normalized = val.replace(',', '.')
                             float(val_normalized)  # Test if it's a valid number
                             # Update last valid value if validation passes
-                            self.last_valid_values[var_name] = val
+                            self.last_valid_values[field_name] = val
                             self._on_settings_variable_change()
                         except ValueError:
                             # Show error and restore last valid value
-                            messagebox.showerror("Input Error", f"Please enter a valid number for {var_name.replace('_', ' ').title()}.")
+                            messagebox.showerror("Input Error", f"Please enter a valid number for {field_name.replace('_', ' ').title()}.")
                             event.widget.delete(0, tk.END)
-                            event.widget.insert(0, self.last_valid_values[var_name])
+                            event.widget.insert(0, self.last_valid_values[field_name])
                             event.widget.focus_set()
                             event.widget.selection_range(0, tk.END)
                     
-                    entry.bind("<FocusOut>", validate_crib_time_on_focusout)
-                    entry.bind("<Return>", validate_crib_time_on_focusout)
+                    entry.bind("<FocusOut>", validate_numeric_on_focusout)
+                    entry.bind("<Return>", validate_numeric_on_focusout)
                 else:
                     entry.bind("<FocusOut>", lambda e, name=var_name: self._on_settings_variable_change())
                     entry.bind("<Return>", lambda e, name=var_name: self._on_settings_variable_change())
@@ -1136,14 +1136,24 @@ class GameManagementApp:
         pips_dropdown = ttk.Combobox(sounds_widget, textvariable=self.pips_var, values=pips_options, state="readonly")
         pips_dropdown.grid(row=2, column=1, columnspan=2, sticky="ew", padx=(0, 10))
         
-        # Add validation callback for pips selection
+        # Add validation callback for pips selection - only on user interaction
         def validate_pips_selection(*args):
-            selected = self.pips_var.get()
-            if selected != "Default" and selected != "No sound files found":
-                if not self.check_audio_device_available():
-                    self.handle_no_audio_device_warning(self.pips_var, "pips")
+            # Only validate if user is actively interacting with the combobox
+            if hasattr(self, '_user_interacting_with_pips') and self._user_interacting_with_pips:
+                selected = self.pips_var.get()
+                if selected != "Default" and selected != "No sound files found":
+                    if not self.check_audio_device_available():
+                        self.handle_no_audio_device_warning(self.pips_var, "pips")
+                # Reset interaction flag
+                self._user_interacting_with_pips = False
         
         self.pips_var.trace_add("write", validate_pips_selection)
+        
+        # Add event binding to detect user interaction
+        def on_pips_user_interaction(event=None):
+            self._user_interacting_with_pips = True
+        
+        pips_dropdown.bind("<<ComboboxSelected>>", on_pips_user_interaction)
 
         # Row 2, column 3: Play button for pips demo sound
         pips_play_btn = tk.Button(sounds_widget, text="Play", font=("Arial", 11), width=5,
@@ -1167,14 +1177,24 @@ class GameManagementApp:
         siren_dropdown = ttk.Combobox(sounds_widget, textvariable=self.siren_var, values=siren_options, state="readonly")
         siren_dropdown.grid(row=5, column=1, columnspan=2, sticky="ew", padx=(0, 10))
         
-        # Add validation callback for siren selection
+        # Add validation callback for siren selection - only on user interaction
         def validate_siren_selection(*args):
-            selected = self.siren_var.get()
-            if selected != "Default" and selected != "No sound files found":
-                if not self.check_audio_device_available():
-                    self.handle_no_audio_device_warning(self.siren_var, "siren")
+            # Only validate if user is actively interacting with the combobox
+            if hasattr(self, '_user_interacting_with_siren') and self._user_interacting_with_siren:
+                selected = self.siren_var.get()
+                if selected != "Default" and selected != "No sound files found":
+                    if not self.check_audio_device_available():
+                        self.handle_no_audio_device_warning(self.siren_var, "siren")
+                # Reset interaction flag
+                self._user_interacting_with_siren = False
         
         self.siren_var.trace_add("write", validate_siren_selection)
+        
+        # Add event binding to detect user interaction
+        def on_siren_user_interaction(event=None):
+            self._user_interacting_with_siren = True
+        
+        siren_dropdown.bind("<<ComboboxSelected>>", on_siren_user_interaction)
 
         # Row 5, column 3: Play button for siren demo sound
         siren_play_btn = tk.Button(sounds_widget, text="Play", font=("Arial", 11), width=5,
