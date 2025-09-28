@@ -6,6 +6,7 @@ import time
 import os
 import subprocess
 import json
+from zigbee_siren import ZigbeeSirenController, is_mqtt_available
 
 SETTINGS_FILE = "game_settings.json"
 
@@ -129,9 +130,15 @@ class GameManagementApp:
         self.pips_var = tk.StringVar(value=sound_settings.get("pips_sound", "Default"))
         self.siren_var = tk.StringVar(value=sound_settings.get("siren_sound", "Default"))
 
+        # Initialize Zigbee siren controller
+        self.zigbee_controller = ZigbeeSirenController(siren_callback=self.trigger_wireless_siren)
+        self.zigbee_status_var = tk.StringVar(value="Disconnected")
+        self.zigbee_controller.set_connection_status_callback(self.update_zigbee_status)
+
         self.create_scoreboard_tab()
         self.create_settings_tab()
         self.create_sounds_tab()
+        self.create_zigbee_siren_tab()
         self.load_settings()
         self.build_game_sequence()
         self.master.bind('<Configure>', self.scale_fonts)
@@ -928,6 +935,177 @@ class GameManagementApp:
             fg="blue"
         ).grid(row=9, column=0, columnspan=6, sticky="nsew")
 
+    def create_zigbee_siren_tab(self):
+        """Create the Zigbee Siren configuration tab."""
+        tab = ttk.Frame(self.notebook)
+        self.notebook.add(tab, text="Zigbee Siren")
+        
+        # Configure main grid layout
+        tab.grid_rowconfigure(0, weight=1)
+        tab.grid_columnconfigure(0, weight=1)
+        
+        # Create main frame
+        main_frame = tk.LabelFrame(tab, text="Zigbee2MQTT Wireless Siren Control", 
+                                  borderwidth=2, relief="solid")
+        main_frame.grid(row=0, column=0, sticky="nsew", padx=8, pady=8)
+        
+        # Configure grid layout
+        for r in range(12):
+            main_frame.grid_rowconfigure(r, weight=1)
+        for c in range(4):
+            main_frame.grid_columnconfigure(c, weight=1)
+        
+        # Connection Status Section
+        status_frame = tk.LabelFrame(main_frame, text="Connection Status", 
+                                   borderwidth=1, relief="solid")
+        status_frame.grid(row=0, column=0, columnspan=4, sticky="ew", padx=5, pady=5)
+        
+        # Status display
+        tk.Label(status_frame, text="Status:", font=("Arial", 11, "bold")).grid(
+            row=0, column=0, sticky="w", padx=5, pady=2)
+        self.zigbee_status_label = tk.Label(status_frame, textvariable=self.zigbee_status_var, 
+                                          font=("Arial", 11), fg="red")
+        self.zigbee_status_label.grid(row=0, column=1, sticky="w", padx=5, pady=2)
+        
+        # MQTT availability check
+        mqtt_status = "Available" if is_mqtt_available() else "Not Available (install paho-mqtt)"
+        tk.Label(status_frame, text="MQTT Library:", font=("Arial", 11, "bold")).grid(
+            row=1, column=0, sticky="w", padx=5, pady=2)
+        mqtt_color = "green" if is_mqtt_available() else "red"
+        tk.Label(status_frame, text=mqtt_status, font=("Arial", 11), fg=mqtt_color).grid(
+            row=1, column=1, sticky="w", padx=5, pady=2)
+        
+        # Connection Control Buttons
+        control_frame = tk.Frame(main_frame)
+        control_frame.grid(row=1, column=0, columnspan=4, pady=10)
+        
+        self.connect_btn = tk.Button(control_frame, text="Connect", font=("Arial", 11), 
+                                   command=self.start_zigbee_connection)
+        self.connect_btn.pack(side="left", padx=5)
+        
+        self.disconnect_btn = tk.Button(control_frame, text="Disconnect", font=("Arial", 11),
+                                      command=self.stop_zigbee_connection, state="disabled")
+        self.disconnect_btn.pack(side="left", padx=5)
+        
+        self.test_btn = tk.Button(control_frame, text="Test Connection", font=("Arial", 11),
+                                command=self.test_zigbee_connection)
+        self.test_btn.pack(side="left", padx=5)
+        
+        # Configuration Section
+        config_frame = tk.LabelFrame(main_frame, text="MQTT Configuration", 
+                                   borderwidth=1, relief="solid")
+        config_frame.grid(row=2, column=0, columnspan=4, sticky="ew", padx=5, pady=5)
+        
+        # Configuration widgets
+        self.config_widgets = {}
+        config = self.zigbee_controller.config
+        
+        # MQTT Broker
+        row = 0
+        tk.Label(config_frame, text="MQTT Broker:", font=("Arial", 10)).grid(
+            row=row, column=0, sticky="w", padx=5, pady=2)
+        self.config_widgets["mqtt_broker"] = tk.Entry(config_frame, font=("Arial", 10))
+        self.config_widgets["mqtt_broker"].insert(0, config["mqtt_broker"])
+        self.config_widgets["mqtt_broker"].grid(row=row, column=1, sticky="ew", padx=5, pady=2)
+        
+        # MQTT Port
+        tk.Label(config_frame, text="Port:", font=("Arial", 10)).grid(
+            row=row, column=2, sticky="w", padx=5, pady=2)
+        self.config_widgets["mqtt_port"] = tk.Entry(config_frame, font=("Arial", 10), width=8)
+        self.config_widgets["mqtt_port"].insert(0, str(config["mqtt_port"]))
+        self.config_widgets["mqtt_port"].grid(row=row, column=3, sticky="w", padx=5, pady=2)
+        
+        # Username/Password
+        row += 1
+        tk.Label(config_frame, text="Username:", font=("Arial", 10)).grid(
+            row=row, column=0, sticky="w", padx=5, pady=2)
+        self.config_widgets["mqtt_username"] = tk.Entry(config_frame, font=("Arial", 10))
+        self.config_widgets["mqtt_username"].insert(0, config["mqtt_username"])
+        self.config_widgets["mqtt_username"].grid(row=row, column=1, sticky="ew", padx=5, pady=2)
+        
+        tk.Label(config_frame, text="Password:", font=("Arial", 10)).grid(
+            row=row, column=2, sticky="w", padx=5, pady=2)
+        self.config_widgets["mqtt_password"] = tk.Entry(config_frame, font=("Arial", 10), show="*")
+        self.config_widgets["mqtt_password"].insert(0, config["mqtt_password"])
+        self.config_widgets["mqtt_password"].grid(row=row, column=3, sticky="ew", padx=5, pady=2)
+        
+        # Topic and Device
+        row += 1
+        tk.Label(config_frame, text="MQTT Topic:", font=("Arial", 10)).grid(
+            row=row, column=0, sticky="w", padx=5, pady=2)
+        self.config_widgets["mqtt_topic"] = tk.Entry(config_frame, font=("Arial", 10))
+        self.config_widgets["mqtt_topic"].insert(0, config["mqtt_topic"])
+        self.config_widgets["mqtt_topic"].grid(row=row, column=1, columnspan=3, sticky="ew", padx=5, pady=2)
+        
+        row += 1
+        tk.Label(config_frame, text="Button Device Name:", font=("Arial", 10)).grid(
+            row=row, column=0, sticky="w", padx=5, pady=2)
+        self.config_widgets["siren_button_device"] = tk.Entry(config_frame, font=("Arial", 10))
+        self.config_widgets["siren_button_device"].insert(0, config["siren_button_device"])
+        self.config_widgets["siren_button_device"].grid(row=row, column=1, columnspan=3, sticky="ew", padx=5, pady=2)
+        
+        # Configure column weights
+        config_frame.grid_columnconfigure(1, weight=1)
+        
+        # Save Configuration Button
+        save_config_btn = tk.Button(main_frame, text="Save Configuration", font=("Arial", 11),
+                                  command=self.save_zigbee_config)
+        save_config_btn.grid(row=3, column=0, columnspan=2, pady=5)
+        
+        # Manual Siren Test Button
+        test_siren_btn = tk.Button(main_frame, text="Test Wireless Siren", font=("Arial", 11),
+                                 command=self.test_wireless_siren)
+        test_siren_btn.grid(row=3, column=2, columnspan=2, pady=5)
+        
+        # Information Section
+        info_frame = tk.LabelFrame(main_frame, text="Setup Information", 
+                                 borderwidth=1, relief="solid")
+        info_frame.grid(row=4, column=0, columnspan=4, sticky="ew", padx=5, pady=5)
+        
+        info_text = """Zigbee2MQTT Wireless Siren Setup:
+
+1. Install Zigbee2MQTT on your system
+2. Install MQTT library: pip install paho-mqtt  
+3. Configure your Zigbee button device in Zigbee2MQTT
+4. Set the device name above to match your button
+5. Configure MQTT broker connection details
+6. Click Connect to start wireless siren monitoring
+
+The wireless siren will use the same sound file and volume settings
+as configured in the Sounds tab."""
+        
+        info_label = tk.Label(info_frame, text=info_text, font=("Arial", 9), 
+                            justify="left", anchor="nw")
+        info_label.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
+        
+        # Log Section
+        log_frame = tk.LabelFrame(main_frame, text="Activity Log", 
+                                borderwidth=1, relief="solid")
+        log_frame.grid(row=5, column=0, columnspan=4, sticky="ew", padx=5, pady=5)
+        
+        # Create scrollable log area
+        log_scroll_frame = tk.Frame(log_frame)
+        log_scroll_frame.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
+        log_scroll_frame.grid_columnconfigure(0, weight=1)
+        
+        self.log_text = tk.Text(log_scroll_frame, height=6, font=("Courier", 9), 
+                              wrap=tk.WORD, state=tk.DISABLED)
+        log_scrollbar = tk.Scrollbar(log_scroll_frame, orient="vertical", command=self.log_text.yview)
+        self.log_text.config(yscrollcommand=log_scrollbar.set)
+        
+        self.log_text.grid(row=0, column=0, sticky="ew")
+        log_scrollbar.grid(row=0, column=1, sticky="ns")
+        
+        # Clear log button
+        clear_log_btn = tk.Button(log_frame, text="Clear Log", font=("Arial", 9),
+                                command=self.clear_zigbee_log)
+        clear_log_btn.grid(row=1, column=0, pady=2)
+        
+        # Add initial log entry
+        self.add_to_zigbee_log("Zigbee Siren tab initialized")
+        if not is_mqtt_available():
+            self.add_to_zigbee_log("WARNING: paho-mqtt library not installed. Install with: pip install paho-mqtt")
+
     def _make_press_handler(self, idx):
         return lambda e: self._start_button_hold(e, idx)
 
@@ -1158,6 +1336,124 @@ class GameManagementApp:
         save_sound_settings(settings)
         # Show a message to confirm settings were saved
         messagebox.showinfo("Settings Saved", "Sound settings have been saved.")
+
+    # Zigbee Siren Methods
+    def start_zigbee_connection(self):
+        """Start the Zigbee siren connection."""
+        try:
+            if self.zigbee_controller.start():
+                self.connect_btn.config(state="disabled")
+                self.disconnect_btn.config(state="normal")
+                self.add_to_zigbee_log("Starting Zigbee connection...")
+            else:
+                self.add_to_zigbee_log("Failed to start Zigbee connection")
+                messagebox.showerror("Connection Error", 
+                                   "Failed to start Zigbee connection. Check MQTT library installation.")
+        except Exception as e:
+            self.add_to_zigbee_log(f"Error starting connection: {e}")
+            messagebox.showerror("Connection Error", f"Error starting connection: {e}")
+
+    def stop_zigbee_connection(self):
+        """Stop the Zigbee siren connection."""
+        try:
+            self.zigbee_controller.stop()
+            self.connect_btn.config(state="normal")
+            self.disconnect_btn.config(state="disabled")
+            self.add_to_zigbee_log("Zigbee connection stopped")
+        except Exception as e:
+            self.add_to_zigbee_log(f"Error stopping connection: {e}")
+
+    def test_zigbee_connection(self):
+        """Test the MQTT connection."""
+        self.add_to_zigbee_log("Testing MQTT connection...")
+        try:
+            if self.zigbee_controller.test_connection():
+                self.add_to_zigbee_log("Connection test successful")
+                messagebox.showinfo("Connection Test", "MQTT connection test successful!")
+            else:
+                self.add_to_zigbee_log("Connection test failed")
+                messagebox.showerror("Connection Test", "MQTT connection test failed. Check configuration.")
+        except Exception as e:
+            self.add_to_zigbee_log(f"Connection test error: {e}")
+            messagebox.showerror("Connection Test", f"Connection test error: {e}")
+
+    def save_zigbee_config(self):
+        """Save Zigbee configuration."""
+        try:
+            config = {}
+            for key, widget in self.config_widgets.items():
+                value = widget.get()
+                if key == "mqtt_port":
+                    config[key] = int(value) if value.isdigit() else 1883
+                else:
+                    config[key] = value
+            
+            # Keep other settings from current config
+            current_config = self.zigbee_controller.config.copy()
+            current_config.update(config)
+            
+            self.zigbee_controller.save_config(current_config)
+            self.add_to_zigbee_log("Configuration saved")
+            messagebox.showinfo("Configuration", "Zigbee configuration saved successfully!")
+        except Exception as e:
+            self.add_to_zigbee_log(f"Error saving config: {e}")
+            messagebox.showerror("Configuration Error", f"Error saving configuration: {e}")
+
+    def test_wireless_siren(self):
+        """Test the wireless siren manually."""
+        self.add_to_zigbee_log("Manual siren test triggered")
+        self.trigger_wireless_siren()
+
+    def trigger_wireless_siren(self):
+        """Trigger the wireless siren using current sound settings."""
+        try:
+            # Use the same sound file and volume as the regular siren
+            siren_file = self.siren_var.get()
+            self.add_to_zigbee_log(f"Triggering wireless siren: {siren_file}")
+            
+            # Use the existing sound playing method with volume control
+            self.play_sound_with_volume(siren_file, "siren")
+            
+        except Exception as e:
+            self.add_to_zigbee_log(f"Error triggering siren: {e}")
+
+    def update_zigbee_status(self, connected: bool, message: str):
+        """Update Zigbee connection status in UI."""
+        try:
+            if connected:
+                status_text = f"Connected - {message}"
+                self.zigbee_status_label.config(fg="green")
+            else:
+                status_text = f"Disconnected - {message}"
+                self.zigbee_status_label.config(fg="red")
+            
+            self.zigbee_status_var.set(status_text)
+            self.add_to_zigbee_log(f"Status: {status_text}")
+        except Exception as e:
+            print(f"Error updating Zigbee status: {e}")
+
+    def add_to_zigbee_log(self, message: str):
+        """Add a message to the Zigbee log."""
+        try:
+            timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+            log_entry = f"[{timestamp}] {message}\n"
+            
+            self.log_text.config(state=tk.NORMAL)
+            self.log_text.insert(tk.END, log_entry)
+            self.log_text.see(tk.END)
+            self.log_text.config(state=tk.DISABLED)
+        except Exception as e:
+            print(f"Error adding to Zigbee log: {e}")
+
+    def clear_zigbee_log(self):
+        """Clear the Zigbee log."""
+        try:
+            self.log_text.config(state=tk.NORMAL)
+            self.log_text.delete(1.0, tk.END)
+            self.log_text.config(state=tk.DISABLED)
+            self.add_to_zigbee_log("Log cleared")
+        except Exception as e:
+            print(f"Error clearing Zigbee log: {e}")
 
     def is_overtime_enabled(self):
         return self.overtime_allowed_var.get()
@@ -2114,4 +2410,16 @@ class GameManagementApp:
 if __name__ == "__main__":
     root = tk.Tk()
     app = GameManagementApp(root)
+    
+    def on_closing():
+        """Handle application shutdown."""
+        try:
+            # Stop Zigbee controller
+            app.zigbee_controller.stop()
+        except Exception as e:
+            print(f"Error during cleanup: {e}")
+        finally:
+            root.destroy()
+    
+    root.protocol("WM_DELETE_WINDOW", on_closing)
     root.mainloop()
