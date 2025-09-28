@@ -10,6 +10,30 @@ The inital idea is to use a Raspberry Pi5 computer, tiny amplifier (Raspberry Di
 
 The goal is to make a solution for UWH scoring that anyone can use, based on easy to obtain hardware, hence th desire to use a Raspberry Pi 5.  Aiming to use a DigiAMP+ HAT, NVMe Base for Raspberry Pi 5 for robustness of data storage, Wi-Fi buttons or Zigbee communications between Zigbee USB dongle and Zigbee buttons for Chief Ref ability to signal, TOA SC610 8 Ohm 10W IP65 Horn Speaker for above water siren and a Lubell Labs Underwater loudspeaker (why? Because that is what we already use) LL916 is the modern version of the ones NZUWH already uses.
 
+## Sound Timing Table
+
+The system automatically plays audio cues during different periods:
+
+| Period Type | Period Name | 30s Remaining | 10s-1s Remaining | 0s (End) |
+|-------------|-------------|---------------|------------------|----------|
+| **Break Periods** | Between Game Break | 1 Pip | 1 Pip per second | Siren |
+| | Half Time | 1 Pip | 1 Pip per second | Siren |
+| | Overtime Game Break | 1 Pip | 1 Pip per second | Siren |
+| | Overtime Half Time | 1 Pip | 1 Pip per second | Siren |
+| | Sudden Death Game Break | 1 Pip | 1 Pip per second | Siren |
+| **Game Periods** | First Half | - | - | Siren |
+| | Second Half | - | - | Siren |
+| | Overtime First Half | - | - | Siren |
+| | Overtime Second Half | - | - | Siren |
+| | Sudden Death | - | - | - |
+
+**Notes:**
+- Pip sounds use the "Pips" sound file and volume settings from the Sounds tab
+- Siren sounds use the "Siren" sound file and volume settings from the Sounds tab
+- Audio channels (Air/Water) use their respective volume settings
+- Game periods (halves) only play siren at the end, no countdown pips
+- Sudden Death periods have no automatic audio cues
+
 ## New Features
 
 ### Zigbee2MQTT Wireless Siren Control

@@ -32,8 +32,8 @@
     "overtime_game_break": 1,
     "overtime_half_period": 1,
     "overtime_half_time_break": 1,
-    "sudden_death_game_break": 1,
+    "sudden_death_game_break": true,
     "between_game_break": 1,
-    "crib_time": 3
+    "crib_time": true
   }
 }

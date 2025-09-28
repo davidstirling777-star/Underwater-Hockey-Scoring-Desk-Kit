@@ -818,8 +818,9 @@ class GameManagementApp:
         self.notebook.add(tab, text="Game Variables")
         tab.grid_rowconfigure(0, weight=3)  # Widget 1 gets most of the space
         tab.grid_rowconfigure(1, weight=1)  # Widget 2 (Presets) gets less space - reduced from 2 to 1 (50% height)
+        tab.grid_rowconfigure(2, weight=1)  # Widget 3 (Game Sequence Explanation) 
         tab.grid_columnconfigure(0, weight=2)  # Widget 1 on left
-        tab.grid_columnconfigure(1, weight=1)  # Widget 2 on right
+        tab.grid_columnconfigure(1, weight=1)  # Widget 2 and 3 on right
 
         default_font = font.nametofont("TkDefaultFont")
         new_size = default_font.cget("size") + 2
@@ -833,7 +834,7 @@ class GameManagementApp:
 
         # Widget 1 (Game Variables) - Left side, spans all rows
         widget1 = ttk.Frame(tab, borderwidth=1, relief="solid")
-        widget1.grid(row=0, column=0, rowspan=2, sticky="nsew", padx=8, pady=8)
+        widget1.grid(row=0, column=0, rowspan=3, sticky="nsew", padx=8, pady=8)
         for i in range(4):
             widget1.grid_columnconfigure(i, weight=1)
         for i in range(17):
@@ -984,6 +985,44 @@ class GameManagementApp:
             anchor="w", justify="left", font=(default_font.cget("family"), new_size)
         )
         instruction2.grid(row=5, column=0, columnspan=3, sticky="w", padx=8, pady=(2,8))
+
+        # Widget 3 (Game Sequence Explanation) - Bottom right
+        widget3 = ttk.Frame(tab, borderwidth=1, relief="solid")
+        widget3.grid(row=2, column=1, sticky="nsew", padx=8, pady=8)
+        
+        widget3.grid_columnconfigure(0, weight=1)
+        widget3.grid_rowconfigure(0, weight=0)  # Header
+        widget3.grid_rowconfigure(1, weight=1)  # Content
+        
+        # Add header
+        explanation_header = tk.Label(widget3, text="Game Sequence", font=(default_font.cget("family"), new_size, "bold"))
+        explanation_header.grid(row=0, column=0, padx=8, pady=(12,4), sticky="ew")
+        
+        # Add explanatory text
+        explanation_text = (
+            "Game Sequence Flow:\n"
+            "1. Game Starts In (duration set by time or default)\n"
+            "2. Between Game Break (preparation time)\n"
+            "3. First Half → Half Time → Second Half\n"
+            "4. If scores tied: Overtime periods (if enabled)\n"
+            "5. If still tied: Sudden Death (if enabled)\n"
+            "6. Return to Between Game Break for next game\n\n"
+            "Important Notes:\n"
+            "• 'Game Starts In' only runs once per app opening\n"
+            "• Between Game Break is not skipped before First Half\n"
+            "• Audio cues play automatically during break periods\n"
+            "• Presets can be customized and saved to settings.json"
+        )
+        
+        explanation_label = tk.Label(
+            widget3, 
+            text=explanation_text,
+            font=(default_font.cget("family"), default_font.cget("size")),
+            justify="left",
+            anchor="nw",
+            wraplength=300  # Wrap text to fit widget width
+        )
+        explanation_label.grid(row=1, column=0, padx=8, pady=(4,8), sticky="nsew")
 
         self.update_overtime_variables_state()
 
@@ -2014,12 +2053,8 @@ The wireless siren will use the same sound file and volume settings as configure
             self.start_current_period()
             return
         self.current_index += 1
-        if self.current_index < len(self.full_sequence):
-            next_period = self.full_sequence[self.current_index]
-            if next_period['name'] == 'Between Game Break':
-                self.current_index = self.find_period_index('First Half')
-                self.start_current_period()
-                return
+        # Removed the problematic logic that skips Between Game Break before First Half
+        # The sequence should proceed normally: Between Game Break -> First Half
         if self.current_index >= len(self.full_sequence):
             self.current_index = self.find_period_index('Between Game Break')
             self.start_current_period()
@@ -2064,9 +2099,38 @@ The wireless siren will use the same sound file and volume settings as configure
                 if self.timer_seconds <= 30:
                     self.sudden_death_restore_active = False
                     self.sudden_death_restore_time = None
+            
+            # Sound logic for break periods
+            if cur_period and cur_period['type'] == 'break':
+                break_periods = ['Between Game Break', 'Half Time', 'Sudden Death Game Break', 
+                               'Overtime Game Break', 'Overtime Half Time']
+                if cur_period['name'] in break_periods:
+                    if self.timer_seconds == 30:
+                        # Play one pip at 30s remaining
+                        self.play_sound_with_volume(self.pips_var.get(), "pips")
+                    elif 1 <= self.timer_seconds <= 10:
+                        # Play one pip per second from 10s to 1s remaining
+                        self.play_sound_with_volume(self.pips_var.get(), "pips")
+            
             self.timer_seconds -= 1
             self.timer_job = self.master.after(1000, self.countdown_timer)
         else:
+            # Timer reached 0
+            cur_period = self.full_sequence[self.current_index] if self.full_sequence and self.current_index < len(self.full_sequence) else None
+            if cur_period:
+                # Sound logic for when timer hits 0
+                if cur_period['type'] == 'break':
+                    break_periods = ['Between Game Break', 'Half Time', 'Sudden Death Game Break', 
+                                   'Overtime Game Break', 'Overtime Half Time']
+                    if cur_period['name'] in break_periods:
+                        # Play siren at 0s for break periods
+                        self.play_sound_with_volume(self.siren_var.get(), "siren")
+                elif cur_period['type'] in ['regular', 'overtime']:
+                    half_periods = ['First Half', 'Second Half', 'Overtime First Half', 'Overtime Second Half']
+                    if cur_period['name'] in half_periods:
+                        # Play siren at end of each half
+                        self.play_sound_with_volume(self.siren_var.get(), "siren")
+            
             self.next_period()
 
     def reset_timeouts_for_half(self):
