@@ -241,6 +241,9 @@ class GameManagementApp:
         self.white_team_var = tk.StringVar(value="White")
         self.black_team_var = tk.StringVar(value="Black")
         
+        # Tournament List tracking
+        self.current_game_index = 0  # Index in self.game_numbers list
+        
         self.timer_running = True
         self.timer_seconds = 0
 
@@ -626,11 +629,11 @@ class GameManagementApp:
                 self.penalty_grid_frame.grid_remove()
             except Exception:
                 pass
-            # Show Game 121 label always
+            # Show current game number label always
             if not self.game_label.winfo_ismapped():
                 self.game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
-            # Event-driven: Update the StringVar instead of calling .config()
-            self.game_number_var.set("Game 121")
+            # Event-driven: Update the StringVar with current game number
+            self.update_game_number_display()
 
         # Display window: same logic
         display_has_penalties = bool(self.active_penalties or self.stored_penalties)
@@ -1101,6 +1104,9 @@ class GameManagementApp:
         self.starting_game_dropdown = ttk.Combobox(widget4, textvariable=self.starting_game_var, values=self.game_numbers, state="readonly", width=10)
         self.starting_game_dropdown.grid(row=4, column=0, columnspan=2, sticky="ew", padx=8, pady=2)
         
+        # Add callback to update game number display when user selects different game
+        self.starting_game_dropdown.bind('<<ComboboxSelected>>', self.on_game_selection_changed)
+        
         # Initialize game numbers if CSV file is available
         self.on_csv_file_changed()
 
@@ -1221,8 +1227,55 @@ class GameManagementApp:
             self.starting_game_dropdown['values'] = self.game_numbers
             if self.game_numbers:
                 self.starting_game_var.set(self.game_numbers[0])
+                self.current_game_index = 0
             else:
                 self.starting_game_var.set("")
+                self.current_game_index = 0
+        
+        # Update game number display after CSV change
+        self.update_game_number_display()
+
+    def get_current_game_number(self):
+        """Get the current game number from Tournament List selection."""
+        try:
+            selected_game = self.starting_game_var.get()
+            if selected_game and selected_game in self.game_numbers:
+                return selected_game
+            elif self.game_numbers and len(self.game_numbers) > self.current_game_index:
+                return self.game_numbers[self.current_game_index]
+            else:
+                return "121"  # fallback to default
+        except Exception:
+            return "121"  # fallback to default
+
+    def update_game_number_display(self):
+        """Update the game number display based on current Tournament List selection."""
+        current_game = self.get_current_game_number()
+        self.game_number_var.set(f"Game #{current_game}")
+
+    def advance_to_next_game(self):
+        """Advance to the next game in the Tournament List."""
+        if not self.game_numbers:
+            return
+        
+        # Find current game index
+        current_game = self.starting_game_var.get()
+        if current_game in self.game_numbers:
+            self.current_game_index = self.game_numbers.index(current_game)
+        
+        # Advance to next game (wrap around to start if at end)
+        self.current_game_index = (self.current_game_index + 1) % len(self.game_numbers)
+        next_game = self.game_numbers[self.current_game_index]
+        
+        # Update the dropdown selection
+        self.starting_game_var.set(next_game)
+        
+        # Update the display
+        self.update_game_number_display()
+
+    def on_game_selection_changed(self, event=None):
+        """Handle manual game selection change from dropdown."""
+        self.update_game_number_display()
 
     def create_sounds_tab(self):
         tab = ttk.Frame(self.notebook)
@@ -2420,6 +2473,8 @@ The wireless siren will use the same sound file and volume settings as configure
                     self.black_score_var.set(0)
                     self.stored_penalties.clear()
                     self.clear_all_penalties()
+                    # Advance to next game in Tournament List
+                    self.advance_to_next_game()
                 if self.timer_seconds <= 30:
                     self.sudden_death_restore_active = False
                     self.sudden_death_restore_time = None
