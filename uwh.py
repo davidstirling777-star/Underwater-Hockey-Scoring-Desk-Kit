@@ -1066,28 +1066,28 @@ class GameManagementApp:
             btn_row = 1 if i < 3 else 2
             btn_col = i % 3
             btn = ttk.Button(widget2, text=self.button_data[i]["text"], width=14, style='Preset.TButton')
-            btn.grid(row=btn_row, column=btn_col, padx=8, pady=12, sticky="n")
+            btn.grid(row=btn_row, column=btn_col, padx=8, pady=7, sticky="n")
             btn.bind("<ButtonPress-1>", self._make_press_handler(i))
             btn.bind("<ButtonRelease-1>", self._make_release_handler(i))
             self.widget2_buttons.append(btn)
 
-        # Optional spacer row (row 3)
+        # Reduced spacer row (row 3) - smaller height for compactness
         spacer = tk.Label(widget2, text="", font=(default_font.cget("family"), new_size))
-        spacer.grid(row=3, column=0, columnspan=3, sticky="nsew")
+        spacer.grid(row=3, column=0, columnspan=3, sticky="ew")
         # Add row 4: instructional text
         instruction1 = tk.Label(
             widget2,
             text="Click the buttons above to load preset times and allowed Game Periods",
             anchor="w", justify="left", font=(default_font.cget("family"), new_size)
         )
-        instruction1.grid(row=4, column=0, columnspan=3, sticky="w", padx=8, pady=(4,2))
+        instruction1.grid(row=4, column=0, columnspan=3, sticky="w", padx=8, pady=(2,1))
         # Add row 5: instructional text
         instruction2 = tk.Label(
             widget2,
             text="Press and hold the button for >4 seconds to alter the stored preset values",
             anchor="w", justify="left", font=(default_font.cget("family"), new_size)
         )
-        instruction2.grid(row=5, column=0, columnspan=3, sticky="w", padx=8, pady=(2,8))
+        instruction2.grid(row=5, column=0, columnspan=3, sticky="w", padx=8, pady=(1,4))
 
         # Widget 4 (Tournament List) - NEW: Between Presets and Game Sequence
         widget4 = ttk.Frame(tab, borderwidth=1, relief="solid")
