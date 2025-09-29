@@ -948,11 +948,16 @@ class GameManagementApp:
         new_size = default_font.cget("size") + 2
         headers = ["Use?", "Variable", "Value", "Units"]
         
-        # Configure custom style for Preset buttons
+        # Configure custom style for Preset buttons and checkboxes
         style = ttk.Style()
         style.configure('Preset.TButton', 
                        padding=(4, 2),
                        font=(default_font.cget("family"), default_font.cget("size") + 1))
+        
+        # Configure larger checkboxes for better visibility
+        style.configure('Large.TCheckbutton',
+                       focuscolor='none',
+                       font=(default_font.cget("family"), default_font.cget("size") + 2))
 
         # Widget 1 (Game Variables) - Left side, spans all rows
         widget1 = ttk.Frame(tab, borderwidth=1, relief="solid")
@@ -979,8 +984,8 @@ class GameManagementApp:
                 var_info["default"] = True
             if var_name == "team_timeouts_allowed":
                 check_var = self.team_timeouts_allowed_var
-                cb = ttk.Checkbutton(widget1, variable=check_var)
-                cb.grid(row=row_idx, column=0, sticky="w", pady=5)
+                cb = ttk.Checkbutton(widget1, variable=check_var, style='Large.TCheckbutton')
+                cb.grid(row=row_idx, column=0, sticky="", pady=5, padx=(10, 0))
                 label_text = var_info.get("label", "Team Time-Outs allowed?")
                 label_widget = tk.Label(widget1, text=label_text, font=(default_font.cget("family"), new_size, "bold"))
                 label_widget.grid(row=row_idx, column=1, sticky="w", pady=5)
@@ -990,8 +995,8 @@ class GameManagementApp:
                 continue
             if var_name == "overtime_allowed":
                 check_var = self.overtime_allowed_var
-                cb = ttk.Checkbutton(widget1, variable=check_var)
-                cb.grid(row=row_idx, column=0, sticky="w", pady=5)
+                cb = ttk.Checkbutton(widget1, variable=check_var, style='Large.TCheckbutton')
+                cb.grid(row=row_idx, column=0, sticky="", pady=5, padx=(10, 0))
                 label_text = var_info.get("label", "Overtime allowed?")
                 label_widget = tk.Label(widget1, text=label_text, font=(default_font.cget("family"), new_size, "bold"))
                 label_widget.grid(row=row_idx, column=1, sticky="w", pady=5)
@@ -1001,8 +1006,8 @@ class GameManagementApp:
                 continue
             check_var = tk.BooleanVar(value=True) if var_info["checkbox"] else None
             if check_var:
-                cb = ttk.Checkbutton(widget1, variable=check_var)
-                cb.grid(row=row_idx, column=0, sticky="w", pady=5)
+                cb = ttk.Checkbutton(widget1, variable=check_var, style='Large.TCheckbutton')
+                cb.grid(row=row_idx, column=0, sticky="", pady=5, padx=(10, 0))
                 check_var.trace_add("write", lambda *args, name=var_name: self._on_settings_variable_change())
             label_text = var_info.get("label", f"{var_name.replace('_', ' ').title()}:")
             label_widget = tk.Label(widget1, text=label_text, font=(default_font.cget("family"), new_size, "bold"))
@@ -1176,7 +1181,7 @@ class GameManagementApp:
         self.on_csv_file_changed()
         
         # ADDED: Comment label about saving CSV files
-        csv_comment = tk.Label(widget4, text="Save a CSV file of games into the same folder as this program is in.", 
+        csv_comment = tk.Label(widget4, text="Save a CSV file of games into the same folder as this program is in.\nExpected CSV headers: date,#,White,score,Black,Score,referees", 
                               font=(default_font.cget("family"), default_font.cget("size") - 1),
                               anchor="w", justify="left", fg="grey")
         csv_comment.grid(row=5, column=0, columnspan=2, sticky="w", padx=8, pady=(4,8))
@@ -1203,8 +1208,7 @@ class GameManagementApp:
             "5. If still tied: Sudden Death (if enabled)\n"
             "6. Return to Between Game Break for next game\n\n"
             "Important Notes:\n"
-            "• 'Game Starts In' only runs once per app opening\n"
-            "• Between Game Break is not skipped before First Half"
+            "• 'Game Starts In' only runs once per app opening"
         )
         
         # Reduced font size for more compact appearance
@@ -2669,6 +2673,8 @@ The wireless siren will use the same sound file and volume settings as configure
                     self.clear_all_penalties()
                     # Advance to next game in Tournament List
                     self.advance_to_next_game()
+                    # Update team names in scoreboard tab for the next game
+                    self.update_team_names_display()
                 if self.timer_seconds <= 30:
                     self.sudden_death_restore_active = False
                     self.sudden_death_restore_time = None
