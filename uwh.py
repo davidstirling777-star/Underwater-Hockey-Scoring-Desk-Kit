@@ -286,9 +286,21 @@ class GameManagementApp:
         self.air_volume = tk.DoubleVar(value=sound_settings.get("air_volume", 50.0))
         self.water_volume = tk.DoubleVar(value=sound_settings.get("water_volume", 50.0))
         
-        # Initialize sound selection variables
-        self.pips_var = tk.StringVar(value=sound_settings.get("pips_sound", "Default"))
-        self.siren_var = tk.StringVar(value=sound_settings.get("siren_sound", "Default"))
+        # Initialize sound selection variables with auto-selection of first audio file if no saved setting
+        sound_files = self.get_sound_files()
+        available_audio_files = sound_files if sound_files != ["No sound files found"] else []
+        
+        pips_default = sound_settings.get("pips_sound", "Default")
+        siren_default = sound_settings.get("siren_sound", "Default")
+        
+        # If no saved setting and audio files are available, pick the first one
+        if pips_default == "Default" and available_audio_files:
+            pips_default = available_audio_files[0]
+        if siren_default == "Default" and available_audio_files:
+            siren_default = available_audio_files[0]
+            
+        self.pips_var = tk.StringVar(value=pips_default)
+        self.siren_var = tk.StringVar(value=siren_default)
         
         # Track audio device warning to prevent loops
         self.audio_device_warning_shown = False
@@ -860,7 +872,8 @@ class GameManagementApp:
         self.notebook.add(tab, text="Game Variables")
         tab.grid_rowconfigure(0, weight=3)  # Widget 1 gets most of the space
         tab.grid_rowconfigure(1, weight=1)  # Widget 2 (Presets) gets less space - reduced from 2 to 1 (50% height)
-        tab.grid_rowconfigure(2, weight=1)  # Widget 3 (Game Sequence Explanation) 
+        tab.grid_rowconfigure(2, weight=1)  # Widget 4 (Tournament List) - NEW WIDGET
+        tab.grid_rowconfigure(3, weight=1)  # Widget 3 (Game Sequence Explanation) - height reduced for snug text 
         tab.grid_columnconfigure(0, weight=2)  # Widget 1 on left
         tab.grid_columnconfigure(1, weight=1)  # Widget 2 and 3 on right
 
@@ -876,7 +889,7 @@ class GameManagementApp:
 
         # Widget 1 (Game Variables) - Left side, spans all rows
         widget1 = ttk.Frame(tab, borderwidth=1, relief="solid")
-        widget1.grid(row=0, column=0, rowspan=3, sticky="nsew", padx=8, pady=8)
+        widget1.grid(row=0, column=0, rowspan=4, sticky="nsew", padx=8, pady=8)
         for i in range(4):
             widget1.grid_columnconfigure(i, weight=1)
         for i in range(17):
@@ -1053,9 +1066,47 @@ class GameManagementApp:
         )
         instruction2.grid(row=5, column=0, columnspan=3, sticky="w", padx=8, pady=(2,8))
 
-        # Widget 3 (Game Sequence Explanation) - Bottom right
+        # Widget 4 (Tournament List) - NEW: Between Presets and Game Sequence
+        widget4 = ttk.Frame(tab, borderwidth=1, relief="solid")
+        widget4.grid(row=2, column=1, sticky="nsew", padx=8, pady=8)
+        
+        widget4.grid_columnconfigure(0, weight=1)
+        widget4.grid_columnconfigure(1, weight=1)
+        widget4.grid_rowconfigure(0, weight=0)  # Header
+        widget4.grid_rowconfigure(1, weight=0)  # CSV dropdown label
+        widget4.grid_rowconfigure(2, weight=0)  # CSV dropdown
+        widget4.grid_rowconfigure(3, weight=0)  # Game number label  
+        widget4.grid_rowconfigure(4, weight=0)  # Game number dropdown
+        widget4.grid_rowconfigure(5, weight=1)  # Spacer
+        
+        # Add header
+        tournament_header = tk.Label(widget4, text="Tournament List", font=(default_font.cget("family"), new_size, "bold"))
+        tournament_header.grid(row=0, column=0, columnspan=2, padx=8, pady=(12,8), sticky="ew")
+        
+        # CSV file selection
+        tk.Label(widget4, text="CSV File:", font=(default_font.cget("family"), default_font.cget("size")), anchor="w").grid(row=1, column=0, sticky="w", padx=8, pady=2)
+        
+        # Get CSV files in current directory
+        csv_files = self.get_csv_files()
+        self.csv_var = tk.StringVar(value=csv_files[0] if csv_files else "No CSV files found")
+        csv_dropdown = ttk.Combobox(widget4, textvariable=self.csv_var, values=csv_files, state="readonly", width=20)
+        csv_dropdown.grid(row=2, column=0, columnspan=2, sticky="ew", padx=8, pady=2)
+        csv_dropdown.bind("<<ComboboxSelected>>", self.on_csv_file_changed)
+        
+        # Starting game number selection
+        tk.Label(widget4, text="Starting Game #:", font=(default_font.cget("family"), default_font.cget("size")), anchor="w").grid(row=3, column=0, sticky="w", padx=8, pady=(8,2))
+        
+        self.game_numbers = []
+        self.starting_game_var = tk.StringVar(value="")
+        self.starting_game_dropdown = ttk.Combobox(widget4, textvariable=self.starting_game_var, values=self.game_numbers, state="readonly", width=10)
+        self.starting_game_dropdown.grid(row=4, column=0, columnspan=2, sticky="ew", padx=8, pady=2)
+        
+        # Initialize game numbers if CSV file is available
+        self.on_csv_file_changed()
+
+        # Widget 3 (Game Sequence Explanation) - Bottom right - height reduced for snug text
         widget3 = ttk.Frame(tab, borderwidth=1, relief="solid")
-        widget3.grid(row=2, column=1, sticky="nsew", padx=8, pady=8)
+        widget3.grid(row=3, column=1, sticky="nsew", padx=8, pady=8)
         
         widget3.grid_columnconfigure(0, weight=1)
         widget3.grid_rowconfigure(0, weight=0)  # Header
@@ -1063,9 +1114,9 @@ class GameManagementApp:
         
         # Add header
         explanation_header = tk.Label(widget3, text="Game Sequence", font=(default_font.cget("family"), new_size, "bold"))
-        explanation_header.grid(row=0, column=0, padx=8, pady=(12,4), sticky="ew")
+        explanation_header.grid(row=0, column=0, padx=4, pady=(8,2), sticky="ew")
         
-        # Add explanatory text
+        # Add explanatory text - reduced font size and padding for more snug appearance
         explanation_text = (
             "Game Sequence Flow:\n"
             "1. Game Starts In (duration set by time or default)\n"
@@ -1081,16 +1132,97 @@ class GameManagementApp:
             "• Presets can be customized and saved to settings.json"
         )
         
+        # Reduced font size for more compact appearance
         explanation_label = tk.Label(
             widget3, 
             text=explanation_text,
-            font=(default_font.cget("family"), default_font.cget("size")),
+            font=(default_font.cget("family"), default_font.cget("size") - 1),
             justify="left",
             anchor="nw"
         )
-        explanation_label.grid(row=1, column=0, padx=8, pady=(4,8), sticky="nsew")
+        explanation_label.grid(row=1, column=0, padx=4, pady=(2,4), sticky="nsew")
 
         self.update_overtime_variables_state()
+
+    def get_csv_files(self):
+        """
+        Scan the current directory for CSV files.
+        Returns a list of CSV files found.
+        """
+        csv_files = []
+        try:
+            current_dir = os.getcwd()
+            for filename in os.listdir(current_dir):
+                if filename.lower().endswith('.csv'):
+                    csv_files.append(filename)
+        except Exception as e:
+            print(f"Error scanning for CSV files: {e}")
+        
+        return sorted(csv_files) if csv_files else ["No CSV files found"]
+    
+    def parse_csv_game_numbers(self, csv_filename):
+        """
+        Parse CSV file and extract game numbers from the '#' column.
+        Expected header: date,#,White,score,Black,Score,referees
+        """
+        game_numbers = []
+        if csv_filename == "No CSV files found" or not csv_filename:
+            return game_numbers
+            
+        try:
+            csv_path = os.path.join(os.getcwd(), csv_filename)
+            if not os.path.exists(csv_path):
+                return game_numbers
+                
+            with open(csv_path, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+                if len(lines) < 2:  # Need header + at least one data row
+                    return game_numbers
+                    
+                # Check header format
+                header = lines[0].strip().lower()
+                expected_cols = ['date', '#', 'white', 'score', 'black', 'score', 'referees']
+                header_cols = [col.strip() for col in header.split(',')]
+                
+                # Find the '#' column index (flexible header matching)
+                game_num_col_idx = -1
+                for i, col in enumerate(header_cols):
+                    if col in ['#', 'game', 'game#', 'game_number']:
+                        game_num_col_idx = i
+                        break
+                
+                if game_num_col_idx == -1:
+                    print(f"Warning: Could not find game number column in CSV {csv_filename}")
+                    return game_numbers
+                
+                # Parse data rows
+                for line in lines[1:]:
+                    line = line.strip()
+                    if line:
+                        cols = [col.strip() for col in line.split(',')]
+                        if len(cols) > game_num_col_idx:
+                            try:
+                                game_num = int(cols[game_num_col_idx])
+                                game_numbers.append(str(game_num))
+                            except ValueError:
+                                continue
+                                
+        except Exception as e:
+            print(f"Error parsing CSV file {csv_filename}: {e}")
+        
+        return sorted(set(game_numbers), key=int) if game_numbers else []
+    
+    def on_csv_file_changed(self, event=None):
+        """Handle CSV file selection change - update game numbers dropdown."""
+        csv_file = self.csv_var.get()
+        self.game_numbers = self.parse_csv_game_numbers(csv_file)
+        
+        if hasattr(self, 'starting_game_dropdown'):
+            self.starting_game_dropdown['values'] = self.game_numbers
+            if self.game_numbers:
+                self.starting_game_var.set(self.game_numbers[0])
+            else:
+                self.starting_game_var.set("")
 
     def create_sounds_tab(self):
         tab = ttk.Frame(self.notebook)
@@ -1154,6 +1286,9 @@ class GameManagementApp:
             self._user_interacting_with_pips = True
         
         pips_dropdown.bind("<<ComboboxSelected>>", on_pips_user_interaction)
+        # Also bind to focusin and button clicks to detect any user interaction
+        pips_dropdown.bind("<Button-1>", on_pips_user_interaction)
+        pips_dropdown.bind("<FocusIn>", on_pips_user_interaction)
 
         # Row 2, column 3: Play button for pips demo sound
         pips_play_btn = tk.Button(sounds_widget, text="Play", font=("Arial", 11), width=5,
@@ -1169,6 +1304,15 @@ class GameManagementApp:
             font=("Arial", 10), showvalue=False
         )
         pips_vol_slider.grid(row=3, column=1, columnspan=2, sticky="ew")
+        
+        # Add interaction detection for pips volume slider
+        def on_pips_slider_interaction(event=None):
+            # Check audio device when user interacts with volume slider
+            if not self.check_audio_device_available():
+                self.handle_no_audio_device_warning(self.pips_var, "pips volume")
+        
+        pips_vol_slider.bind("<Button-1>", on_pips_slider_interaction)
+        pips_vol_slider.bind("<B1-Motion>", on_pips_slider_interaction)
 
         # Row 5, column 0: "Siren"
         tk.Label(sounds_widget, text="Siren", font=("Arial", 12)).grid(row=5, column=0, sticky="nsew")
@@ -1195,6 +1339,9 @@ class GameManagementApp:
             self._user_interacting_with_siren = True
         
         siren_dropdown.bind("<<ComboboxSelected>>", on_siren_user_interaction)
+        # Also bind to focusin and button clicks to detect any user interaction
+        siren_dropdown.bind("<Button-1>", on_siren_user_interaction)
+        siren_dropdown.bind("<FocusIn>", on_siren_user_interaction)
 
         # Row 5, column 3: Play button for siren demo sound
         siren_play_btn = tk.Button(sounds_widget, text="Play", font=("Arial", 11), width=5,
@@ -1210,6 +1357,15 @@ class GameManagementApp:
             font=("Arial", 10), showvalue=False
         )
         siren_vol_slider.grid(row=6, column=1, columnspan=2, sticky="ew")
+        
+        # Add interaction detection for siren volume slider
+        def on_siren_slider_interaction(event=None):
+            # Check audio device when user interacts with volume slider
+            if not self.check_audio_device_available():
+                self.handle_no_audio_device_warning(self.siren_var, "siren volume")
+        
+        siren_vol_slider.bind("<Button-1>", on_siren_slider_interaction)
+        siren_vol_slider.bind("<B1-Motion>", on_siren_slider_interaction)
 
         # Air slider: row=2, column=4, rowspan=5, sticky="ns" (no text)
         air_vol_slider = tk.Scale(
@@ -1217,6 +1373,15 @@ class GameManagementApp:
             font=("Arial", 10), showvalue=False
         )
         air_vol_slider.grid(row=2, column=4, rowspan=5, sticky="ns")
+        
+        # Add interaction detection for air volume slider
+        def on_air_slider_interaction(event=None):
+            # Check audio device when user interacts with volume slider
+            if not self.check_audio_device_available():
+                self.handle_no_audio_device_warning(tk.StringVar(value="Default"), "air volume")
+        
+        air_vol_slider.bind("<Button-1>", on_air_slider_interaction)
+        air_vol_slider.bind("<B1-Motion>", on_air_slider_interaction)
 
         # Water slider: row=2, column=5, rowspan=5, sticky="ns" (no text)
         water_vol_slider = tk.Scale(
@@ -1224,6 +1389,15 @@ class GameManagementApp:
             font=("Arial", 10), showvalue=False
         )
         water_vol_slider.grid(row=2, column=5, rowspan=5, sticky="ns")
+        
+        # Add interaction detection for water volume slider
+        def on_water_slider_interaction(event=None):
+            # Check audio device when user interacts with volume slider
+            if not self.check_audio_device_available():
+                self.handle_no_audio_device_warning(tk.StringVar(value="Default"), "water volume")
+        
+        water_vol_slider.bind("<Button-1>", on_water_slider_interaction)
+        water_vol_slider.bind("<B1-Motion>", on_water_slider_interaction)
 
     def create_zigbee_siren_tab(self):
         """Create the Zigbee Siren configuration tab."""
