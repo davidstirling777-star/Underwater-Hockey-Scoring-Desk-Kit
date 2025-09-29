@@ -350,6 +350,9 @@ class GameManagementApp:
         # Initialize USB dongle status after creating the Zigbee tab
         self.update_usb_dongle_status()
         
+        # Auto-connect to MQTT on startup
+        self.start_zigbee_connection()
+        
         self.load_game_settings()  # Load game settings from unified file
         self.load_settings()
         self.build_game_sequence()
@@ -1669,13 +1672,9 @@ class GameManagementApp:
         control_frame = tk.Frame(main_frame)
         control_frame.grid(row=1, column=0, columnspan=4, pady=10)
         
-        self.connect_btn = tk.Button(control_frame, text="Connect", font=("Arial", 11), 
-                                   command=self.start_zigbee_connection)
-        self.connect_btn.pack(side="left", padx=5)
-        
-        self.disconnect_btn = tk.Button(control_frame, text="Disconnect", font=("Arial", 11),
-                                      command=self.stop_zigbee_connection, state="disabled")
-        self.disconnect_btn.pack(side="left", padx=5)
+        self.toggle_connection_btn = tk.Button(control_frame, text="Connect", font=("Arial", 11),
+                                             command=self.toggle_zigbee_connection)
+        self.toggle_connection_btn.pack(side="left", padx=5)
         
         self.test_btn = tk.Button(control_frame, text="Test Connection", font=("Arial", 11),
                                 command=self.test_zigbee_connection)
@@ -2156,12 +2155,18 @@ The wireless siren will use the same sound file and volume settings as configure
         save_unified_settings(unified_settings)
 
     # Zigbee Siren Methods
+    def toggle_zigbee_connection(self):
+        """Toggle Zigbee connection (connect if disconnected, disconnect if connected)."""
+        if self.zigbee_controller.connected:
+            self.stop_zigbee_connection()
+        else:
+            self.start_zigbee_connection()
+
     def start_zigbee_connection(self):
         """Start the Zigbee siren connection."""
         try:
             if self.zigbee_controller.start():
-                self.connect_btn.config(state="disabled")
-                self.disconnect_btn.config(state="normal")
+                self.toggle_connection_btn.config(text="Disconnect", state="normal")
                 self.add_to_zigbee_log("Starting Zigbee connection...")
             else:
                 self.add_to_zigbee_log("Failed to start Zigbee connection")
@@ -2175,8 +2180,7 @@ The wireless siren will use the same sound file and volume settings as configure
         """Stop the Zigbee siren connection."""
         try:
             self.zigbee_controller.stop()
-            self.connect_btn.config(state="normal")
-            self.disconnect_btn.config(state="disabled")
+            self.toggle_connection_btn.config(text="Connect", state="normal")
             self.add_to_zigbee_log("Zigbee connection stopped")
         except Exception as e:
             self.add_to_zigbee_log(f"Error stopping connection: {e}")
@@ -2254,9 +2258,11 @@ The wireless siren will use the same sound file and volume settings as configure
             if connected:
                 status_text = f"Connected - {message}"
                 self.zigbee_status_label.config(fg="green")
+                self.toggle_connection_btn.config(text="Disconnect", state="normal")
             else:
                 status_text = f"Disconnected - {message}"
                 self.zigbee_status_label.config(fg="red")
+                self.toggle_connection_btn.config(text="Connect", state="normal")
             
             self.zigbee_status_var.set(status_text)
             self.add_to_zigbee_log(f"Status: {status_text}")
