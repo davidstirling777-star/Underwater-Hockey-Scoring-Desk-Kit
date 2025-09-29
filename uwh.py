@@ -297,6 +297,7 @@ class GameManagementApp:
         self.team_timeouts_allowed_var = tk.BooleanVar(value=self.variables["team_timeouts_allowed"]["default"])
         self.overtime_allowed_var = tk.BooleanVar(value=self.variables["overtime_allowed"]["default"])
         self.referee_timeout_active = False
+        self.first_between_game_break_run = True
         self.referee_timeout_elapsed = 0
         self.referee_timeout_default_bg = "red"
         self.referee_timeout_default_fg = "black"
@@ -2425,6 +2426,7 @@ The wireless siren will use the same sound file and volume settings as configure
         self.current_index = 0
         self.timer_running = True
         self.sudden_death_goal_scored = False
+        self.first_between_game_break_run = True  # Reset flag when timer is reset
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
@@ -2667,14 +2669,19 @@ The wireless siren will use the same sound file and volume settings as configure
             cur_period = self.full_sequence[self.current_index] if self.full_sequence and self.current_index < len(self.full_sequence) else None
             if cur_period and cur_period['name'] == 'Between Game Break':
                 if self.timer_seconds == 30:
-                    self.white_score_var.set(0)
-                    self.black_score_var.set(0)
-                    self.stored_penalties.clear()
-                    self.clear_all_penalties()
-                    # Advance to next game in Tournament List
-                    self.advance_to_next_game()
-                    # Update team names in scoreboard tab for the next game
-                    self.update_team_names_display()
+                    # Only swap team names and reset game state after the first Between Game Break
+                    if not self.first_between_game_break_run:
+                        self.white_score_var.set(0)
+                        self.black_score_var.set(0)
+                        self.stored_penalties.clear()
+                        self.clear_all_penalties()
+                        # Advance to next game in Tournament List
+                        self.advance_to_next_game()
+                        # Update team names in scoreboard tab for the next game
+                        self.update_team_names_display()
+                    else:
+                        # Mark that the first Between Game Break has run
+                        self.first_between_game_break_run = False
                 if self.timer_seconds <= 30:
                     self.sudden_death_restore_active = False
                     self.sudden_death_restore_time = None
