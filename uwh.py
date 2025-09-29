@@ -670,7 +670,8 @@ class GameManagementApp:
                 pass
             if not self.display_game_label.winfo_ismapped():
                 self.display_game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
-            # Event-driven: StringVar automatically updates display widget
+            # Event-driven: Update the StringVar with current game number
+            self.update_game_number_display()
 
     def _penalty_sort_key(self, p):
         """Helper method to sort penalties by time remaining."""
