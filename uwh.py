@@ -393,13 +393,22 @@ class GameManagementApp:
         self.penalty_grid_frame.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
         self.penalty_grid_frame.grid_remove()  # hide initially
 
-        self.white_score = tk.Label(tab, textvariable=self.white_score_var, font=self.fonts["score"], bg="white", fg="black")
-        self.white_score.grid(row=3, column=0, rowspan=6, columnspan=3, padx=1, pady=1, sticky="nsew")
-        self.black_score = tk.Label(tab, textvariable=self.black_score_var, font=self.fonts["score"], bg="black", fg="white")
-        self.black_score.grid(row=3, column=6, rowspan=6, columnspan=3, padx=1, pady=1, sticky="nsew")
+        # Team name widgets - NEW: Added in row 3 to show CSV team names
+        self.white_team_name_widget = tk.Label(tab, text="", font=self.fonts["team"], bg="white", fg="black")
+        self.white_team_name_widget.grid(row=3, column=0, columnspan=3, padx=1, pady=1, sticky="nsew")
+        
+        self.black_team_name_widget = tk.Label(tab, text="", font=self.fonts["team"], bg="black", fg="white")
+        self.black_team_name_widget.grid(row=3, column=6, columnspan=3, padx=1, pady=1, sticky="nsew")
 
+        # Score widgets - MODIFIED: Moved to row 4 and reduced rowspan from 6 to 5
+        self.white_score = tk.Label(tab, textvariable=self.white_score_var, font=self.fonts["score"], bg="white", fg="black")
+        self.white_score.grid(row=4, column=0, rowspan=5, columnspan=3, padx=1, pady=1, sticky="nsew")
+        self.black_score = tk.Label(tab, textvariable=self.black_score_var, font=self.fonts["score"], bg="black", fg="white")
+        self.black_score.grid(row=4, column=6, rowspan=5, columnspan=3, padx=1, pady=1, sticky="nsew")
+
+        # Timer widget - MODIFIED: Moved to row 4 and reduced rowspan from 6 to 5
         self.timer_label = tk.Label(tab, textvariable=self.timer_var, font=self.fonts["timer"], bg="lightgrey", fg="black")
-        self.timer_label.grid(row=3, column=3, rowspan=6, columnspan=3, padx=1, pady=1, sticky="nsew")
+        self.timer_label.grid(row=4, column=3, rowspan=5, columnspan=3, padx=1, pady=1, sticky="nsew")
 
         self.white_timeout_button = tk.Button(
             tab, text="White Team\nTime-Out", font=self.fonts["timeout_button"], bg="white", fg="black",
@@ -1073,7 +1082,7 @@ class GameManagementApp:
 
         # Widget 2 ("Presets") - Top right, reduced size
         widget2 = ttk.Frame(tab, borderwidth=1, relief="solid")
-        widget2.grid(row=0, column=1, sticky="nsew", padx=8, pady=8)
+        widget2.grid(row=0, column=1, sticky="nsew", padx=4, pady=4)  # MODIFIED: Reduced padding from 8 to 4 (50% reduction)
 
         for col in range(3):
             widget2.grid_columnconfigure(col, weight=1)
@@ -1132,7 +1141,8 @@ class GameManagementApp:
         widget4.grid_rowconfigure(2, weight=0)  # CSV dropdown
         widget4.grid_rowconfigure(3, weight=0)  # Game number label  
         widget4.grid_rowconfigure(4, weight=0)  # Game number dropdown
-        widget4.grid_rowconfigure(5, weight=1)  # Spacer
+        widget4.grid_rowconfigure(5, weight=0)  # Comment label - ADDED
+        widget4.grid_rowconfigure(6, weight=1)  # Spacer - UPDATED index
         
         # Add header
         tournament_header = tk.Label(widget4, text="Tournament List", font=(default_font.cget("family"), new_size, "bold"))
@@ -1161,6 +1171,12 @@ class GameManagementApp:
         
         # Initialize game numbers if CSV file is available
         self.on_csv_file_changed()
+        
+        # ADDED: Comment label about saving CSV files
+        csv_comment = tk.Label(widget4, text="Save a CSV file of games into the same folder as this program is in.", 
+                              font=(default_font.cget("family"), default_font.cget("size") - 1),
+                              anchor="w", justify="left", fg="grey")
+        csv_comment.grid(row=5, column=0, columnspan=2, sticky="w", padx=8, pady=(4,8))
 
         # Widget 3 (Game Sequence Explanation) - Bottom right - height reduced for snug text
         widget3 = ttk.Frame(tab, borderwidth=1, relief="solid")
@@ -1175,19 +1191,17 @@ class GameManagementApp:
         explanation_header.grid(row=0, column=0, padx=4, pady=(8,2), sticky="ew")
         
         # Add explanatory text - reduced font size and padding for more snug appearance
+        # MODIFIED: Removed lines starting with "Between ...", "Audio...", and "Presets ..."
         explanation_text = (
             "Game Sequence Flow:\n"
             "1. Game Starts In (duration set by time or default)\n"
-            "2. Between Game Break (preparation time)\n"
             "3. First Half → Half Time → Second Half\n"
             "4. If scores tied: Overtime periods (if enabled)\n"
             "5. If still tied: Sudden Death (if enabled)\n"
             "6. Return to Between Game Break for next game\n\n"
             "Important Notes:\n"
             "• 'Game Starts In' only runs once per app opening\n"
-            "• Between Game Break is not skipped before First Half\n"
-            "• Audio cues play automatically during break periods\n"
-            "• Presets can be customized and saved to settings.json"
+            "• Between Game Break is not skipped before First Half"
         )
         
         # Reduced font size for more compact appearance
@@ -1270,6 +1284,65 @@ class GameManagementApp:
         
         return sorted(set(game_numbers), key=int) if game_numbers else []
     
+    def parse_csv_team_names(self, csv_filename, game_number):
+        """
+        Parse CSV file and extract team names for a specific game number.
+        Expected header: date,#,White,score,Black,Score,referees
+        Returns: (white_team_name, black_team_name) or (None, None) if not found
+        """
+        if csv_filename == "No CSV files found" or not csv_filename or not game_number:
+            return (None, None)
+            
+        try:
+            csv_path = os.path.join(os.getcwd(), csv_filename)
+            if not os.path.exists(csv_path):
+                return (None, None)
+                
+            with open(csv_path, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+                if len(lines) < 2:  # Need header + at least one data row
+                    return (None, None)
+                    
+                # Check header format
+                header = lines[0].strip().lower()
+                header_cols = [col.strip() for col in header.split(',')]
+                
+                # Find column indices
+                game_num_col_idx = -1
+                white_team_col_idx = -1
+                black_team_col_idx = -1
+                
+                for i, col in enumerate(header_cols):
+                    if col in ['#', 'game', 'game#', 'game_number']:
+                        game_num_col_idx = i
+                    elif col in ['white']:
+                        white_team_col_idx = i
+                    elif col in ['black']:
+                        black_team_col_idx = i
+                
+                # Must have all required columns
+                if game_num_col_idx == -1 or white_team_col_idx == -1 or black_team_col_idx == -1:
+                    return (None, None)
+                
+                # Parse data rows to find the specific game
+                for line in lines[1:]:
+                    line = line.strip()
+                    if line:
+                        cols = [col.strip() for col in line.split(',')]
+                        if len(cols) > max(game_num_col_idx, white_team_col_idx, black_team_col_idx):
+                            try:
+                                if str(int(cols[game_num_col_idx])) == str(game_number):
+                                    white_team = cols[white_team_col_idx] if white_team_col_idx < len(cols) else None
+                                    black_team = cols[black_team_col_idx] if black_team_col_idx < len(cols) else None
+                                    return (white_team, black_team)
+                            except (ValueError, IndexError):
+                                continue
+                                
+        except Exception as e:
+            print(f"Error parsing team names from CSV file {csv_filename}: {e}")
+        
+        return (None, None)
+    
     def on_csv_file_changed(self, event=None):
         """Handle CSV file selection change - update game numbers dropdown."""
         csv_file = self.csv_var.get()
@@ -1304,6 +1377,38 @@ class GameManagementApp:
         """Update the game number display based on current Tournament List selection."""
         current_game = self.get_current_game_number()
         self.game_number_var.set(f"Game #{current_game}")
+        # Also update team names when game number changes
+        self.update_team_names_display()
+
+    def update_team_names_display(self):
+        """Update the team name widgets with data from CSV file."""
+        try:
+            current_game = self.get_current_game_number()
+            csv_file = self.csv_var.get() if hasattr(self, 'csv_var') else None
+            
+            # Get team names from CSV
+            white_team, black_team = self.parse_csv_team_names(csv_file, current_game)
+            
+            # Update the team name widgets if they exist
+            if hasattr(self, 'white_team_name_widget'):
+                if white_team:
+                    self.white_team_name_widget.config(text=white_team)
+                else:
+                    self.white_team_name_widget.config(text="")
+                    
+            if hasattr(self, 'black_team_name_widget'):
+                if black_team:
+                    self.black_team_name_widget.config(text=black_team)
+                else:
+                    self.black_team_name_widget.config(text="")
+                    
+        except Exception as e:
+            print(f"Error updating team names display: {e}")
+            # Set empty text on error
+            if hasattr(self, 'white_team_name_widget'):
+                self.white_team_name_widget.config(text="")
+            if hasattr(self, 'black_team_name_widget'):
+                self.black_team_name_widget.config(text="")
 
     def advance_to_next_game(self):
         """Advance to the next game in the Tournament List."""
