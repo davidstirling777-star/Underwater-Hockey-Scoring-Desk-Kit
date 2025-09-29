@@ -341,6 +341,13 @@ class GameManagementApp:
         self.zigbee_controller = ZigbeeSirenController(siren_callback=self.trigger_wireless_siren)
         self.zigbee_status_var = tk.StringVar(value="Disconnected")
         self.zigbee_controller.set_connection_status_callback(self.update_zigbee_status)
+        
+        # Connection watchdog variables
+        self.connection_watchdog_active = False
+        self.connection_watchdog_attempts = 0
+        self.connection_watchdog_max_attempts = 3
+        self.connection_watchdog_job = None
+        self.user_initiated_action = False
 
         self.create_scoreboard_tab()
         self.create_settings_tab()
@@ -350,8 +357,8 @@ class GameManagementApp:
         # Initialize USB dongle status after creating the Zigbee tab
         self.update_usb_dongle_status()
         
-        # Auto-connect to MQTT on startup
-        self.start_zigbee_connection()
+        # Start connection watchdog instead of direct auto-connect
+        self.start_connection_watchdog()
         
         self.load_game_settings()  # Load game settings from unified file
         self.load_settings()
@@ -2168,6 +2175,10 @@ The wireless siren will use the same sound file and volume settings as configure
 
     def start_zigbee_connection(self):
         """Start the Zigbee siren connection."""
+        # Mark as user-initiated action to prevent watchdog interference
+        self.user_initiated_action = True
+        self.stop_connection_watchdog()
+        
         try:
             if self.zigbee_controller.start():
                 self.toggle_connection_btn.config(text="Disconnect", state="normal")
@@ -2179,15 +2190,25 @@ The wireless siren will use the same sound file and volume settings as configure
         except Exception as e:
             self.add_to_zigbee_log(f"Error starting connection: {e}")
             messagebox.showerror("Connection Error", f"Error starting connection: {e}")
+        finally:
+            # Reset user action flag after a brief delay
+            self.master.after(1000, lambda: setattr(self, 'user_initiated_action', False))
 
     def stop_zigbee_connection(self):
         """Stop the Zigbee siren connection."""
+        # Mark as user-initiated action to prevent watchdog interference
+        self.user_initiated_action = True
+        self.stop_connection_watchdog()
+        
         try:
             self.zigbee_controller.stop()
             self.toggle_connection_btn.config(text="Connect", state="normal")
             self.add_to_zigbee_log("Zigbee connection stopped")
         except Exception as e:
             self.add_to_zigbee_log(f"Error stopping connection: {e}")
+        finally:
+            # Reset user action flag after a brief delay
+            self.master.after(1000, lambda: setattr(self, 'user_initiated_action', False))
 
     def test_zigbee_connection(self):
         """Test the MQTT connection."""
@@ -2202,6 +2223,76 @@ The wireless siren will use the same sound file and volume settings as configure
         except Exception as e:
             self.add_to_zigbee_log(f"Connection test error: {e}")
             messagebox.showerror("Connection Test", f"Connection test error: {e}")
+    
+    def start_connection_watchdog(self):
+        """Start the connection watchdog to monitor and retry Zigbee connections."""
+        if self.connection_watchdog_active:
+            return  # Already running
+        
+        self.connection_watchdog_active = True
+        self.connection_watchdog_attempts = 0
+        self.user_initiated_action = False
+        self.add_to_zigbee_log("Starting connection watchdog...")
+        
+        # Start the first connection attempt
+        self.schedule_connection_check()
+    
+    def stop_connection_watchdog(self):
+        """Stop the connection watchdog."""
+        if self.connection_watchdog_job:
+            self.master.after_cancel(self.connection_watchdog_job)
+            self.connection_watchdog_job = None
+        
+        self.connection_watchdog_active = False
+        self.connection_watchdog_attempts = 0
+        
+        if hasattr(self, 'zigbee_status_var'):
+            self.add_to_zigbee_log("Connection watchdog stopped")
+    
+    def schedule_connection_check(self):
+        """Schedule the next connection check after 10 seconds."""
+        if not self.connection_watchdog_active:
+            return
+        
+        # Cancel any existing scheduled check
+        if self.connection_watchdog_job:
+            self.master.after_cancel(self.connection_watchdog_job)
+        
+        # Schedule the next check in 10 seconds (10000 ms)
+        self.connection_watchdog_job = self.master.after(10000, self.check_connection_status)
+    
+    def check_connection_status(self):
+        """Check connection status and attempt reconnection if needed."""
+        if not self.connection_watchdog_active or self.user_initiated_action:
+            return
+        
+        # Check if already connected
+        if self.zigbee_controller.connected:
+            self.add_to_zigbee_log("Watchdog: Connection established successfully")
+            self.stop_connection_watchdog()
+            return
+        
+        # Not connected, attempt reconnection
+        self.connection_watchdog_attempts += 1
+        
+        if self.connection_watchdog_attempts <= self.connection_watchdog_max_attempts:
+            self.add_to_zigbee_log(f"Watchdog: Connection attempt {self.connection_watchdog_attempts}/{self.connection_watchdog_max_attempts}")
+            
+            try:
+                if self.zigbee_controller.start():
+                    # Connection attempt started, wait for callback
+                    self.schedule_connection_check()
+                else:
+                    # Immediate failure, schedule next attempt
+                    self.schedule_connection_check()
+            except Exception as e:
+                self.add_to_zigbee_log(f"Watchdog connection error: {e}")
+                self.schedule_connection_check()
+        else:
+            # Max attempts reached
+            self.add_to_zigbee_log(f"Watchdog: Max connection attempts ({self.connection_watchdog_max_attempts}) reached. Giving up.")
+            self.toggle_connection_btn.config(text="Connect", state="normal")
+            self.stop_connection_watchdog()
 
     def save_zigbee_config(self):
         """Save Zigbee configuration."""
@@ -2263,10 +2354,21 @@ The wireless siren will use the same sound file and volume settings as configure
                 status_text = f"Connected - {message}"
                 self.zigbee_status_label.config(fg="green")
                 self.toggle_connection_btn.config(text="Disconnect", state="normal")
+                
+                # If watchdog is active and we're connected, stop watchdog
+                if self.connection_watchdog_active and not self.user_initiated_action:
+                    self.add_to_zigbee_log("Watchdog: Connection established, stopping watchdog")
+                    self.stop_connection_watchdog()
+                    
             else:
                 status_text = f"Disconnected - {message}"
                 self.zigbee_status_label.config(fg="red")
-                self.toggle_connection_btn.config(text="Connect", state="normal")
+                # Only change button text if watchdog is not running or has exceeded max attempts
+                if not self.connection_watchdog_active or self.connection_watchdog_attempts >= self.connection_watchdog_max_attempts:
+                    self.toggle_connection_btn.config(text="Connect", state="normal")
+                else:
+                    # Watchdog is still trying, keep showing "Disconnect" temporarily
+                    self.toggle_connection_btn.config(text="Disconnect", state="normal")
             
             self.zigbee_status_var.set(status_text)
             self.add_to_zigbee_log(f"Status: {status_text}")
@@ -3298,6 +3400,8 @@ if __name__ == "__main__":
     def on_closing():
         """Handle application shutdown."""
         try:
+            # Stop connection watchdog
+            app.stop_connection_watchdog()
             # Stop Zigbee controller
             app.zigbee_controller.stop()
         except Exception as e:
