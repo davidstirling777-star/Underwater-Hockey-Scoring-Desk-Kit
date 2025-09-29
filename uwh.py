@@ -1780,7 +1780,7 @@ class GameManagementApp:
 5. Configure MQTT broker connection details
 6. Click Connect (if not already connected) to start wireless siren connection
 
-The wireless siren will use the same sound file and volume settings as configured in the Sounds tab."""
+The 'Test Siren via MQTT' will use the same sound file and volume settings as configured in the Sounds tab."""
         
         info_label = tk.Label(info_frame, text=info_text, font=("Arial", 9), 
                             justify="left", anchor="nw", wraplength=0)
