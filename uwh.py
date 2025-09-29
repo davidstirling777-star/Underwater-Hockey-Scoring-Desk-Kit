@@ -10,6 +10,33 @@ from zigbee_siren import ZigbeeSirenController, is_mqtt_available
 
 SETTINGS_FILE = "settings.json"
 
+def is_usb_dongle_connected():
+    """
+    Check if a Sonoff USB Zigbee dongle is connected.
+    Returns True if a USB Zigbee dongle is detected, False otherwise.
+    """
+    try:
+        # Check for /dev/ttyUSB* devices first
+        result = subprocess.run(['ls', '/dev/ttyUSB*'], capture_output=True, text=True, timeout=5)
+        if result.returncode == 0 and result.stdout.strip():
+            return True
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+        pass
+    
+    try:
+        # Check using lsusb for Zigbee dongles
+        result = subprocess.run(['lsusb'], capture_output=True, text=True, timeout=5)
+        if result.returncode == 0:
+            # Look for common Zigbee dongle identifiers
+            usb_output = result.stdout.lower()
+            # Check for common Zigbee dongle manufacturers/chips
+            zigbee_keywords = ['itead', 'sonoff', 'cc2531', 'cc2652', 'silicon labs', 'cp210']
+            return any(keyword in usb_output for keyword in zigbee_keywords)
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+        pass
+    
+    return False
+
 def migrate_legacy_settings():
     """Migrate settings from legacy separate files to unified settings.json"""
     unified_settings = get_default_unified_settings()
@@ -319,6 +346,10 @@ class GameManagementApp:
         self.create_settings_tab()
         self.create_sounds_tab()
         self.create_zigbee_siren_tab()
+        
+        # Initialize USB dongle status after creating the Zigbee tab
+        self.update_usb_dongle_status()
+        
         self.load_game_settings()  # Load game settings from unified file
         self.load_settings()
         self.build_game_sequence()
@@ -1517,6 +1548,18 @@ class GameManagementApp:
         tk.Label(status_frame, text=mqtt_status, font=("Arial", 11), fg=mqtt_color).grid(
             row=1, column=1, sticky="w", padx=5, pady=2)
         
+        # USB Dongle status check
+        tk.Label(status_frame, text="USB Dongle:", font=("Arial", 11, "bold")).grid(
+            row=2, column=0, sticky="w", padx=5, pady=2)
+        self.usb_dongle_status_label = tk.Label(status_frame, text="Checking...", 
+                                              font=("Arial", 11), fg="orange")
+        self.usb_dongle_status_label.grid(row=2, column=1, sticky="w", padx=5, pady=2)
+        
+        # Retest USB Dongle button
+        self.retest_usb_btn = tk.Button(status_frame, text="Retest USB Dongle", 
+                                      font=("Arial", 9), command=self.update_usb_dongle_status)
+        self.retest_usb_btn.grid(row=2, column=2, sticky="w", padx=5, pady=2)
+        
         # Connection Control Buttons
         control_frame = tk.Frame(main_frame)
         control_frame.grid(row=1, column=0, columnspan=4, pady=10)
@@ -2114,6 +2157,20 @@ The wireless siren will use the same sound file and volume settings as configure
             self.add_to_zigbee_log(f"Status: {status_text}")
         except Exception as e:
             print(f"Error updating Zigbee status: {e}")
+
+    def update_usb_dongle_status(self):
+        """Update USB dongle connection status in UI."""
+        try:
+            if is_usb_dongle_connected():
+                self.usb_dongle_status_label.config(text="Connected", fg="green")
+                self.add_to_zigbee_log("USB Dongle: Connected")
+            else:
+                self.usb_dongle_status_label.config(text="Disconnected", fg="red")
+                self.add_to_zigbee_log("USB Dongle: Disconnected")
+        except Exception as e:
+            self.usb_dongle_status_label.config(text="Error", fg="red")
+            self.add_to_zigbee_log(f"USB Dongle check error: {e}")
+            print(f"Error updating USB dongle status: {e}")
 
     def add_to_zigbee_log(self, message: str):
         """Add a message to the Zigbee log."""
