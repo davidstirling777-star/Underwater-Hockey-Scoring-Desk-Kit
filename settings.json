@@ -1,11 +1,12 @@
 {
   "soundSettings": {
-    "pips_sound": "Default",
-    "siren_sound": "Default",
+    "pips_sound": "test1.wav",
+    "siren_sound": "test1.wav",
     "pips_volume": 50.0,
     "siren_volume": 50.0,
     "air_volume": 50.0,
-    "water_volume": 50.0
+    "water_volume": 50.0,
+    "enable_sound": false
   },
   "zigbeeSettings": {
     "mqtt_broker": "localhost",

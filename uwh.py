@@ -70,7 +70,8 @@ def get_default_unified_settings():
             "pips_volume": 50.0,
             "siren_volume": 50.0,
             "air_volume": 50.0,
-            "water_volume": 50.0
+            "water_volume": 50.0,
+            "enable_sound": True
         },
         "zigbeeSettings": {
             "mqtt_broker": "localhost",
@@ -285,6 +286,7 @@ class GameManagementApp:
         self.siren_volume = tk.DoubleVar(value=sound_settings.get("siren_volume", 50.0))
         self.air_volume = tk.DoubleVar(value=sound_settings.get("air_volume", 50.0))
         self.water_volume = tk.DoubleVar(value=sound_settings.get("water_volume", 50.0))
+        self.enable_sound = tk.BooleanVar(value=sound_settings.get("enable_sound", True))
         
         # Initialize sound selection variables with auto-selection of first audio file if no saved setting
         sound_files = self.get_sound_files()
@@ -424,7 +426,12 @@ class GameManagementApp:
         """
         Check if audio devices are available for playback.
         Returns True if audio devices are available, False otherwise.
+        If sound is disabled, always returns True to prevent warnings.
         """
+        # If sound is disabled, don't check for audio devices
+        if not self.enable_sound.get():
+            return True
+            
         try:
             # Try to check for audio devices using aplay (Linux/Raspberry Pi)
             result = subprocess.run(['aplay', '-l'], capture_output=True, text=True, timeout=5)
@@ -447,7 +454,12 @@ class GameManagementApp:
         """
         Handle the case when no audio device is available.
         Shows warning once per session and resets sound selection to "Default".
+        If sound is disabled, skip the warning.
         """
+        # If sound is disabled, don't show audio device warnings
+        if not self.enable_sound.get():
+            return
+            
         if not self.audio_device_warning_shown:
             messagebox.showwarning(
                 "Audio Device Warning", 
@@ -482,6 +494,10 @@ class GameManagementApp:
         Play a sound file using the appropriate system command.
         Uses aplay for WAV files and omxplayer for MP3 files (Raspberry Pi compatible).
         """
+        # Check if sound is enabled
+        if not self.enable_sound.get():
+            return
+            
         if filename == "No sound files found" or filename == "Default":
             messagebox.showinfo("Sound Test", f"Cannot play '{filename}' - not a valid sound file")
             return
@@ -519,6 +535,10 @@ class GameManagementApp:
         Play a sound file with volume control using amixer for channel volumes and sound-specific volume.
         Uses aplay for WAV files and omxplayer for MP3 files (Raspberry Pi compatible).
         """
+        # Check if sound is enabled
+        if not self.enable_sound.get():
+            return
+            
         if filename == "No sound files found" or filename == "Default":
             messagebox.showinfo("Sound Test", f"Cannot play '{filename}' - not a valid sound file")
             return
@@ -1252,6 +1272,10 @@ class GameManagementApp:
         save_btn = tk.Button(sounds_widget, text="Save Settings", font=("Arial", 11), command=self.save_sound_settings_method)
         save_btn.grid(row=0, column=0)
 
+        # Row 1, column 0: Enable Sound checkbox
+        enable_sound_cb = tk.Checkbutton(sounds_widget, text="Enable Sound?", font=("Arial", 11), variable=self.enable_sound)
+        enable_sound_cb.grid(row=1, column=0, sticky="w")
+
         # Row 0, column 4, columnspan=2: "Volume"
         tk.Label(sounds_widget, text="Volume", font=("Arial", 12)).grid(row=0, column=4, columnspan=2, sticky="nsew")
 
@@ -1825,7 +1849,8 @@ The wireless siren will use the same sound file and volume settings as configure
             "pips_volume": self.pips_volume.get(),
             "siren_volume": self.siren_volume.get(),
             "air_volume": self.air_volume.get(),
-            "water_volume": self.water_volume.get()
+            "water_volume": self.water_volume.get(),
+            "enable_sound": self.enable_sound.get()
         }
         save_sound_settings(settings)
         # Show a message to confirm settings were saved
