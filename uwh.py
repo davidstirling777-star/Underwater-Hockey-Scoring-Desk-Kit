@@ -1189,7 +1189,7 @@ class GameManagementApp:
         self.on_csv_file_changed()
         
         # ADDED: Comment label about saving CSV files
-        csv_comment = tk.Label(widget4, text="Save a CSV file of games into the same folder as this program is in.\nExpected CSV headers: date,#,White,score,Black,Score,referees", 
+        csv_comment = tk.Label(widget4, text="Save a CSV file of games into the same folder as this program is in.\nExpected CSV headers: date,#,White,score,Black,Score,referees (where # is the Game Number)", 
                               font=(default_font.cget("family"), default_font.cget("size") - 1),
                               anchor="w", justify="left", fg="grey")
         csv_comment.grid(row=5, column=0, columnspan=2, sticky="w", padx=8, pady=(4,8))
