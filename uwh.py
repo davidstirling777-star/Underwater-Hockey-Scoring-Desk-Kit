@@ -409,9 +409,9 @@ class GameManagementApp:
         self.game_label = tk.Label(tab, textvariable=self.game_number_var, font=self.fonts["game_no"], bg="light grey")
         self.game_label.grid(row=3, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
 
-        # Penalty grid - always visible at row 4
+        # Penalty grid - always visible at row 3 (overlapping with game label)
         self.penalty_grid_frame, self.penalty_labels = self.create_penalty_grid_widget(tab)
-        self.penalty_grid_frame.grid(row=4, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
+        self.penalty_grid_frame.grid(row=3, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
 
         # Score widgets - MODIFIED: Moved to row 5 and reduced rowspan to 4 to accommodate game label and penalty grid
         self.white_score = tk.Label(tab, textvariable=self.white_score_var, font=self.fonts["score"], bg="white", fg="black")
@@ -2473,9 +2473,9 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
         self.display_game_label = tk.Label(tab, textvariable=self.game_number_var, font=self.display_fonts["game_no"], bg="light grey")
         self.display_game_label.grid(row=3, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
 
-        # Penalty grid - always visible at row 4
+        # Penalty grid - always visible at row 3 (overlapping with game label)
         self.display_penalty_grid_frame, self.display_penalty_labels = self.create_penalty_grid_widget(tab, is_display=True)
-        self.display_penalty_grid_frame.grid(row=4, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
+        self.display_penalty_grid_frame.grid(row=3, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
 
         self.display_white_score = tk.Label(tab, textvariable=self.white_score_var, font=self.display_fonts["score"], bg="white", fg="black")
         self.display_white_score.grid(row=5, column=0, rowspan=6, columnspan=3, padx=1, pady=1, sticky="nsew")
