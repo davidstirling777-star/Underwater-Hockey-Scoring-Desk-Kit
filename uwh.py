@@ -749,7 +749,8 @@ class GameManagementApp:
                 label_text = f"{cap_str}  {time_str}"
             else:
                 label_text = ""
-            self.penalty_labels[i][0].config(text=label_text)
+            if self.penalty_labels[i][0].cget('text') != label_text:
+                self.penalty_labels[i][0].config(text=label_text)
             if i < len(black_penalties):
                 p = black_penalties[i]
                 cap_str = f"#{p['cap']}"
@@ -761,7 +762,8 @@ class GameManagementApp:
                 label_text = f"{cap_str}  {time_str}"
             else:
                 label_text = ""
-            self.penalty_labels[i][1].config(text=label_text)
+            if self.penalty_labels[i][1].cget('text') != label_text:
+                self.penalty_labels[i][1].config(text=label_text)
 
     def update_display_penalty_grid(self):
         white_penalties = sorted(
@@ -784,7 +786,8 @@ class GameManagementApp:
                 label_text = f"{cap_str}  {time_str}"
             else:
                 label_text = ""
-            self.display_penalty_labels[i][0].config(text=label_text)
+            if self.display_penalty_labels[i][0].cget('text') != label_text:
+                self.display_penalty_labels[i][0].config(text=label_text)
             if i < len(black_penalties):
                 p = black_penalties[i]
                 cap_str = f"#{p['cap']}"
@@ -796,7 +799,8 @@ class GameManagementApp:
                 label_text = f"{cap_str}  {time_str}"
             else:
                 label_text = ""
-            self.display_penalty_labels[i][1].config(text=label_text)
+            if self.display_penalty_labels[i][1].cget('text') != label_text:
+                self.display_penalty_labels[i][1].config(text=label_text)
 
     def start_penalty_display_updates(self):
         self.update_penalty_display()
