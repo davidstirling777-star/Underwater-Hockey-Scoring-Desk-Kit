@@ -398,12 +398,6 @@ class GameManagementApp:
         self.black_label = tk.Label(tab, textvariable=self.black_team_var, font=self.fonts["team"], bg="black", fg="white")
         self.black_label.grid(row=2, column=6, columnspan=3, padx=1, pady=1, sticky="nsew")
 
-        self.game_label = tk.Label(tab, textvariable=self.game_number_var, font=self.fonts["game_no"], bg="light grey")
-        self.game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
-        self.penalty_grid_frame, self.penalty_labels = self.create_penalty_grid_widget(tab)
-        self.penalty_grid_frame.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
-        self.penalty_grid_frame.grid_remove()  # hide initially
-
         # Team name widgets - NEW: Added in row 3 to show CSV team names
         self.white_team_name_widget = tk.Label(tab, text="", font=self.fonts["team"], bg="white", fg="black")
         self.white_team_name_widget.grid(row=3, column=0, columnspan=3, padx=1, pady=1, sticky="nsew")
@@ -411,15 +405,23 @@ class GameManagementApp:
         self.black_team_name_widget = tk.Label(tab, text="", font=self.fonts["team"], bg="black", fg="white")
         self.black_team_name_widget.grid(row=3, column=6, columnspan=3, padx=1, pady=1, sticky="nsew")
 
-        # Score widgets - MODIFIED: Moved to row 4 and reduced rowspan from 6 to 5
-        self.white_score = tk.Label(tab, textvariable=self.white_score_var, font=self.fonts["score"], bg="white", fg="black")
-        self.white_score.grid(row=4, column=0, rowspan=5, columnspan=3, padx=1, pady=1, sticky="nsew")
-        self.black_score = tk.Label(tab, textvariable=self.black_score_var, font=self.fonts["score"], bg="black", fg="white")
-        self.black_score.grid(row=4, column=6, rowspan=5, columnspan=3, padx=1, pady=1, sticky="nsew")
+        # Game number label - always visible at row 3
+        self.game_label = tk.Label(tab, textvariable=self.game_number_var, font=self.fonts["game_no"], bg="light grey")
+        self.game_label.grid(row=3, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
 
-        # Timer widget - MODIFIED: Moved to row 4 and reduced rowspan from 6 to 5
+        # Penalty grid - always visible at row 4
+        self.penalty_grid_frame, self.penalty_labels = self.create_penalty_grid_widget(tab)
+        self.penalty_grid_frame.grid(row=4, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
+
+        # Score widgets - MODIFIED: Moved to row 5 and reduced rowspan to 4 to accommodate game label and penalty grid
+        self.white_score = tk.Label(tab, textvariable=self.white_score_var, font=self.fonts["score"], bg="white", fg="black")
+        self.white_score.grid(row=5, column=0, rowspan=4, columnspan=3, padx=1, pady=1, sticky="nsew")
+        self.black_score = tk.Label(tab, textvariable=self.black_score_var, font=self.fonts["score"], bg="black", fg="white")
+        self.black_score.grid(row=5, column=6, rowspan=4, columnspan=3, padx=1, pady=1, sticky="nsew")
+
+        # Timer widget - MODIFIED: Moved to row 5 and reduced rowspan to 4 to accommodate game label and penalty grid
         self.timer_label = tk.Label(tab, textvariable=self.timer_var, font=self.fonts["timer"], bg="lightgrey", fg="black")
-        self.timer_label.grid(row=4, column=3, rowspan=5, columnspan=3, padx=1, pady=1, sticky="nsew")
+        self.timer_label.grid(row=5, column=3, rowspan=4, columnspan=3, padx=1, pady=1, sticky="nsew")
 
         self.white_timeout_button = tk.Button(
             tab, text="White Team\nTime-Out", font=self.fonts["timeout_button"], bg="white", fg="black",
@@ -682,47 +684,17 @@ class GameManagementApp:
 
     def update_penalty_display(self):
         """
-        Robustly ensures that the penalty grid is only shown if there are penalties left to serve,
-        and that 'Game 121' label is shown otherwise.
-        Applies to both main and display windows.
+        Updates the penalty grid contents for both main and display windows.
+        The grid and game label are always visible; only their contents are updated.
         """
-        main_has_penalties = bool(self.active_penalties or self.stored_penalties)
-        # Main window: show penalty grid if any penalties; otherwise show 'Game 121'
-        if main_has_penalties:
-            if self.game_label.winfo_ismapped():
-                self.game_label.grid_remove()
-            if not self.penalty_grid_frame.winfo_ismapped():
-                self.penalty_grid_frame.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
-            self.update_penalty_grid()
-        else:
-            # Hide penalty grid
-            try:
-                self.penalty_grid_frame.grid_remove()
-            except Exception:
-                pass
-            # Show current game number label always
-            if not self.game_label.winfo_ismapped():
-                self.game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
-            # Event-driven: Update the StringVar with current game number
-            self.update_game_number_display()
-
-        # Display window: same logic
-        display_has_penalties = bool(self.active_penalties or self.stored_penalties)
-        if display_has_penalties:
-            if self.display_game_label.winfo_ismapped():
-                self.display_game_label.grid_remove()
-            if not self.display_penalty_grid_frame.winfo_ismapped():
-                self.display_penalty_grid_frame.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
-            self.update_display_penalty_grid()
-        else:
-            try:
-                self.display_penalty_grid_frame.grid_remove()
-            except Exception:
-                pass
-            if not self.display_game_label.winfo_ismapped():
-                self.display_game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
-            # Event-driven: Update the StringVar with current game number
-            self.update_game_number_display()
+        # Update penalty grid contents for main window
+        self.update_penalty_grid()
+        
+        # Update penalty grid contents for display window
+        self.update_display_penalty_grid()
+        
+        # Ensure game number display is always up to date
+        self.update_game_number_display()
 
     def _penalty_sort_key(self, p):
         """Helper method to sort penalties by time remaining."""
@@ -2497,19 +2469,21 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
         self.display_black_label = tk.Label(tab, textvariable=self.black_team_var, font=self.display_fonts["team"], bg="black", fg="white")
         self.display_black_label.grid(row=2, column=6, columnspan=3, padx=1, pady=1, sticky="nsew")
 
+        # Game number label - always visible at row 3
         self.display_game_label = tk.Label(tab, textvariable=self.game_number_var, font=self.display_fonts["game_no"], bg="light grey")
-        self.display_game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
+        self.display_game_label.grid(row=3, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
+
+        # Penalty grid - always visible at row 4
         self.display_penalty_grid_frame, self.display_penalty_labels = self.create_penalty_grid_widget(tab, is_display=True)
-        self.display_penalty_grid_frame.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
-        self.display_penalty_grid_frame.grid_remove()  # hide initially
+        self.display_penalty_grid_frame.grid(row=4, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
 
         self.display_white_score = tk.Label(tab, textvariable=self.white_score_var, font=self.display_fonts["score"], bg="white", fg="black")
-        self.display_white_score.grid(row=3, column=0, rowspan=8, columnspan=3, padx=1, pady=1, sticky="nsew")
+        self.display_white_score.grid(row=5, column=0, rowspan=6, columnspan=3, padx=1, pady=1, sticky="nsew")
         self.display_black_score = tk.Label(tab, textvariable=self.black_score_var, font=self.display_fonts["score"], bg="black", fg="white")
-        self.display_black_score.grid(row=3, column=6, rowspan=8, columnspan=3, padx=1, pady=1, sticky="nsew")
+        self.display_black_score.grid(row=5, column=6, rowspan=6, columnspan=3, padx=1, pady=1, sticky="nsew")
 
         self.display_timer_label = tk.Label(tab, textvariable=self.timer_var, font=self.display_fonts["timer"], bg="lightgrey", fg="black")
-        self.display_timer_label.grid(row=3, column=3, rowspan=8, columnspan=3, padx=1, pady=1, sticky="nsew")
+        self.display_timer_label.grid(row=5, column=3, rowspan=6, columnspan=3, padx=1, pady=1, sticky="nsew")
 
         self.display_window.bind('<Configure>', self.scale_display_fonts)
         self.display_initial_width = self.display_window.winfo_width() or 1200
