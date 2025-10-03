@@ -50,7 +50,7 @@ See `ZIGBEE_SETUP.md` for complete installation and configuration instructions.
 Some Features (i,e, those that I can be bothered to write about at the moment)
 
 
-Coping with Errors (like when a goal is score right on the buzzer!)
+Coping with Errors (like when a goal is scored right on the buzzer!)
 Summary of what happens when goals are added during the three "break" periods:
 
 In Between Game Break
