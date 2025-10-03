@@ -2120,7 +2120,14 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
                 cb.grid(row=row_num, column=1, sticky="w", padx=6, pady=4)
                 checks[var_name] = check_var
                 row_num += 1
-                # Continue to show value entry below (handled after the loop)
+                # Add value entry immediately below checkbox
+                tk.Label(dlg, text="Sudden Death Game Break:").grid(row=row_num, column=0, sticky="w", padx=6, pady=4)
+                sudden_death_val = self.button_data[idx]["values"].get("sudden_death_game_break", "1")
+                sudden_death_entry_var = tk.StringVar(value=sudden_death_val)
+                sudden_death_entry = ttk.Entry(dlg, textvariable=sudden_death_entry_var, width=10, validate="key", validatecommand=vcmd)
+                sudden_death_entry.grid(row=row_num, column=1, sticky="w", padx=6, pady=4)
+                entries["sudden_death_game_break"] = sudden_death_entry_var
+                row_num += 1
                 continue
             
             tk.Label(dlg, text=label.cget("text")).grid(row=row_num, column=0, sticky="w", padx=6, pady=4)
@@ -2159,15 +2166,6 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
                 entry.grid(row=row_num, column=1, sticky="w", padx=6, pady=4)
                 entries[var_name] = entry_var
             row_num += 1
-
-        # --- PATCH: Add Sudden Death Game Break entry below checkbox ---
-        tk.Label(dlg, text="Sudden Death Game Break (minutes):").grid(row=row_num, column=0, sticky="w", padx=6, pady=4)
-        sudden_death_val = self.button_data[idx]["values"].get("sudden_death_game_break", "1")
-        sudden_death_entry_var = tk.StringVar(value=sudden_death_val)
-        sudden_death_entry = ttk.Entry(dlg, textvariable=sudden_death_entry_var, width=10, validate="key", validatecommand=vcmd)
-        sudden_death_entry.grid(row=row_num, column=1, sticky="w", padx=6, pady=4)
-        entries["sudden_death_game_break"] = sudden_death_entry_var
-        row_num += 1
 
         # --- PATCH: Add Crib Time entry below Crib Time: checkbox and above Save button ---
         tk.Label(dlg, text="Crib Time (seconds):").grid(row=row_num, column=0, sticky="w", padx=6, pady=4)

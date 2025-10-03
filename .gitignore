@@ -101,4 +101,4 @@ venv.bak/
 dmypy.json
 
 # Test screenshots
-*screenshot*.png
+*screenshot*.pngpreset_dialog_screenshot.png
