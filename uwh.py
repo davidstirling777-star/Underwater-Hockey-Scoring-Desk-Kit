@@ -1193,7 +1193,7 @@ class GameManagementApp:
         self.on_csv_file_changed()
         
         # ADDED: Comment label about saving CSV files
-        csv_comment = tk.Label(widget4, text="Save a CSV file of games into the same folder as this program is in.\nExpected CSV headers: date,#,White,score,Black,Score,referees (where # is the Game Number)", 
+        csv_comment = tk.Label(widget4, text="Save a CSV file of games into the same folder as this program is in.\nExpected CSV headers: date,#,White,Score,Black,Score,Referees,Penalties (where # is the Game Number)", 
                               font=(default_font.cget("family"), default_font.cget("size") - 1),
                               anchor="w", justify="left", fg="grey")
         csv_comment.grid(row=5, column=0, columnspan=2, sticky="w", padx=8, pady=(4,8))
@@ -1254,7 +1254,7 @@ class GameManagementApp:
     def parse_csv_game_numbers(self, csv_filename):
         """
         Parse CSV file and extract game numbers from the '#' column.
-        Expected header: date,#,White,score,Black,Score,referees
+        Expected header: date,#,White,Score,Black,Score,Referees,Penalties
         """
         game_numbers = []
         if csv_filename == "No CSV files found" or not csv_filename:
@@ -1306,7 +1306,7 @@ class GameManagementApp:
     def parse_csv_team_names(self, csv_filename, game_number):
         """
         Parse CSV file and extract team names for a specific game number.
-        Expected header: date,#,White,score,Black,Score,referees
+        Expected header: date,#,White,Score,Black,Score,Referees,Penalties
         Returns: (white_team_name, black_team_name) or (None, None) if not found
         """
         if csv_filename == "No CSV files found" or not csv_filename or not game_number:
