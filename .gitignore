@@ -103,3 +103,4 @@ dmypy.json
 # Test screenshots
 *screenshot*.pngpreset_dialog_screenshot.png
 game_variables_tab_screenshot.png
+screenshot_*.png
