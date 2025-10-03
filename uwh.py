@@ -3051,6 +3051,7 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
             "overtime_half_time",
             "overtime_half_time_break",
             "between_game_break",
+            "between_game_break_starts_in:",
             "start_first_game_at_this_time",
             "sudden_death_game_break",
             "white_team_time-out",
