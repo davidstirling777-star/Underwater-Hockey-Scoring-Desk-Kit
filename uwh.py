@@ -7,6 +7,8 @@ import os
 import subprocess
 import json
 from zigbee_siren import ZigbeeSirenController, is_mqtt_available
+from sound import (check_audio_device_available, handle_no_audio_device_warning, 
+                   get_sound_files, play_sound, play_sound_with_volume)
 
 SETTINGS_FILE = "settings.json"
 
@@ -320,7 +322,7 @@ class GameManagementApp:
         self.enable_sound = tk.BooleanVar(value=sound_settings.get("enable_sound", True))
         
         # Initialize sound selection variables with auto-selection of first audio file if no saved setting
-        sound_files = self.get_sound_files()
+        sound_files = get_sound_files()
         available_audio_files = sound_files if sound_files != ["No sound files found"] else []
         
         pips_default = sound_settings.get("pips_sound", "Default")
@@ -476,209 +478,6 @@ class GameManagementApp:
 
         self.update_team_timeouts_allowed()
 
-    def check_audio_device_available(self):
-        """
-        Check if audio devices are available for playback.
-        Returns True if audio devices are available, False otherwise.
-        If sound is disabled, always returns True to prevent warnings.
-        """
-        # If sound is disabled, don't check for audio devices
-        if not self.enable_sound.get():
-            return True
-            
-        try:
-            # Try to check for audio devices using aplay (Linux/Raspberry Pi)
-            result = subprocess.run(['aplay', '-l'], capture_output=True, text=True, timeout=5)
-            if result.returncode == 0 and result.stdout.strip():
-                return True
-        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
-            pass
-        
-        try:
-            # Alternative check using amixer
-            result = subprocess.run(['amixer', 'scontrols'], capture_output=True, text=True, timeout=5)
-            if result.returncode == 0 and result.stdout.strip():
-                return True
-        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
-            pass
-        
-        return False
-
-    def handle_no_audio_device_warning(self, sound_var, sound_type):
-        """
-        Handle the case when no audio device is available.
-        Shows warning once per session and resets sound selection to "Default".
-        If sound is disabled, skip the warning.
-        """
-        # If sound is disabled, don't show audio device warnings
-        if not self.enable_sound.get():
-            return
-            
-        if not self.audio_device_warning_shown:
-            messagebox.showwarning(
-                "Audio Device Warning", 
-                f"No audio device detected. Cannot play {sound_type} sounds.\n"
-                f"Sound selection will be reset to 'Default'."
-            )
-            self.audio_device_warning_shown = True
-        
-        # Reset sound selection to "Default" to prevent loop
-        sound_var.set("Default")
-
-    def get_sound_files(self):
-        """
-        Scan the current directory for supported sound files (.wav, .mp3).
-        Returns a list of sound files found.
-        """
-        sound_files = []
-        supported_extensions = ['.wav', '.mp3']
-        
-        try:
-            current_dir = os.getcwd()
-            for filename in os.listdir(current_dir):
-                if any(filename.lower().endswith(ext) for ext in supported_extensions):
-                    sound_files.append(filename)
-        except Exception as e:
-            print(f"Error scanning for sound files: {e}")
-        
-        return sorted(sound_files) if sound_files else ["No sound files found"]
-    
-    def play_sound(self, filename):
-        """
-        Play a sound file using the appropriate system command.
-        Uses aplay for WAV files and omxplayer for MP3 files (Raspberry Pi compatible).
-        """
-        # Check if sound is enabled
-        if not self.enable_sound.get():
-            return
-            
-        if filename == "No sound files found" or filename == "Default":
-            messagebox.showinfo("Sound Test", f"Cannot play '{filename}' - not a valid sound file")
-            return
-            
-        try:
-            file_path = os.path.join(os.getcwd(), filename)
-            if not os.path.exists(file_path):
-                messagebox.showerror("Sound Error", f"Sound file '{filename}' not found")
-                return
-                
-            # Determine command based on file extension
-            if filename.lower().endswith('.wav'):
-                # Use aplay for WAV files (works well on Raspberry Pi with DigiAMP+ HAT)
-                subprocess.run(['aplay', file_path], check=True, capture_output=True)
-            elif filename.lower().endswith('.mp3'):
-                # Use omxplayer for MP3 files (Raspberry Pi optimized)
-                subprocess.run(['omxplayer', '--no-osd', file_path], check=True, capture_output=True)
-            else:
-                messagebox.showerror("Sound Error", f"Unsupported file format: {filename}")
-                return
-                
-            # Show success feedback
-            messagebox.showinfo("Sound Test", f"Successfully played: {filename}")
-            
-        except subprocess.CalledProcessError as e:
-            messagebox.showerror("Sound Error", f"Failed to play {filename}. Command failed: {e}")
-        except FileNotFoundError:
-            # Fallback for development environments without aplay/omxplayer
-            messagebox.showwarning("Sound Warning", f"Audio player not found. Would play: {filename}")
-        except Exception as e:
-            messagebox.showerror("Sound Error", f"Unexpected error playing {filename}: {e}")
-
-    def play_sound_with_volume(self, filename, sound_type):
-        """
-        Play a sound file with volume control using amixer for channel volumes and sound-specific volume.
-        Uses aplay for WAV files and omxplayer for MP3 files (Raspberry Pi compatible).
-        """
-        # Check if sound is enabled
-        if not self.enable_sound.get():
-            return
-            
-        if filename == "No sound files found" or filename == "Default":
-            messagebox.showinfo("Sound Test", f"Cannot play '{filename}' - not a valid sound file")
-            return
-            
-        try:
-            file_path = os.path.join(os.getcwd(), filename)
-            if not os.path.exists(file_path):
-                messagebox.showerror("Sound Error", f"Sound file '{filename}' not found")
-                return
-            
-            # Set channel volumes using amixer before playback
-            air_vol = int(self.air_volume.get())
-            water_vol = int(self.water_volume.get())
-            
-            # Set AIR channel volume (typically left channel - card 0, control 0)
-            try:
-                subprocess.run(['amixer', '-c', '0', 'sset', 'Left', f'{air_vol}%'], 
-                             check=False, capture_output=True)
-            except:
-                # Fallback - try different control names
-                try:
-                    subprocess.run(['amixer', 'sset', 'PCM', f'{air_vol}%'], 
-                                 check=False, capture_output=True)
-                except:
-                    pass  # Ignore amixer errors in development environments
-            
-            # Set WATER channel volume (typically right channel - card 0, control 1)  
-            try:
-                subprocess.run(['amixer', '-c', '0', 'sset', 'Right', f'{water_vol}%'], 
-                             check=False, capture_output=True)
-            except:
-                # Fallback - try different control names
-                try:
-                    subprocess.run(['amixer', 'sset', 'Speaker', f'{water_vol}%'], 
-                                 check=False, capture_output=True)
-                except:
-                    pass  # Ignore amixer errors in development environments
-                
-            # Get sound-specific volume
-            if sound_type == "pips":
-                sound_vol = self.pips_volume.get() / 100.0
-            elif sound_type == "siren":
-                sound_vol = self.siren_volume.get() / 100.0
-            else:
-                sound_vol = 0.5  # Default 50%
-                
-            # Determine command based on file extension
-            if filename.lower().endswith('.wav'):
-                # Use aplay for WAV files with volume control if available
-                try:
-                    # Try to use aplay with volume control
-                    subprocess.run(['aplay', '--volume', str(int(sound_vol * 65536)), file_path], 
-                                 check=True, capture_output=True)
-                except:
-                    # Fallback to regular aplay if volume control not supported
-                    subprocess.run(['aplay', file_path], check=True, capture_output=True)
-            elif filename.lower().endswith('.mp3'):
-                # Use omxplayer for MP3 files with volume control
-                vol_arg = str(int((sound_vol - 1.0) * 2000))  # omxplayer volume range
-                try:
-                    subprocess.run(['omxplayer', '--no-osd', '--vol', vol_arg, file_path], 
-                                 check=True, capture_output=True)
-                except:
-                    # Fallback to regular omxplayer if volume control not supported
-                    subprocess.run(['omxplayer', '--no-osd', file_path], check=True, capture_output=True)
-            else:
-                messagebox.showerror("Sound Error", f"Unsupported file format: {filename}")
-                return
-                
-            # Show success feedback with volume info
-            messagebox.showinfo("Sound Test", 
-                f"Successfully played: {filename}\n"
-                f"{sound_type.title()} Volume: {int(sound_vol*100)}%\n"
-                f"AIR Volume: {air_vol}%\n"
-                f"WATER Volume: {water_vol}%")
-            
-        except subprocess.CalledProcessError as e:
-            messagebox.showerror("Sound Error", f"Failed to play {filename}. Command failed: {e}")
-        except FileNotFoundError:
-            # Fallback for development environments without aplay/omxplayer
-            messagebox.showwarning("Sound Warning", 
-                f"Audio player not found. Would play: {filename}\n"
-                f"With {sound_type} volume: {int(sound_vol*100) if 'sound_vol' in locals() else 50}%\n"
-                f"AIR: {air_vol}%, WATER: {water_vol}%")
-        except Exception as e:
-            messagebox.showerror("Sound Error", f"Unexpected error playing {filename}: {e}")
 
     def update_penalty_display(self):
         """
@@ -1672,7 +1471,7 @@ class GameManagementApp:
         sounds_widget.grid_columnconfigure(3, weight=0)  # Column 3 has fixed width
         
         # Get dynamic list of sound files
-        sound_files = self.get_sound_files()
+        sound_files = get_sound_files()
         pips_options = ["Default"] + sound_files if sound_files != ["No sound files found"] else sound_files
         siren_options = ["Default"] + sound_files if sound_files != ["No sound files found"] else sound_files
         
@@ -1706,8 +1505,9 @@ class GameManagementApp:
             if hasattr(self, '_user_interacting_with_pips') and self._user_interacting_with_pips:
                 selected = self.pips_var.get()
                 if selected != "Default" and selected != "No sound files found":
-                    if not self.check_audio_device_available():
-                        self.handle_no_audio_device_warning(self.pips_var, "pips")
+                    if not check_audio_device_available(self.enable_sound):
+                        self.audio_device_warning_shown = handle_no_audio_device_warning(
+                            self.pips_var, "pips", self.enable_sound, self.audio_device_warning_shown)
                 # Reset interaction flag
                 self._user_interacting_with_pips = False
         
@@ -1724,7 +1524,9 @@ class GameManagementApp:
 
         # Row 2, column 3: Play button for pips demo sound
         pips_play_btn = tk.Button(sounds_widget, text="Play", font=("Arial", 11), width=5,
-                                  command=lambda: self.play_sound_with_volume(self.pips_var.get(), "pips"))
+                                  command=lambda: play_sound_with_volume(self.pips_var.get(), "pips", 
+                                      self.enable_sound, self.pips_volume, self.siren_volume, 
+                                      self.air_volume, self.water_volume))
         pips_play_btn.grid(row=2, column=3)
 
         # Row 3, column 0: "Pips Vol"
@@ -1740,8 +1542,9 @@ class GameManagementApp:
         # Add interaction detection for pips volume slider
         def on_pips_slider_interaction(event=None):
             # Check audio device when user interacts with volume slider
-            if not self.check_audio_device_available():
-                self.handle_no_audio_device_warning(self.pips_var, "pips volume")
+            if not check_audio_device_available(self.enable_sound):
+                self.audio_device_warning_shown = handle_no_audio_device_warning(
+                    self.pips_var, "pips volume", self.enable_sound, self.audio_device_warning_shown)
         
         pips_vol_slider.bind("<Button-1>", on_pips_slider_interaction)
         pips_vol_slider.bind("<B1-Motion>", on_pips_slider_interaction)
@@ -1759,8 +1562,9 @@ class GameManagementApp:
             if hasattr(self, '_user_interacting_with_siren') and self._user_interacting_with_siren:
                 selected = self.siren_var.get()
                 if selected != "Default" and selected != "No sound files found":
-                    if not self.check_audio_device_available():
-                        self.handle_no_audio_device_warning(self.siren_var, "siren")
+                    if not check_audio_device_available(self.enable_sound):
+                        self.audio_device_warning_shown = handle_no_audio_device_warning(
+                            self.siren_var, "siren", self.enable_sound, self.audio_device_warning_shown)
                 # Reset interaction flag
                 self._user_interacting_with_siren = False
         
@@ -1777,7 +1581,9 @@ class GameManagementApp:
 
         # Row 5, column 3: Play button for siren demo sound
         siren_play_btn = tk.Button(sounds_widget, text="Play", font=("Arial", 11), width=5,
-                                   command=lambda: self.play_sound_with_volume(self.siren_var.get(), "siren"))
+                                   command=lambda: play_sound_with_volume(self.siren_var.get(), "siren",
+                                       self.enable_sound, self.pips_volume, self.siren_volume,
+                                       self.air_volume, self.water_volume))
         siren_play_btn.grid(row=5, column=3)
 
         # Row 6, column 0: "Siren Vol"
@@ -1793,8 +1599,9 @@ class GameManagementApp:
         # Add interaction detection for siren volume slider
         def on_siren_slider_interaction(event=None):
             # Check audio device when user interacts with volume slider
-            if not self.check_audio_device_available():
-                self.handle_no_audio_device_warning(self.siren_var, "siren volume")
+            if not check_audio_device_available(self.enable_sound):
+                self.audio_device_warning_shown = handle_no_audio_device_warning(
+                    self.siren_var, "siren volume", self.enable_sound, self.audio_device_warning_shown)
         
         siren_vol_slider.bind("<Button-1>", on_siren_slider_interaction)
         siren_vol_slider.bind("<B1-Motion>", on_siren_slider_interaction)
@@ -1809,8 +1616,9 @@ class GameManagementApp:
         # Add interaction detection for air volume slider
         def on_air_slider_interaction(event=None):
             # Check audio device when user interacts with volume slider
-            if not self.check_audio_device_available():
-                self.handle_no_audio_device_warning(tk.StringVar(value="Default"), "air volume")
+            if not check_audio_device_available(self.enable_sound):
+                self.audio_device_warning_shown = handle_no_audio_device_warning(
+                    tk.StringVar(value="Default"), "air volume", self.enable_sound, self.audio_device_warning_shown)
         
         air_vol_slider.bind("<Button-1>", on_air_slider_interaction)
         air_vol_slider.bind("<B1-Motion>", on_air_slider_interaction)
@@ -1825,8 +1633,9 @@ class GameManagementApp:
         # Add interaction detection for water volume slider
         def on_water_slider_interaction(event=None):
             # Check audio device when user interacts with volume slider
-            if not self.check_audio_device_available():
-                self.handle_no_audio_device_warning(tk.StringVar(value="Default"), "water volume")
+            if not check_audio_device_available(self.enable_sound):
+                self.audio_device_warning_shown = handle_no_audio_device_warning(
+                    tk.StringVar(value="Default"), "water volume", self.enable_sound, self.audio_device_warning_shown)
         
         water_vol_slider.bind("<Button-1>", on_water_slider_interaction)
         water_vol_slider.bind("<B1-Motion>", on_water_slider_interaction)
@@ -2594,7 +2403,8 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
             self.add_to_zigbee_log(f"Triggering wireless siren: {siren_file}")
             
             # Use the existing sound playing method with volume control
-            self.play_sound_with_volume(siren_file, "siren")
+            play_sound_with_volume(siren_file, "siren", self.enable_sound, self.pips_volume, 
+                                   self.siren_volume, self.air_volume, self.water_volume)
             
         except Exception as e:
             self.add_to_zigbee_log(f"Error triggering siren: {e}")
@@ -3055,10 +2865,14 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
                 if cur_period['name'] in break_periods:
                     if self.timer_seconds == 30:
                         # Play one pip at 30s remaining
-                        self.play_sound_with_volume(self.pips_var.get(), "pips")
+                        play_sound_with_volume(self.pips_var.get(), "pips", self.enable_sound, 
+                                               self.pips_volume, self.siren_volume, 
+                                               self.air_volume, self.water_volume)
                     elif 1 <= self.timer_seconds <= 10:
                         # Play one pip per second from 10s to 1s remaining
-                        self.play_sound_with_volume(self.pips_var.get(), "pips")
+                        play_sound_with_volume(self.pips_var.get(), "pips", self.enable_sound,
+                                               self.pips_volume, self.siren_volume,
+                                               self.air_volume, self.water_volume)
             
             self.timer_seconds -= 1
             self.timer_job = self.master.after(1000, self.countdown_timer)
@@ -3072,12 +2886,16 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
                                    'Overtime Game Break', 'Overtime Half Time']
                     if cur_period['name'] in break_periods:
                         # Play siren at 0s for break periods
-                        self.play_sound_with_volume(self.siren_var.get(), "siren")
+                        play_sound_with_volume(self.siren_var.get(), "siren", self.enable_sound,
+                                               self.pips_volume, self.siren_volume,
+                                               self.air_volume, self.water_volume)
                 elif cur_period['type'] in ['regular', 'overtime']:
                     half_periods = ['First Half', 'Second Half', 'Overtime First Half', 'Overtime Second Half']
                     if cur_period['name'] in half_periods:
                         # Play siren at end of each half
-                        self.play_sound_with_volume(self.siren_var.get(), "siren")
+                        play_sound_with_volume(self.siren_var.get(), "siren", self.enable_sound,
+                                               self.pips_volume, self.siren_volume,
+                                               self.air_volume, self.water_volume)
             
             self.next_period()
 
