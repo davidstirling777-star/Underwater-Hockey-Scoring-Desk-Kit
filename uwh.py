@@ -1113,6 +1113,15 @@ class GameManagementApp:
                     fg="blue", anchor="center", justify="center"
                 )
                 info_label.grid(row=row_idx, column=0, columnspan=4, pady=(2,8), sticky="nsew")
+                row_idx += 1
+                # Add explanatory text for Crib Time
+                crib_time_explanation = tk.Label(
+                    widget1,
+                    text="Crib Time is a period (in seconds) that is subtracted from the \"Between Game Break\" time at the start of each game to try to realign Court Time with Local Computer Time.",
+                    font=(default_font.cget("family"), default_font.cget("size") - 1),
+                    anchor="w", justify="left", wraplength=600
+                )
+                crib_time_explanation.grid(row=row_idx, column=0, columnspan=4, pady=(2,8), sticky="nsew")
                 row_idx += 1            
         # --- PATCH: Add warning label above Reset Timer button ---
         self.reset_warning_label = tk.Label(
@@ -1152,7 +1161,7 @@ class GameManagementApp:
             btn_row = 1 if i < 3 else 2
             btn_col = i % 3
             btn = ttk.Button(widget2, text=self.button_data[i]["text"], width=14, style='Preset.TButton')
-            btn.grid(row=btn_row, column=btn_col, padx=8, pady=7, sticky="n")
+            btn.grid(row=btn_row, column=btn_col, padx=8, pady=4, sticky="n")
             btn.bind("<ButtonPress-1>", self._make_press_handler(i))
             btn.bind("<ButtonRelease-1>", self._make_release_handler(i))
             self.widget2_buttons.append(btn)
@@ -1220,7 +1229,7 @@ class GameManagementApp:
         # ADDED: Comment label about saving CSV files
         csv_comment = tk.Label(widget4, text="Save a CSV file of games into the same folder as this program is in.\nExpected CSV headers: date,#,White,Score,Black,Score,Referees,Penalties\n(where # is the Game Number)", 
                               font=(default_font.cget("family"), default_font.cget("size") - 1),
-                              anchor="w", justify="left", fg="grey")
+                              anchor="w", justify="left", wraplength=600)
         csv_comment.grid(row=5, column=0, columnspan=2, sticky="w", padx=8, pady=(4,8))
 
         # Widget 3 (Game Sequence Explanation) - Bottom right - height reduced for snug text
