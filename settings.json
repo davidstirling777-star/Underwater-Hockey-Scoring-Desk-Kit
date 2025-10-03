@@ -1,10 +1,10 @@
 {
   "soundSettings": {
-    "pips_sound": "test1.wav",
-    "siren_sound": "test1.wav",
+    "pips_sound": "beep-cut.mp3",
+    "siren_sound": "car-honk-cut.mp3",
     "pips_volume": 50.0,
     "siren_volume": 50.0,
-    "air_volume": 50.0,
+    "air_volume": 32.0,
     "water_volume": 50.0,
     "enable_sound": false
   },
@@ -14,9 +14,6 @@
     "mqtt_username": "",
     "mqtt_password": "",
     "mqtt_topic": "zigbee2mqtt/+",
-    "siren_button_devices": [
-      "siren_button"
-    ],
     "siren_button_device": "siren_button",
     "connection_timeout": 60,
     "reconnect_delay": 5,
@@ -25,17 +22,17 @@
   "gameSettings": {
     "time_to_start_first_game": "",
     "start_first_game_in": 1,
-    "team_timeouts_allowed": true,
+    "team_timeouts_allowed": false,
     "team_timeout_period": 1,
-    "half_period": 15,
+    "half_period": 10,
     "half_time_break": 3,
-    "overtime_allowed": true,
-    "overtime_game_break": 3,
-    "overtime_half_period": 5,
+    "overtime_allowed": false,
+    "overtime_game_break": 1,
+    "overtime_half_period": 1,
     "overtime_half_time_break": 1,
     "sudden_death_game_break": 1,
-    "between_game_break": 2,
-    "crib_time": 60
+    "between_game_break": 7,
+    "crib_time": 20
   },
   "presetSettings": [
     {
@@ -53,7 +50,9 @@
       },
       "checkboxes": {
         "team_timeouts_allowed": true,
-        "overtime_allowed": true
+        "overtime_allowed": true,
+        "sudden_death_game_break": true,
+        "crib_time": true
       }
     },
     {
@@ -62,9 +61,23 @@
       "checkboxes": {}
     },
     {
-      "text": "3",
-      "values": {},
-      "checkboxes": {}
+      "text": "NZSSC KO",
+      "values": {
+        "team_timeout_period": "1",
+        "half_period": "10",
+        "half_time_break": "3",
+        "overtime_game_break": "1",
+        "overtime_half_period": "1",
+        "overtime_half_time_break": "1",
+        "between_game_break": "7",
+        "crib_time": "60"
+      },
+      "checkboxes": {
+        "team_timeouts_allowed": false,
+        "overtime_allowed": false,
+        "sudden_death_game_break": false,
+        "crib_time": true
+      }
     },
     {
       "text": "4",
@@ -72,14 +85,42 @@
       "checkboxes": {}
     },
     {
-      "text": "5",
-      "values": {},
-      "checkboxes": {}
+      "text": "NZSSC Rnd Rbn",
+      "values": {
+        "team_timeout_period": "1",
+        "half_period": "10",
+        "half_time_break": "3",
+        "overtime_game_break": "1",
+        "overtime_half_period": "1",
+        "overtime_half_time_break": "1",
+        "between_game_break": "5",
+        "crib_time": "60"
+      },
+      "checkboxes": {
+        "team_timeouts_allowed": false,
+        "overtime_allowed": false,
+        "sudden_death_game_break": false,
+        "crib_time": true
+      }
     },
     {
-      "text": "6",
-      "values": {},
-      "checkboxes": {}
+      "text": "Testing",
+      "values": {
+        "team_timeout_period": "1",
+        "half_period": "1",
+        "half_time_break": "1",
+        "overtime_game_break": "1",
+        "overtime_half_period": "1",
+        "overtime_half_time_break": "1",
+        "between_game_break": "1",
+        "crib_time": "20"
+      },
+      "checkboxes": {
+        "team_timeouts_allowed": true,
+        "overtime_allowed": true,
+        "sudden_death_game_break": true,
+        "crib_time": true
+      }
     }
   ]
 }
