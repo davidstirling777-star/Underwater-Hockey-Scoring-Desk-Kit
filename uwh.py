@@ -903,24 +903,15 @@ class GameManagementApp:
                 self.team_timeout_period_entry = entry
                 self.team_timeout_period_label = label_widget
             row_idx += 1
-            # Insert info label after Crib Time row
+            # Insert combined explanation label after Crib Time row
             if var_name == "crib_time":
-                info_label = tk.Label(
+                combined_explanation = tk.Label(
                     widget1,
-                    text="Value boxes accept decimal time e.g. 1.5 or 1,5 = 1 min, 30 sec",
-                    font=(default_font.cget("family"), new_size, "italic"),
-                    fg="blue", anchor="center", justify="center"
-                )
-                info_label.grid(row=row_idx, column=0, columnspan=4, pady=(2,8), sticky="nsew")
-                row_idx += 1
-                # Add explanatory text for Crib Time
-                crib_time_explanation = tk.Label(
-                    widget1,
-                    text="Crib Time is a period (in seconds) that is subtracted from the \"Between Game Break\" time at the start of each game to try to realign Court Time with Local Computer Time.",
+                    text="• Crib Time is a period (in seconds) that is subtracted from the \"Between Game Break\" time at the start of each game to try to realign Court Time with Local Computer Time.\n• Value boxes accept decimal time e.g. 1.5 or 1,5 = 1 min, 30 sec",
                     font=(default_font.cget("family"), default_font.cget("size") - 1),
                     anchor="w", justify="left", wraplength=600
                 )
-                crib_time_explanation.grid(row=row_idx, column=0, columnspan=4, pady=(2,8), sticky="nsew")
+                combined_explanation.grid(row=row_idx, column=0, columnspan=4, pady=(2,8), sticky="nsew")
                 row_idx += 1            
         # --- PATCH: Add warning label above Reset Timer button ---
         self.reset_warning_label = tk.Label(
