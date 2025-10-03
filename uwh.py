@@ -2028,6 +2028,13 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
                 if widget["name"] == "crib_time" and widget["entry"] is not None:
                     widget["entry"].delete(0, tk.END)
                     widget["entry"].insert(0, crib_time_val)
+        # Also populate Sudden Death Game Break value in main variables from preset
+        sudden_death_val = self.button_data[idx]["values"].get("sudden_death_game_break", None)
+        if sudden_death_val is not None:
+            for widget in self.widgets:
+                if widget["name"] == "sudden_death_game_break" and widget["entry"] is not None:
+                    widget["entry"].delete(0, tk.END)
+                    widget["entry"].insert(0, sudden_death_val)
         self.load_settings()
 
     def _open_button_dialog(self, idx):
@@ -2057,6 +2064,20 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
         for widget in self.widgets:
             var_name = widget["name"]
             label = widget["label_widget"]
+            
+            # Special handling for sudden_death_game_break: show both checkbox and entry
+            if var_name == "sudden_death_game_break":
+                # Show checkbox with relabeled text
+                tk.Label(dlg, text="Sudden Death Allowed?").grid(row=row_num, column=0, sticky="w", padx=6, pady=4)
+                val = self.button_data[idx]["checkboxes"].get(var_name, widget["checkbox"].get())
+                check_var = tk.BooleanVar(value=val)
+                cb = ttk.Checkbutton(dlg, variable=check_var)
+                cb.grid(row=row_num, column=1, sticky="w", padx=6, pady=4)
+                checks[var_name] = check_var
+                row_num += 1
+                # Continue to show value entry below (handled after the loop)
+                continue
+            
             tk.Label(dlg, text=label.cget("text")).grid(row=row_num, column=0, sticky="w", padx=6, pady=4)
             if widget["checkbox"] is not None:
                 # For button 1, preset checkboxes as True for required options
@@ -2093,6 +2114,15 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
                 entry.grid(row=row_num, column=1, sticky="w", padx=6, pady=4)
                 entries[var_name] = entry_var
             row_num += 1
+
+        # --- PATCH: Add Sudden Death Game Break entry below checkbox ---
+        tk.Label(dlg, text="Sudden Death Game Break (minutes):").grid(row=row_num, column=0, sticky="w", padx=6, pady=4)
+        sudden_death_val = self.button_data[idx]["values"].get("sudden_death_game_break", "1")
+        sudden_death_entry_var = tk.StringVar(value=sudden_death_val)
+        sudden_death_entry = ttk.Entry(dlg, textvariable=sudden_death_entry_var, width=10, validate="key", validatecommand=vcmd)
+        sudden_death_entry.grid(row=row_num, column=1, sticky="w", padx=6, pady=4)
+        entries["sudden_death_game_break"] = sudden_death_entry_var
+        row_num += 1
 
         # --- PATCH: Add Crib Time entry below Crib Time: checkbox and above Save button ---
         tk.Label(dlg, text="Crib Time (seconds):").grid(row=row_num, column=0, sticky="w", padx=6, pady=4)
