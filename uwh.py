@@ -1054,7 +1054,32 @@ class GameManagementApp:
                         try:
                             # Replace comma with dot for European decimal notation
                             val_normalized = val.replace(',', '.')
-                            float(val_normalized)  # Test if it's a valid number
+                            val_float = float(val_normalized)  # Test if it's a valid number
+                            
+                            # Special validation for crib_time: check against between_game_break
+                            if field_name == "crib_time":
+                                # Get current between_game_break value
+                                between_game_break_minutes = None
+                                for widget in self.widgets:
+                                    if widget["name"] == "between_game_break":
+                                        try:
+                                            bgb_val = widget["entry"].get().strip().replace(',', '.')
+                                            between_game_break_minutes = float(bgb_val)
+                                        except (ValueError, AttributeError):
+                                            pass
+                                        break
+                                
+                                # If we have a between_game_break value, validate the condition
+                                if between_game_break_minutes is not None:
+                                    crib_time_seconds = val_float
+                                    if (between_game_break_minutes * 60) - crib_time_seconds <= 31:
+                                        messagebox.showerror("Input Error", "Crib time too large. Between Game Break minus Crib time must be > 31 seconds.")
+                                        event.widget.delete(0, tk.END)
+                                        event.widget.insert(0, self.last_valid_values[field_name])
+                                        event.widget.focus_set()
+                                        event.widget.selection_range(0, tk.END)
+                                        return
+                            
                             # Update last valid value if validation passes
                             self.last_valid_values[field_name] = val
                             self._on_settings_variable_change()
@@ -2028,13 +2053,33 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
                 if widget["name"] == "crib_time" and widget["entry"] is not None:
                     widget["entry"].delete(0, tk.END)
                     widget["entry"].insert(0, crib_time_val)
-        # Also populate Sudden Death Game Break value in main variables from preset
-        sudden_death_val = self.button_data[idx]["values"].get("sudden_death_game_break", None)
-        if sudden_death_val is not None:
-            for widget in self.widgets:
-                if widget["name"] == "sudden_death_game_break" and widget["entry"] is not None:
-                    widget["entry"].delete(0, tk.END)
-                    widget["entry"].insert(0, sudden_death_val)
+        
+        # Validate crib_time after applying preset
+        crib_time_seconds = None
+        between_game_break_minutes = None
+        for widget in self.widgets:
+            if widget["name"] == "crib_time" and widget["entry"] is not None:
+                try:
+                    crib_time_seconds = float(widget["entry"].get().strip().replace(',', '.'))
+                except (ValueError, AttributeError):
+                    pass
+            elif widget["name"] == "between_game_break":
+                try:
+                    between_game_break_minutes = float(widget["entry"].get().strip().replace(',', '.'))
+                except (ValueError, AttributeError):
+                    pass
+        
+        # Check the validation condition
+        if crib_time_seconds is not None and between_game_break_minutes is not None:
+            if (between_game_break_minutes * 60) - crib_time_seconds <= 31:
+                # Restore the last valid crib_time value
+                for widget in self.widgets:
+                    if widget["name"] == "crib_time" and widget["entry"] is not None:
+                        widget["entry"].delete(0, tk.END)
+                        widget["entry"].insert(0, self.last_valid_values.get("crib_time", "60"))
+                messagebox.showerror("Input Error", "Crib time too large. Between Game Break minus Crib time must be > 31 seconds.")
+                return
+        
         self.load_settings()
 
     def _open_button_dialog(self, idx):

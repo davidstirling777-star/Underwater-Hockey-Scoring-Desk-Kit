@@ -34,8 +34,8 @@
     "overtime_half_period": 5,
     "overtime_half_time_break": 1,
     "sudden_death_game_break": 1,
-    "between_game_break": 5,
-    "crib_time": 1
+    "between_game_break": 2,
+    "crib_time": 60
   },
   "presetSettings": [
     {
