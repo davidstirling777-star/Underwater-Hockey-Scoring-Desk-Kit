@@ -1362,6 +1362,171 @@ class GameManagementApp:
         
         return (None, None)
     
+    def write_game_results_to_csv(self, game_number, white_score, black_score, penalties_list):
+        """
+        Write game results to CSV file.
+        Updates existing row if game number exists, otherwise appends new row.
+        Expected header: date,#,White,Score,Black,Score,Referees,Penalties,Comments
+        
+        Args:
+            game_number: The game number to write results for
+            white_score: White team's score
+            black_score: Black team's score  
+            penalties_list: List of penalty dicts with 'team', 'cap', 'duration' keys
+        """
+        csv_file = self.csv_var.get() if hasattr(self, 'csv_var') else None
+        if not csv_file or csv_file == "No CSV files found":
+            print("No CSV file selected, skipping game results write")
+            return
+            
+        try:
+            import csv
+            csv_path = os.path.join(os.getcwd(), csv_file)
+            
+            # Format penalties as comma-separated W-#cap-duration, B-#cap-duration
+            penalty_strings = []
+            for penalty in penalties_list:
+                team_prefix = "W" if penalty["team"] == "White" else "B"
+                cap = penalty["cap"]
+                duration = penalty["duration"]
+                # Convert duration to short form: "2 minutes" -> "2", "Rest of Game" -> "Rest"
+                if "Rest" in duration:
+                    duration_str = "Rest"
+                else:
+                    # Extract just the number from duration like "2 minutes"
+                    duration_str = duration.split()[0] if duration.split() else duration
+                penalty_strings.append(f"{team_prefix}-#{cap}-{duration_str}")
+            penalties_formatted = ",".join(penalty_strings)
+            
+            # Read existing CSV
+            rows = []
+            header_row = None
+            if os.path.exists(csv_path):
+                with open(csv_path, 'r', encoding='utf-8', newline='') as f:
+                    reader = csv.reader(f)
+                    for row in reader:
+                        if header_row is None:
+                            header_row = row
+                        else:
+                            rows.append(row)
+            
+            # If no header exists, create one
+            if header_row is None:
+                header_row = ['date', '#', 'White', 'Score', 'Black', 'Score', 'Referees', 'Penalties', 'Comments']
+            
+            # Normalize header to lowercase for matching
+            header_lower = [col.strip().lower() for col in header_row]
+            
+            # Find column indices (case-insensitive)
+            game_num_idx = -1
+            white_idx = -1
+            white_score_idx = -1
+            black_idx = -1
+            black_score_idx = -1
+            penalties_idx = -1
+            comments_idx = -1
+            
+            for i, col in enumerate(header_lower):
+                if col in ['#', 'game', 'game#', 'game_number']:
+                    game_num_idx = i
+                elif col == 'white':
+                    white_idx = i
+                elif col == 'black':
+                    black_idx = i
+                elif col in ['penalties', 'penalty']:
+                    penalties_idx = i
+                elif col in ['comments', 'comment']:
+                    comments_idx = i
+            
+            # Find score columns (they come after team name columns)
+            if white_idx != -1 and white_idx + 1 < len(header_lower) and header_lower[white_idx + 1] == 'score':
+                white_score_idx = white_idx + 1
+            if black_idx != -1 and black_idx + 1 < len(header_lower) and header_lower[black_idx + 1] == 'score':
+                black_score_idx = black_idx + 1
+            
+            # If penalties column doesn't exist, add it
+            if penalties_idx == -1:
+                header_row.append('Penalties')
+                penalties_idx = len(header_row) - 1
+                if comments_idx == -1:
+                    header_row.append('Comments')
+                    comments_idx = len(header_row) - 1
+            
+            # Find if game number already exists
+            game_row_index = -1
+            for i, row in enumerate(rows):
+                if len(row) > game_num_idx:
+                    try:
+                        if str(int(row[game_num_idx])) == str(game_number):
+                            game_row_index = i
+                            break
+                    except (ValueError, IndexError):
+                        continue
+            
+            if game_row_index != -1:
+                # Update existing row
+                row = rows[game_row_index]
+                
+                # Ensure we have enough columns
+                while len(row) < len(header_row):
+                    row.append("")
+                
+                # Update scores
+                if white_score_idx != -1:
+                    row[white_score_idx] = str(white_score)
+                if black_score_idx != -1:
+                    row[black_score_idx] = str(black_score)
+                    
+                # Update penalties
+                if penalties_idx != -1:
+                    row[penalties_idx] = penalties_formatted
+                
+                rows[game_row_index] = row
+            else:
+                # Append new row
+                # Get team names from CSV if available
+                white_team, black_team = self.parse_csv_team_names(csv_file, game_number)
+                if not white_team:
+                    white_team = "Team A"
+                if not black_team:
+                    black_team = "Team B"
+                
+                # Create new row with current date
+                current_date = datetime.datetime.now().strftime("%Y-%m-%d")
+                new_row = [''] * len(header_row)
+                
+                # Fill in the values we know
+                if game_num_idx != -1:
+                    new_row[game_num_idx] = str(game_number)
+                if white_idx != -1:
+                    new_row[white_idx] = white_team
+                if white_score_idx != -1:
+                    new_row[white_score_idx] = str(white_score)
+                if black_idx != -1:
+                    new_row[black_idx] = black_team
+                if black_score_idx != -1:
+                    new_row[black_score_idx] = str(black_score)
+                if penalties_idx != -1:
+                    new_row[penalties_idx] = penalties_formatted
+                    
+                # Set date in first column
+                new_row[0] = current_date
+                
+                rows.append(new_row)
+            
+            # Write back to CSV
+            with open(csv_path, 'w', encoding='utf-8', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow(header_row)
+                writer.writerows(rows)
+            
+            print(f"Game results written to {csv_file}: Game #{game_number}, W:{white_score} B:{black_score}, Penalties:{penalties_formatted}")
+            
+        except Exception as e:
+            print(f"Error writing game results to CSV: {e}")
+            import traceback
+            traceback.print_exc()
+    
     def on_csv_file_changed(self, event=None):
         """Handle CSV file selection change - update game numbers dropdown."""
         csv_file = self.csv_var.get()
@@ -2777,6 +2942,15 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
                 if self.timer_seconds == 30:
                     # Only swap team names and reset game state after the first Between Game Break
                     if not self.first_between_game_break_run:
+                        # Write game results to CSV BEFORE resetting scores
+                        current_game = self.get_current_game_number()
+                        white_score = self.white_score_var.get()
+                        black_score = self.black_score_var.get()
+                        # Copy stored_penalties before clearing
+                        penalties_to_write = list(self.stored_penalties)
+                        self.write_game_results_to_csv(current_game, white_score, black_score, penalties_to_write)
+                        
+                        # Now reset game state
                         self.white_score_var.set(0)
                         self.black_score_var.set(0)
                         self.stored_penalties.clear()
