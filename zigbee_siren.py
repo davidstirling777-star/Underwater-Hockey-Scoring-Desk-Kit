@@ -145,9 +145,10 @@ class ZigbeeSirenController:
     def load_config(self) -> Dict[str, Any]:
         """Load configuration from unified settings file with migration support."""
         # First try to load from unified settings file
-        if os.path.exists(SETTINGS_FILE):
+        settings_path = os.path.join(os.getcwd(), SETTINGS_FILE)
+        if os.path.exists(settings_path):
             try:
-                with open(SETTINGS_FILE, 'r') as f:
+                with open(settings_path, 'r') as f:
                     unified_settings = json.load(f)
                     config = unified_settings.get("zigbeeSettings", {})
                     if config:
@@ -161,9 +162,10 @@ class ZigbeeSirenController:
                 self.logger.error(f"Error loading unified config: {e}. Trying legacy file.")
         
         # Fallback to legacy zigbee_config.json for migration
-        if os.path.exists(ZIGBEE_CONFIG_FILE):
+        legacy_config_path = os.path.join(os.getcwd(), ZIGBEE_CONFIG_FILE)
+        if os.path.exists(legacy_config_path):
             try:
-                with open(ZIGBEE_CONFIG_FILE, 'r') as f:
+                with open(legacy_config_path, 'r') as f:
                     config = json.load(f)
                 # Migrate device configuration BEFORE merging with defaults
                 config = self._migrate_device_config(config)
@@ -189,9 +191,10 @@ class ZigbeeSirenController:
         try:
             # Load current unified settings
             unified_settings = {}
-            if os.path.exists(SETTINGS_FILE):
+            settings_path = os.path.join(os.getcwd(), SETTINGS_FILE)
+            if os.path.exists(settings_path):
                 try:
-                    with open(SETTINGS_FILE, 'r') as f:
+                    with open(settings_path, 'r') as f:
                         unified_settings = json.load(f)
                 except Exception:
                     pass
@@ -229,7 +232,7 @@ class ZigbeeSirenController:
             unified_settings["zigbeeSettings"] = config
             
             # Save unified settings
-            with open(SETTINGS_FILE, 'w') as f:
+            with open(settings_path, 'w') as f:
                 json.dump(unified_settings, f, indent=2)
             self.config = config
         except Exception as e:
@@ -611,9 +614,10 @@ class WindowsZigbeeSirenController:
     def load_config(self) -> Dict[str, Any]:
         """Load configuration from unified settings file."""
         # Reuse the same config loading logic as Linux version
-        if os.path.exists(SETTINGS_FILE):
+        settings_path = os.path.join(os.getcwd(), SETTINGS_FILE)
+        if os.path.exists(settings_path):
             try:
-                with open(SETTINGS_FILE, 'r') as f:
+                with open(settings_path, 'r') as f:
                     unified_settings = json.load(f)
                     config = unified_settings.get("zigbeeSettings", {})
                     if config:
@@ -629,9 +633,10 @@ class WindowsZigbeeSirenController:
         """Save configuration to unified settings file."""
         try:
             unified_settings = {}
-            if os.path.exists(SETTINGS_FILE):
+            settings_path = os.path.join(os.getcwd(), SETTINGS_FILE)
+            if os.path.exists(settings_path):
                 try:
-                    with open(SETTINGS_FILE, 'r') as f:
+                    with open(settings_path, 'r') as f:
                         unified_settings = json.load(f)
                 except Exception:
                     pass
@@ -641,7 +646,7 @@ class WindowsZigbeeSirenController:
             
             unified_settings["zigbeeSettings"] = config
             
-            with open(SETTINGS_FILE, 'w') as f:
+            with open(settings_path, 'w') as f:
                 json.dump(unified_settings, f, indent=2)
             self.config = config
         except Exception as e:

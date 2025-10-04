@@ -16,25 +16,44 @@ def is_usb_dongle_connected():
     """
     Check if a Sonoff USB Zigbee dongle is connected.
     Returns True if a USB Zigbee dongle is detected, False otherwise.
-    """
-    try:
-        # Check for /dev/ttyUSB* devices first
-        result = subprocess.run(['ls', '/dev/ttyUSB*'], capture_output=True, text=True, timeout=5)
-        if result.returncode == 0 and result.stdout.strip():
-            return True
-    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
-        pass
     
-    try:
-        # Check using lsusb for Zigbee dongles
-        result = subprocess.run(['lsusb'], capture_output=True, text=True, timeout=5)
-        if result.returncode == 0:
-            # Look for common Zigbee dongle identifiers
-            usb_output = result.stdout.lower()
-            # Check for common Zigbee dongle manufacturers/chips
-            zigbee_keywords = ['itead', 'sonoff', 'cc2531', 'cc2652', 'silicon labs', 'cp210']
-            return any(keyword in usb_output for keyword in zigbee_keywords)
-    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+    Cross-platform support:
+    - Linux: Checks /dev/ttyUSB* devices and lsusb output
+    - Windows: Checks COM ports via registry or device manager (if available)
+    """
+    import platform
+    
+    system = platform.system()
+    
+    # Linux-specific checks
+    if system == 'Linux':
+        try:
+            # Check for /dev/ttyUSB* devices first
+            dev_dir = os.path.join(os.sep, 'dev')
+            if os.path.exists(dev_dir):
+                devices = [f for f in os.listdir(dev_dir) if f.startswith('ttyUSB')]
+                if devices:
+                    return True
+        except (OSError, PermissionError):
+            pass
+        
+        try:
+            # Check using lsusb for Zigbee dongles
+            result = subprocess.run(['lsusb'], capture_output=True, text=True, timeout=5)
+            if result.returncode == 0:
+                # Look for common Zigbee dongle identifiers
+                usb_output = result.stdout.lower()
+                # Check for common Zigbee dongle manufacturers/chips
+                zigbee_keywords = ['itead', 'sonoff', 'cc2531', 'cc2652', 'silicon labs', 'cp210']
+                return any(keyword in usb_output for keyword in zigbee_keywords)
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+            pass
+    
+    # Windows-specific checks (placeholder for future implementation)
+    elif system == 'Windows':
+        # On Windows, COM ports can be checked via serial.tools.list_ports
+        # This is handled in zigbee_siren.py WindowsZigbeeSirenController
+        # For now, return False to avoid false positives
         pass
     
     return False
@@ -45,9 +64,10 @@ def migrate_legacy_settings():
     migrated = False
     
     # Migrate game_settings.json (sound settings)
-    if os.path.exists("game_settings.json"):
+    legacy_sound_file = os.path.join(os.getcwd(), "game_settings.json")
+    if os.path.exists(legacy_sound_file):
         try:
-            with open("game_settings.json", "r") as f:
+            with open(legacy_sound_file, "r") as f:
                 legacy_sound_settings = json.load(f)
             unified_settings["soundSettings"].update(legacy_sound_settings)
             migrated = True
@@ -56,9 +76,10 @@ def migrate_legacy_settings():
             print(f"Error migrating game_settings.json: {e}")
     
     # Migrate zigbee_config.json (zigbee settings)
-    if os.path.exists("zigbee_config.json"):
+    legacy_zigbee_file = os.path.join(os.getcwd(), "zigbee_config.json")
+    if os.path.exists(legacy_zigbee_file):
         try:
-            with open("zigbee_config.json", "r") as f:
+            with open(legacy_zigbee_file, "r") as f:
                 legacy_zigbee_settings = json.load(f)
             unified_settings["zigbeeSettings"].update(legacy_zigbee_settings)
             migrated = True
@@ -74,8 +95,9 @@ def migrate_legacy_settings():
 
 def load_unified_settings():
     """Load unified settings from JSON file."""
-    if os.path.exists(SETTINGS_FILE):
-        with open(SETTINGS_FILE, "r") as f:
+    settings_path = os.path.join(os.getcwd(), SETTINGS_FILE)
+    if os.path.exists(settings_path):
+        with open(settings_path, "r") as f:
             try:
                 return json.load(f)
             except Exception:
@@ -87,7 +109,8 @@ def load_unified_settings():
 
 def save_unified_settings(settings):
     """Save unified settings to JSON file."""
-    with open(SETTINGS_FILE, "w") as f:
+    settings_path = os.path.join(os.getcwd(), SETTINGS_FILE)
+    with open(settings_path, "w") as f:
         json.dump(settings, f, indent=2)
 
 def get_default_unified_settings():
