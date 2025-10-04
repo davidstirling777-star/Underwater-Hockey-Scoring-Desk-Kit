@@ -3295,23 +3295,23 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
             for widget in matrix_frame.winfo_children():
                 if hasattr(widget, 'cap_value') and widget.cap_value == cap:
                     widget.config(relief=tk.SUNKEN, bg="lightblue")
-                elif isinstance(widget, tk.Button):
-                    widget.config(relief=tk.RAISED, bg="SystemButtonFace")
+                elif isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
+                    widget.config(relief=tk.RAISED, bg=widget.original_bg)
             for widget in bottom_frame.winfo_children():
-                if isinstance(widget, tk.Button):
-                    widget.config(relief=tk.RAISED, bg="SystemButtonFace")
+                if isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
+                    widget.config(relief=tk.RAISED, bg=widget.original_bg)
         
         def select_unknown():
             selected_cap["value"] = "Unknown"
             # Highlight Unknown button
             for widget in matrix_frame.winfo_children():
-                if isinstance(widget, tk.Button):
-                    widget.config(relief=tk.RAISED, bg="SystemButtonFace")
+                if isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
+                    widget.config(relief=tk.RAISED, bg=widget.original_bg)
             for widget in bottom_frame.winfo_children():
                 if hasattr(widget, 'is_unknown'):
                     widget.config(relief=tk.SUNKEN, bg="lightblue")
-                elif isinstance(widget, tk.Button) and widget.cget("text") == "OK":
-                    widget.config(relief=tk.RAISED, bg="SystemButtonFace")
+                elif isinstance(widget, tk.Button) and widget.cget("text") == "OK" and hasattr(widget, 'original_bg'):
+                    widget.config(relief=tk.RAISED, bg=widget.original_bg)
         
         def on_ok():
             if selected_cap["value"] is not None:
@@ -3328,6 +3328,7 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
                 btn = tk.Button(matrix_frame, text=str(cap_num), width=button_width, height=button_height,
                                command=lambda c=cap_num: select_cap(c))
                 btn.cap_value = cap_num
+                btn.original_bg = btn.cget('bg')  # Store original background color
                 btn.grid(row=row, column=col, padx=2, pady=2)
         
         # Bottom frame for Unknown and OK buttons
@@ -3338,11 +3339,13 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
         unknown_btn = tk.Button(bottom_frame, text="Unknown", width=button_width * 4 + 6, height=button_height,
                                command=select_unknown)
         unknown_btn.is_unknown = True
+        unknown_btn.original_bg = unknown_btn.cget('bg')  # Store original background color
         unknown_btn.grid(row=0, column=0, columnspan=4, padx=2, pady=2)
         
         # OK button (in column 5)
         ok_btn = tk.Button(bottom_frame, text="OK", width=button_width, height=button_height,
                           command=on_ok)
+        ok_btn.original_bg = ok_btn.cget('bg')  # Store original background color
         ok_btn.grid(row=0, column=4, padx=2, pady=2)
         
         # Wait for the dialog to close
