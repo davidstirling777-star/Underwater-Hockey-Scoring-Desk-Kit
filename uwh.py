@@ -1132,7 +1132,7 @@ class GameManagementApp:
         # MODIFIED: Removed lines starting with "Between ...", "Audio...", and "Presets ..."
         explanation_text = (
             "Game Sequence Flow:\n"
-            "1. Between Game Break Starts In (duration set by time or default)\n"
+            "1. 'Between Game Break' In (duration set by time or default)\n"
             "2. Between Game Break\n"
             "3. First Half → Half Time → Second Half\n"
             "4. If scores tied: Overtime periods (if enabled)\n"
