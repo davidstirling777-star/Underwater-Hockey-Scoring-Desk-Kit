@@ -1005,18 +1005,21 @@ class GameManagementApp:
                     font=(default_font.cget("family"), default_font.cget("size") - 1),
                     anchor="w", justify="left", wraplength=600
                 )
-                combined_explanation.grid(row=row_idx, column=0, columnspan=4, pady=(2,8), sticky="nsew")
+                combined_explanation.grid(row=row_idx, column=0, columnspan=4, pady=(2,2), sticky="nsew")
+                row_idx += 1
+                # Add reset warning as third bullet point (red and bold)
+                reset_warning_bullet = tk.Label(
+                    widget1,
+                    text="• If you change anything in here, push the reset button!",
+                    font=(default_font.cget("family"), default_font.cget("size") - 1, "bold"),
+                    fg="red",
+                    anchor="w", justify="left", wraplength=600
+                )
+                reset_warning_bullet.grid(row=row_idx, column=0, columnspan=4, pady=(0,8), sticky="nsew")
                 row_idx += 1            
-        # --- PATCH: Add warning label above Reset Timer button ---
-        self.reset_warning_label = tk.Label(
-            widget1,
-            text="If you change anything in here, push the reset button!",
-            font=(default_font.cget("family"), new_size, "bold"),
-            fg="red"
-        )
-        self.reset_warning_label.grid(row=15, column=0, columnspan=4, pady=(8,0))
+        # Reset Timer button
         self.reset_timer_button = ttk.Button(widget1, text="Reset Timer", command=self.reset_timer)
-        self.reset_timer_button.grid(row=16, column=0, columnspan=4, pady=8)
+        self.reset_timer_button.grid(row=15, column=0, columnspan=4, pady=8)
 
         # Widget 2 ("Presets") - Top right, reduced size
         widget2 = ttk.Frame(tab, borderwidth=1, relief="solid")
