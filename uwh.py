@@ -404,6 +404,58 @@ class GameManagementApp:
         self.sync_penalty_display_to_external()
         self.reset_timer()  # <-- moved here, after display window creation
 
+    def log_game_event(self, event_type, team=None, cap_number=None, duration=None):
+        """
+        Log a game event to UWH_Game_Data.csv.
+        Creates the file with headers if it doesn't exist, otherwise appends.
+        
+        Args:
+            event_type: Type of event (e.g., "First Half Start", "Goal", "Penalty Start")
+            team: Team name for goals and penalties (White/Black)
+            cap_number: Cap number for penalties
+            duration: Duration for penalties (e.g., "2 minutes")
+        """
+        import csv
+        
+        # Get current date/time
+        now = datetime.datetime.now()
+        local_time = now.strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Get court time (hh:mm:ss format)
+        if self.court_time_seconds is not None:
+            hours, remainder = divmod(self.court_time_seconds, 3600)
+            minutes, seconds = divmod(remainder, 60)
+            court_time = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+        else:
+            court_time = "00:00:00"
+        
+        # Build the row data
+        row = {
+            "local_datetime": local_time,
+            "court_time": court_time,
+            "event_type": event_type,
+            "team": team if team else "",
+            "cap_number": cap_number if cap_number else "",
+            "duration": duration if duration else ""
+        }
+        
+        csv_file = os.path.join(os.getcwd(), "UWH_Game_Data.csv")
+        file_exists = os.path.exists(csv_file)
+        
+        try:
+            # Open in append mode, create if doesn't exist
+            with open(csv_file, 'a', newline='') as f:
+                fieldnames = ["local_datetime", "court_time", "event_type", "team", "cap_number", "duration"]
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                
+                # Write header only if file is new
+                if not file_exists:
+                    writer.writeheader()
+                
+                writer.writerow(row)
+        except Exception as e:
+            print(f"Error logging game event: {e}")
+
     def create_scoreboard_tab(self):
         tab = ttk.Frame(self.notebook)
         self.notebook.add(tab, text="Scoreboard")
@@ -2774,6 +2826,8 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
             self.sudden_death_seconds = -1
             self.update_timer_display()
             self.start_sudden_death_timer()
+            # Log Sudden Death start
+            self.log_game_event("Sudden Death Start")
         else:
             self.timer_seconds = cur_period['duration'] if cur_period['duration'] is not None else 0
             self.update_timer_display()
@@ -2782,6 +2836,16 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
                 self.master.after_cancel(self.timer_job)
                 self.timer_job = None
             self.timer_job = self.master.after(1000, self.countdown_timer)
+            
+            # Log period start events for halves and overtime halves
+            if cur_period['name'] == 'First Half':
+                self.log_game_event("First Half Start")
+            elif cur_period['name'] == 'Second Half':
+                self.log_game_event("Second Half Start")
+            elif cur_period['name'] == 'Overtime First Half':
+                self.log_game_event("Overtime First Half Start")
+            elif cur_period['name'] == 'Overtime Second Half':
+                self.log_game_event("Overtime Second Half Start")
 
     def next_period(self):
         if self.timer_job:
@@ -2793,6 +2857,19 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
             return
         cur_period = self.full_sequence[self.current_index]
         period_name = cur_period['name']
+        
+        # Log period end events before transitioning
+        if period_name == 'First Half':
+            self.log_game_event("First Half End")
+        elif period_name == 'Second Half':
+            self.log_game_event("Second Half End")
+        elif period_name == 'Overtime First Half':
+            self.log_game_event("Overtime First Half End")
+        elif period_name == 'Overtime Second Half':
+            self.log_game_event("Overtime Second Half End")
+        elif period_name == 'Sudden Death':
+            self.log_game_event("Sudden Death End")
+        
         if period_name == 'Second Half':
             if self.white_score_var.get() != self.black_score_var.get():
                 self.current_index = self.find_period_index('Between Game Break')
@@ -3110,6 +3187,10 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
         }
         self.active_penalties.append(penalty)
         self.stored_penalties.append({"team": team, "cap": cap, "duration": duration})
+        
+        # Log the penalty start
+        self.log_game_event("Penalty Start", team=team, cap_number=str(cap), duration=duration)
+        
         self.update_penalty_display()
         if not penalty["is_rest_of_match"]:
             self.schedule_penalty_countdown(penalty)
@@ -3448,6 +3529,9 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
             ):
                 return
         score_var.set(score_var.get() + 1)
+        
+        # Log the goal
+        self.log_game_event("Goal", team=team_name)
 
 #Saves the current Sudden Death timer value (self.sudden_death_seconds) for possible restoration (for example, if the goal is later subtracted).
 #Flags that a goal has been scored in Sudden Death (prevents this block from running again).
