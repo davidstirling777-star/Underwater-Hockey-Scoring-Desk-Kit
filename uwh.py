@@ -856,7 +856,7 @@ class GameManagementApp:
         for i in range(17):
             widget1.grid_rowconfigure(i, weight=1)
         for i, h in enumerate(headers):
-            tk.Label(widget1, text=h, font=(default_font.cget("family"), new_size, "bold")).grid(row=0, column=i, sticky="w", padx=5, pady=5)
+            tk.Label(widget1, text=h, font=(default_font.cget("family"), new_size, "bold")).grid(row=0, column=i, sticky="w", padx=5, pady=4)
         row_idx = 1
         self.widgets = []
         # Ensure "time_to_start_first_game" is first, then "start_first_game_in" above team_timeouts_allowed
@@ -882,7 +882,7 @@ class GameManagementApp:
                 cb.grid(row=row_idx, column=0, sticky="", pady=5, padx=(10, 0))
                 label_text = var_info.get("label", "Team Time-Outs allowed?")
                 label_widget = tk.Label(widget1, text=label_text, font=(default_font.cget("family"), new_size, "bold"))
-                label_widget.grid(row=row_idx, column=1, sticky="w", pady=5)
+                label_widget.grid(row=row_idx, column=1, sticky="w", pady=4)
                 check_var.trace_add("write", lambda *args: self.update_team_timeouts_allowed())
                 self.widgets.append({"name": var_name, "entry": None, "checkbox": check_var, "label_widget": label_widget})
                 row_idx += 1
@@ -893,7 +893,7 @@ class GameManagementApp:
                 cb.grid(row=row_idx, column=0, sticky="", pady=5, padx=(10, 0))
                 label_text = var_info.get("label", "Overtime allowed?")
                 label_widget = tk.Label(widget1, text=label_text, font=(default_font.cget("family"), new_size, "bold"))
-                label_widget.grid(row=row_idx, column=1, sticky="w", pady=5)
+                label_widget.grid(row=row_idx, column=1, sticky="w", pady=4)
                 check_var.trace_add("write", lambda *args: self.update_overtime_variables_state())
                 self.widgets.append({"name": var_name, "entry": None, "checkbox": check_var, "label_widget": label_widget})
                 row_idx += 1
@@ -904,7 +904,7 @@ class GameManagementApp:
                 cb.grid(row=row_idx, column=0, sticky="", pady=5, padx=(10, 0))
                 label_text = var_info.get("label", "Record Scorers Cap Number")
                 label_widget = tk.Label(widget1, text=label_text, font=(default_font.cget("family"), new_size, "bold"))
-                label_widget.grid(row=row_idx, column=1, sticky="w", pady=5)
+                label_widget.grid(row=row_idx, column=1, sticky="w", pady=4)
                 check_var.trace_add("write", lambda *args: self._on_settings_variable_change())
                 self.widgets.append({"name": var_name, "entry": None, "checkbox": check_var, "label_widget": label_widget})
                 row_idx += 1
@@ -916,7 +916,7 @@ class GameManagementApp:
                 check_var.trace_add("write", lambda *args, name=var_name: self._on_settings_variable_change())
             label_text = var_info.get("label", f"{var_name.replace('_', ' ').title()}:")
             label_widget = tk.Label(widget1, text=label_text, font=(default_font.cget("family"), new_size, "bold"))
-            label_widget.grid(row=row_idx, column=1, sticky="w", pady=5)
+            label_widget.grid(row=row_idx, column=1, sticky="w", pady=4)
             # Set up value box for time_to_start_first_game and validate as hh:mm
             entry = ttk.Entry(widget1, width=10)
             if var_name == "time_to_start_first_game":
@@ -989,8 +989,8 @@ class GameManagementApp:
                 else:
                     entry.bind("<FocusOut>", lambda e, name=var_name: self._on_settings_variable_change())
                     entry.bind("<Return>", lambda e, name=var_name: self._on_settings_variable_change())
-            entry.grid(row=row_idx, column=2, sticky="w", padx=5, pady=5)
-            tk.Label(widget1, text=var_info["unit"], font=(default_font.cget("family"), new_size, "bold")).grid(row=row_idx, column=3, sticky="w", padx=5, pady=5)
+            entry.grid(row=row_idx, column=2, sticky="w", padx=5, pady=4)
+            tk.Label(widget1, text=var_info["unit"], font=(default_font.cget("family"), new_size, "bold")).grid(row=row_idx, column=3, sticky="w", padx=5, pady=4)
             self.widgets.append({"name": var_name, "entry": entry, "checkbox": check_var, "label_widget": label_widget})
             self.last_valid_values[var_name] = entry.get()
             if var_name == "team_timeout_period":
