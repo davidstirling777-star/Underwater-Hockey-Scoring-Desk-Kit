@@ -383,6 +383,9 @@ class GameManagementApp:
         self.create_sounds_tab()
         self.create_zigbee_siren_tab()
         
+        # Select Game Variables tab by default
+        self.notebook.select(1)
+        
         # Initialize USB dongle status after creating the Zigbee tab
         self.update_usb_dongle_status()
         
