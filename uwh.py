@@ -150,6 +150,7 @@ def get_default_unified_settings():
             "overtime_half_time_break": 1,
             "sudden_death_game_break": 1,
             "between_game_break": 1,
+            "record_scorers_cap_number": False,
             "crib_time": 3
         },
         "presetSettings": [
@@ -244,6 +245,7 @@ class GameManagementApp:
             "overtime_half_time_break": {"default": 1, "checkbox": False, "unit": "minutes"},
             "sudden_death_game_break": {"default": 1, "checkbox": True, "unit": "minutes"},
             "between_game_break": {"default": 1, "checkbox": False, "unit": "minutes"},
+            "record_scorers_cap_number": {"default": False, "checkbox": True, "unit": "", "label": "Record Scorers Cap Number"},
             "crib_time": {"default": 1, "checkbox": True, "unit": "seconds"}
         }
 
@@ -251,10 +253,10 @@ class GameManagementApp:
         for var_name, var_info in self.variables.items():
             if var_info["checkbox"]:
                 # Variables with checkboxes: separate 'value' and 'used' fields
-                if var_name in ["team_timeouts_allowed", "overtime_allowed"]:
+                if var_name in ["team_timeouts_allowed", "overtime_allowed", "record_scorers_cap_number"]:
                     # Pure boolean variables (no numeric component)
-                    self.variables[var_name]["value"] = var_info["default"]  # True
-                    self.variables[var_name]["used"] = var_info["default"]   # True
+                    self.variables[var_name]["value"] = var_info["default"]  # True or False
+                    self.variables[var_name]["used"] = var_info["default"]   # True or False
                 else:
                     # Mixed variables (checkbox + entry): numeric value, boolean used
                     self.variables[var_name]["value"] = str(var_info["default"])  # "1" 
@@ -321,6 +323,7 @@ class GameManagementApp:
         self.last_valid_values = {}
         self.team_timeouts_allowed_var = tk.BooleanVar(value=self.variables["team_timeouts_allowed"]["default"])
         self.overtime_allowed_var = tk.BooleanVar(value=self.variables["overtime_allowed"]["default"])
+        self.record_scorers_cap_number_var = tk.BooleanVar(value=self.variables["record_scorers_cap_number"]["default"])
         self.referee_timeout_active = False
         self.first_between_game_break_run = True
         self.referee_timeout_elapsed = 0
@@ -858,16 +861,21 @@ class GameManagementApp:
         self.widgets = []
         # Ensure "time_to_start_first_game" is first, then "start_first_game_in" above team_timeouts_allowed
         entry_order = list(self.variables.keys())
-        for special_name in ["time_to_start_first_game", "start_first_game_in"]:
+        for special_name in ["time_to_start_first_game", "start_first_game_in", "record_scorers_cap_number"]:
             if special_name in entry_order:
                 entry_order.remove(special_name)
-        entry_order = ["time_to_start_first_game", "start_first_game_in"] + entry_order
+        # Insert record_scorers_cap_number before crib_time
+        crib_time_index = entry_order.index("crib_time") if "crib_time" in entry_order else len(entry_order)
+        entry_order = (["time_to_start_first_game", "start_first_game_in"] + 
+                       entry_order[:crib_time_index] + 
+                       ["record_scorers_cap_number"] + 
+                       entry_order[crib_time_index:])
         for var_name in entry_order:
             var_info = self.variables[var_name]
             # PATCH: Don't overwrite numeric defaults for checkbox variables that also have entries
             # Only set default to True for pure checkbox variables (no numeric component)
-            if var_info["checkbox"] and var_name in ["team_timeouts_allowed", "overtime_allowed"]:
-                var_info["default"] = True
+            if var_info["checkbox"] and var_name in ["team_timeouts_allowed", "overtime_allowed", "record_scorers_cap_number"]:
+                var_info["default"] = var_info.get("default", True)
             if var_name == "team_timeouts_allowed":
                 check_var = self.team_timeouts_allowed_var
                 cb = ttk.Checkbutton(widget1, variable=check_var, style='Large.TCheckbutton')
@@ -887,6 +895,17 @@ class GameManagementApp:
                 label_widget = tk.Label(widget1, text=label_text, font=(default_font.cget("family"), new_size, "bold"))
                 label_widget.grid(row=row_idx, column=1, sticky="w", pady=5)
                 check_var.trace_add("write", lambda *args: self.update_overtime_variables_state())
+                self.widgets.append({"name": var_name, "entry": None, "checkbox": check_var, "label_widget": label_widget})
+                row_idx += 1
+                continue
+            if var_name == "record_scorers_cap_number":
+                check_var = self.record_scorers_cap_number_var
+                cb = ttk.Checkbutton(widget1, variable=check_var, style='Large.TCheckbutton')
+                cb.grid(row=row_idx, column=0, sticky="", pady=5, padx=(10, 0))
+                label_text = var_info.get("label", "Record Scorers Cap Number")
+                label_widget = tk.Label(widget1, text=label_text, font=(default_font.cget("family"), new_size, "bold"))
+                label_widget.grid(row=row_idx, column=1, sticky="w", pady=5)
+                check_var.trace_add("write", lambda *args: self._on_settings_variable_change())
                 self.widgets.append({"name": var_name, "entry": None, "checkbox": check_var, "label_widget": label_widget})
                 row_idx += 1
                 continue
@@ -3258,6 +3277,89 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
                 self.schedule_penalty_countdown(penalty)
         self.update_penalty_display()
 
+    def show_cap_number_dialog(self):
+        """
+        Show a dialog to select a cap number (1-15) or Unknown.
+        Returns the selected cap number as a string, or None if canceled.
+        """
+        cap_number_dialog = tk.Toplevel(self.master)
+        cap_number_dialog.title("Select Cap Number")
+        cap_number_dialog.geometry("400x250")
+        cap_number_dialog.transient(self.master)
+        cap_number_dialog.grab_set()
+        
+        selected_cap = {"value": None}
+        
+        # Title label
+        title_label = tk.Label(cap_number_dialog, text="Select Scorer's Cap Number:", 
+                               font=("Arial", 12, "bold"))
+        title_label.pack(pady=10)
+        
+        # Frame for the button matrix
+        matrix_frame = tk.Frame(cap_number_dialog)
+        matrix_frame.pack(pady=10)
+        
+        def select_cap(cap):
+            selected_cap["value"] = str(cap)
+            # Highlight the selected button temporarily
+            for widget in matrix_frame.winfo_children():
+                if hasattr(widget, 'cap_value') and widget.cap_value == cap:
+                    widget.config(relief=tk.SUNKEN, bg="lightblue")
+                elif isinstance(widget, tk.Button):
+                    widget.config(relief=tk.RAISED, bg="SystemButtonFace")
+            for widget in bottom_frame.winfo_children():
+                if isinstance(widget, tk.Button):
+                    widget.config(relief=tk.RAISED, bg="SystemButtonFace")
+        
+        def select_unknown():
+            selected_cap["value"] = "Unknown"
+            # Highlight Unknown button
+            for widget in matrix_frame.winfo_children():
+                if isinstance(widget, tk.Button):
+                    widget.config(relief=tk.RAISED, bg="SystemButtonFace")
+            for widget in bottom_frame.winfo_children():
+                if hasattr(widget, 'is_unknown'):
+                    widget.config(relief=tk.SUNKEN, bg="lightblue")
+                elif isinstance(widget, tk.Button) and widget.cget("text") == "OK":
+                    widget.config(relief=tk.RAISED, bg="SystemButtonFace")
+        
+        def on_ok():
+            if selected_cap["value"] is not None:
+                cap_number_dialog.destroy()
+            else:
+                messagebox.showwarning("No Selection", "Please select a cap number or Unknown.")
+        
+        # Create 5x3 matrix of buttons (1-15)
+        button_width = 5
+        button_height = 2
+        for row in range(3):
+            for col in range(5):
+                cap_num = row * 5 + col + 1
+                btn = tk.Button(matrix_frame, text=str(cap_num), width=button_width, height=button_height,
+                               command=lambda c=cap_num: select_cap(c))
+                btn.cap_value = cap_num
+                btn.grid(row=row, column=col, padx=2, pady=2)
+        
+        # Bottom frame for Unknown and OK buttons
+        bottom_frame = tk.Frame(cap_number_dialog)
+        bottom_frame.pack(pady=10)
+        
+        # Unknown button (columnspan 4)
+        unknown_btn = tk.Button(bottom_frame, text="Unknown", width=button_width * 4 + 6, height=button_height,
+                               command=select_unknown)
+        unknown_btn.is_unknown = True
+        unknown_btn.grid(row=0, column=0, columnspan=4, padx=2, pady=2)
+        
+        # OK button (in column 5)
+        ok_btn = tk.Button(bottom_frame, text="OK", width=button_width, height=button_height,
+                          command=on_ok)
+        ok_btn.grid(row=0, column=4, padx=2, pady=2)
+        
+        # Wait for the dialog to close
+        self.master.wait_window(cap_number_dialog)
+        
+        return selected_cap["value"]
+
     def show_penalties(self):
         penalty_window = tk.Toplevel(self.master)
         penalty_window.title("Penalties")
@@ -3528,10 +3630,19 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
                 f"You are about to add a goal for {team_name} during a break or half time. Are you sure?"
             ):
                 return
+        
+        # Get cap number if recording is enabled
+        cap_number = None
+        if self.record_scorers_cap_number_var.get():
+            cap_number = self.show_cap_number_dialog()
+            if cap_number is None:
+                # User canceled the dialog, don't add the goal
+                return
+        
         score_var.set(score_var.get() + 1)
         
-        # Log the goal
-        self.log_game_event("Goal", team=team_name)
+        # Log the goal with cap number
+        self.log_game_event("Goal", team=team_name, cap_number=cap_number)
 
 #Saves the current Sudden Death timer value (self.sudden_death_seconds) for possible restoration (for example, if the goal is later subtracted).
 #Flags that a goal has been scored in Sudden Death (prevents this block from running again).
