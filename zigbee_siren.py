@@ -12,6 +12,7 @@ Key Features:
 - Proper threading and error handling
 - Configuration management and logging
 - Fallback behavior when Zigbee is unavailable
+- Cross-platform support (Linux with MQTT, Windows with alternative approaches)
 """
 
 import threading
@@ -19,6 +20,7 @@ import time
 import logging
 import json
 import os
+import platform
 from typing import Optional, Callable, Dict, Any
 
 # Try to import paho-mqtt, with graceful fallback
@@ -28,6 +30,20 @@ try:
 except ImportError:
     MQTT_AVAILABLE = False
     mqtt = None
+
+# Try to import pyserial for Windows serial communication, with graceful fallback
+try:
+    import serial
+    import serial.tools.list_ports
+    PYSERIAL_AVAILABLE = True
+except ImportError:
+    PYSERIAL_AVAILABLE = False
+    serial = None
+
+# Detect the current platform
+CURRENT_PLATFORM = platform.system()  # Returns 'Windows', 'Linux', 'Darwin', etc.
+IS_WINDOWS = CURRENT_PLATFORM == 'Windows'
+IS_LINUX = CURRENT_PLATFORM == 'Linux'
 
 # Configuration file for unified settings
 SETTINGS_FILE = "settings.json"
@@ -77,6 +93,11 @@ class ZigbeeSirenController:
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
         )
         
+        # Log platform information
+        self.logger.info(f"Zigbee controller initializing on {CURRENT_PLATFORM}")
+        if IS_WINDOWS:
+            self.logger.info("Running on Windows - ensure MQTT broker is installed and configured")
+        
         # Load configuration (may trigger migration which needs logger)
         self.config = self.load_config()
         
@@ -92,6 +113,8 @@ class ZigbeeSirenController:
         if not MQTT_AVAILABLE:
             self.logger.warning("paho-mqtt not available. Zigbee siren functionality disabled.")
             self.logger.info("Install with: pip install paho-mqtt")
+            if IS_WINDOWS:
+                self.logger.info("On Windows, also install MQTT broker (Mosquitto for Windows or EMQX)")
     
     def _migrate_device_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         """Migrate old single device config to new multiple device format."""
@@ -485,3 +508,239 @@ def get_default_config() -> Dict[str, Any]:
 def is_mqtt_available() -> bool:
     """Check if MQTT library is available."""
     return MQTT_AVAILABLE
+
+
+def is_pyserial_available() -> bool:
+    """Check if pyserial library is available."""
+    return PYSERIAL_AVAILABLE
+
+
+def get_platform_info() -> Dict[str, Any]:
+    """Get platform information for diagnostics."""
+    return {
+        "platform": CURRENT_PLATFORM,
+        "is_windows": IS_WINDOWS,
+        "is_linux": IS_LINUX,
+        "mqtt_available": MQTT_AVAILABLE,
+        "pyserial_available": PYSERIAL_AVAILABLE
+    }
+
+
+class WindowsZigbeeSirenController:
+    """
+    Windows-specific Zigbee siren controller.
+    
+    This class provides a framework for Windows Zigbee support using alternative
+    approaches to the Linux MQTT-based system. Currently provides logging and
+    graceful degradation, with structure for future expansion.
+    
+    Potential Windows Integration Approaches:
+    1. Direct serial communication with Zigbee dongle (via pyserial)
+    2. Windows-compatible MQTT broker (Mosquitto for Windows, EMQX, etc.)
+    3. Zigbee2MQTT running under WSL2 with Windows MQTT client
+    4. Alternative Zigbee libraries (python-zigpy, zigbee-herdsman-converters)
+    5. Network-based solutions (Zigbee hub with REST API or webhooks)
+    
+    Future Development Notes:
+    - Implement serial port enumeration for Zigbee dongles on Windows
+    - Add COM port detection and configuration
+    - Support Windows service integration
+    - Add Windows-specific logging to Event Viewer
+    - Support Windows firewall configuration helpers
+    """
+    
+    def __init__(self, siren_callback: Optional[Callable] = None):
+        """
+        Initialize the Windows Zigbee siren controller.
+        
+        Args:
+            siren_callback: Function to call when siren should be activated
+        """
+        self.siren_callback = siren_callback
+        self.connected = False
+        self.connection_status_callback: Optional[Callable[[bool, str], None]] = None
+        
+        # Set up logging
+        self.logger = logging.getLogger(__name__)
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        )
+        
+        # Load configuration (using same config structure as Linux version)
+        self.config = self.load_config()
+        
+        # Log platform information
+        self.logger.info(f"Windows Zigbee controller initialized on {CURRENT_PLATFORM}")
+        self.logger.warning("Windows Zigbee support is currently limited.")
+        self.logger.info("For full functionality on Windows, consider:")
+        self.logger.info("  1. Installing Mosquitto MQTT broker for Windows")
+        self.logger.info("  2. Running Zigbee2MQTT under WSL2")
+        self.logger.info("  3. Using a network-based Zigbee hub with MQTT support")
+        
+        # Check for available libraries
+        if MQTT_AVAILABLE:
+            self.logger.info("MQTT library (paho-mqtt) is available - MQTT integration possible")
+        else:
+            self.logger.warning("MQTT library not available. Install with: pip install paho-mqtt")
+        
+        if PYSERIAL_AVAILABLE:
+            self.logger.info("PySerial is available - direct serial communication possible")
+            self._detect_serial_ports()
+        else:
+            self.logger.info("PySerial not available. For serial support: pip install pyserial")
+    
+    def _detect_serial_ports(self) -> None:
+        """Detect available serial ports on Windows (for future Zigbee dongle support)."""
+        if not PYSERIAL_AVAILABLE:
+            return
+        
+        try:
+            ports = serial.tools.list_ports.comports()
+            if ports:
+                self.logger.info("Available COM ports detected:")
+                for port in ports:
+                    self.logger.info(f"  - {port.device}: {port.description}")
+                    # Future: Check for Zigbee dongle identifiers in description
+                    # Common identifiers: Silicon Labs, CP210x, CC2531, CC2652
+            else:
+                self.logger.info("No COM ports detected")
+        except Exception as e:
+            self.logger.error(f"Error detecting serial ports: {e}")
+    
+    def load_config(self) -> Dict[str, Any]:
+        """Load configuration from unified settings file."""
+        # Reuse the same config loading logic as Linux version
+        if os.path.exists(SETTINGS_FILE):
+            try:
+                with open(SETTINGS_FILE, 'r') as f:
+                    unified_settings = json.load(f)
+                    config = unified_settings.get("zigbeeSettings", {})
+                    if config:
+                        merged_config = DEFAULT_CONFIG.copy()
+                        merged_config.update(config)
+                        return merged_config
+            except Exception as e:
+                self.logger.error(f"Error loading config: {e}")
+        
+        return DEFAULT_CONFIG.copy()
+    
+    def save_config(self, config: Dict[str, Any]) -> None:
+        """Save configuration to unified settings file."""
+        try:
+            unified_settings = {}
+            if os.path.exists(SETTINGS_FILE):
+                try:
+                    with open(SETTINGS_FILE, 'r') as f:
+                        unified_settings = json.load(f)
+                except Exception:
+                    pass
+            
+            if "zigbeeSettings" not in unified_settings:
+                unified_settings["zigbeeSettings"] = {}
+            
+            unified_settings["zigbeeSettings"] = config
+            
+            with open(SETTINGS_FILE, 'w') as f:
+                json.dump(unified_settings, f, indent=2)
+            self.config = config
+        except Exception as e:
+            self.logger.error(f"Error saving config: {e}")
+    
+    def set_siren_callback(self, callback: Callable) -> None:
+        """Set the callback function for siren activation."""
+        self.siren_callback = callback
+    
+    def set_connection_status_callback(self, callback: Callable[[bool, str], None]) -> None:
+        """Set callback for connection status updates."""
+        self.connection_status_callback = callback
+    
+    def start(self) -> bool:
+        """
+        Start the Windows Zigbee controller.
+        
+        Currently returns False with informative logging.
+        Future implementations can add actual Windows Zigbee integration here.
+        
+        Returns:
+            bool: True if started successfully, False otherwise
+        """
+        self.logger.warning("Windows Zigbee controller start requested")
+        self.logger.info("Native Windows Zigbee support not yet implemented")
+        self.logger.info("Workaround: Use MQTT broker on Windows with Zigbee2MQTT")
+        
+        # If MQTT is available, suggest using the standard controller
+        if MQTT_AVAILABLE:
+            self.logger.info("MQTT library is available - consider using standard MQTT integration")
+        
+        self._notify_status(False, "Windows Zigbee not supported (use MQTT)")
+        return False
+    
+    def stop(self) -> None:
+        """Stop the Windows Zigbee controller."""
+        self.connected = False
+        self._notify_status(False, "Stopped")
+        self.logger.info("Windows Zigbee controller stopped")
+    
+    def _notify_status(self, connected: bool, message: str) -> None:
+        """Notify connection status change."""
+        if self.connection_status_callback:
+            try:
+                self.connection_status_callback(connected, message)
+            except Exception as e:
+                self.logger.error(f"Error calling status callback: {e}")
+    
+    def get_status(self) -> Dict[str, Any]:
+        """Get current status information."""
+        return {
+            "connected": self.connected,
+            "platform": CURRENT_PLATFORM,
+            "mqtt_available": MQTT_AVAILABLE,
+            "pyserial_available": PYSERIAL_AVAILABLE,
+            "broker": "N/A (Windows)",
+            "topic": "N/A (Windows)",
+            "devices": [],
+            "device": ""
+        }
+    
+    def test_connection(self) -> bool:
+        """Test connection (currently not implemented for Windows)."""
+        self.logger.warning("Connection test not implemented for Windows native mode")
+        self.logger.info("To use Zigbee on Windows, install MQTT broker and use standard controller")
+        return False
+
+
+def create_controller(siren_callback: Optional[Callable] = None):
+    """
+    Factory function to create the appropriate controller for the current platform.
+    
+    On Linux: Returns standard ZigbeeSirenController with MQTT support
+    On Windows: Returns WindowsZigbeeSirenController (currently limited functionality)
+                or ZigbeeSirenController if MQTT is available
+    
+    Args:
+        siren_callback: Function to call when siren should be activated
+    
+    Returns:
+        Appropriate controller instance for the platform
+    """
+    logger = logging.getLogger(__name__)
+    
+    # On Windows, check if MQTT is available
+    if IS_WINDOWS:
+        logger.info(f"Running on Windows ({CURRENT_PLATFORM})")
+        
+        if MQTT_AVAILABLE:
+            logger.info("MQTT available on Windows - using standard MQTT controller")
+            logger.info("Ensure MQTT broker (Mosquitto/EMQX) is installed and running on Windows")
+            # Use standard controller if MQTT is available
+            return ZigbeeSirenController(siren_callback)
+        else:
+            logger.warning("MQTT not available on Windows - using limited Windows controller")
+            logger.info("Install MQTT support: pip install paho-mqtt")
+            # Use Windows-specific controller with limited functionality
+            return WindowsZigbeeSirenController(siren_callback)
+    
+    # On Linux or other platforms, use standard MQTT controller
+    logger.info(f"Running on {CURRENT_PLATFORM} - using standard MQTT controller")
+    return ZigbeeSirenController(siren_callback)
