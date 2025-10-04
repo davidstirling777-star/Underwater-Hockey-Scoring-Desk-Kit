@@ -67,3 +67,119 @@ Sudden Death Game Break
 Scores After Goal	is added: What Happens
 Even	Remain in Sudden Death Game Break. Proceed to Sudden Death period as scheduled.
 Uneven	Progress directly to Between Game Break. (Skips Sudden Death period.)
+
+## Installation and Running
+
+### Running from Python Source
+
+#### Prerequisites
+- Python 3.12 or higher
+- tkinter (usually comes with Python, or install via `sudo apt-get install python3-tk` on Linux)
+
+#### Installing Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+The requirements.txt includes:
+- `paho-mqtt` - MQTT client for Zigbee2MQTT wireless siren integration
+- `playsound` - Cross-platform audio playback (Windows)
+- `pyserial` - Serial communication for Zigbee dongles
+
+Note: These dependencies are optional. The application will run without them, but some features (wireless siren control, Windows audio) may be limited.
+
+#### Running the Application
+```bash
+python3 uwh.py
+```
+
+### Building Standalone Executables
+
+The application can be packaged as a standalone executable using PyInstaller. This creates a single file that can be run without installing Python or any dependencies.
+
+#### Windows Build
+
+1. Install PyInstaller (if not already installed):
+   ```cmd
+   pip install pyinstaller
+   ```
+
+2. Run the build script:
+   ```cmd
+   build_exe.bat
+   ```
+
+3. The executable will be created in the `dist` folder as `uwh.exe`
+
+4. To run the executable:
+   ```cmd
+   dist\uwh.exe
+   ```
+
+#### Linux Build
+
+1. Install PyInstaller (if not already installed):
+   ```bash
+   pip3 install pyinstaller
+   ```
+
+2. Make the build script executable (one-time setup):
+   ```bash
+   chmod +x build_exe.sh
+   ```
+
+3. Run the build script:
+   ```bash
+   ./build_exe.sh
+   ```
+
+4. The executable will be created in the `dist` folder as `uwh`
+
+5. To run the executable:
+   ```bash
+   ./dist/uwh
+   ```
+
+#### Build Process Details
+
+The build scripts use PyInstaller with the following configuration:
+- **--onefile**: Packages everything into a single executable file
+- **--windowed**: Runs without a console window (GUI mode)
+- **--add-data**: Includes all necessary data files:
+  - Sound files: `beep-cut.mp3`, `car-honk-cut.mp3`, `charging-machine-cut.mp3`, `countdown-beep-cut.mp3`, `notification-beep-cut.mp3`, `police-siren-cut.mp3`, `short-beep-tone-cut.mp3`
+  - Configuration: `settings.json`
+  - Tournament data: `tournament Draw.csv`
+  
+The included Python modules are:
+- `uwh.py` - Main application
+- `sound.py` - Audio playback module
+- `zigbee_siren.py` - Wireless siren control module
+
+#### Advanced Configuration
+
+For custom build configurations, you can modify the `uwh.spec` file. This PyInstaller spec file allows you to:
+- Add or remove data files
+- Configure hidden imports
+- Change executable name or icon
+- Adjust build options
+
+To build using the spec file directly:
+```bash
+pyinstaller --clean uwh.spec
+```
+
+#### Distribution
+
+When distributing the executable to other users:
+1. Share the entire `dist` folder contents (the executable may extract temporary files at runtime)
+2. Or, copy just the executable file - it's standalone and contains all dependencies
+3. Users do NOT need Python installed to run the executable
+4. On first run, the application will create default `settings.json` if not present
+
+#### Troubleshooting Builds
+
+- **Build fails**: Ensure all data files exist in the repository root
+- **Missing modules**: Add them to `hiddenimports` in `uwh.spec`
+- **Large file size**: This is normal - the executable includes Python runtime and all dependencies
+- **Antivirus warnings**: Some antivirus software may flag PyInstaller executables; this is a false positive
+
