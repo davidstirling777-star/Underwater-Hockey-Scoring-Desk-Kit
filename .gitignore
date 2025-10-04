@@ -24,7 +24,8 @@ MANIFEST
 
 # PyInstaller
 *.manifest
-*.spec
+# Note: We keep uwh.spec in version control as it's our build configuration
+# *.spec
 
 # Installer logs
 pip-log.txt
