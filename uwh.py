@@ -886,7 +886,7 @@ class GameManagementApp:
                 label_text = var_info.get("label", "Team Time-Outs allowed?")
                 label_widget = tk.Label(widget1, text=label_text, font=(default_font.cget("family"), new_size, "bold"))
                 label_widget.grid(row=row_idx, column=1, sticky="w", pady=4)
-                check_var.trace_add("write", lambda *args: self.update_team_timeouts_allowed())
+                check_var.trace_add("write", lambda *args: self._on_team_timeouts_change())
                 self.widgets.append({"name": var_name, "entry": None, "checkbox": check_var, "label_widget": label_widget})
                 row_idx += 1
                 continue
@@ -897,7 +897,7 @@ class GameManagementApp:
                 label_text = var_info.get("label", "Overtime allowed?")
                 label_widget = tk.Label(widget1, text=label_text, font=(default_font.cget("family"), new_size, "bold"))
                 label_widget.grid(row=row_idx, column=1, sticky="w", pady=4)
-                check_var.trace_add("write", lambda *args: self.update_overtime_variables_state())
+                check_var.trace_add("write", lambda *args: self._on_overtime_change())
                 self.widgets.append({"name": var_name, "entry": None, "checkbox": check_var, "label_widget": label_widget})
                 row_idx += 1
                 continue
@@ -908,7 +908,7 @@ class GameManagementApp:
                 label_text = var_info.get("label", "Record Scorers Cap Number")
                 label_widget = tk.Label(widget1, text=label_text, font=(default_font.cget("family"), new_size, "bold"))
                 label_widget.grid(row=row_idx, column=1, sticky="w", pady=4)
-                check_var.trace_add("write", lambda *args: self._on_settings_variable_change())
+                check_var.trace_add("write", lambda *args: self._on_single_variable_change("record_scorers_cap_number"))
                 self.widgets.append({"name": var_name, "entry": None, "checkbox": check_var, "label_widget": label_widget})
                 row_idx += 1
                 continue
@@ -916,7 +916,7 @@ class GameManagementApp:
             if check_var:
                 cb = ttk.Checkbutton(widget1, variable=check_var, style='Large.TCheckbutton')
                 cb.grid(row=row_idx, column=0, sticky="", pady=5, padx=(10, 0))
-                check_var.trace_add("write", lambda *args, name=var_name: self._on_settings_variable_change())
+                check_var.trace_add("write", lambda *args, name=var_name: self._on_single_variable_change(name))
             label_text = var_info.get("label", f"{var_name.replace('_', ' ').title()}:")
             label_widget = tk.Label(widget1, text=label_text, font=(default_font.cget("family"), new_size, "bold"))
             label_widget.grid(row=row_idx, column=1, sticky="w", pady=4)
@@ -935,7 +935,7 @@ class GameManagementApp:
                         event.widget.focus_set()
                         event.widget.selection_range(0, tk.END)
                         return
-                    self._on_settings_variable_change()
+                    self._on_single_variable_change("time_to_start_first_game")
                 entry.bind("<FocusOut>", validate_hhmm_on_focusout)
                 entry.bind("<Return>", validate_hhmm_on_focusout)
             else:
@@ -978,7 +978,7 @@ class GameManagementApp:
                             
                             # Update last valid value if validation passes
                             self.last_valid_values[field_name] = val
-                            self._on_settings_variable_change()
+                            self._on_single_variable_change(field_name)
                         except ValueError:
                             # Show error and restore last valid value
                             messagebox.showerror("Input Error", f"Please enter a valid number for {field_name.replace('_', ' ').title()}.")
@@ -990,8 +990,8 @@ class GameManagementApp:
                     entry.bind("<FocusOut>", validate_numeric_on_focusout)
                     entry.bind("<Return>", validate_numeric_on_focusout)
                 else:
-                    entry.bind("<FocusOut>", lambda e, name=var_name: self._on_settings_variable_change())
-                    entry.bind("<Return>", lambda e, name=var_name: self._on_settings_variable_change())
+                    entry.bind("<FocusOut>", lambda e, name=var_name: self._on_single_variable_change(name))
+                    entry.bind("<Return>", lambda e, name=var_name: self._on_single_variable_change(name))
             entry.grid(row=row_idx, column=2, sticky="w", padx=5, pady=4)
             tk.Label(widget1, text=var_info["unit"], font=(default_font.cget("family"), new_size, "bold")).grid(row=row_idx, column=3, sticky="w", padx=5, pady=4)
             self.widgets.append({"name": var_name, "entry": entry, "checkbox": check_var, "label_widget": label_widget})
@@ -2124,6 +2124,83 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
         self.build_game_sequence()
         # Save game settings when variables change
         self.save_game_settings()
+    
+    def _on_single_variable_change(self, var_name):
+        """Handle change to a single variable without updating all widgets."""
+        # Only update the specific variable in self.variables
+        for widget in self.widgets:
+            if widget["name"] == var_name:
+                entry = widget["entry"]
+                var_info = self.variables[var_name]
+                
+                # Update the specific variable
+                if entry is not None and widget["checkbox"] is not None:
+                    # Variable with both checkbox and entry
+                    value = entry.get().replace(',', '.')
+                    try:
+                        float(value)
+                        self.variables[var_name]["value"] = value
+                    except ValueError:
+                        self.variables[var_name]["value"] = str(var_info["default"])
+                    self.variables[var_name]["used"] = widget["checkbox"].get()
+                elif entry is not None:
+                    # Entry-only variable
+                    value = entry.get().replace(',', '.')
+                    self.variables[var_name]["value"] = value
+                    self.variables[var_name]["used"] = True
+                elif widget["checkbox"] is not None:
+                    # Checkbox-only variable
+                    self.variables[var_name]["used"] = widget["checkbox"].get()
+                break
+        
+        # Recalculate start_first_game_in if time_to_start_first_game or between_game_break changed
+        if var_name in ["time_to_start_first_game", "between_game_break"]:
+            self._update_start_first_game_in()
+        
+        # Rebuild game sequence and save settings
+        self.build_game_sequence()
+        self.save_game_settings()
+    
+    def _update_start_first_game_in(self):
+        """Update only the start_first_game_in calculated field."""
+        time_entry_val = None
+        between_game_break_val = None
+        start_first_game_in_widget = None
+        
+        for widget in self.widgets:
+            if widget["name"] == "time_to_start_first_game":
+                time_entry_val = widget["entry"].get().strip()
+            elif widget["name"] == "between_game_break":
+                between_game_break_val = widget["entry"].get().replace(",", ".")
+            elif widget["name"] == "start_first_game_in":
+                start_first_game_in_widget = widget["entry"]
+        
+        # Calculate start_first_game_in value if time is valid
+        minutes_to_start = None
+        now = datetime.datetime.now()
+        if time_entry_val:
+            try:
+                time_match = re.match(r"^([01][0-9]|2[0-3]):[0-5][0-9]$", time_entry_val)
+                if time_match:
+                    hh, mm = map(int, time_entry_val.split(":"))
+                    target = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
+                    if target < now:
+                        target = target + datetime.timedelta(days=1)
+                    delta = target - now
+                    minutes_to_start = int(delta.total_seconds() // 60)
+            except Exception:
+                minutes_to_start = None
+        
+        try:
+            bgb_minutes = float(between_game_break_val) if between_game_break_val else 0.0
+        except Exception:
+            bgb_minutes = 0.0
+        
+        if minutes_to_start is not None and start_first_game_in_widget is not None:
+            value = max(0, minutes_to_start - int(bgb_minutes))
+            start_first_game_in_widget.delete(0, tk.END)
+            start_first_game_in_widget.insert(0, str(value))
+            self.variables["start_first_game_in"]["value"] = str(value)
 
     def load_settings(self):
         # Calculate "Start First Game In" from "Time to Start First Game" minus "Between Game Break"
@@ -2593,6 +2670,26 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
                 self.team_timeout_period_label.config(fg=label_fg)
             except Exception:
                 pass
+    
+    def _on_team_timeouts_change(self):
+        """Handle team_timeouts_allowed checkbox change."""
+        # Update the variable
+        self.variables["team_timeouts_allowed"]["used"] = self.team_timeouts_allowed_var.get()
+        # Update UI state
+        self.update_team_timeouts_allowed()
+        # Rebuild sequence and save
+        self.build_game_sequence()
+        self.save_game_settings()
+    
+    def _on_overtime_change(self):
+        """Handle overtime_allowed checkbox change."""
+        # Update the variable
+        self.variables["overtime_allowed"]["used"] = self.overtime_allowed_var.get()
+        # Update UI state
+        self.update_overtime_variables_state()
+        # Rebuild sequence and save
+        self.build_game_sequence()
+        self.save_game_settings()
 
     def update_overtime_variables_state(self):
         overtime_enabled = self.overtime_allowed_var.get()
