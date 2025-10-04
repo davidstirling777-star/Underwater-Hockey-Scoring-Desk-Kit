@@ -3,11 +3,37 @@ Sound module for Underwater Hockey Scoring Desk Kit.
 
 This module contains all sound-related functions for audio playback,
 device checking, and sound file management.
+
+Cross-platform support:
+- Linux/Raspberry Pi: Uses aplay for .wav, omxplayer for .mp3, amixer for volume
+- Windows: Uses winsound for .wav, playsound for other formats if available
 """
 
 import subprocess
 import os
+import platform
 from tkinter import messagebox
+
+# Platform detection
+IS_WINDOWS = platform.system() == 'Windows'
+IS_LINUX = platform.system() == 'Linux'
+
+# Optional imports for Windows
+if IS_WINDOWS:
+    try:
+        import winsound
+        WINSOUND_AVAILABLE = True
+    except ImportError:
+        WINSOUND_AVAILABLE = False
+    
+    try:
+        from playsound import playsound
+        PLAYSOUND_AVAILABLE = True
+    except ImportError:
+        PLAYSOUND_AVAILABLE = False
+else:
+    WINSOUND_AVAILABLE = False
+    PLAYSOUND_AVAILABLE = False
 
 
 def check_audio_device_available(enable_sound):
@@ -15,6 +41,10 @@ def check_audio_device_available(enable_sound):
     Check if audio devices are available for playback.
     Returns True if audio devices are available, False otherwise.
     If sound is disabled, always returns True to prevent warnings.
+    
+    Cross-platform support:
+    - Windows: Assumes audio device available if winsound module is available
+    - Linux: Checks using aplay and amixer commands
     
     Args:
         enable_sound: BooleanVar or bool indicating if sound is enabled
@@ -26,22 +56,28 @@ def check_audio_device_available(enable_sound):
     sound_enabled = enable_sound.get() if hasattr(enable_sound, 'get') else enable_sound
     if not sound_enabled:
         return True
-        
-    try:
-        # Try to check for audio devices using aplay (Linux/Raspberry Pi)
-        result = subprocess.run(['aplay', '-l'], capture_output=True, text=True, timeout=5)
-        if result.returncode == 0 and result.stdout.strip():
-            return True
-    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
-        pass
     
-    try:
-        # Alternative check using amixer
-        result = subprocess.run(['amixer', 'scontrols'], capture_output=True, text=True, timeout=5)
-        if result.returncode == 0 and result.stdout.strip():
-            return True
-    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
-        pass
+    # Windows: Assume audio device is available if winsound is available
+    if IS_WINDOWS:
+        return WINSOUND_AVAILABLE
+    
+    # Linux: Check for audio devices using aplay and amixer
+    if IS_LINUX:
+        try:
+            # Try to check for audio devices using aplay (Linux/Raspberry Pi)
+            result = subprocess.run(['aplay', '-l'], capture_output=True, text=True, timeout=5)
+            if result.returncode == 0 and result.stdout.strip():
+                return True
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+            pass
+        
+        try:
+            # Alternative check using amixer
+            result = subprocess.run(['amixer', 'scontrols'], capture_output=True, text=True, timeout=5)
+            if result.returncode == 0 and result.stdout.strip():
+                return True
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+            pass
     
     return False
 
@@ -105,7 +141,10 @@ def get_sound_files():
 def play_sound(filename, enable_sound):
     """
     Play a sound file using the appropriate system command.
-    Uses aplay for WAV files and omxplayer for MP3 files (Raspberry Pi compatible).
+    
+    Cross-platform support:
+    - Linux: Uses aplay for WAV files and omxplayer for MP3 files (Raspberry Pi compatible)
+    - Windows: Uses winsound for WAV files, playsound for other formats if available
     
     Args:
         filename: str path to sound file
@@ -125,20 +164,44 @@ def play_sound(filename, enable_sound):
         if not os.path.exists(file_path):
             messagebox.showerror("Sound Error", f"Sound file '{filename}' not found")
             return
-            
-        # Determine command based on file extension
-        if filename.lower().endswith('.wav'):
-            # Use aplay for WAV files (works well on Raspberry Pi with DigiAMP+ HAT)
-            subprocess.run(['aplay', file_path], check=True, capture_output=True)
-        elif filename.lower().endswith('.mp3'):
-            # Use omxplayer for MP3 files (Raspberry Pi optimized)
-            subprocess.run(['omxplayer', '--no-osd', file_path], check=True, capture_output=True)
-        else:
-            messagebox.showerror("Sound Error", f"Unsupported file format: {filename}")
+        
+        # Windows playback
+        if IS_WINDOWS:
+            if filename.lower().endswith('.wav'):
+                if WINSOUND_AVAILABLE:
+                    winsound.PlaySound(file_path, winsound.SND_FILENAME)
+                    messagebox.showinfo("Sound Test", f"Successfully played: {filename}")
+                else:
+                    messagebox.showerror("Sound Error", "winsound module not available")
+            else:
+                # Try playsound for non-WAV files
+                if PLAYSOUND_AVAILABLE:
+                    playsound(file_path)
+                    messagebox.showinfo("Sound Test", f"Successfully played: {filename}")
+                else:
+                    messagebox.showwarning("Sound Warning", 
+                        f"playsound module not available. Install with: pip install playsound")
             return
             
-        # Show success feedback
-        messagebox.showinfo("Sound Test", f"Successfully played: {filename}")
+        # Linux playback
+        if IS_LINUX:
+            # Determine command based on file extension
+            if filename.lower().endswith('.wav'):
+                # Use aplay for WAV files (works well on Raspberry Pi with DigiAMP+ HAT)
+                subprocess.run(['aplay', file_path], check=True, capture_output=True)
+            elif filename.lower().endswith('.mp3'):
+                # Use omxplayer for MP3 files (Raspberry Pi optimized)
+                subprocess.run(['omxplayer', '--no-osd', file_path], check=True, capture_output=True)
+            else:
+                messagebox.showerror("Sound Error", f"Unsupported file format: {filename}")
+                return
+                
+            # Show success feedback
+            messagebox.showinfo("Sound Test", f"Successfully played: {filename}")
+            return
+        
+        # Unsupported platform
+        messagebox.showerror("Sound Error", f"Unsupported platform: {platform.system()}")
         
     except subprocess.CalledProcessError as e:
         messagebox.showerror("Sound Error", f"Failed to play {filename}. Command failed: {e}")
@@ -153,7 +216,12 @@ def play_sound_with_volume(filename, sound_type, enable_sound, pips_volume, sire
                            air_volume, water_volume):
     """
     Play a sound file with volume control using amixer for channel volumes and sound-specific volume.
-    Uses aplay for WAV files and omxplayer for MP3 files (Raspberry Pi compatible).
+    
+    Cross-platform support:
+    - Linux: Uses aplay for WAV files and omxplayer for MP3 files (Raspberry Pi compatible)
+      with amixer for volume control
+    - Windows: Uses winsound for WAV files (volume control not supported), 
+      playsound for other formats if available
     
     Args:
         filename: str path to sound file
@@ -183,30 +251,6 @@ def play_sound_with_volume(filename, sound_type, enable_sound, pips_volume, sire
         air_vol = int(air_volume.get() if hasattr(air_volume, 'get') else air_volume)
         water_vol = int(water_volume.get() if hasattr(water_volume, 'get') else water_volume)
         
-        # Set AIR channel volume (typically left channel - card 0, control 0)
-        try:
-            subprocess.run(['amixer', '-c', '0', 'sset', 'Left', f'{air_vol}%'], 
-                         check=False, capture_output=True)
-        except:
-            # Fallback - try different control names
-            try:
-                subprocess.run(['amixer', 'sset', 'PCM', f'{air_vol}%'], 
-                             check=False, capture_output=True)
-            except:
-                pass  # Ignore amixer errors in development environments
-        
-        # Set WATER channel volume (typically right channel - card 0, control 1)  
-        try:
-            subprocess.run(['amixer', '-c', '0', 'sset', 'Right', f'{water_vol}%'], 
-                         check=False, capture_output=True)
-        except:
-            # Fallback - try different control names
-            try:
-                subprocess.run(['amixer', 'sset', 'Speaker', f'{water_vol}%'], 
-                             check=False, capture_output=True)
-            except:
-                pass  # Ignore amixer errors in development environments
-            
         # Get sound-specific volume
         if sound_type == "pips":
             sound_vol = (pips_volume.get() if hasattr(pips_volume, 'get') else pips_volume) / 100.0
@@ -214,36 +258,94 @@ def play_sound_with_volume(filename, sound_type, enable_sound, pips_volume, sire
             sound_vol = (siren_volume.get() if hasattr(siren_volume, 'get') else siren_volume) / 100.0
         else:
             sound_vol = 0.5  # Default 50%
-            
-        # Determine command based on file extension
-        if filename.lower().endswith('.wav'):
-            # Use aplay for WAV files with volume control if available
-            try:
-                # Try to use aplay with volume control
-                subprocess.run(['aplay', '--volume', str(int(sound_vol * 65536)), file_path], 
-                             check=True, capture_output=True)
-            except:
-                # Fallback to regular aplay if volume control not supported
-                subprocess.run(['aplay', file_path], check=True, capture_output=True)
-        elif filename.lower().endswith('.mp3'):
-            # Use omxplayer for MP3 files with volume control
-            vol_arg = str(int((sound_vol - 1.0) * 2000))  # omxplayer volume range
-            try:
-                subprocess.run(['omxplayer', '--no-osd', '--vol', vol_arg, file_path], 
-                             check=True, capture_output=True)
-            except:
-                # Fallback to regular omxplayer if volume control not supported
-                subprocess.run(['omxplayer', '--no-osd', file_path], check=True, capture_output=True)
-        else:
-            messagebox.showerror("Sound Error", f"Unsupported file format: {filename}")
+        
+        # Windows playback (volume control not fully supported)
+        if IS_WINDOWS:
+            if filename.lower().endswith('.wav'):
+                if WINSOUND_AVAILABLE:
+                    winsound.PlaySound(file_path, winsound.SND_FILENAME)
+                    messagebox.showinfo("Sound Test", 
+                        f"Successfully played: {filename}\n"
+                        f"{sound_type.title()} Volume: {int(sound_vol*100)}%\n"
+                        f"Note: Windows volume control uses system settings\n"
+                        f"AIR Volume: {air_vol}% (not applied)\n"
+                        f"WATER Volume: {water_vol}% (not applied)")
+                else:
+                    messagebox.showerror("Sound Error", "winsound module not available")
+            else:
+                # Try playsound for non-WAV files
+                if PLAYSOUND_AVAILABLE:
+                    playsound(file_path)
+                    messagebox.showinfo("Sound Test", 
+                        f"Successfully played: {filename}\n"
+                        f"{sound_type.title()} Volume: {int(sound_vol*100)}%\n"
+                        f"Note: Windows volume control uses system settings\n"
+                        f"AIR Volume: {air_vol}% (not applied)\n"
+                        f"WATER Volume: {water_vol}% (not applied)")
+                else:
+                    messagebox.showwarning("Sound Warning", 
+                        f"playsound module not available. Install with: pip install playsound")
             return
+        
+        # Linux playback with volume control
+        if IS_LINUX:
+            # Set AIR channel volume (typically left channel - card 0, control 0)
+            try:
+                subprocess.run(['amixer', '-c', '0', 'sset', 'Left', f'{air_vol}%'], 
+                             check=False, capture_output=True)
+            except:
+                # Fallback - try different control names
+                try:
+                    subprocess.run(['amixer', 'sset', 'PCM', f'{air_vol}%'], 
+                                 check=False, capture_output=True)
+                except:
+                    pass  # Ignore amixer errors in development environments
             
-        # Show success feedback with volume info
-        messagebox.showinfo("Sound Test", 
-            f"Successfully played: {filename}\n"
-            f"{sound_type.title()} Volume: {int(sound_vol*100)}%\n"
-            f"AIR Volume: {air_vol}%\n"
-            f"WATER Volume: {water_vol}%")
+            # Set WATER channel volume (typically right channel - card 0, control 1)  
+            try:
+                subprocess.run(['amixer', '-c', '0', 'sset', 'Right', f'{water_vol}%'], 
+                             check=False, capture_output=True)
+            except:
+                # Fallback - try different control names
+                try:
+                    subprocess.run(['amixer', 'sset', 'Speaker', f'{water_vol}%'], 
+                                 check=False, capture_output=True)
+                except:
+                    pass  # Ignore amixer errors in development environments
+                
+            # Determine command based on file extension
+            if filename.lower().endswith('.wav'):
+                # Use aplay for WAV files with volume control if available
+                try:
+                    # Try to use aplay with volume control
+                    subprocess.run(['aplay', '--volume', str(int(sound_vol * 65536)), file_path], 
+                                 check=True, capture_output=True)
+                except:
+                    # Fallback to regular aplay if volume control not supported
+                    subprocess.run(['aplay', file_path], check=True, capture_output=True)
+            elif filename.lower().endswith('.mp3'):
+                # Use omxplayer for MP3 files with volume control
+                vol_arg = str(int((sound_vol - 1.0) * 2000))  # omxplayer volume range
+                try:
+                    subprocess.run(['omxplayer', '--no-osd', '--vol', vol_arg, file_path], 
+                                 check=True, capture_output=True)
+                except:
+                    # Fallback to regular omxplayer if volume control not supported
+                    subprocess.run(['omxplayer', '--no-osd', file_path], check=True, capture_output=True)
+            else:
+                messagebox.showerror("Sound Error", f"Unsupported file format: {filename}")
+                return
+                
+            # Show success feedback with volume info
+            messagebox.showinfo("Sound Test", 
+                f"Successfully played: {filename}\n"
+                f"{sound_type.title()} Volume: {int(sound_vol*100)}%\n"
+                f"AIR Volume: {air_vol}%\n"
+                f"WATER Volume: {water_vol}%")
+            return
+        
+        # Unsupported platform
+        messagebox.showerror("Sound Error", f"Unsupported platform: {platform.system()}")
         
     except subprocess.CalledProcessError as e:
         messagebox.showerror("Sound Error", f"Failed to play {filename}. Command failed: {e}")
