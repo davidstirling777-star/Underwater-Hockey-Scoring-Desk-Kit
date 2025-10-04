@@ -984,7 +984,7 @@ class GameManagementApp:
                     widget1,
                     text="• Crib Time is a period (in seconds) that is subtracted from the \"Between Game Break\" time at the start of each game to try to realign Court Time with Local Computer Time.\n• Value boxes accept decimal time e.g. 1.5 or 1,5 = 1 min, 30 sec",
                     font=(default_font.cget("family"), default_font.cget("size") - 1),
-                    anchor="w", justify="left", wraplength=580
+                    anchor="w", justify="left", wraplength=560
                 )
                 combined_explanation.grid(row=row_idx, column=0, columnspan=4, pady=(2,8), sticky="nsew")
                 row_idx += 1            
