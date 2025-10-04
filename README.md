@@ -8,7 +8,7 @@ The people helping with UWH are always churning over so a User Manual, possibly 
 
 The inital idea is to use a Raspberry Pi5 computer, tiny amplifier (Raspberry DigiAMP+), Bluetooth or Wi-Fi remote control to minimise connections.  Hardware button backup for wireless remote control.  Using a Compute Module CM5 on a custom board with built in amplifier is probably beyond where we think we want to go.  The reason for gravitating to a Raspberry Pi is the HATs that are available, such as a dual channel amplifier, will drastically reduces wires and connections (hopefully leading to a more robust system that what we currently have). It may be that a RPi5 is not grunty enough, but we will see.
 
-The goal is to make a solution for UWH scoring that anyone can use, based on easy to obtain hardware, hence th desire to use a Raspberry Pi 5.  Aiming to use a DigiAMP+ HAT, NVMe Base for Raspberry Pi 5 for robustness of data storage, Wi-Fi buttons or Zigbee communications between Zigbee USB dongle and Zigbee buttons for Chief Ref ability to signal, TOA SC610 8 Ohm 10W IP65 Horn Speaker for above water siren and a Lubell Labs Underwater loudspeaker (why? Because that is what we already use) LL916 is the modern version of the ones NZUWH already uses.
+The goal is to make a solution for UWH scoring that anyone can use, based on easy to obtain hardware, hence the desire to use a Raspberry Pi 5.  Aiming to use a DigiAMP+ HAT, NVMe Base for Raspberry Pi 5 for robustness of data storage, Wi-Fi buttons or Zigbee communications between Zigbee USB dongle and Zigbee buttons for Chief Ref ability to signal, TOA SC610 8 Ohm 10W IP65 Horn Speaker for above water siren and a Lubell Labs Underwater loudspeaker (why? Because that is what we already use) LL916 is the modern version of the ones NZUWH already uses.  Can also be run on Windows.
 
 ## Sound Timing Table
 
@@ -47,7 +47,7 @@ The system now includes full Zigbee2MQTT integration for wireless siren control:
 
 See `ZIGBEE_SETUP.md` for complete installation and configuration instructions.
 
-Some Features (i,e, those that I can be bothered to write about at the moment)
+Some Features
 
 
 Coping with Errors (like when a goal is scored right on the buzzer!)
