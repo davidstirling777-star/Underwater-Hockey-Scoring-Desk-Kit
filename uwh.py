@@ -2662,7 +2662,7 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
         def sync_backgrounds():
             # Only sync background colors that can't be handled by textvariable
             self.display_half_label.config(bg=self.half_label.cget("bg"))
-            self.master.after(100, sync_backgrounds)  # Reduced frequency for background sync only
+            self.master.after(200, sync_backgrounds)  # Reduced frequency for background sync only
         sync_backgrounds()
 
     def reset_timer(self):
