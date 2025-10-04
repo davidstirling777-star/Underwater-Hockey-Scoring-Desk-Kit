@@ -1990,16 +1990,6 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
         dlg = tk.Toplevel(self.master)
         dlg.title(f"Button {idx+1} Settings")
         dlg.geometry("400x700")
-        # --- Add validation for numbers/decimals ---
-        def validate_number(P):
-            if P == "":
-                return True
-            try:
-                float(P.replace(',', '.'))
-                return True
-            except ValueError:
-                return False
-        vcmd = (dlg.register(validate_number), '%P')
         entries = {}
         checks = {}
         row_num = 0
@@ -2028,7 +2018,7 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
                 tk.Label(dlg, text="Sudden Death Game Break:").grid(row=row_num, column=0, sticky="w", padx=6, pady=4)
                 sudden_death_val = self.button_data[idx]["values"].get("sudden_death_game_break", "1")
                 sudden_death_entry_var = tk.StringVar(value=sudden_death_val)
-                sudden_death_entry = ttk.Entry(dlg, textvariable=sudden_death_entry_var, width=10, validate="key", validatecommand=vcmd)
+                sudden_death_entry = ttk.Entry(dlg, textvariable=sudden_death_entry_var, width=10)
                 sudden_death_entry.grid(row=row_num, column=1, sticky="w", padx=6, pady=4)
                 entries["sudden_death_game_break"] = sudden_death_entry_var
                 row_num += 1
@@ -2066,7 +2056,7 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
                 else:
                     val = self.button_data[idx]["values"].get(var_name, widget["entry"].get())
                 entry_var = tk.StringVar(value=val)
-                entry = ttk.Entry(dlg, textvariable=entry_var, width=10, validate="key", validatecommand=vcmd)
+                entry = ttk.Entry(dlg, textvariable=entry_var, width=10)
                 entry.grid(row=row_num, column=1, sticky="w", padx=6, pady=4)
                 entries[var_name] = entry_var
             row_num += 1
@@ -2075,7 +2065,7 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
         tk.Label(dlg, text="Crib Time (seconds):").grid(row=row_num, column=0, sticky="w", padx=6, pady=4)
         crib_time_val = self.button_data[idx]["values"].get("crib_time", "60")
         crib_time_entry_var = tk.StringVar(value=crib_time_val)
-        crib_time_entry = ttk.Entry(dlg, textvariable=crib_time_entry_var, width=10, validate="key", validatecommand=vcmd)
+        crib_time_entry = ttk.Entry(dlg, textvariable=crib_time_entry_var, width=10)
         crib_time_entry.grid(row=row_num, column=1, sticky="w", padx=6, pady=4)
         entries["crib_time"] = crib_time_entry_var
         row_num += 1
