@@ -3280,7 +3280,7 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
         """
         cap_number_dialog = tk.Toplevel(self.master)
         cap_number_dialog.title("Select Cap Number")
-        cap_number_dialog.geometry("400x250")
+        cap_number_dialog.geometry("400x300")
         cap_number_dialog.transient(self.master)
         cap_number_dialog.grab_set()
         
@@ -3316,7 +3316,19 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
             for widget in bottom_frame.winfo_children():
                 if hasattr(widget, 'is_unknown'):
                     widget.config(relief=tk.SUNKEN, bg="lightblue")
-                elif isinstance(widget, tk.Button) and widget.cget("text") == "OK" and hasattr(widget, 'original_bg'):
+                elif isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
+                    widget.config(relief=tk.RAISED, bg=widget.original_bg)
+        
+        def select_penalty_goal():
+            selected_cap["value"] = "Penalty Goal"
+            # Highlight Penalty Goal button
+            for widget in matrix_frame.winfo_children():
+                if isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
+                    widget.config(relief=tk.RAISED, bg=widget.original_bg)
+            for widget in bottom_frame.winfo_children():
+                if hasattr(widget, 'is_penalty_goal'):
+                    widget.config(relief=tk.SUNKEN, bg="lightblue")
+                elif isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
                     widget.config(relief=tk.RAISED, bg=widget.original_bg)
         
         def on_ok():
@@ -3341,14 +3353,21 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
         bottom_frame = tk.Frame(cap_number_dialog)
         bottom_frame.pack(pady=10)
         
-        # Unknown button (columnspan 4)
-        unknown_btn = tk.Button(bottom_frame, text="Unknown", width=button_width * 4 + 6, height=button_height,
+        # Unknown button (columnspan 2, half the original width)
+        unknown_btn = tk.Button(bottom_frame, text="Unknown", width=button_width * 2 + 3, height=button_height,
                                command=select_unknown)
         unknown_btn.is_unknown = True
         unknown_btn.original_bg = unknown_btn.cget('bg')  # Store original background color
-        unknown_btn.grid(row=0, column=0, columnspan=4, padx=2, pady=2)
+        unknown_btn.grid(row=0, column=0, columnspan=2, padx=2, pady=2)
         
-        # OK button (in column 5)
+        # Penalty Goal button (columnspan 2)
+        penalty_goal_btn = tk.Button(bottom_frame, text="Penalty Goal", width=button_width * 2 + 3, height=button_height,
+                                    command=select_penalty_goal)
+        penalty_goal_btn.is_penalty_goal = True
+        penalty_goal_btn.original_bg = penalty_goal_btn.cget('bg')  # Store original background color
+        penalty_goal_btn.grid(row=0, column=2, columnspan=2, padx=2, pady=2)
+        
+        # OK button (in column 4)
         ok_btn = tk.Button(bottom_frame, text="OK", width=button_width, height=button_height,
                           command=on_ok)
         ok_btn.original_bg = ok_btn.cget('bg')  # Store original background color
