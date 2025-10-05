@@ -16,7 +16,7 @@ The system automatically plays audio cues during different periods:
 
 | Period Type | Period Name | 30s Remaining | 10s-1s Remaining | 0s (End) |
 |-------------|-------------|---------------|------------------|----------|
-| **Break Periods** | First Game Starts In | 1 Pip | 1 Pip per second | Siren |
+| **Break Periods** | First Game Starts In: | 1 Pip | 1 Pip per second | Siren |
 | | Between Game Break | 1 Pip | 1 Pip per second | Siren |
 | | Half Time | 1 Pip | 1 Pip per second | Siren |
 | | Overtime Game Break | 1 Pip | 1 Pip per second | Siren |
