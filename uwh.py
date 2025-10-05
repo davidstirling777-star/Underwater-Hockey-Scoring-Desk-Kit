@@ -234,7 +234,7 @@ class GameManagementApp:
         # --- Variable and font setup ---
         self.variables = {
             "time_to_start_first_game": {"default": "", "checkbox": False, "unit": "hh:mm", "label": "Time to Start First Game:"},
-            "start_first_game_in": {"default": 1, "checkbox": False, "unit": "minutes", "label": "Between Game Break in:"},
+            "start_first_game_in": {"default": 1, "checkbox": False, "unit": "minutes", "label": "First Game Starts In:"},
             "team_timeouts_allowed": {"default": True, "checkbox": True, "unit": "", "label": "Team time-outs allowed?"},
             "team_timeout_period": {"default": 1, "checkbox": False, "unit": "minutes"},
             "half_period": {"default": 1, "checkbox": False, "unit": "minutes"},
@@ -777,7 +777,7 @@ class GameManagementApp:
 
     def build_game_sequence(self):
         seq = []
-        # Always start with "Between Game Break Starts in:"
+        # Always start with "First Game Starts In" period
         now = datetime.datetime.now()
         time_val = self.variables.get("time_to_start_first_game", {}).get("value", "")
         bgb_val = self.variables.get("between_game_break", {}).get("value", "1").replace(",", ".")
@@ -795,12 +795,14 @@ class GameManagementApp:
                     target = target + datetime.timedelta(days=1)
                 delta = target - now
                 minutes_to_start = int(delta.total_seconds() // 60)
-                # Subtract the Between Game Break
+                # Subtract the Between Game Break from total time to get "First Game Starts In" duration
                 game_starts_in_minutes = max(0, minutes_to_start - int(bgb_minutes))
+        # First period: "First Game Starts In" - only runs once at app start
         if game_starts_in_minutes is not None:
-            seq.append({'name': 'Between Game Break Starts in:', 'type': 'break', 'duration': game_starts_in_minutes * 60})
+            seq.append({'name': 'First Game Starts In', 'type': 'break', 'duration': game_starts_in_minutes * 60})
         else:
-            seq.append({'name': 'Between Game Break Starts in:', 'type': 'break', 'duration': self.get_minutes('start_first_game_in')})
+            seq.append({'name': 'First Game Starts In', 'type': 'break', 'duration': self.get_minutes('start_first_game_in')})
+        # Between Game Break comes after first game starts countdown
         seq.append({'name': 'Between Game Break', 'type': 'break', 'duration': self.get_minutes('between_game_break')})
 
         seq.append({'name': 'First Half', 'type': 'regular', 'duration': self.get_minutes('half_period')})
@@ -1132,17 +1134,18 @@ class GameManagementApp:
         explanation_header.grid(row=0, column=0, padx=4, pady=(8,2), sticky="ew")
         
         # Add explanatory text - reduced font size and padding for more snug appearance
-        # MODIFIED: Removed lines starting with "Between ...", "Audio...", and "Presets ..."
+        # Updated to reflect the new game sequence naming
         explanation_text = (
             "Game Sequence Flow:\n"
-            "1. 'Between Game Break' In (duration set by time or default)\n"
+            "1. First Game Starts In (runs once at app start)\n"
             "2. Between Game Break\n"
             "3. First Half → Half Time → Second Half\n"
-            "4. If scores tied: Overtime periods (if enabled)\n"
-            "5. If still tied: Sudden Death (if enabled)\n"
-            "6. Return to Between Game Break for next game\n\n"
+            "4. If scores tied: Overtime Game Break → Overtime First Half → Overtime Half Time → Overtime Second Half (if enabled)\n"
+            "5. If still tied: Sudden Death Game Break → Sudden Death (if enabled)\n"
+            "6. Between Game Break (loop back to step 2)\n\n"
             "Important Notes:\n"
-            "• 'Between Game Break Starts In' only runs once per app opening"
+            "• 'First Game Starts In' only runs once per app opening\n"
+            "• Crib time is subtracted from Between Game Break"
         )
         
         # Reduced font size for more compact appearance
@@ -2876,7 +2879,7 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
         self.update_half_label_background(cur_period['name'])
 
         TIMEOUTS_DISABLED_PERIODS = [
-            "Between Game Break Starts in:",
+            "First Game Starts In",
             "Half Time",
             "Overtime Game Break",
             "Sudden Death Game Break",
@@ -2885,7 +2888,7 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
             "Overtime Second Half",
             "Sudden Death",
         ]
-        # Always enable penalties during Referee Time-Out, even if entered from Between Game Break Starts in
+        # Always enable penalties during Referee Time-Out, even if entered from First Game Starts In
         if cur_period['name'] == "Referee Time-Out":
             self.penalties_button.config(state=tk.NORMAL)
             self.white_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
@@ -2893,7 +2896,7 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
         elif cur_period['name'] in TIMEOUTS_DISABLED_PERIODS:
             self.white_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
             self.black_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
-            if cur_period['name'] in ["Between Game Break Starts in:", "Between Game Break", "Half Time", "Overtime Game Break", "Sudden Death Game Break"]:
+            if cur_period['name'] in ["First Game Starts In", "Between Game Break", "Half Time", "Overtime Game Break", "Sudden Death Game Break"]:
                 self.penalties_button.config(state=tk.DISABLED)
             else:
                 self.penalties_button.config(state=tk.NORMAL)
