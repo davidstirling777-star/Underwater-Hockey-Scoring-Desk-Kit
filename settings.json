@@ -1,6 +1,6 @@
 {
   "soundSettings": {
-    "pips_sound": "beep-cut.mp3",
+    "pips_sound": "pip-beep.mp3",
     "siren_sound": "car-honk-cut.mp3",
     "pips_volume": 50.0,
     "siren_volume": 50.0,
