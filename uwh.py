@@ -275,6 +275,7 @@ class GameManagementApp:
             "game_no": font.Font(family="Arial", size=12),
             "button": font.Font(family="Arial", size=20, weight="bold"),
             "timeout_button": font.Font(family="Arial", size=20, weight="bold"),
+            "referee_timeout_timer": font.Font(family="Arial", size=24, weight="bold"),
         }
 
         self.display_fonts = {
@@ -284,6 +285,7 @@ class GameManagementApp:
             "score": font.Font(family="Arial", size=200, weight="bold"),
             "timer": font.Font(family="Arial", size=90, weight="bold"),
             "game_no": font.Font(family="Arial", size=12),
+            "referee_timeout_timer": font.Font(family="Arial", size=24, weight="bold"),
         }
 
         # Event-driven Tkinter variables for all display widgets
@@ -295,6 +297,7 @@ class GameManagementApp:
         self.game_number_var = tk.StringVar(value="Game 121")
         self.white_team_var = tk.StringVar(value="White")
         self.black_team_var = tk.StringVar(value="Black")
+        self.referee_timeout_timer_var = tk.StringVar(value="00:00")
         
         # Tournament List tracking
         self.current_game_index = 0  # Index in self.game_numbers list
@@ -499,6 +502,15 @@ class GameManagementApp:
         # Timer widget - MODIFIED: Moved to row 4 and reduced rowspan from 6 to 5
         self.timer_label = tk.Label(tab, textvariable=self.timer_var, font=self.fonts["timer"], bg="lightgrey", fg="black")
         self.timer_label.grid(row=4, column=3, rowspan=5, columnspan=3, padx=1, pady=1, sticky="nsew")
+
+        # Referee timeout timer label - positioned below the main timer
+        self.referee_timeout_timer_label = tk.Label(
+            tab, textvariable=self.referee_timeout_timer_var, 
+            font=self.fonts["referee_timeout_timer"], 
+            bg="orange", fg="white"
+        )
+        self.referee_timeout_timer_label.grid(row=8, column=3, rowspan=1, columnspan=3, padx=1, pady=1, sticky="nsew")
+        self.referee_timeout_timer_label.grid_remove()  # Hide initially
 
         self.white_timeout_button = tk.Button(
             tab, text="White Team\nTime-Out", font=self.fonts["timeout_button"], bg="white", fg="black",
@@ -725,6 +737,7 @@ class GameManagementApp:
             "game_no": 12,
             "button": 20,
             "timeout_button": 20,
+            "referee_timeout_timer": 24,
         }
         reduced_button_scale = 0.7
         for key, fnt in self.fonts.items():
@@ -754,6 +767,7 @@ class GameManagementApp:
             "score": 200,
             "timer": 90,
             "game_no": 12,
+            "referee_timeout_timer": 24,
         }
         for key, fnt in self.display_fonts.items():
             new_size = int(base_sizes[key] * scale)
@@ -2740,6 +2754,15 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
         self.display_timer_label = tk.Label(tab, textvariable=self.timer_var, font=self.display_fonts["timer"], bg="lightgrey", fg="black")
         self.display_timer_label.grid(row=3, column=3, rowspan=8, columnspan=3, padx=1, pady=1, sticky="nsew")
 
+        # Referee timeout timer label for display window
+        self.display_referee_timeout_timer_label = tk.Label(
+            tab, textvariable=self.referee_timeout_timer_var, 
+            font=self.display_fonts["referee_timeout_timer"], 
+            bg="orange", fg="white"
+        )
+        self.display_referee_timeout_timer_label.grid(row=10, column=3, rowspan=1, columnspan=3, padx=1, pady=1, sticky="nsew")
+        self.display_referee_timeout_timer_label.grid_remove()  # Hide initially
+
         self.display_window.bind('<Configure>', self.scale_display_fonts)
         self.display_initial_width = self.display_window.winfo_width() or 1200
         self.display_window.update_idletasks()
@@ -3664,6 +3687,10 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
             # Event-driven: Update the StringVar instead of calling .config()
             self.half_label_var.set("Referee Time-Out")
             self.half_label.config(bg="red")
+            # Show the referee timeout timer label
+            self.referee_timeout_timer_label.grid()
+            if hasattr(self, "display_referee_timeout_timer_label"):
+                self.display_referee_timeout_timer_label.grid()
             self.referee_timeout_countup()
             # --- PATCH: Explicitly enable penalties button during referee timeout ---
             if hasattr(self, "penalties_button"):
@@ -3676,6 +3703,10 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
                 activebackground=self.referee_timeout_default_bg,
                 activeforeground=self.referee_timeout_default_fg
             )
+            # Hide the referee timeout timer label
+            self.referee_timeout_timer_label.grid_remove()
+            if hasattr(self, "display_referee_timeout_timer_label"):
+                self.display_referee_timeout_timer_label.grid_remove()
             self.timer_seconds = self.saved_state["timer_seconds"]
             self.timer_running = self.saved_state["timer_running"]
             self.current_index = self.saved_state["current_index"]
@@ -3709,6 +3740,8 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
         mins, secs = divmod(self.referee_timeout_elapsed, 60)
         # Event-driven: Update the StringVar instead of calling .config()
         self.timer_var.set(f"{int(mins):02d}:{int(secs):02d}")
+        # Update the referee timeout timer label
+        self.referee_timeout_timer_var.set(f"Referee Time-Out: {int(mins):02d}:{int(secs):02d}")
         self.referee_timeout_elapsed += 1
         self.timer_job = self.master.after(1000, self.referee_timeout_countup)
 
