@@ -3732,12 +3732,21 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
         ):
             return
         cur_period = self.full_sequence[self.current_index]
-        is_break = (cur_period['type'] == 'break'
-            or cur_period['name'] in ["White Team Time-Out", "Black Team Time-Out"])
-        if is_break:
+        is_team_timeout = getattr(self, 'in_timeout', False)
+        is_referee_timeout = getattr(self, 'referee_timeout_active', False)
+        is_break = cur_period['type'] == 'break'
+        if is_break or is_team_timeout or is_referee_timeout:
+            # Customize the warning message based on the situation
+            if is_team_timeout:
+                warning_msg = f"You are about to adjust a goal for {team_name} during a Team Time-Out. Are you sure?"
+            elif is_referee_timeout:
+                warning_msg = f"You are about to adjust a goal for {team_name} during a Referee Time-Out. Are you sure?"
+            else:
+                warning_msg = f"You are about to adjust a goal for {team_name} during a break or half time. Are you sure?"
+            
             if not messagebox.askyesno(
                 "Adjust Goal During Break?",
-                f"You are about to adjust a goal for {team_name} during a break or half time. Are you sure?"
+                warning_msg
             ):
                 return
         if score_var.get() > 0:
@@ -3754,8 +3763,8 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
 
     def add_goal_with_confirmation(self, score_var, team_name):
         cur_period = self.full_sequence[self.current_index]
-        is_team_timeout = cur_period['name'] in ["White Team Time-Out", "Black Team Time-Out"]
-        is_referee_timeout = self.referee_timeout_active
+        is_team_timeout = getattr(self, 'in_timeout', False)
+        is_referee_timeout = getattr(self, 'referee_timeout_active', False)
         is_break = cur_period['type'] == 'break'
         
         # Determine if we should show a warning and what message to use
