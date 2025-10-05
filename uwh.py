@@ -2016,7 +2016,9 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
             if var_name == "sudden_death_game_break":
                 # Show checkbox with relabeled text
                 tk.Label(dlg, text="Sudden Death Allowed?").grid(row=row_num, column=0, sticky="w", padx=6, pady=4)
-                val = self.button_data[idx]["checkboxes"].get(var_name, widget["checkbox"].get())
+                # Use default value from self.variables instead of current UI value
+                default_checkbox_val = self.variables[var_name].get("used", True)
+                val = self.button_data[idx]["checkboxes"].get(var_name, default_checkbox_val)
                 check_var = tk.BooleanVar(value=val)
                 cb = ttk.Checkbutton(dlg, variable=check_var)
                 cb.grid(row=row_num, column=1, sticky="w", padx=6, pady=4)
@@ -2038,7 +2040,9 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
                 if idx == 0 and var_name in ["team_timeouts_allowed", "overtime_allowed"]:
                     val = True
                 else:
-                    val = self.button_data[idx]["checkboxes"].get(var_name, widget["checkbox"].get())
+                    # Use default value from self.variables instead of current UI value
+                    default_checkbox_val = self.variables[var_name].get("used", True)
+                    val = self.button_data[idx]["checkboxes"].get(var_name, default_checkbox_val)
                 check_var = tk.BooleanVar(value=val)
                 cb = ttk.Checkbutton(dlg, variable=check_var)
                 cb.grid(row=row_num, column=1, sticky="w", padx=6, pady=4)
@@ -2060,9 +2064,11 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
                         "sudden_death_game_break": "1",
                         "between_game_break": "5",
                         "crib_time": "60"
-                    }.get(var_name, widget["entry"].get()))
+                    }.get(var_name, str(self.variables[var_name]["default"])))
                 else:
-                    val = self.button_data[idx]["values"].get(var_name, widget["entry"].get())
+                    # Use default value from self.variables instead of current UI value
+                    default_entry_val = str(self.variables[var_name]["default"])
+                    val = self.button_data[idx]["values"].get(var_name, default_entry_val)
                 entry_var = tk.StringVar(value=val)
                 entry = ttk.Entry(dlg, textvariable=entry_var, width=10)
                 entry.grid(row=row_num, column=1, sticky="w", padx=6, pady=4)
@@ -2101,25 +2107,6 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
         dlg.transient(self.master)
         dlg.wait_visibility()
         dlg.grab_set()
-
-        def _apply_button_data(self, idx):
-            for widget in self.widgets:
-                var_name = widget["name"]
-                if widget["checkbox"] is not None:
-                    val = self.button_data[idx]["checkboxes"].get(var_name, widget["checkbox"].get())
-                    widget["checkbox"].set(val)
-                else:
-                    val = self.button_data[idx]["values"].get(var_name, widget["entry"].get())
-                    widget["entry"].delete(0, tk.END)
-                    widget["entry"].insert(0, val)
-            # --- PATCH: also populate the Crib Time value in main variables from preset ---
-            crib_time_val = self.button_data[idx]["values"].get("crib_time", None)
-            if crib_time_val is not None:
-                for widget in self.widgets:
-                    if widget["name"] == "crib_time" and widget["entry"] is not None:
-                        widget["entry"].delete(0, tk.END)
-                        widget["entry"].insert(0, crib_time_val)
-            self.load_settings()
 
     def _on_settings_variable_change(self, *args):
         self.load_settings()
