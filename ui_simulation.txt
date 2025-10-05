@@ -108,7 +108,7 @@
 108|
 109| GAME LOGIC FLOW:
 110| ===============
-111| 1. First Game Starts In → Between Game Break → First Half → Half Time → Second Half
+111| 1. First Game Starts In → First Half → Half Time → Second Half
 112| 2. If scores tied at end AND overtime enabled: → Overtime Game Break → Overtime First Half → Overtime Half Time → Overtime Second Half
 113| 3. If scores still tied after overtime AND sudden death enabled: → Sudden Death Game Break → Sudden Death
 114| 4. After game ends: Between Game Break → loop back to First Half
