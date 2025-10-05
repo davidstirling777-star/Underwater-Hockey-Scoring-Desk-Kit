@@ -1945,8 +1945,8 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
         # Apply saved values and checkboxes for all widgets
         for widget in self.widgets:
             var_name = widget["name"]
-            # Do not apply preset to "start_first_game_in"
-            if var_name == "start_first_game_in":
+            # Do not apply preset to "time_to_start_first_game" or "start_first_game_in"
+            if var_name in ["time_to_start_first_game", "start_first_game_in"]:
                 continue
             if widget["checkbox"] is not None:
                 val = self.button_data[idx]["checkboxes"].get(var_name, widget["checkbox"].get())
@@ -2011,6 +2011,10 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
         for widget in self.widgets:
             var_name = widget["name"]
             label = widget["label_widget"]
+            
+            # Skip "Time to Start First Game" and "First Game Starts In" from preset dialog
+            if var_name in ["time_to_start_first_game", "start_first_game_in"]:
+                continue
             
             # Special handling for sudden_death_game_break: show both checkbox and entry
             if var_name == "sudden_death_game_break":
@@ -2086,8 +2090,8 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
 
         def save_and_close():
             for v in entries:
-                # PATCH: Remove "start_first_game_in" from dialog value save
-                if v == "start_first_game_in":
+                # PATCH: Remove "time_to_start_first_game" and "start_first_game_in" from dialog value save
+                if v in ["time_to_start_first_game", "start_first_game_in"]:
                     continue
                 try:
                     val = entries[v].get().replace(',', '.')
