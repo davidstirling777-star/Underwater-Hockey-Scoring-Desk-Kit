@@ -21,7 +21,7 @@
   },
   "gameSettings": {
     "time_to_start_first_game": "",
-    "start_first_game_in": 3,
+    "start_first_game_in": 1,
     "team_timeouts_allowed": false,
     "team_timeout_period": 1,
     "half_period": 10,
