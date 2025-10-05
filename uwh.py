@@ -772,9 +772,7 @@ class GameManagementApp:
 
     def build_game_sequence(self):
         seq = []
-        # Always start with "First Game Starts In" period (fixed duration)
-        # Since time_to_start_first_game and start_first_game_in variables were removed,
-        # use a default of 1 minute for this initial period
+        # Always start with "First Game Starts In" period (fixed 60 second duration)
         seq.append({'name': 'First Game Starts In', 'type': 'break', 'duration': 60})
         # First Game Starts In transitions directly to First Half (no Between Game Break)
 
@@ -2215,13 +2213,10 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
                     # For variables with both checkbox and entry (like sudden_death_game_break, crib_time)
                     # Save the numeric value from the entry, not the boolean
                     value = var_info.get("value", var_info["default"])
-                    if var_name != "time_to_start_first_game":
-                        try:
-                            game_settings[var_name] = float(value) if '.' in str(value) else int(value)
-                        except (ValueError, TypeError):
-                            game_settings[var_name] = var_info["default"]
-                    else:
-                        game_settings[var_name] = value
+                    try:
+                        game_settings[var_name] = float(value) if '.' in str(value) else int(value)
+                    except (ValueError, TypeError):
+                        game_settings[var_name] = var_info["default"]
                 else:
                     # For pure checkbox variables (like team_timeouts_allowed, overtime_allowed)
                     # Save the "used" boolean value
@@ -2229,12 +2224,9 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
             else:
                 # For other variables, use the current value
                 value = var_info.get("value", var_info["default"])
-                if var_name != "time_to_start_first_game":
-                    try:
-                        game_settings[var_name] = float(value) if '.' in str(value) else int(value)
-                    except (ValueError, TypeError):
-                        game_settings[var_name] = value
-                else:
+                try:
+                    game_settings[var_name] = float(value) if '.' in str(value) else int(value)
+                except (ValueError, TypeError):
                     game_settings[var_name] = value
         
         unified_settings["gameSettings"] = game_settings

@@ -22,16 +22,16 @@
   "gameSettings": {
     "team_timeouts_allowed": true,
     "team_timeout_period": 1,
-    "half_period": 10,
+    "half_period": 15,
     "half_time_break": 3,
     "overtime_allowed": true,
-    "overtime_game_break": 1,
-    "overtime_half_period": 1,
+    "overtime_game_break": 3,
+    "overtime_half_period": 5,
     "overtime_half_time_break": 1,
     "sudden_death_game_break": 1,
-    "between_game_break": 7,
+    "between_game_break": 5,
     "record_scorers_cap_number": false,
-    "crib_time": 20
+    "crib_time": 60
   },
   "presetSettings": [
     {
