@@ -412,8 +412,10 @@ class GameManagementApp:
 
     def log_game_event(self, event_type, team=None, cap_number=None, duration=None, break_status=None):
         """
-        Log a game event to UWH_Game_Data.csv.
-        Creates the file with headers if it doesn't exist, otherwise appends.
+        Log a game event to UWH_Game_Data.txt.
+        Creates the file if it doesn't exist, otherwise appends.
+        Each event is written as a pipe-separated line with fields:
+        local_datetime|court_time|event_type|team|cap_number|duration|break_status
         
         Args:
             event_type: Type of event (e.g., "First Half Start", "Goal", "Penalty Start")
@@ -422,8 +424,6 @@ class GameManagementApp:
             duration: Duration for penalties (e.g., "2 minutes")
             break_status: Break/timeout status (e.g., "Team Time-Out", "Referee Time-Out", "Break")
         """
-        import csv
-        
         # Get current date/time
         now = datetime.datetime.now()
         local_time = now.strftime("%Y-%m-%d %H:%M:%S")
@@ -436,31 +436,26 @@ class GameManagementApp:
         else:
             court_time = "00:00:00"
         
-        # Build the row data
-        row = {
-            "local_datetime": local_time,
-            "court_time": court_time,
-            "event_type": event_type,
-            "team": team if team else "",
-            "cap_number": cap_number if cap_number else "",
-            "duration": duration if duration else "",
-            "break_status": break_status if break_status else ""
-        }
+        # Build the event data fields in order
+        fields = [
+            local_time,
+            court_time,
+            event_type,
+            team if team else "",
+            cap_number if cap_number else "",
+            duration if duration else "",
+            break_status if break_status else ""
+        ]
         
-        csv_file = os.path.join(os.getcwd(), "UWH_Game_Data.csv")
-        file_exists = os.path.exists(csv_file)
+        # Create pipe-separated line
+        event_line = "|".join(str(field) for field in fields)
+        
+        txt_file = os.path.join(os.getcwd(), "UWH_Game_Data.txt")
         
         try:
             # Open in append mode, create if doesn't exist
-            with open(csv_file, 'a', newline='') as f:
-                fieldnames = ["local_datetime", "court_time", "event_type", "team", "cap_number", "duration", "break_status"]
-                writer = csv.DictWriter(f, fieldnames=fieldnames)
-                
-                # Write header only if file is new
-                if not file_exists:
-                    writer.writeheader()
-                
-                writer.writerow(row)
+            with open(txt_file, 'a') as f:
+                f.write(event_line + "\n")
         except Exception as e:
             print(f"Error logging game event: {e}")
 

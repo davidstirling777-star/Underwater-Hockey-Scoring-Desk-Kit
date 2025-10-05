@@ -13,9 +13,9 @@ This document describes the changes made to fix issues with goal warnings during
   - "during a Referee Time-Out" for referee timeouts
   - "during a break or half time" for regular breaks
 
-### Issue 2: CSV Logging for Break/Timeout Goals
-- **Problem**: CSV logs didn't record when goals were scored during breaks or timeouts
-- **Solution**: Added new "break_status" column to CSV that records:
+### Issue 2: Text File Logging for Break/Timeout Goals
+- **Problem**: Event logs didn't record when goals were scored during breaks or timeouts
+- **Solution**: Added new "break_status" field to event logs that records:
   - "Team Time-Out" when goal scored during team timeout
   - "Referee Time-Out" when goal scored during referee timeout
   - "Break" when goal scored during a regular break
@@ -33,8 +33,8 @@ This document describes the changes made to fix issues with goal warnings during
 
 1. `uwh.py` - All changes made to this file:
    - Line 413: Updated `log_game_event()` signature to include `break_status` parameter
-   - Line 447: Added "break_status" field to CSV row data
-   - Line 456: Added "break_status" to CSV fieldnames
+   - Changed from CSV format to pipe-separated text file format (UWH_Game_Data.txt)
+   - Removed CSV DictWriter and header logic, using simple text file append
    - Line 1997: Added `build_game_sequence()` call in `_apply_button_data()`
    - Lines 3743-3786: Complete rewrite of `add_goal_with_confirmation()` logic
 
@@ -47,7 +47,7 @@ This document describes the changes made to fix issues with goal warnings during
 3. Click "Add Goal" button for either team
 4. **Expected**: Dialog shows "You are about to add a goal for [Team] during a Team Time-Out. Are you sure?"
 5. Click "Yes" to add goal
-6. **Expected**: UWH_Game_Data.csv shows "Team Time-Out" in break_status column
+6. **Expected**: UWH_Game_Data.txt shows "Team Time-Out" in break_status field
 
 ### Scenario 2: Goal During Referee Time-Out
 **Steps**:
@@ -56,7 +56,7 @@ This document describes the changes made to fix issues with goal warnings during
 3. Click "Add Goal" button for either team
 4. **Expected**: Dialog shows "You are about to add a goal for [Team] during a Referee Time-Out. Are you sure?"
 5. Click "Yes" to add goal
-6. **Expected**: UWH_Game_Data.csv shows "Referee Time-Out" in break_status column
+6. **Expected**: UWH_Game_Data.txt shows "Referee Time-Out" in break_status field
 
 ### Scenario 3: Goal During Regular Break
 **Steps**:
@@ -65,7 +65,7 @@ This document describes the changes made to fix issues with goal warnings during
 3. Click "Add Goal" button for either team
 4. **Expected**: Dialog shows "You are about to add a goal for [Team] during a break or half time. Are you sure?"
 5. Click "Yes" to add goal
-6. **Expected**: UWH_Game_Data.csv shows "Break" in break_status column
+6. **Expected**: UWH_Game_Data.txt shows "Break" in break_status field
 
 ### Scenario 4: Goal During Normal Play
 **Steps**:
@@ -73,7 +73,7 @@ This document describes the changes made to fix issues with goal warnings during
 2. During a regular game period (First Half, Second Half, etc.)
 3. Click "Add Goal" button for either team
 4. **Expected**: No warning dialog appears
-5. **Expected**: UWH_Game_Data.csv shows empty string in break_status column
+5. **Expected**: UWH_Game_Data.txt shows empty string in break_status field
 
 ### Scenario 5: Preset Button and Reset Timer
 **Steps**:
@@ -87,17 +87,18 @@ This document describes the changes made to fix issues with goal warnings during
    - Check that timer durations match the preset values
    - Verify that enabled/disabled periods (Overtime, Sudden Death, etc.) match preset settings
 
-## CSV Output Example
+## Text File Output Example
 
-After these changes, the CSV file will have this structure:
+After these changes, the text file (UWH_Game_Data.txt) will have this structure (pipe-separated):
 
-```csv
-local_datetime,court_time,event_type,team,cap_number,duration,break_status
-2024-01-15 14:30:00,00:15:30,Goal,White,5,,Team Time-Out
-2024-01-15 14:32:00,00:17:30,Goal,Black,,,Referee Time-Out
-2024-01-15 14:45:00,00:30:00,Goal,White,3,,Break
-2024-01-15 14:55:00,00:40:00,Goal,Black,7,,
 ```
+2024-01-15 14:30:00|00:15:30|Goal|White|5||Team Time-Out
+2024-01-15 14:32:00|00:17:30|Goal|Black|||Referee Time-Out
+2024-01-15 14:45:00|00:30:00|Goal|White|3||Break
+2024-01-15 14:55:00|00:40:00|Goal|Black|7||
+```
+
+Fields in order: local_datetime|court_time|event_type|team|cap_number|duration|break_status
 
 ## Code Quality
 
@@ -106,10 +107,11 @@ All changes have been validated:
 - ✅ AST validation (`python3 -m ast uwh.py`)
 - ✅ No new dependencies added
 - ✅ Minimal changes approach followed
-- ✅ Backward compatible (existing CSV logs will still work)
+- ✅ Changed from CSV format to pipe-separated text file format
 
 ## Notes
 
-- The break_status column is backward compatible - if the parameter is not provided, it defaults to an empty string
+- The break_status field is backward compatible - if the parameter is not provided, it defaults to an empty string
 - All existing code that calls `log_game_event()` without the `break_status` parameter will continue to work
-- The CSV file will automatically add the "break_status" column header when created or when first goal with break_status is logged
+- The text file uses pipe-separated format (|) for easy parsing and readability
+- Each event is written as a single line with 7 fields in order: local_datetime|court_time|event_type|team|cap_number|duration|break_status
