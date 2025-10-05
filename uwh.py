@@ -3397,39 +3397,51 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
         
         def select_cap(cap):
             selected_cap["value"] = str(cap)
-            # Highlight the selected button temporarily
-            for widget in matrix_frame.winfo_children():
-                if hasattr(widget, 'cap_value') and widget.cap_value == cap:
-                    widget.config(relief=tk.SUNKEN, bg="lightblue")
-                elif isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
-                    widget.config(relief=tk.RAISED, bg=widget.original_bg)
-            for widget in bottom_frame.winfo_children():
-                if isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
-                    widget.config(relief=tk.RAISED, bg=widget.original_bg)
+            # Highlight the selected button and keep it highlighted
+            def apply_highlight():
+                for widget in matrix_frame.winfo_children():
+                    if hasattr(widget, 'cap_value') and widget.cap_value == cap:
+                        widget.config(relief=tk.SUNKEN, bg="lightblue")
+                    elif isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
+                        widget.config(relief=tk.RAISED, bg=widget.original_bg)
+                for widget in bottom_frame.winfo_children():
+                    if isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
+                        widget.config(relief=tk.RAISED, bg=widget.original_bg)
+            # Apply immediately and schedule again to override button's default behavior
+            apply_highlight()
+            cap_number_dialog.after(1, apply_highlight)
         
         def select_unknown():
             selected_cap["value"] = "Unknown"
-            # Highlight Unknown button
-            for widget in matrix_frame.winfo_children():
-                if isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
-                    widget.config(relief=tk.RAISED, bg=widget.original_bg)
-            for widget in bottom_frame.winfo_children():
-                if hasattr(widget, 'is_unknown'):
-                    widget.config(relief=tk.SUNKEN, bg="lightblue")
-                elif isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
-                    widget.config(relief=tk.RAISED, bg=widget.original_bg)
+            # Highlight Unknown button and keep it highlighted
+            def apply_highlight():
+                for widget in matrix_frame.winfo_children():
+                    if isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
+                        widget.config(relief=tk.RAISED, bg=widget.original_bg)
+                for widget in bottom_frame.winfo_children():
+                    if hasattr(widget, 'is_unknown'):
+                        widget.config(relief=tk.SUNKEN, bg="lightblue")
+                    elif isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
+                        widget.config(relief=tk.RAISED, bg=widget.original_bg)
+            # Apply immediately and schedule again to override button's default behavior
+            apply_highlight()
+            cap_number_dialog.after(1, apply_highlight)
         
         def select_penalty_goal():
             selected_cap["value"] = "Penalty Goal"
-            # Highlight Penalty Goal button
-            for widget in matrix_frame.winfo_children():
-                if isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
-                    widget.config(relief=tk.RAISED, bg=widget.original_bg)
-            for widget in bottom_frame.winfo_children():
-                if hasattr(widget, 'is_penalty_goal'):
-                    widget.config(relief=tk.SUNKEN, bg="lightblue")
-                elif isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
-                    widget.config(relief=tk.RAISED, bg=widget.original_bg)
+            # Highlight Penalty Goal button and keep it highlighted
+            def apply_highlight():
+                for widget in matrix_frame.winfo_children():
+                    if isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
+                        widget.config(relief=tk.RAISED, bg=widget.original_bg)
+                for widget in bottom_frame.winfo_children():
+                    if hasattr(widget, 'is_penalty_goal'):
+                        widget.config(relief=tk.SUNKEN, bg="lightblue")
+                    elif isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
+                        widget.config(relief=tk.RAISED, bg=widget.original_bg)
+            # Apply immediately and schedule again to override button's default behavior
+            apply_highlight()
+            cap_number_dialog.after(1, apply_highlight)
         
         def on_ok():
             if selected_cap["value"] is not None:
