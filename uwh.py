@@ -776,7 +776,7 @@ class GameManagementApp:
 
     def build_game_sequence(self):
         seq = []
-        # Always start with "First Game Starts In" period
+        # Always start with "First Game Starts In:" period
         now = datetime.datetime.now()
         time_val = self.variables.get("time_to_start_first_game", {}).get("value", "")
         bgb_val = self.variables.get("between_game_break", {}).get("value", "1").replace(",", ".")
@@ -794,14 +794,14 @@ class GameManagementApp:
                     target = target + datetime.timedelta(days=1)
                 delta = target - now
                 minutes_to_start = int(delta.total_seconds() // 60)
-                # Subtract the Between Game Break from total time to get "First Game Starts In" duration
+                # Subtract the Between Game Break from total time to get "First Game Starts In:" duration
                 game_starts_in_minutes = max(0, minutes_to_start - int(bgb_minutes))
-        # First period: "First Game Starts In" - only runs once at app start
+        # First period: "First Game Starts In:" - only runs once at app start
         if game_starts_in_minutes is not None:
-            seq.append({'name': 'First Game Starts In', 'type': 'break', 'duration': game_starts_in_minutes * 60})
+            seq.append({'name': 'First Game Starts In:', 'type': 'break', 'duration': game_starts_in_minutes * 60})
         else:
-            seq.append({'name': 'First Game Starts In', 'type': 'break', 'duration': self.get_minutes('start_first_game_in')})
-        # First Game Starts In transitions directly to First Half (no Between Game Break)
+            seq.append({'name': 'First Game Starts In:', 'type': 'break', 'duration': self.get_minutes('start_first_game_in')})
+        # First Game Starts In: transitions directly to First Half (no Between Game Break)
 
         seq.append({'name': 'First Half', 'type': 'regular', 'duration': self.get_minutes('half_period')})
         seq.append({'name': 'Half Time', 'type': 'break', 'duration': self.get_minutes('half_time_break')})
@@ -1137,13 +1137,13 @@ class GameManagementApp:
         # Updated to reflect the new game sequence naming
         explanation_text = (
             "Game Sequence Flow:\n"
-            "1. First Game Starts In (runs once at app start)\n"
+            "1. First Game Starts In: (runs once at app start)\n"
             "2. First Half → Half Time → Second Half\n"
             "3. If scores tied: Overtime Game Break → Overtime First Half → Overtime Half Time → Overtime Second Half (if enabled)\n"
             "4. If still tied: Sudden Death Game Break → Sudden Death (if enabled)\n"
             "5. Between Game Break (loop back to step 2)\n\n"
             "Important Notes:\n"
-            "• 'First Game Starts In' transitions directly to First Half\n"
+            "• 'First Game Starts In:' transitions directly to First Half\n"
             "• Crib time is subtracted from Between Game Break"
         )
         
@@ -2012,7 +2012,7 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
             var_name = widget["name"]
             label = widget["label_widget"]
             
-            # Skip "Time to Start First Game" and "First Game Starts In" from preset dialog
+            # Skip "Time to Start First Game" and "First Game Starts In:" from preset dialog
             if var_name in ["time_to_start_first_game", "start_first_game_in"]:
                 continue
             
@@ -2876,7 +2876,7 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
         self.update_half_label_background(cur_period['name'])
 
         TIMEOUTS_DISABLED_PERIODS = [
-            "First Game Starts In",
+            "First Game Starts In:",
             "Half Time",
             "Overtime Game Break",
             "Sudden Death Game Break",
@@ -2885,7 +2885,7 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
             "Overtime Second Half",
             "Sudden Death",
         ]
-        # Always enable penalties during Referee Time-Out, even if entered from First Game Starts In
+        # Always enable penalties during Referee Time-Out, even if entered from First Game Starts In:
         if cur_period['name'] == "Referee Time-Out":
             self.penalties_button.config(state=tk.NORMAL)
             self.white_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
@@ -2893,7 +2893,7 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
         elif cur_period['name'] in TIMEOUTS_DISABLED_PERIODS:
             self.white_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
             self.black_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
-            if cur_period['name'] in ["First Game Starts In", "Between Game Break", "Half Time", "Overtime Game Break", "Sudden Death Game Break"]:
+            if cur_period['name'] in ["First Game Starts In:", "Between Game Break", "Half Time", "Overtime Game Break", "Sudden Death Game Break"]:
                 self.penalties_button.config(state=tk.DISABLED)
             else:
                 self.penalties_button.config(state=tk.NORMAL)
@@ -3065,7 +3065,7 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
             
             # Sound logic for break periods
             if cur_period and cur_period['type'] == 'break':
-                break_periods = ['First Game Starts In', 'Between Game Break', 'Half Time', 'Sudden Death Game Break', 
+                break_periods = ['First Game Starts In:', 'Between Game Break', 'Half Time', 'Sudden Death Game Break', 
                                'Overtime Game Break', 'Overtime Half Time']
                 if cur_period['name'] in break_periods:
                     if self.timer_seconds == 30:
@@ -3087,7 +3087,7 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
             if cur_period:
                 # Sound logic for when timer hits 0
                 if cur_period['type'] == 'break':
-                    break_periods = ['First Game Starts In', 'Between Game Break', 'Half Time', 'Sudden Death Game Break', 
+                    break_periods = ['First Game Starts In:', 'Between Game Break', 'Half Time', 'Sudden Death Game Break', 
                                    'Overtime Game Break', 'Overtime Half Time']
                     if cur_period['name'] in break_periods:
                         # Play siren at 0s for break periods
@@ -3249,7 +3249,7 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
 
     def update_half_label_background(self, period_name):
         red_periods = {
-            "first_game_starts_in",
+            "first_game_starts_in:",
             "game_starts_in:",
             "half_time",
             "half_time_break",
