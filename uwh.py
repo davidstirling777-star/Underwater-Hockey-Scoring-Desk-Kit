@@ -802,8 +802,7 @@ class GameManagementApp:
             seq.append({'name': 'First Game Starts In', 'type': 'break', 'duration': game_starts_in_minutes * 60})
         else:
             seq.append({'name': 'First Game Starts In', 'type': 'break', 'duration': self.get_minutes('start_first_game_in')})
-        # Between Game Break comes after first game starts countdown
-        seq.append({'name': 'Between Game Break', 'type': 'break', 'duration': self.get_minutes('between_game_break')})
+        # First Game Starts In transitions directly to First Half (no Between Game Break)
 
         seq.append({'name': 'First Half', 'type': 'regular', 'duration': self.get_minutes('half_period')})
         seq.append({'name': 'Half Time', 'type': 'break', 'duration': self.get_minutes('half_time_break')})
@@ -816,6 +815,8 @@ class GameManagementApp:
         if self.is_sudden_death_enabled():
             seq.append({'name': 'Sudden Death Game Break', 'type': 'break', 'duration': self.get_minutes('sudden_death_game_break')})
             seq.append({'name': 'Sudden Death', 'type': 'sudden_death', 'duration': None})
+        # Add Between Game Break at the end for looping back to next game
+        seq.append({'name': 'Between Game Break', 'type': 'break', 'duration': self.get_minutes('between_game_break')})
         self.full_sequence = seq
         self.current_index = 0
 
@@ -1138,13 +1139,12 @@ class GameManagementApp:
         explanation_text = (
             "Game Sequence Flow:\n"
             "1. First Game Starts In (runs once at app start)\n"
-            "2. Between Game Break\n"
-            "3. First Half → Half Time → Second Half\n"
-            "4. If scores tied: Overtime Game Break → Overtime First Half → Overtime Half Time → Overtime Second Half (if enabled)\n"
-            "5. If still tied: Sudden Death Game Break → Sudden Death (if enabled)\n"
-            "6. Between Game Break (loop back to step 2)\n\n"
+            "2. First Half → Half Time → Second Half\n"
+            "3. If scores tied: Overtime Game Break → Overtime First Half → Overtime Half Time → Overtime Second Half (if enabled)\n"
+            "4. If still tied: Sudden Death Game Break → Sudden Death (if enabled)\n"
+            "5. Between Game Break (loop back to step 2)\n\n"
             "Important Notes:\n"
-            "• 'First Game Starts In' only runs once per app opening\n"
+            "• 'First Game Starts In' transitions directly to First Half\n"
             "• Crib time is subtracted from Between Game Break"
         )
         
