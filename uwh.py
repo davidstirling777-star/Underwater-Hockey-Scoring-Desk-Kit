@@ -777,7 +777,7 @@ class GameManagementApp:
 
     def build_game_sequence(self):
         seq = []
-        # Always start with "Between Game Break Starts in:"
+        # Always start with "First Game Starts In" period
         now = datetime.datetime.now()
         time_val = self.variables.get("time_to_start_first_game", {}).get("value", "")
         bgb_val = self.variables.get("between_game_break", {}).get("value", "1").replace(",", ".")
@@ -795,7 +795,7 @@ class GameManagementApp:
                     target = target + datetime.timedelta(days=1)
                 delta = target - now
                 minutes_to_start = int(delta.total_seconds() // 60)
-                # Subtract the Between Game Break
+                # Subtract the Between Game Break from total time to get "First Game Starts In" duration
                 game_starts_in_minutes = max(0, minutes_to_start - int(bgb_minutes))
         # First period: "First Game Starts In" - only runs once at app start
         if game_starts_in_minutes is not None:
