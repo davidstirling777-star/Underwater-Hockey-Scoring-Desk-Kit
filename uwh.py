@@ -325,7 +325,6 @@ class GameManagementApp:
         self.overtime_allowed_var = tk.BooleanVar(value=self.variables["overtime_allowed"]["default"])
         self.record_scorers_cap_number_var = tk.BooleanVar(value=self.variables["record_scorers_cap_number"]["default"])
         self.referee_timeout_active = False
-        self.first_between_game_break_run = True
         self.referee_timeout_elapsed = 0
         self.referee_timeout_default_bg = "red"
         self.referee_timeout_default_fg = "black"
@@ -2771,7 +2770,6 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
         self.current_index = 0
         self.timer_running = True
         self.sudden_death_goal_scored = False
-        self.first_between_game_break_run = True  # Reset flag when timer is reset
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
@@ -3040,28 +3038,28 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
             cur_period = self.full_sequence[self.current_index] if self.full_sequence and self.current_index < len(self.full_sequence) else None
             if cur_period and cur_period['name'] == 'Between Game Break':
                 if self.timer_seconds == 30:
-                    # Only swap team names and reset game state after the first Between Game Break
-                    if not self.first_between_game_break_run:
-                        # Write game results to CSV BEFORE resetting scores
-                        current_game = self.get_current_game_number()
-                        white_score = self.white_score_var.get()
-                        black_score = self.black_score_var.get()
-                        # Copy stored_penalties before clearing
-                        penalties_to_write = list(self.stored_penalties)
-                        self.write_game_results_to_csv(current_game, white_score, black_score, penalties_to_write)
-                        
-                        # Now reset game state
-                        self.white_score_var.set(0)
-                        self.black_score_var.set(0)
-                        self.stored_penalties.clear()
-                        self.clear_all_penalties()
-                        # Advance to next game in Tournament List
-                        self.advance_to_next_game()
-                        # Update team names in scoreboard tab for the next game
-                        self.update_team_names_display()
-                    else:
-                        # Mark that the first Between Game Break has run
-                        self.first_between_game_break_run = False
+                    # Write game results to CSV/TXT BEFORE resetting scores
+                    current_game = self.get_current_game_number()
+                    white_score = self.white_score_var.get()
+                    black_score = self.black_score_var.get()
+                    # Copy stored_penalties before clearing
+                    penalties_to_write = list(self.stored_penalties)
+                    
+                    # Log game end event to TXT file
+                    self.log_game_event("Game End")
+                    
+                    # Write results to CSV file
+                    self.write_game_results_to_csv(current_game, white_score, black_score, penalties_to_write)
+                    
+                    # Now reset game state
+                    self.white_score_var.set(0)
+                    self.black_score_var.set(0)
+                    self.stored_penalties.clear()
+                    self.clear_all_penalties()
+                    # Advance to next game in Tournament List
+                    self.advance_to_next_game()
+                    # Update team names in scoreboard tab for the next game
+                    self.update_team_names_display()
                 if self.timer_seconds <= 30:
                     self.sudden_death_restore_active = False
                     self.sudden_death_restore_time = None
