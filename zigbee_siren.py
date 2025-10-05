@@ -213,8 +213,6 @@ class ZigbeeSirenController:
                 }
             if "gameSettings" not in unified_settings:
                 unified_settings["gameSettings"] = {
-                    "time_to_start_first_game": "",
-                    "start_first_game_in": 1,
                     "team_timeouts_allowed": True,
                     "team_timeout_period": 1,
                     "half_period": 1,

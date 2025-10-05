@@ -138,8 +138,6 @@ def get_default_unified_settings():
             "enable_logging": True
         },
         "gameSettings": {
-            "time_to_start_first_game": "",
-            "start_first_game_in": 1,
             "team_timeouts_allowed": True,
             "team_timeout_period": 1,
             "half_period": 1,
@@ -233,8 +231,6 @@ class GameManagementApp:
 
         # --- Variable and font setup ---
         self.variables = {
-            "time_to_start_first_game": {"default": "", "checkbox": False, "unit": "hh:mm", "label": "Time to Start First Game:"},
-            "start_first_game_in": {"default": 1, "checkbox": False, "unit": "minutes", "label": "First Game Starts In:"},
             "team_timeouts_allowed": {"default": True, "checkbox": True, "unit": "", "label": "Team time-outs allowed?"},
             "team_timeout_period": {"default": 1, "checkbox": False, "unit": "minutes"},
             "half_period": {"default": 1, "checkbox": False, "unit": "minutes"},
@@ -776,31 +772,10 @@ class GameManagementApp:
 
     def build_game_sequence(self):
         seq = []
-        # Always start with "First Game Starts In" period
-        now = datetime.datetime.now()
-        time_val = self.variables.get("time_to_start_first_game", {}).get("value", "")
-        bgb_val = self.variables.get("between_game_break", {}).get("value", "1").replace(",", ".")
-        try:
-            bgb_minutes = float(bgb_val)
-        except Exception:
-            bgb_minutes = 1.0
-        game_starts_in_minutes = None
-        if time_val:
-            match = re.fullmatch(r"(?:[0-9]|1[0-9]|2[0-3]):[0-5][0-9]", time_val.strip())
-            if match:
-                hh, mm = map(int, time_val.strip().split(":"))
-                target = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
-                if target < now:
-                    target = target + datetime.timedelta(days=1)
-                delta = target - now
-                minutes_to_start = int(delta.total_seconds() // 60)
-                # Subtract the Between Game Break from total time to get "First Game Starts In" duration
-                game_starts_in_minutes = max(0, minutes_to_start - int(bgb_minutes))
-        # First period: "First Game Starts In" - only runs once at app start
-        if game_starts_in_minutes is not None:
-            seq.append({'name': 'First Game Starts In', 'type': 'break', 'duration': game_starts_in_minutes * 60})
-        else:
-            seq.append({'name': 'First Game Starts In', 'type': 'break', 'duration': self.get_minutes('start_first_game_in')})
+        # Always start with "First Game Starts In" period (fixed duration)
+        # Since time_to_start_first_game and start_first_game_in variables were removed,
+        # use a default of 1 minute for this initial period
+        seq.append({'name': 'First Game Starts In', 'type': 'break', 'duration': 60})
         # First Game Starts In transitions directly to First Half (no Between Game Break)
 
         seq.append({'name': 'First Half', 'type': 'regular', 'duration': self.get_minutes('half_period')})
@@ -861,15 +836,14 @@ class GameManagementApp:
             tk.Label(widget1, text=h, font=(default_font.cget("family"), new_size, "bold")).grid(row=0, column=i, sticky="w", padx=5, pady=4)
         row_idx = 1
         self.widgets = []
-        # Ensure "time_to_start_first_game" is first, then "start_first_game_in" above team_timeouts_allowed
+        # Ensure "record_scorers_cap_number" is placed correctly
         entry_order = list(self.variables.keys())
-        for special_name in ["time_to_start_first_game", "start_first_game_in", "record_scorers_cap_number"]:
+        for special_name in ["record_scorers_cap_number"]:
             if special_name in entry_order:
                 entry_order.remove(special_name)
         # Insert record_scorers_cap_number before crib_time
         crib_time_index = entry_order.index("crib_time") if "crib_time" in entry_order else len(entry_order)
-        entry_order = (["time_to_start_first_game", "start_first_game_in"] + 
-                       entry_order[:crib_time_index] + 
+        entry_order = (entry_order[:crib_time_index] + 
                        ["record_scorers_cap_number"] + 
                        entry_order[crib_time_index:])
         for var_name in entry_order:
@@ -919,78 +893,60 @@ class GameManagementApp:
             label_text = var_info.get("label", f"{var_name.replace('_', ' ').title()}:")
             label_widget = tk.Label(widget1, text=label_text, font=(default_font.cget("family"), new_size, "bold"))
             label_widget.grid(row=row_idx, column=1, sticky="w", pady=4)
-            # Set up value box for time_to_start_first_game and validate as hh:mm
             entry = ttk.Entry(widget1, width=10)
-            if var_name == "time_to_start_first_game":
-                entry.insert(0, "")
-                # Only validate on focusout/return, allow any input while typing
-                def validate_hhmm_on_focusout(event):
+            entry.insert(0, "1")
+            # Special validation for numeric-only variables - only accepts numbers
+            if var_name in ["crib_time", "sudden_death_game_break"]:
+                def validate_numeric_on_focusout(event, field_name=var_name):
                     val = event.widget.get().strip()
                     if val == "":
                         return
-                    # Accept HH:MM (single or double digit hour)
-                    if not re.fullmatch(r"(?:[0-9]|1[0-9]|2[0-3]):[0-5][0-9]", val):
-                        messagebox.showerror("Input Error", "Please enter time in HH:MM 24-hour format (e.g., 19:36 or 9:36).")
+                    # Accept valid numbers (int or float with . or ,)
+                    try:
+                        # Replace comma with dot for European decimal notation
+                        val_normalized = val.replace(',', '.')
+                        val_float = float(val_normalized)  # Test if it's a valid number
+                        
+                        # Special validation for crib_time: check against between_game_break
+                        if field_name == "crib_time":
+                            # Get current between_game_break value
+                            between_game_break_minutes = None
+                            for widget in self.widgets:
+                                if widget["name"] == "between_game_break":
+                                    try:
+                                        bgb_val = widget["entry"].get().strip().replace(',', '.')
+                                        between_game_break_minutes = float(bgb_val)
+                                    except (ValueError, AttributeError):
+                                        pass
+                                    break
+                            
+                            # If we have a between_game_break value, validate the condition
+                            if between_game_break_minutes is not None:
+                                crib_time_seconds = val_float
+                                if (between_game_break_minutes * 60) - crib_time_seconds <= 31:
+                                    messagebox.showerror("Input Error", "Crib time too large. Between Game Break minus Crib time must be > 31 seconds.")
+                                    event.widget.delete(0, tk.END)
+                                    event.widget.insert(0, self.last_valid_values[field_name])
+                                    event.widget.focus_set()
+                                    event.widget.selection_range(0, tk.END)
+                                    return
+                        
+                        # Update last valid value if validation passes
+                        self.last_valid_values[field_name] = val
+                        self._on_single_variable_change(field_name)
+                    except ValueError:
+                        # Show error and restore last valid value
+                        messagebox.showerror("Input Error", f"Please enter a valid number for {field_name.replace('_', ' ').title()}.")
+                        event.widget.delete(0, tk.END)
+                        event.widget.insert(0, self.last_valid_values[field_name])
                         event.widget.focus_set()
                         event.widget.selection_range(0, tk.END)
-                        return
-                    self._on_single_variable_change("time_to_start_first_game")
-                entry.bind("<FocusOut>", validate_hhmm_on_focusout)
-                entry.bind("<Return>", validate_hhmm_on_focusout)
+                
+                entry.bind("<FocusOut>", validate_numeric_on_focusout)
+                entry.bind("<Return>", validate_numeric_on_focusout)
             else:
-                entry.insert(0, "1")
-                # Special validation for numeric-only variables - only accepts numbers
-                if var_name in ["crib_time", "sudden_death_game_break"]:
-                    def validate_numeric_on_focusout(event, field_name=var_name):
-                        val = event.widget.get().strip()
-                        if val == "":
-                            return
-                        # Accept valid numbers (int or float with . or ,)
-                        try:
-                            # Replace comma with dot for European decimal notation
-                            val_normalized = val.replace(',', '.')
-                            val_float = float(val_normalized)  # Test if it's a valid number
-                            
-                            # Special validation for crib_time: check against between_game_break
-                            if field_name == "crib_time":
-                                # Get current between_game_break value
-                                between_game_break_minutes = None
-                                for widget in self.widgets:
-                                    if widget["name"] == "between_game_break":
-                                        try:
-                                            bgb_val = widget["entry"].get().strip().replace(',', '.')
-                                            between_game_break_minutes = float(bgb_val)
-                                        except (ValueError, AttributeError):
-                                            pass
-                                        break
-                                
-                                # If we have a between_game_break value, validate the condition
-                                if between_game_break_minutes is not None:
-                                    crib_time_seconds = val_float
-                                    if (between_game_break_minutes * 60) - crib_time_seconds <= 31:
-                                        messagebox.showerror("Input Error", "Crib time too large. Between Game Break minus Crib time must be > 31 seconds.")
-                                        event.widget.delete(0, tk.END)
-                                        event.widget.insert(0, self.last_valid_values[field_name])
-                                        event.widget.focus_set()
-                                        event.widget.selection_range(0, tk.END)
-                                        return
-                            
-                            # Update last valid value if validation passes
-                            self.last_valid_values[field_name] = val
-                            self._on_single_variable_change(field_name)
-                        except ValueError:
-                            # Show error and restore last valid value
-                            messagebox.showerror("Input Error", f"Please enter a valid number for {field_name.replace('_', ' ').title()}.")
-                            event.widget.delete(0, tk.END)
-                            event.widget.insert(0, self.last_valid_values[field_name])
-                            event.widget.focus_set()
-                            event.widget.selection_range(0, tk.END)
-                    
-                    entry.bind("<FocusOut>", validate_numeric_on_focusout)
-                    entry.bind("<Return>", validate_numeric_on_focusout)
-                else:
-                    entry.bind("<FocusOut>", lambda e, name=var_name: self._on_single_variable_change(name))
-                    entry.bind("<Return>", lambda e, name=var_name: self._on_single_variable_change(name))
+                entry.bind("<FocusOut>", lambda e, name=var_name: self._on_single_variable_change(name))
+                entry.bind("<Return>", lambda e, name=var_name: self._on_single_variable_change(name))
             entry.grid(row=row_idx, column=2, sticky="w", padx=5, pady=4)
             tk.Label(widget1, text=var_info["unit"], font=(default_font.cget("family"), new_size, "bold")).grid(row=row_idx, column=3, sticky="w", padx=5, pady=4)
             self.widgets.append({"name": var_name, "entry": entry, "checkbox": check_var, "label_widget": label_widget})
@@ -1945,9 +1901,6 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
         # Apply saved values and checkboxes for all widgets
         for widget in self.widgets:
             var_name = widget["name"]
-            # Do not apply preset to "start_first_game_in"
-            if var_name == "start_first_game_in":
-                continue
             if widget["checkbox"] is not None:
                 val = self.button_data[idx]["checkboxes"].get(var_name, widget["checkbox"].get())
                 widget["checkbox"].set(val)
@@ -2086,9 +2039,6 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
 
         def save_and_close():
             for v in entries:
-                # PATCH: Remove "start_first_game_in" from dialog value save
-                if v == "start_first_game_in":
-                    continue
                 try:
                     val = entries[v].get().replace(',', '.')
                     float(val)
@@ -2142,96 +2092,12 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
                     self.variables[var_name]["used"] = widget["checkbox"].get()
                 break
         
-        # Recalculate start_first_game_in if time_to_start_first_game or between_game_break changed
-        if var_name in ["time_to_start_first_game", "between_game_break"]:
-            self._update_start_first_game_in()
-        
         # Rebuild game sequence and save settings
         self.build_game_sequence()
         self.save_game_settings()
     
-    def _update_start_first_game_in(self):
-        """Update only the start_first_game_in calculated field."""
-        time_entry_val = None
-        between_game_break_val = None
-        start_first_game_in_widget = None
-        
-        for widget in self.widgets:
-            if widget["name"] == "time_to_start_first_game":
-                time_entry_val = widget["entry"].get().strip()
-            elif widget["name"] == "between_game_break":
-                between_game_break_val = widget["entry"].get().replace(",", ".")
-            elif widget["name"] == "start_first_game_in":
-                start_first_game_in_widget = widget["entry"]
-        
-        # Calculate start_first_game_in value if time is valid
-        minutes_to_start = None
-        now = datetime.datetime.now()
-        if time_entry_val:
-            try:
-                time_match = re.match(r"^([01][0-9]|2[0-3]):[0-5][0-9]$", time_entry_val)
-                if time_match:
-                    hh, mm = map(int, time_entry_val.split(":"))
-                    target = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
-                    if target < now:
-                        target = target + datetime.timedelta(days=1)
-                    delta = target - now
-                    minutes_to_start = int(delta.total_seconds() // 60)
-            except Exception:
-                minutes_to_start = None
-        
-        try:
-            bgb_minutes = float(between_game_break_val) if between_game_break_val else 0.0
-        except Exception:
-            bgb_minutes = 0.0
-        
-        if minutes_to_start is not None and start_first_game_in_widget is not None:
-            value = max(0, minutes_to_start - int(bgb_minutes))
-            start_first_game_in_widget.delete(0, tk.END)
-            start_first_game_in_widget.insert(0, str(value))
-            self.variables["start_first_game_in"]["value"] = str(value)
-
     def load_settings(self):
-        # Calculate "Start First Game In" from "Time to Start First Game" minus "Between Game Break"
-        time_entry_val = None
-        between_game_break_val = None
-        start_first_game_in_widget = None
-        for widget in self.widgets:
-            if widget["name"] == "time_to_start_first_game":
-                time_entry_val = widget["entry"].get().strip()
-            elif widget["name"] == "between_game_break":
-                between_game_break_val = widget["entry"].get().replace(",", ".")
-            elif widget["name"] == "start_first_game_in":
-                start_first_game_in_widget = widget["entry"]
-        # Calculate start_first_game_in value if time is valid
-        minutes_to_start = None
-        now = datetime.datetime.now()
-        if time_entry_val:
-            try:
-                # Allow single or double digit hour, always two digit minute
-                # Use strict 24-hour regex
-                time_match = re.match(r"^([01][0-9]|2[0-3]):[0-5][0-9]$", time_entry_val)
-                if time_match:
-                    hh, mm = map(int, time_entry_val.split(":"))
-                    target = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
-                    # If target time already passed today, assume it's tomorrow
-                    if target < now:
-                        target = target + datetime.timedelta(days=1)
-                    delta = target - now
-                    minutes_to_start = int(delta.total_seconds() // 60)
-            except Exception:
-                minutes_to_start = None
-        try:
-            # Between game break (minutes), allow comma/dot decimal
-            bgb_minutes = float(between_game_break_val) if between_game_break_val else 0.0
-        except Exception:
-            bgb_minutes = 0.0
-        if minutes_to_start is not None and start_first_game_in_widget is not None:
-            value = max(0, minutes_to_start - int(bgb_minutes))
-            start_first_game_in_widget.delete(0, tk.END)
-            start_first_game_in_widget.insert(0, str(value))
-            self.variables["start_first_game_in"]["value"] = str(value)
-        # Set all other values normally
+        # Set all values normally
         for widget in self.widgets:
             entry = widget["entry"]
             var_name = widget["name"]
