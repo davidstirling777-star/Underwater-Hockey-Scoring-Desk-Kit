@@ -410,7 +410,7 @@ class GameManagementApp:
         self.sync_penalty_display_to_external()
         self.reset_timer()  # <-- moved here, after display window creation
 
-    def log_game_event(self, event_type, team=None, cap_number=None, duration=None):
+    def log_game_event(self, event_type, team=None, cap_number=None, duration=None, break_status=None):
         """
         Log a game event to UWH_Game_Data.csv.
         Creates the file with headers if it doesn't exist, otherwise appends.
@@ -420,6 +420,7 @@ class GameManagementApp:
             team: Team name for goals and penalties (White/Black)
             cap_number: Cap number for penalties
             duration: Duration for penalties (e.g., "2 minutes")
+            break_status: Break/timeout status (e.g., "Team Time-Out", "Referee Time-Out", "Break")
         """
         import csv
         
@@ -442,7 +443,8 @@ class GameManagementApp:
             "event_type": event_type,
             "team": team if team else "",
             "cap_number": cap_number if cap_number else "",
-            "duration": duration if duration else ""
+            "duration": duration if duration else "",
+            "break_status": break_status if break_status else ""
         }
         
         csv_file = os.path.join(os.getcwd(), "UWH_Game_Data.csv")
@@ -451,7 +453,7 @@ class GameManagementApp:
         try:
             # Open in append mode, create if doesn't exist
             with open(csv_file, 'a', newline='') as f:
-                fieldnames = ["local_datetime", "court_time", "event_type", "team", "cap_number", "duration"]
+                fieldnames = ["local_datetime", "court_time", "event_type", "team", "cap_number", "duration", "break_status"]
                 writer = csv.DictWriter(f, fieldnames=fieldnames)
                 
                 # Write header only if file is new
@@ -1991,6 +1993,9 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
                 return
         
         self.load_settings()
+        # Fix: Rebuild game sequence after applying preset settings so Reset button uses new values
+        self.build_game_sequence()
+
 
     def _open_button_dialog(self, idx):
         dlg = tk.Toplevel(self.master)
@@ -3737,12 +3742,25 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
 
     def add_goal_with_confirmation(self, score_var, team_name):
         cur_period = self.full_sequence[self.current_index]
-        is_break = (cur_period['type'] == 'break'
-            or cur_period['name'] in ["White Team Time-Out", "Black Team Time-Out"])
-        if is_break:
+        is_team_timeout = cur_period['name'] in ["White Team Time-Out", "Black Team Time-Out"]
+        is_referee_timeout = self.referee_timeout_active
+        is_break = cur_period['type'] == 'break'
+        
+        # Determine if we should show a warning and what message to use
+        show_warning = is_break or is_team_timeout or is_referee_timeout
+        
+        if show_warning:
+            # Customize the warning message based on the situation
+            if is_team_timeout:
+                warning_msg = f"You are about to add a goal for {team_name} during a Team Time-Out. Are you sure?"
+            elif is_referee_timeout:
+                warning_msg = f"You are about to add a goal for {team_name} during a Referee Time-Out. Are you sure?"
+            else:
+                warning_msg = f"You are about to add a goal for {team_name} during a break or half time. Are you sure?"
+            
             if not messagebox.askyesno(
                 "Add Goal During Break?",
-                f"You are about to add a goal for {team_name} during a break or half time. Are you sure?"
+                warning_msg
             ):
                 return
         
@@ -3756,8 +3774,16 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
         
         score_var.set(score_var.get() + 1)
         
-        # Log the goal with cap number
-        self.log_game_event("Goal", team=team_name, cap_number=cap_number)
+        # Log the goal with cap number and break/timeout status
+        break_status = None
+        if is_team_timeout:
+            break_status = "Team Time-Out"
+        elif is_referee_timeout:
+            break_status = "Referee Time-Out"
+        elif is_break:
+            break_status = "Break"
+        
+        self.log_game_event("Goal", team=team_name, cap_number=cap_number, break_status=break_status)
 
 #Saves the current Sudden Death timer value (self.sudden_death_seconds) for possible restoration (for example, if the goal is later subtracted).
 #Flags that a goal has been scored in Sudden Death (prevents this block from running again).
