@@ -2853,6 +2853,9 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
 
         # Shorten Between Game Break if court time is behind local time (paused for ref timeout etc)
         if cur_period['name'] == "Between Game Break":
+            # Reset Between Game Break to configured duration before applying crib time adjustment
+            cur_period['duration'] = self.get_minutes('between_game_break')
+            
             now = datetime.datetime.now()
             local_seconds = now.hour * 3600 + now.minute * 60 + now.second
             court_seconds = self.court_time_seconds
@@ -2864,9 +2867,12 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
                     crib_time = int(float(crib_var.get("value", crib_var["default"])))
                 except Exception:
                     crib_time = 0
+                # Only reduce by crib_time maximum, never by more
                 reduce_by = min(delta, crib_time)
                 if reduce_by > 0 and cur_period['duration'] is not None:
-                    cur_period['duration'] = max(0, cur_period['duration'] - reduce_by)
+                    # Ensure minimum duration is preserved (>31 seconds as per validation)
+                    new_duration = cur_period['duration'] - reduce_by
+                    cur_period['duration'] = max(32, new_duration)
 
         if cur_period['name'] in ['First Half', 'Second Half', 'Between Game Break']:
             self.white_timeouts_this_half = 0
