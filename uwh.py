@@ -1865,7 +1865,7 @@ class GameManagementApp:
         save_config_btn.grid(row=3, column=0, columnspan=2, pady=5)
         
         # Manual Siren Test Button
-        test_siren_btn = tk.Button(main_frame, text="Test Wireless Siren", font=("Arial", 11),
+        test_siren_btn = tk.Button(main_frame, text="Test Siren via MQTT", font=("Arial", 11),
                                  command=self.test_wireless_siren)
         test_siren_btn.grid(row=3, column=2, columnspan=2, pady=5)
         

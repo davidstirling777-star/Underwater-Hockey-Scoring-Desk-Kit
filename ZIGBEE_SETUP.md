@@ -150,7 +150,7 @@ All UWH application settings are now stored in a unified `settings.json` file in
 The application automatically creates this file with default settings on first run. You can edit it directly or use the application's UI tabs to modify settings. Changes made through the UI are automatically saved to this file.
 
 ### 4. Test Siren
-- Click "Test Wireless Siren" to test the siren manually
+- Click "Test Siren via MQTT" to test the siren manually
 - Press your physical Zigbee button to test wireless triggering
 
 ## Sound Configuration
@@ -201,7 +201,7 @@ pip install paho-mqtt
 ### Audio Issues
 
 **Problem:** Siren doesn't play when button is pressed
-1. Test manual siren: Click "Test Wireless Siren"
+1. Test manual siren: Click "Test Siren via MQTT"
 2. Check sound file configuration in Sounds tab
 3. Verify audio system is working: `aplay /usr/share/sounds/alsa/Front_Left.wav`
 4. Check volume levels in Sounds tab
