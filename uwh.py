@@ -507,7 +507,7 @@ class GameManagementApp:
         self.referee_timeout_timer_label = tk.Label(
             tab, textvariable=self.referee_timeout_timer_var, 
             font=self.fonts["referee_timeout_timer"], 
-            bg="orange", fg="white"
+            bg="red", fg="white"
         )
         self.referee_timeout_timer_label.grid(row=8, column=3, rowspan=1, columnspan=3, padx=1, pady=1, sticky="nsew")
         self.referee_timeout_timer_label.grid_remove()  # Hide initially
@@ -2758,7 +2758,7 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
         self.display_referee_timeout_timer_label = tk.Label(
             tab, textvariable=self.referee_timeout_timer_var, 
             font=self.display_fonts["referee_timeout_timer"], 
-            bg="orange", fg="white"
+            bg="red", fg="white"
         )
         self.display_referee_timeout_timer_label.grid(row=10, column=3, rowspan=1, columnspan=3, padx=1, pady=1, sticky="nsew")
         self.display_referee_timeout_timer_label.grid_remove()  # Hide initially
@@ -3738,8 +3738,6 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
         if not self.referee_timeout_active:
             return
         mins, secs = divmod(self.referee_timeout_elapsed, 60)
-        # Event-driven: Update the StringVar instead of calling .config()
-        self.timer_var.set(f"{int(mins):02d}:{int(secs):02d}")
         # Update the referee timeout timer label
         self.referee_timeout_timer_var.set(f"Referee Time-Out: {int(mins):02d}:{int(secs):02d}")
         self.referee_timeout_elapsed += 1
