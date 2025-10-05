@@ -3067,7 +3067,7 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
             
             # Sound logic for break periods
             if cur_period and cur_period['type'] == 'break':
-                break_periods = ['Between Game Break', 'Half Time', 'Sudden Death Game Break', 
+                break_periods = ['First Game Starts In', 'Between Game Break', 'Half Time', 'Sudden Death Game Break', 
                                'Overtime Game Break', 'Overtime Half Time']
                 if cur_period['name'] in break_periods:
                     if self.timer_seconds == 30:
@@ -3089,7 +3089,7 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
             if cur_period:
                 # Sound logic for when timer hits 0
                 if cur_period['type'] == 'break':
-                    break_periods = ['Between Game Break', 'Half Time', 'Sudden Death Game Break', 
+                    break_periods = ['First Game Starts In', 'Between Game Break', 'Half Time', 'Sudden Death Game Break', 
                                    'Overtime Game Break', 'Overtime Half Time']
                     if cur_period['name'] in break_periods:
                         # Play siren at 0s for break periods
@@ -3251,6 +3251,7 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
 
     def update_half_label_background(self, period_name):
         red_periods = {
+            "first_game_starts_in",
             "game_starts_in:",
             "half_time",
             "half_time_break",
