@@ -108,5 +108,5 @@ game_variables_tab_screenshot.png
 game_variables_after_change.png
 screenshot_*.png
 
-# Game data CSV logs
-UWH_Game_Data.csv
+# Game data text logs
+UWH_Game_Data.txt
