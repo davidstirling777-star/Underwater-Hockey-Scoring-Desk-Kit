@@ -3000,10 +3000,11 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
             self.start_current_period()
             return
         self.current_index += 1
-        # Removed the problematic logic that skips Between Game Break before First Half
-        # The sequence should proceed normally: Between Game Break -> First Half
+        # After Between Game Break at the end of sequence, loop back to First Half
         if self.current_index >= len(self.full_sequence):
-            self.current_index = self.find_period_index('Between Game Break')
+            # Find First Half to loop back to regular game
+            first_half_idx = self.find_period_index('First Half')
+            self.current_index = first_half_idx
             self.start_current_period()
             return
         self.start_current_period()
