@@ -2775,6 +2775,8 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
             self.timer_job = None
         self.sudden_death_timer_job = None
         self.sudden_death_seconds = 0
+        # Rebuild game sequence to reflect any settings changes (e.g., cleared "Time to Start First Game")
+        self.build_game_sequence()
         if self.full_sequence:
             self.timer_seconds = self.full_sequence[0]["duration"]
             # Event-driven: Update the StringVar instead of calling .config()
