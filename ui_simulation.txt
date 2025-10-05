@@ -108,9 +108,10 @@
 108|
 109| GAME LOGIC FLOW:
 110| ===============
-111| 1. Start First Game At This Time → First Half → Half Time → Second Half
-112| 2. If scores tied at end AND overtime enabled: → Overtime periods
-113| 3. If scores still tied after overtime AND sudden death enabled: → Sudden Death
-114| 4. After Between Game Break: loop back to First Half (unless overtime/sudden death)
+111| 1. First Game Starts In → Between Game Break → First Half → Half Time → Second Half
+112| 2. If scores tied at end AND overtime enabled: → Overtime Game Break → Overtime First Half → Overtime Half Time → Overtime Second Half
+113| 3. If scores still tied after overtime AND sudden death enabled: → Sudden Death Game Break → Sudden Death
+114| 4. After game ends: Between Game Break → loop back to First Half
 115| 5. Special handling for goals added during breaks (can trigger overtime/sudden death)
 116| 6. Referee time-out pauses all timers, resumes on toggle
+117| 7. "First Game Starts In" only runs once at app opening
