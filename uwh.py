@@ -410,7 +410,7 @@ class GameManagementApp:
         self.sync_penalty_display_to_external()
         self.reset_timer()  # <-- moved here, after display window creation
 
-    def log_game_event(self, event_type, team=None, cap_number=None, duration=None):
+    def log_game_event(self, event_type, team=None, cap_number=None, duration=None, period_context=None):
         """
         Log a game event to UWH_Game_Data.csv.
         Creates the file with headers if it doesn't exist, otherwise appends.
@@ -420,6 +420,8 @@ class GameManagementApp:
             team: Team name for goals and penalties (White/Black)
             cap_number: Cap number for penalties
             duration: Duration for penalties (e.g., "2 minutes")
+            period_context: Period context for goals (e.g., "Referee Time-Out", "White Team Time-Out", "Half Time")
+                           Used to mark if goal was added during break or timeout
         """
         import csv
         
@@ -435,14 +437,15 @@ class GameManagementApp:
         else:
             court_time = "00:00:00"
         
-        # Build the row data
+        # Build the row data with new period_context field
         row = {
             "local_datetime": local_time,
             "court_time": court_time,
             "event_type": event_type,
             "team": team if team else "",
             "cap_number": cap_number if cap_number else "",
-            "duration": duration if duration else ""
+            "duration": duration if duration else "",
+            "period_context": period_context if period_context else ""
         }
         
         csv_file = os.path.join(os.getcwd(), "UWH_Game_Data.csv")
@@ -451,7 +454,8 @@ class GameManagementApp:
         try:
             # Open in append mode, create if doesn't exist
             with open(csv_file, 'a', newline='') as f:
-                fieldnames = ["local_datetime", "court_time", "event_type", "team", "cap_number", "duration"]
+                # Updated fieldnames to include period_context
+                fieldnames = ["local_datetime", "court_time", "event_type", "team", "cap_number", "duration", "period_context"]
                 writer = csv.DictWriter(f, fieldnames=fieldnames)
                 
                 # Write header only if file is new
@@ -2774,6 +2778,12 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
             self.timer_job = None
         self.sudden_death_timer_job = None
         self.sudden_death_seconds = 0
+        
+        # BUGFIX: Rebuild game sequence to reflect any preset changes before starting
+        # This ensures that if presets were applied, the new variable values are used
+        self.load_settings()  # Load current settings from UI widgets
+        self.build_game_sequence()  # Rebuild sequence with updated values
+        
         if self.full_sequence:
             self.timer_seconds = self.full_sequence[0]["duration"]
             # Event-driven: Update the StringVar instead of calling .config()
@@ -3737,13 +3747,23 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
 
     def add_goal_with_confirmation(self, score_var, team_name):
         cur_period = self.full_sequence[self.current_index]
-        is_break = (cur_period['type'] == 'break'
-            or cur_period['name'] in ["White Team Time-Out", "Black Team Time-Out"])
-        if is_break:
-            if not messagebox.askyesno(
-                "Add Goal During Break?",
-                f"You are about to add a goal for {team_name} during a break or half time. Are you sure?"
-            ):
+        
+        # Determine the type of break/timeout for warning and logging
+        is_team_timeout = cur_period['name'] in ["White Team Time-Out", "Black Team Time-Out"]
+        is_referee_timeout = self.referee_timeout_active
+        is_regular_break = cur_period['type'] == 'break'
+        
+        # Show warning dialog if goal is added during any break or timeout
+        if is_team_timeout or is_referee_timeout or is_regular_break:
+            # Determine specific warning message
+            if is_team_timeout:
+                warning_message = f"Goal added during a Team Time-Out.\n\nYou are about to add a goal for {team_name}. Are you sure?"
+            elif is_referee_timeout:
+                warning_message = f"Goal added during a Referee Time-Out.\n\nYou are about to add a goal for {team_name}. Are you sure?"
+            else:
+                warning_message = f"You are about to add a goal for {team_name} during a break or half time. Are you sure?"
+            
+            if not messagebox.askyesno("Add Goal During Break?", warning_message):
                 return
         
         # Get cap number if recording is enabled
@@ -3756,8 +3776,17 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
         
         score_var.set(score_var.get() + 1)
         
-        # Log the goal with cap number
-        self.log_game_event("Goal", team=team_name, cap_number=cap_number)
+        # Log the goal with cap number and period context for CSV tracking
+        # Store current period name for context logging
+        period_context = ""
+        if is_referee_timeout:
+            period_context = "Referee Time-Out"
+        elif is_team_timeout:
+            period_context = cur_period['name']  # "White Team Time-Out" or "Black Team Time-Out"
+        elif is_regular_break:
+            period_context = cur_period['name']  # e.g., "Half Time", "Between Game Break"
+        
+        self.log_game_event("Goal", team=team_name, cap_number=cap_number, period_context=period_context)
 
 #Saves the current Sudden Death timer value (self.sudden_death_seconds) for possible restoration (for example, if the goal is later subtracted).
 #Flags that a goal has been scored in Sudden Death (prevents this block from running again).
