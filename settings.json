@@ -26,7 +26,7 @@
     "team_timeout_period": 1,
     "half_period": 10,
     "half_time_break": 3,
-    "overtime_allowed": true,
+    "overtime_allowed": false,
     "overtime_game_break": 1,
     "overtime_half_period": 1,
     "overtime_half_time_break": 1,
