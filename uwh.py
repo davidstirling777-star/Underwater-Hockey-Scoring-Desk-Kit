@@ -3724,7 +3724,7 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
             self.pause_all_penalty_timers()
             self.referee_timeout_elapsed = 0
             # Event-driven: Update the StringVar instead of calling .config()
-            self.half_label_var.set("Referee Time-Out")
+            self.half_label_var.set("Ref Time-Out")
             self.half_label.config(bg="red")
             # Show the referee timeout timer label
             self.referee_timeout_timer_label.grid()
@@ -3778,7 +3778,7 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
             return
         mins, secs = divmod(self.referee_timeout_elapsed, 60)
         # Update the referee timeout timer label
-        self.referee_timeout_timer_var.set(f"Referee Time-Out: {int(mins):02d}:{int(secs):02d}")
+        self.referee_timeout_timer_var.set(f"Ref Time-Out: {int(mins):02d}:{int(secs):02d}")
         self.referee_timeout_elapsed += 1
         self.timer_job = self.master.after(1000, self.referee_timeout_countup)
 
