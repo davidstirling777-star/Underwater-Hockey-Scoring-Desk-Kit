@@ -58,6 +58,41 @@ def is_usb_dongle_connected():
     
     return False
 
+def open_folder_in_file_manager(folder_path):
+    """
+    Open a folder in the system's file manager.
+    
+    Cross-platform support:
+    - Windows: Uses explorer.exe
+    - macOS: Uses open command
+    - Linux: Uses xdg-open
+    
+    Args:
+        folder_path: Absolute path to the folder to open
+    """
+    import platform
+    
+    if not os.path.exists(folder_path):
+        messagebox.showerror("Error", f"Folder does not exist:\n{folder_path}")
+        return
+    
+    system = platform.system()
+    
+    try:
+        if system == 'Windows':
+            # Windows: Use explorer
+            subprocess.run(['explorer', os.path.normpath(folder_path)], check=True)
+        elif system == 'Darwin':
+            # macOS: Use open
+            subprocess.run(['open', folder_path], check=True)
+        else:
+            # Linux and other Unix-like systems: Use xdg-open
+            subprocess.run(['xdg-open', folder_path], check=True)
+    except subprocess.CalledProcessError as e:
+        messagebox.showerror("Error", f"Failed to open folder:\n{e}")
+    except FileNotFoundError:
+        messagebox.showerror("Error", f"File manager command not found on {system}")
+
 def migrate_legacy_settings():
     """Migrate settings from legacy separate files to unified settings.json"""
     unified_settings = get_default_unified_settings()
@@ -1092,10 +1127,11 @@ class GameManagementApp:
         widget4.grid_rowconfigure(0, weight=0)  # Header
         widget4.grid_rowconfigure(1, weight=0)  # CSV dropdown label
         widget4.grid_rowconfigure(2, weight=0)  # CSV dropdown
-        widget4.grid_rowconfigure(3, weight=0)  # Game number label  
-        widget4.grid_rowconfigure(4, weight=0)  # Game number dropdown
-        widget4.grid_rowconfigure(5, weight=0)  # Comment label - ADDED
-        widget4.grid_rowconfigure(6, weight=1)  # Spacer - UPDATED index
+        widget4.grid_rowconfigure(3, weight=0)  # Open Folder button - NEW
+        widget4.grid_rowconfigure(4, weight=0)  # Game number label  
+        widget4.grid_rowconfigure(5, weight=0)  # Game number dropdown
+        widget4.grid_rowconfigure(6, weight=0)  # Comment label
+        widget4.grid_rowconfigure(7, weight=1)  # Spacer
         
         # Add header
         tournament_header = tk.Label(widget4, text="Tournament List", font=(default_font.cget("family"), new_size, "bold"))
@@ -1111,13 +1147,19 @@ class GameManagementApp:
         csv_dropdown.grid(row=2, column=0, columnspan=2, sticky="ew", padx=8, pady=2)
         csv_dropdown.bind("<<ComboboxSelected>>", self.on_csv_file_changed)
         
+        # Open Folder button
+        open_folder_btn = tk.Button(widget4, text="Open Folder", 
+                                    font=(default_font.cget("family"), default_font.cget("size")),
+                                    command=self.open_csv_folder)
+        open_folder_btn.grid(row=3, column=0, columnspan=2, sticky="ew", padx=8, pady=(2,8))
+        
         # Starting game number selection
-        tk.Label(widget4, text="Starting Game #:", font=(default_font.cget("family"), default_font.cget("size")), anchor="w").grid(row=3, column=0, sticky="w", padx=8, pady=(8,2))
+        tk.Label(widget4, text="Starting Game #:", font=(default_font.cget("family"), default_font.cget("size")), anchor="w").grid(row=4, column=0, sticky="w", padx=8, pady=(8,2))
         
         self.game_numbers = []
         self.starting_game_var = tk.StringVar(value="")
         self.starting_game_dropdown = ttk.Combobox(widget4, textvariable=self.starting_game_var, values=self.game_numbers, state="readonly", width=10)
-        self.starting_game_dropdown.grid(row=4, column=0, columnspan=2, sticky="ew", padx=8, pady=2)
+        self.starting_game_dropdown.grid(row=5, column=0, columnspan=2, sticky="ew", padx=8, pady=2)
         
         # Add callback to update game number display when user selects different game
         self.starting_game_dropdown.bind('<<ComboboxSelected>>', self.on_game_selection_changed)
@@ -1129,7 +1171,7 @@ class GameManagementApp:
         csv_comment = tk.Label(widget4, text="Save a CSV file of games into the same folder as this program is in.\nExpected CSV headers: date,#,White,Score,Black,Score,Referees,Penalties\n(where # is the Game Number)", 
                               font=(default_font.cget("family"), default_font.cget("size") - 1),
                               anchor="w", justify="left", wraplength=600)
-        csv_comment.grid(row=5, column=0, columnspan=2, sticky="w", padx=8, pady=(4,8))
+        csv_comment.grid(row=6, column=0, columnspan=2, sticky="w", padx=8, pady=(4,8))
 
         # Widget 3 (Game Sequence Explanation) - Bottom right - height reduced for snug text
         widget3 = ttk.Frame(tab, borderwidth=1, relief="solid")
@@ -1551,6 +1593,18 @@ class GameManagementApp:
     def on_game_selection_changed(self, event=None):
         """Handle manual game selection change from dropdown."""
         self.update_game_number_display()
+
+    def open_csv_folder(self):
+        """Open the folder containing CSV files in the system file manager."""
+        csv_file = self.csv_var.get() if hasattr(self, 'csv_var') else None
+        
+        if not csv_file or csv_file == "No CSV files found":
+            messagebox.showinfo("Info", "No CSV file selected")
+            return
+        
+        # Get the directory containing the CSV file
+        csv_folder = os.getcwd()
+        open_folder_in_file_manager(csv_folder)
 
     def create_sounds_tab(self):
         tab = ttk.Frame(self.notebook)
