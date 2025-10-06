@@ -2173,9 +2173,13 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
                     self.variables[var_name]["used"] = widget["checkbox"].get()
                 break
         
-        # Recalculate start_first_game_in if time_to_start_first_game or between_game_break changed
+        # Synchronize the two time fields bidirectionally
         if var_name in ["time_to_start_first_game", "between_game_break"]:
+            # Update start_first_game_in when time_to_start_first_game or between_game_break changes
             self._update_start_first_game_in()
+        elif var_name == "start_first_game_in":
+            # Update time_to_start_first_game when start_first_game_in changes
+            self._update_time_to_start_first_game()
         
         # Only rebuild game sequence if the variable affects the sequence structure
         # Variables that don't affect game sequence: record_scorers_cap_number, team_timeouts_allowed, crib_time
@@ -2225,6 +2229,49 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
             start_first_game_in_widget.delete(0, tk.END)
             start_first_game_in_widget.insert(0, str(value))
             self.variables["start_first_game_in"]["value"] = str(value)
+    
+    def _update_time_to_start_first_game(self):
+        """Update time_to_start_first_game based on start_first_game_in."""
+        start_first_game_in_val = None
+        between_game_break_val = None
+        time_widget = None
+        
+        for widget in self.widgets:
+            if widget["name"] == "start_first_game_in":
+                start_first_game_in_val = widget["entry"].get().strip()
+            elif widget["name"] == "between_game_break":
+                between_game_break_val = widget["entry"].get().replace(",", ".")
+            elif widget["name"] == "time_to_start_first_game":
+                time_widget = widget["entry"]
+        
+        # Calculate time_to_start_first_game if start_first_game_in is valid
+        if start_first_game_in_val and time_widget is not None:
+            try:
+                # Parse start_first_game_in as minutes
+                start_minutes = float(start_first_game_in_val.replace(",", "."))
+                
+                # Parse between_game_break
+                try:
+                    bgb_minutes = float(between_game_break_val) if between_game_break_val else 0.0
+                except Exception:
+                    bgb_minutes = 0.0
+                
+                # Calculate total minutes from now (add back the between_game_break)
+                total_minutes = int(start_minutes + bgb_minutes)
+                
+                # Calculate target time
+                now = datetime.datetime.now()
+                target = now + datetime.timedelta(minutes=total_minutes)
+                
+                # Format as HH:MM
+                time_str = f"{target.hour:02d}:{target.minute:02d}"
+                
+                # Update the widget
+                time_widget.delete(0, tk.END)
+                time_widget.insert(0, time_str)
+                self.variables["time_to_start_first_game"]["value"] = time_str
+            except Exception:
+                pass  # If parsing fails, don't update
 
     def load_settings(self):
         # Calculate "Start First Game In" from "Time to Start First Game" minus "Between Game Break"
