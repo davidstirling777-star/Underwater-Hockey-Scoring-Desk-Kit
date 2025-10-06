@@ -2651,20 +2651,25 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
     def update_team_timeouts_allowed(self):
         allowed = self.team_timeouts_allowed_var.get()
 
-        def set_button_state(btn, allowed, disabled_bg="#d3d3d3", disabled_fg="#888"):
-            if btn is not None:
-                try:
-                    if allowed:
-                        btn.config(state=tk.NORMAL)
-                        btn.config(bg=btn.cget("bg"), fg=btn.cget("fg"))
-                    else:
-                        btn.config(state=tk.DISABLED)
-                        btn.config(bg=disabled_bg, fg=disabled_fg)
-                except Exception:
-                    pass
-
-        set_button_state(getattr(self, 'white_timeout_button', None), allowed)
-        set_button_state(getattr(self, 'black_timeout_button', None), allowed)
+        # Update white timeout button
+        if hasattr(self, 'white_timeout_button') and self.white_timeout_button is not None:
+            try:
+                if allowed:
+                    self.white_timeout_button.config(state=tk.NORMAL, bg="white", fg="black")
+                else:
+                    self.white_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
+            except Exception:
+                pass
+        
+        # Update black timeout button
+        if hasattr(self, 'black_timeout_button') and self.black_timeout_button is not None:
+            try:
+                if allowed:
+                    self.black_timeout_button.config(state=tk.NORMAL, bg="black", fg="white")
+                else:
+                    self.black_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
+            except Exception:
+                pass
 
         if hasattr(self, "team_timeout_period_entry") and self.team_timeout_period_entry is not None:
             try:
@@ -2927,8 +2932,13 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
             self.black_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
             self.penalties_button.config(state=tk.DISABLED)
         else:
-            self.white_timeout_button.config(state=tk.NORMAL, bg="white", fg="black")
-            self.black_timeout_button.config(state=tk.NORMAL, bg="black", fg="white")
+            # Only enable timeout buttons if team timeouts are allowed
+            if self.team_timeouts_allowed_var.get():
+                self.white_timeout_button.config(state=tk.NORMAL, bg="white", fg="black")
+                self.black_timeout_button.config(state=tk.NORMAL, bg="black", fg="white")
+            else:
+                self.white_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
+                self.black_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
             self.penalties_button.config(state=tk.NORMAL)
 
         PAUSE_PERIODS = [
