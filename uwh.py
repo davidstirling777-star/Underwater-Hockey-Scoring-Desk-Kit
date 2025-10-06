@@ -3797,7 +3797,7 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
             if not self.court_time_paused:
                 self.court_time_job = self.master.after(1000, self.update_court_time)
             # --- PATCH: Restore penalties button state after referee timeout ends ---
-            cur_period = self.full_sequence[self.current_index]
+            # (reusing cur_period from line 3773)
             if cur_period['name'] in ["Between Game Break Starts in:", "Between Game Break"]:
                 self.penalties_button.config(state=tk.DISABLED)
             else:
