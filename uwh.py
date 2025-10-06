@@ -527,6 +527,10 @@ class GameManagementApp:
         
         self.black_team_name_widget = tk.Label(tab, text="", font=self.fonts["team"], bg="black", fg="white")
         self.black_team_name_widget.grid(row=3, column=6, columnspan=3, padx=1, pady=1, sticky="nsew")
+        
+        # Spacer label - Added to match timer widget background color in row 3
+        self.timer_spacer = tk.Label(tab, text="", bg="lightgrey")
+        self.timer_spacer.grid(row=3, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
 
         # Score widgets - MODIFIED: Moved to row 4 and reduced rowspan from 6 to 5
         self.white_score = tk.Label(tab, textvariable=self.white_score_var, font=self.fonts["score"], bg="white", fg="black")

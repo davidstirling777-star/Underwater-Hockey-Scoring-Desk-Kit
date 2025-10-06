@@ -160,13 +160,13 @@ def _play_sound_sync(filename, enable_sound):
         return
         
     if filename == "No sound files found" or filename == "Default":
-        messagebox.showinfo("Sound Test", f"Cannot play '{filename}' - not a valid sound file")
+        print(f"Sound Test: Cannot play '{filename}' - not a valid sound file")
         return
         
     try:
         file_path = os.path.join(os.getcwd(), filename)
         if not os.path.exists(file_path):
-            messagebox.showerror("Sound Error", f"Sound file '{filename}' not found")
+            print(f"Sound Error: Sound file '{filename}' not found")
             return
         
         # Windows playback with improved reliability
@@ -176,27 +176,26 @@ def _play_sound_sync(filename, enable_sound):
                     try:
                         # Use SND_ASYNC for non-blocking playback
                         winsound.PlaySound(file_path, winsound.SND_FILENAME | winsound.SND_ASYNC)
-                        messagebox.showinfo("Sound Test", f"Successfully played: {filename}")
+                        print(f"Sound Test: Successfully played: {filename}")
                     except Exception as e:
                         # Try synchronous fallback
                         try:
                             winsound.PlaySound(file_path, winsound.SND_FILENAME)
-                            messagebox.showinfo("Sound Test", f"Successfully played (sync): {filename}")
+                            print(f"Sound Test: Successfully played (sync): {filename}")
                         except Exception as e2:
-                            messagebox.showerror("Sound Error", f"Failed to play WAV: {e2}")
+                            print(f"Sound Error: Failed to play WAV: {e2}")
                 else:
-                    messagebox.showerror("Sound Error", "winsound module not available")
+                    print("Sound Error: winsound module not available")
             else:
                 # Try playsound for non-WAV files
                 if PLAYSOUND_AVAILABLE:
                     try:
                         playsound(file_path)
-                        messagebox.showinfo("Sound Test", f"Successfully played: {filename}")
+                        print(f"Sound Test: Successfully played: {filename}")
                     except Exception as e:
-                        messagebox.showerror("Sound Error", f"Failed to play {filename}: {e}")
+                        print(f"Sound Error: Failed to play {filename}: {e}")
                 else:
-                    messagebox.showwarning("Sound Warning", 
-                        f"playsound module not available. Install with: pip install playsound")
+                    print("Sound Warning: playsound module not available. Install with: pip install playsound")
             return
             
         # Linux playback
@@ -204,28 +203,26 @@ def _play_sound_sync(filename, enable_sound):
             # Determine command based on file extension
             if filename.lower().endswith('.wav'):
                 # Use aplay for WAV files (works well on Raspberry Pi with DigiAMP+ HAT)
-                subprocess.run(['aplay', file_path], check=True, capture_output=True)
+                subprocess.Popen(['aplay', file_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             elif filename.lower().endswith('.mp3'):
                 # Use omxplayer for MP3 files (Raspberry Pi optimized)
-                subprocess.run(['omxplayer', '--no-osd', file_path], check=True, capture_output=True)
+                subprocess.Popen(['omxplayer', '--no-osd', file_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             else:
-                messagebox.showerror("Sound Error", f"Unsupported file format: {filename}")
+                print(f"Sound Error: Unsupported file format: {filename}")
                 return
                 
-            # Show success feedback
-            messagebox.showinfo("Sound Test", f"Successfully played: {filename}")
+            # Show success feedback via console (avoid messagebox from thread)
+            print(f"Sound Test: Successfully started playing: {filename}")
             return
         
         # Unsupported platform
-        messagebox.showerror("Sound Error", f"Unsupported platform: {platform.system()}")
+        print(f"Sound Error: Unsupported platform: {platform.system()}")
         
-    except subprocess.CalledProcessError as e:
-        messagebox.showerror("Sound Error", f"Failed to play {filename}. Command failed: {e}")
     except FileNotFoundError:
         # Fallback for development environments without aplay/omxplayer
-        messagebox.showwarning("Sound Warning", f"Audio player not found. Would play: {filename}")
+        print(f"Sound Warning: Audio player not found. Would play: {filename}")
     except Exception as e:
-        messagebox.showerror("Sound Error", f"Unexpected error playing {filename}: {e}")
+        print(f"Sound Error: Unexpected error playing {filename}: {e}")
 
 
 def play_sound(filename, enable_sound):
@@ -362,20 +359,20 @@ def _play_sound_with_volume_sync(filename, sound_type, enable_sound, pips_volume
                 # Use aplay for WAV files with volume control if available
                 try:
                     # Try to use aplay with volume control
-                    subprocess.run(['aplay', '--volume', str(int(sound_vol * 65536)), file_path], 
-                                 check=True, capture_output=True)
+                    subprocess.Popen(['aplay', '--volume', str(int(sound_vol * 65536)), file_path], 
+                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 except:
                     # Fallback to regular aplay if volume control not supported
-                    subprocess.run(['aplay', file_path], check=True, capture_output=True)
+                    subprocess.Popen(['aplay', file_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             elif filename.lower().endswith('.mp3'):
                 # Use omxplayer for MP3 files with volume control
                 vol_arg = str(int((sound_vol - 1.0) * 2000))  # omxplayer volume range
                 try:
-                    subprocess.run(['omxplayer', '--no-osd', '--vol', vol_arg, file_path], 
-                                 check=True, capture_output=True)
+                    subprocess.Popen(['omxplayer', '--no-osd', '--vol', vol_arg, file_path], 
+                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 except:
                     # Fallback to regular omxplayer if volume control not supported
-                    subprocess.run(['omxplayer', '--no-osd', file_path], check=True, capture_output=True)
+                    subprocess.Popen(['omxplayer', '--no-osd', file_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             else:
                 print(f"Sound Error: Unsupported file format: {filename}")
                 return
