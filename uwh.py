@@ -793,11 +793,6 @@ class GameManagementApp:
         # Always start with "First Game Starts In:" period
         now = datetime.datetime.now()
         time_val = self.variables.get("time_to_start_first_game", {}).get("value", "")
-        bgb_val = self.variables.get("between_game_break", {}).get("value", "1").replace(",", ".")
-        try:
-            bgb_minutes = float(bgb_val)
-        except Exception:
-            bgb_minutes = 1.0
         game_starts_in_minutes = None
         if time_val:
             match = re.fullmatch(r"(?:[0-9]|1[0-9]|2[0-3]):[0-5][0-9]", time_val.strip())
@@ -808,8 +803,8 @@ class GameManagementApp:
                     target = target + datetime.timedelta(days=1)
                 delta = target - now
                 minutes_to_start = int(delta.total_seconds() // 60)
-                # Subtract the Between Game Break from total time to get "First Game Starts In:" duration
-                game_starts_in_minutes = max(0, minutes_to_start - int(bgb_minutes))
+                # Use the time directly without subtracting Between Game Break
+                game_starts_in_minutes = max(0, minutes_to_start)
         # First period: "First Game Starts In:" - only runs once at app start
         if game_starts_in_minutes is not None:
             seq.append({'name': 'First Game Starts In:', 'type': 'break', 'duration': game_starts_in_minutes * 60})
@@ -2174,8 +2169,8 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
                 break
         
         # Synchronize the two time fields bidirectionally
-        if var_name in ["time_to_start_first_game", "between_game_break"]:
-            # Update start_first_game_in when time_to_start_first_game or between_game_break changes
+        if var_name == "time_to_start_first_game":
+            # Update start_first_game_in when time_to_start_first_game changes
             self._update_start_first_game_in()
         elif var_name == "start_first_game_in":
             # Update time_to_start_first_game when start_first_game_in changes
@@ -2192,14 +2187,11 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
     def _update_start_first_game_in(self):
         """Update only the start_first_game_in calculated field."""
         time_entry_val = None
-        between_game_break_val = None
         start_first_game_in_widget = None
         
         for widget in self.widgets:
             if widget["name"] == "time_to_start_first_game":
                 time_entry_val = widget["entry"].get().strip()
-            elif widget["name"] == "between_game_break":
-                between_game_break_val = widget["entry"].get().replace(",", ".")
             elif widget["name"] == "start_first_game_in":
                 start_first_game_in_widget = widget["entry"]
         
@@ -2219,13 +2211,8 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
             except Exception:
                 minutes_to_start = None
         
-        try:
-            bgb_minutes = float(between_game_break_val) if between_game_break_val else 0.0
-        except Exception:
-            bgb_minutes = 0.0
-        
         if minutes_to_start is not None and start_first_game_in_widget is not None:
-            value = max(0, minutes_to_start - int(bgb_minutes))
+            value = max(0, minutes_to_start)
             start_first_game_in_widget.delete(0, tk.END)
             start_first_game_in_widget.insert(0, str(value))
             self.variables["start_first_game_in"]["value"] = str(value)
@@ -2233,14 +2220,11 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
     def _update_time_to_start_first_game(self):
         """Update time_to_start_first_game based on start_first_game_in."""
         start_first_game_in_val = None
-        between_game_break_val = None
         time_widget = None
         
         for widget in self.widgets:
             if widget["name"] == "start_first_game_in":
                 start_first_game_in_val = widget["entry"].get().strip()
-            elif widget["name"] == "between_game_break":
-                between_game_break_val = widget["entry"].get().replace(",", ".")
             elif widget["name"] == "time_to_start_first_game":
                 time_widget = widget["entry"]
         
@@ -2250,18 +2234,9 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
                 # Parse start_first_game_in as minutes
                 start_minutes = float(start_first_game_in_val.replace(",", "."))
                 
-                # Parse between_game_break
-                try:
-                    bgb_minutes = float(between_game_break_val) if between_game_break_val else 0.0
-                except Exception:
-                    bgb_minutes = 0.0
-                
-                # Calculate total minutes from now (add back the between_game_break)
-                total_minutes = int(start_minutes + bgb_minutes)
-                
                 # Calculate target time
                 now = datetime.datetime.now()
-                target = now + datetime.timedelta(minutes=total_minutes)
+                target = now + datetime.timedelta(minutes=int(start_minutes))
                 
                 # Format as HH:MM
                 time_str = f"{target.hour:02d}:{target.minute:02d}"
@@ -2274,15 +2249,12 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
                 pass  # If parsing fails, don't update
 
     def load_settings(self):
-        # Calculate "Start First Game In" from "Time to Start First Game" minus "Between Game Break"
+        # Calculate "Start First Game In" from "Time to Start First Game"
         time_entry_val = None
-        between_game_break_val = None
         start_first_game_in_widget = None
         for widget in self.widgets:
             if widget["name"] == "time_to_start_first_game":
                 time_entry_val = widget["entry"].get().strip()
-            elif widget["name"] == "between_game_break":
-                between_game_break_val = widget["entry"].get().replace(",", ".")
             elif widget["name"] == "start_first_game_in":
                 start_first_game_in_widget = widget["entry"]
         # Calculate start_first_game_in value if time is valid
@@ -2303,13 +2275,8 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
                     minutes_to_start = int(delta.total_seconds() // 60)
             except Exception:
                 minutes_to_start = None
-        try:
-            # Between game break (minutes), allow comma/dot decimal
-            bgb_minutes = float(between_game_break_val) if between_game_break_val else 0.0
-        except Exception:
-            bgb_minutes = 0.0
         if minutes_to_start is not None and start_first_game_in_widget is not None:
-            value = max(0, minutes_to_start - int(bgb_minutes))
+            value = max(0, minutes_to_start)
             start_first_game_in_widget.delete(0, tk.END)
             start_first_game_in_widget.insert(0, str(value))
             self.variables["start_first_game_in"]["value"] = str(value)
