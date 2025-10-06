@@ -3434,6 +3434,14 @@ Sound file and volume settings are from the Sounds tab."""
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
+        # Play siren at end of team timeout unless there is a pending timeout
+        if self.pending_timeout is None:
+            try:
+                play_sound_with_volume(self.siren_var.get(), "siren", self.enable_sound,
+                                       self.pips_volume, self.siren_volume,
+                                       self.air_volume, self.water_volume)
+            except Exception as e:
+                print(f"Error playing siren at end of timeout: {e}")
         # If a pending timeout exists, start it now
         if self.pending_timeout is not None:
             if self.pending_timeout == "white" and self.white_timeouts_this_half < 1:
