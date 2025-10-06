@@ -238,13 +238,13 @@ def play_sound_with_volume(filename, sound_type, enable_sound, pips_volume, sire
         return
         
     if filename == "No sound files found" or filename == "Default":
-        messagebox.showinfo("Sound Test", f"Cannot play '{filename}' - not a valid sound file")
+        print(f"Cannot play '{filename}' - not a valid sound file")
         return
         
     try:
         file_path = os.path.join(os.getcwd(), filename)
         if not os.path.exists(file_path):
-            messagebox.showerror("Sound Error", f"Sound file '{filename}' not found")
+            print(f"Sound Error: Sound file '{filename}' not found")
             return
         
         # Get volume values
@@ -264,27 +264,16 @@ def play_sound_with_volume(filename, sound_type, enable_sound, pips_volume, sire
             if filename.lower().endswith('.wav'):
                 if WINSOUND_AVAILABLE:
                     winsound.PlaySound(file_path, winsound.SND_FILENAME)
-                    messagebox.showinfo("Sound Test", 
-                        f"Successfully played: {filename}\n"
-                        f"{sound_type.title()} Volume: {int(sound_vol*100)}%\n"
-                        f"Note: Windows volume control uses system settings\n"
-                        f"AIR Volume: {air_vol}% (not applied)\n"
-                        f"WATER Volume: {water_vol}% (not applied)")
+                    print(f"Successfully played: {filename} ({sound_type.title()} Volume: {int(sound_vol*100)}%)")
                 else:
-                    messagebox.showerror("Sound Error", "winsound module not available")
+                    print("Sound Error: winsound module not available")
             else:
                 # Try playsound for non-WAV files
                 if PLAYSOUND_AVAILABLE:
                     playsound(file_path)
-                    messagebox.showinfo("Sound Test", 
-                        f"Successfully played: {filename}\n"
-                        f"{sound_type.title()} Volume: {int(sound_vol*100)}%\n"
-                        f"Note: Windows volume control uses system settings\n"
-                        f"AIR Volume: {air_vol}% (not applied)\n"
-                        f"WATER Volume: {water_vol}% (not applied)")
+                    print(f"Successfully played: {filename} ({sound_type.title()} Volume: {int(sound_vol*100)}%)")
                 else:
-                    messagebox.showwarning("Sound Warning", 
-                        f"playsound module not available. Install with: pip install playsound")
+                    print("Sound Warning: playsound module not available. Install with: pip install playsound")
             return
         
         # Linux playback with volume control
@@ -333,27 +322,20 @@ def play_sound_with_volume(filename, sound_type, enable_sound, pips_volume, sire
                     # Fallback to regular omxplayer if volume control not supported
                     subprocess.run(['omxplayer', '--no-osd', file_path], check=True, capture_output=True)
             else:
-                messagebox.showerror("Sound Error", f"Unsupported file format: {filename}")
+                print(f"Sound Error: Unsupported file format: {filename}")
                 return
                 
             # Show success feedback with volume info
-            messagebox.showinfo("Sound Test", 
-                f"Successfully played: {filename}\n"
-                f"{sound_type.title()} Volume: {int(sound_vol*100)}%\n"
-                f"AIR Volume: {air_vol}%\n"
-                f"WATER Volume: {water_vol}%")
+            print(f"Successfully played: {filename} ({sound_type.title()} Volume: {int(sound_vol*100)}%, AIR: {air_vol}%, WATER: {water_vol}%)")
             return
         
         # Unsupported platform
-        messagebox.showerror("Sound Error", f"Unsupported platform: {platform.system()}")
+        print(f"Sound Error: Unsupported platform: {platform.system()}")
         
     except subprocess.CalledProcessError as e:
-        messagebox.showerror("Sound Error", f"Failed to play {filename}. Command failed: {e}")
+        print(f"Sound Error: Failed to play {filename}. Command failed: {e}")
     except FileNotFoundError:
         # Fallback for development environments without aplay/omxplayer
-        messagebox.showwarning("Sound Warning", 
-            f"Audio player not found. Would play: {filename}\n"
-            f"With {sound_type} volume: {int(sound_vol*100) if 'sound_vol' in locals() else 50}%\n"
-            f"AIR: {air_vol}%, WATER: {water_vol}%")
+        print(f"Sound Warning: Audio player not found. Would play: {filename} (With {sound_type} volume: {int(sound_vol*100) if 'sound_vol' in locals() else 50}%, AIR: {air_vol}%, WATER: {water_vol}%)")
     except Exception as e:
-        messagebox.showerror("Sound Error", f"Unexpected error playing {filename}: {e}")
+        print(f"Sound Error: Unexpected error playing {filename}: {e}")
