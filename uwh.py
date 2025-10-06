@@ -734,7 +734,7 @@ class GameManagementApp:
             "team": 30,
             "score": 200,
             "timer": 90,
-            "game_no": 12,
+            "game_no": 20,
             "button": 20,
             "timeout_button": 20,
             "referee_timeout_timer": 24,
@@ -766,7 +766,7 @@ class GameManagementApp:
             "team": 30,
             "score": 200,
             "timer": 90,
-            "game_no": 12,
+            "game_no": 20,
             "referee_timeout_timer": 24,
         }
         for key, fnt in self.display_fonts.items():
