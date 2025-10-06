@@ -1700,8 +1700,15 @@ class GameManagementApp:
         )
         pips_vol_slider.grid(row=3, column=1, columnspan=2, sticky="ew")
         
+        # Row 3, column 3: Pips volume value label
+        pips_vol_label = tk.Label(sounds_widget, text=f"{self.pips_volume.get()}%", 
+                                  font=("Arial", 11), width=5)
+        pips_vol_label.grid(row=3, column=3, sticky="w")
+        
         # Add interaction detection for pips volume slider
         def on_pips_slider_interaction(event=None):
+            # Update volume label
+            pips_vol_label.config(text=f"{self.pips_volume.get()}%")
             # Check audio device when user interacts with volume slider
             if not check_audio_device_available(self.enable_sound):
                 self.audio_device_warning_shown = handle_no_audio_device_warning(
@@ -1709,6 +1716,7 @@ class GameManagementApp:
         
         pips_vol_slider.bind("<Button-1>", on_pips_slider_interaction)
         pips_vol_slider.bind("<B1-Motion>", on_pips_slider_interaction)
+        pips_vol_slider.bind("<ButtonRelease-1>", on_pips_slider_interaction)
 
         # Row 5, column 0: "Siren"
         tk.Label(sounds_widget, text="Siren", font=("Arial", 12)).grid(row=5, column=0, sticky="nsew")
@@ -1763,8 +1771,15 @@ class GameManagementApp:
         )
         siren_vol_slider.grid(row=6, column=1, columnspan=2, sticky="ew")
         
+        # Row 6, column 3: Siren volume value label
+        siren_vol_label = tk.Label(sounds_widget, text=f"{self.siren_volume.get()}%", 
+                                   font=("Arial", 11), width=5)
+        siren_vol_label.grid(row=6, column=3, sticky="w")
+        
         # Add interaction detection for siren volume slider
         def on_siren_slider_interaction(event=None):
+            # Update volume label
+            siren_vol_label.config(text=f"{self.siren_volume.get()}%")
             # Check audio device when user interacts with volume slider
             if not check_audio_device_available(self.enable_sound):
                 self.audio_device_warning_shown = handle_no_audio_device_warning(
@@ -1772,6 +1787,7 @@ class GameManagementApp:
         
         siren_vol_slider.bind("<Button-1>", on_siren_slider_interaction)
         siren_vol_slider.bind("<B1-Motion>", on_siren_slider_interaction)
+        siren_vol_slider.bind("<ButtonRelease-1>", on_siren_slider_interaction)
 
         # Air slider: row=2, column=4, rowspan=5, sticky="ns" (no text)
         air_vol_slider = tk.Scale(
@@ -1780,8 +1796,15 @@ class GameManagementApp:
         )
         air_vol_slider.grid(row=2, column=4, rowspan=5, sticky="ns")
         
+        # Row 7, column 4: Air volume value label
+        air_vol_label = tk.Label(sounds_widget, text=f"{self.air_volume.get()}%", 
+                                 font=("Arial", 11))
+        air_vol_label.grid(row=7, column=4, sticky="n")
+        
         # Add interaction detection for air volume slider
         def on_air_slider_interaction(event=None):
+            # Update volume label
+            air_vol_label.config(text=f"{self.air_volume.get()}%")
             # Check audio device when user interacts with volume slider
             if not check_audio_device_available(self.enable_sound):
                 self.audio_device_warning_shown = handle_no_audio_device_warning(
@@ -1789,6 +1812,7 @@ class GameManagementApp:
         
         air_vol_slider.bind("<Button-1>", on_air_slider_interaction)
         air_vol_slider.bind("<B1-Motion>", on_air_slider_interaction)
+        air_vol_slider.bind("<ButtonRelease-1>", on_air_slider_interaction)
 
         # Water slider: row=2, column=5, rowspan=5, sticky="ns" (no text)
         water_vol_slider = tk.Scale(
@@ -1797,8 +1821,15 @@ class GameManagementApp:
         )
         water_vol_slider.grid(row=2, column=5, rowspan=5, sticky="ns")
         
+        # Row 7, column 5: Water volume value label
+        water_vol_label = tk.Label(sounds_widget, text=f"{self.water_volume.get()}%", 
+                                   font=("Arial", 11))
+        water_vol_label.grid(row=7, column=5, sticky="n")
+        
         # Add interaction detection for water volume slider
         def on_water_slider_interaction(event=None):
+            # Update volume label
+            water_vol_label.config(text=f"{self.water_volume.get()}%")
             # Check audio device when user interacts with volume slider
             if not check_audio_device_available(self.enable_sound):
                 self.audio_device_warning_shown = handle_no_audio_device_warning(
@@ -1806,6 +1837,7 @@ class GameManagementApp:
         
         water_vol_slider.bind("<Button-1>", on_water_slider_interaction)
         water_vol_slider.bind("<B1-Motion>", on_water_slider_interaction)
+        water_vol_slider.bind("<ButtonRelease-1>", on_water_slider_interaction)
 
     def create_zigbee_siren_tab(self):
         """Create the Zigbee Siren configuration tab."""

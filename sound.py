@@ -169,19 +169,31 @@ def _play_sound_sync(filename, enable_sound):
             messagebox.showerror("Sound Error", f"Sound file '{filename}' not found")
             return
         
-        # Windows playback
+        # Windows playback with improved reliability
         if IS_WINDOWS:
             if filename.lower().endswith('.wav'):
                 if WINSOUND_AVAILABLE:
-                    winsound.PlaySound(file_path, winsound.SND_FILENAME)
-                    messagebox.showinfo("Sound Test", f"Successfully played: {filename}")
+                    try:
+                        # Use SND_ASYNC for non-blocking playback
+                        winsound.PlaySound(file_path, winsound.SND_FILENAME | winsound.SND_ASYNC)
+                        messagebox.showinfo("Sound Test", f"Successfully played: {filename}")
+                    except Exception as e:
+                        # Try synchronous fallback
+                        try:
+                            winsound.PlaySound(file_path, winsound.SND_FILENAME)
+                            messagebox.showinfo("Sound Test", f"Successfully played (sync): {filename}")
+                        except Exception as e2:
+                            messagebox.showerror("Sound Error", f"Failed to play WAV: {e2}")
                 else:
                     messagebox.showerror("Sound Error", "winsound module not available")
             else:
                 # Try playsound for non-WAV files
                 if PLAYSOUND_AVAILABLE:
-                    playsound(file_path)
-                    messagebox.showinfo("Sound Test", f"Successfully played: {filename}")
+                    try:
+                        playsound(file_path)
+                        messagebox.showinfo("Sound Test", f"Successfully played: {filename}")
+                    except Exception as e:
+                        messagebox.showerror("Sound Error", f"Failed to play {filename}: {e}")
                 else:
                     messagebox.showwarning("Sound Warning", 
                         f"playsound module not available. Install with: pip install playsound")
@@ -289,19 +301,32 @@ def _play_sound_with_volume_sync(filename, sound_type, enable_sound, pips_volume
         else:
             sound_vol = 0.5  # Default 50%
         
-        # Windows playback (volume control not fully supported)
+        # Windows playback with improved reliability
         if IS_WINDOWS:
             if filename.lower().endswith('.wav'):
                 if WINSOUND_AVAILABLE:
-                    winsound.PlaySound(file_path, winsound.SND_FILENAME)
-                    print(f"Successfully played: {filename} ({sound_type.title()} Volume: {int(sound_vol*100)}%)")
+                    try:
+                        # Use SND_ASYNC flag for non-blocking playback
+                        winsound.PlaySound(file_path, winsound.SND_FILENAME | winsound.SND_ASYNC)
+                        print(f"Successfully played: {filename} ({sound_type.title()} Volume: {int(sound_vol*100)}%)")
+                    except Exception as e:
+                        print(f"Sound Error: Failed to play WAV file: {e}")
+                        # Try synchronous fallback
+                        try:
+                            winsound.PlaySound(file_path, winsound.SND_FILENAME)
+                            print(f"Successfully played (sync fallback): {filename}")
+                        except Exception as e2:
+                            print(f"Sound Error: WAV playback failed completely: {e2}")
                 else:
                     print("Sound Error: winsound module not available")
             else:
                 # Try playsound for non-WAV files
                 if PLAYSOUND_AVAILABLE:
-                    playsound(file_path)
-                    print(f"Successfully played: {filename} ({sound_type.title()} Volume: {int(sound_vol*100)}%)")
+                    try:
+                        playsound(file_path)
+                        print(f"Successfully played: {filename} ({sound_type.title()} Volume: {int(sound_vol*100)}%)")
+                    except Exception as e:
+                        print(f"Sound Error: Failed to play {filename}: {e}")
                 else:
                     print("Sound Warning: playsound module not available. Install with: pip install playsound")
             return
