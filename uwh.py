@@ -297,7 +297,7 @@ class GameManagementApp:
         self.game_number_var = tk.StringVar(value="Game 121")
         self.white_team_var = tk.StringVar(value="White")
         self.black_team_var = tk.StringVar(value="Black")
-        self.referee_timeout_timer_var = tk.StringVar(value="00:00")
+        self.referee_timeout_timer_var = tk.StringVar(value="Ref Time-Out")
         
         # Tournament List tracking
         self.current_game_index = 0  # Index in self.game_numbers list
@@ -509,7 +509,7 @@ class GameManagementApp:
             font=self.fonts["referee_timeout_timer"], 
             bg="red", fg="white"
         )
-        self.referee_timeout_timer_label.grid(row=8, column=3, rowspan=1, columnspan=3, padx=1, pady=1, sticky="nsew")
+        self.referee_timeout_timer_label.grid(row=8, column=3, rowspan=1, columnspan=3, padx=0, pady=1, sticky="nsew")
         self.referee_timeout_timer_label.grid_remove()  # Hide initially
 
         self.white_timeout_button = tk.Button(
@@ -814,7 +814,8 @@ class GameManagementApp:
         if game_starts_in_minutes is not None:
             seq.append({'name': 'First Game Starts In:', 'type': 'break', 'duration': game_starts_in_minutes * 60})
         else:
-            seq.append({'name': 'First Game Starts In:', 'type': 'break', 'duration': self.get_minutes('start_first_game_in')})
+            # When time_to_start_first_game is blank, use start_first_game_in with minimum 30 seconds
+            seq.append({'name': 'First Game Starts In:', 'type': 'break', 'duration': max(30, self.get_minutes('start_first_game_in'))})
         # First Game Starts In: transitions directly to First Half (no Between Game Break)
 
         seq.append({'name': 'First Half', 'type': 'regular', 'duration': self.get_minutes('half_period')})
@@ -2760,7 +2761,7 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
             font=self.display_fonts["referee_timeout_timer"], 
             bg="red", fg="white"
         )
-        self.display_referee_timeout_timer_label.grid(row=10, column=3, rowspan=1, columnspan=3, padx=1, pady=1, sticky="nsew")
+        self.display_referee_timeout_timer_label.grid(row=10, column=3, rowspan=1, columnspan=3, padx=0, pady=1, sticky="nsew")
         self.display_referee_timeout_timer_label.grid_remove()  # Hide initially
 
         self.display_window.bind('<Configure>', self.scale_display_fonts)
