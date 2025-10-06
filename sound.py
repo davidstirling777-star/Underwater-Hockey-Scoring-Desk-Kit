@@ -7,11 +7,14 @@ device checking, and sound file management.
 Cross-platform support:
 - Linux/Raspberry Pi: Uses aplay for .wav, omxplayer for .mp3, amixer for volume
 - Windows: Uses winsound for .wav, playsound for other formats if available
+
+Note: Sound playback functions use threading to prevent blocking the UI timer.
 """
 
 import subprocess
 import os
 import platform
+import threading
 from tkinter import messagebox
 
 # Platform detection
@@ -138,9 +141,10 @@ def get_sound_files():
     return sorted(sound_files) if sound_files else ["No sound files found"]
 
 
-def play_sound(filename, enable_sound):
+def _play_sound_sync(filename, enable_sound):
     """
-    Play a sound file using the appropriate system command.
+    Internal synchronous sound playback function.
+    Called by play_sound() in a separate thread to prevent UI blocking.
     
     Cross-platform support:
     - Linux: Uses aplay for WAV files and omxplayer for MP3 files (Raspberry Pi compatible)
@@ -212,10 +216,36 @@ def play_sound(filename, enable_sound):
         messagebox.showerror("Sound Error", f"Unexpected error playing {filename}: {e}")
 
 
-def play_sound_with_volume(filename, sound_type, enable_sound, pips_volume, siren_volume, 
-                           air_volume, water_volume):
+def play_sound(filename, enable_sound):
     """
-    Play a sound file with volume control using amixer for channel volumes and sound-specific volume.
+    Play a sound file asynchronously using threading to prevent UI blocking.
+    
+    This function immediately returns after spawning a background thread,
+    ensuring the timer and UI remain responsive during sound playback.
+    
+    Cross-platform support:
+    - Linux: Uses aplay for WAV files and omxplayer for MP3 files (Raspberry Pi compatible)
+    - Windows: Uses winsound for WAV files, playsound for other formats if available
+    
+    Args:
+        filename: str path to sound file
+        enable_sound: BooleanVar or bool indicating if sound is enabled
+    """
+    # Create and start a daemon thread for sound playback
+    # Daemon thread ensures the thread doesn't prevent application exit
+    sound_thread = threading.Thread(
+        target=_play_sound_sync,
+        args=(filename, enable_sound),
+        daemon=True
+    )
+    sound_thread.start()
+
+
+def _play_sound_with_volume_sync(filename, sound_type, enable_sound, pips_volume, siren_volume, 
+                                 air_volume, water_volume):
+    """
+    Internal synchronous sound playback function with volume control.
+    Called by play_sound_with_volume() in a separate thread to prevent UI blocking.
     
     Cross-platform support:
     - Linux: Uses aplay for WAV files and omxplayer for MP3 files (Raspberry Pi compatible)
@@ -339,3 +369,37 @@ def play_sound_with_volume(filename, sound_type, enable_sound, pips_volume, sire
         print(f"Sound Warning: Audio player not found. Would play: {filename} (With {sound_type} volume: {int(sound_vol*100) if 'sound_vol' in locals() else 50}%, AIR: {air_vol}%, WATER: {water_vol}%)")
     except Exception as e:
         print(f"Sound Error: Unexpected error playing {filename}: {e}")
+
+
+def play_sound_with_volume(filename, sound_type, enable_sound, pips_volume, siren_volume, 
+                           air_volume, water_volume):
+    """
+    Play a sound file asynchronously with volume control using threading to prevent UI blocking.
+    
+    This function immediately returns after spawning a background thread,
+    ensuring the timer and UI remain responsive during sound playback.
+    
+    Cross-platform support:
+    - Linux: Uses aplay for WAV files and omxplayer for MP3 files (Raspberry Pi compatible)
+      with amixer for volume control
+    - Windows: Uses winsound for WAV files (volume control not supported), 
+      playsound for other formats if available
+    
+    Args:
+        filename: str path to sound file
+        sound_type: str type of sound ("pips" or "siren")
+        enable_sound: BooleanVar or bool indicating if sound is enabled
+        pips_volume: IntVar or int for pips volume (0-100)
+        siren_volume: IntVar or int for siren volume (0-100)
+        air_volume: IntVar or int for air channel volume (0-100)
+        water_volume: IntVar or int for water channel volume (0-100)
+    """
+    # Create and start a daemon thread for sound playback
+    # Daemon thread ensures the thread doesn't prevent application exit
+    sound_thread = threading.Thread(
+        target=_play_sound_with_volume_sync,
+        args=(filename, sound_type, enable_sound, pips_volume, siren_volume, 
+              air_volume, water_volume),
+        daemon=True
+    )
+    sound_thread.start()
