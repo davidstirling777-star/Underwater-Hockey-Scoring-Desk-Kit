@@ -3769,7 +3769,21 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
             self.half_label_var.set(self.saved_state["half_label_text"])
             self.half_label.config(bg=self.saved_state["half_label_bg"])
             self.court_time_paused = self.saved_state.get("court_time_paused", False)
-            self.resume_all_penalty_timers()
+            # Only resume penalty timers if we're not in a break period
+            cur_period = self.full_sequence[self.current_index]
+            PAUSE_PERIODS = [
+                "First Game Starts In:",
+                "Between Game Break",
+                "Half Time",
+                "Overtime Game Break",
+                "Overtime Half Time",
+                "Sudden Death Game Break",
+                "White Team Time-Out",
+                "Black Team Time-Out",
+                "Referee Time-Out"
+            ]
+            if cur_period['name'] not in PAUSE_PERIODS:
+                self.resume_all_penalty_timers()
             self.update_timer_display()
             # --- PATCH: Resume Team Time-Out timer if it was interrupted ---
             if self.in_timeout:
@@ -3783,7 +3797,7 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
             if not self.court_time_paused:
                 self.court_time_job = self.master.after(1000, self.update_court_time)
             # --- PATCH: Restore penalties button state after referee timeout ends ---
-            cur_period = self.full_sequence[self.current_index]
+            # (reusing cur_period from line 3773)
             if cur_period['name'] in ["Between Game Break Starts in:", "Between Game Break"]:
                 self.penalties_button.config(state=tk.DISABLED)
             else:
