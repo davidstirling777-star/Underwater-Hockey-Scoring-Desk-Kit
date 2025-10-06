@@ -1629,10 +1629,16 @@ class GameManagementApp:
         pips_dropdown.bind("<FocusIn>", on_pips_user_interaction)
 
         # Row 2, column 3: Play button for pips demo sound
+        def test_pips_sound():
+            try:
+                play_sound_with_volume(self.pips_var.get(), "pips", 
+                    self.enable_sound, self.pips_volume, self.siren_volume, 
+                    self.air_volume, self.water_volume)
+            except Exception as e:
+                print(f"Error testing pips sound: {e}")
+        
         pips_play_btn = tk.Button(sounds_widget, text="Play", font=("Arial", 11), width=5,
-                                  command=lambda: play_sound_with_volume(self.pips_var.get(), "pips", 
-                                      self.enable_sound, self.pips_volume, self.siren_volume, 
-                                      self.air_volume, self.water_volume))
+                                  command=test_pips_sound)
         pips_play_btn.grid(row=2, column=3)
 
         # Row 3, column 0: "Pips Vol"
@@ -1686,10 +1692,16 @@ class GameManagementApp:
         siren_dropdown.bind("<FocusIn>", on_siren_user_interaction)
 
         # Row 5, column 3: Play button for siren demo sound
+        def test_siren_sound():
+            try:
+                play_sound_with_volume(self.siren_var.get(), "siren",
+                    self.enable_sound, self.pips_volume, self.siren_volume,
+                    self.air_volume, self.water_volume)
+            except Exception as e:
+                print(f"Error testing siren sound: {e}")
+        
         siren_play_btn = tk.Button(sounds_widget, text="Play", font=("Arial", 11), width=5,
-                                   command=lambda: play_sound_with_volume(self.siren_var.get(), "siren",
-                                       self.enable_sound, self.pips_volume, self.siren_volume,
-                                       self.air_volume, self.water_volume))
+                                   command=test_siren_sound)
         siren_play_btn.grid(row=5, column=3)
 
         # Row 6, column 0: "Siren Vol"
@@ -3094,14 +3106,20 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
                 if cur_period['name'] in break_periods:
                     if self.timer_seconds == 30:
                         # Play one pip at 30s remaining
-                        play_sound_with_volume(self.pips_var.get(), "pips", self.enable_sound, 
-                                               self.pips_volume, self.siren_volume, 
-                                               self.air_volume, self.water_volume)
+                        try:
+                            play_sound_with_volume(self.pips_var.get(), "pips", self.enable_sound, 
+                                                   self.pips_volume, self.siren_volume, 
+                                                   self.air_volume, self.water_volume)
+                        except Exception as e:
+                            print(f"Error playing pip sound at 30s: {e}")
                     elif 1 <= self.timer_seconds <= 10:
                         # Play one pip per second from 10s to 1s remaining
-                        play_sound_with_volume(self.pips_var.get(), "pips", self.enable_sound,
-                                               self.pips_volume, self.siren_volume,
-                                               self.air_volume, self.water_volume)
+                        try:
+                            play_sound_with_volume(self.pips_var.get(), "pips", self.enable_sound,
+                                                   self.pips_volume, self.siren_volume,
+                                                   self.air_volume, self.water_volume)
+                        except Exception as e:
+                            print(f"Error playing pip sound at {self.timer_seconds}s: {e}")
             
             self.timer_seconds -= 1
             self.timer_job = self.master.after(1000, self.countdown_timer)
@@ -3115,16 +3133,22 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
                                    'Overtime Game Break', 'Overtime Half Time']
                     if cur_period['name'] in break_periods:
                         # Play siren at 0s for break periods
-                        play_sound_with_volume(self.siren_var.get(), "siren", self.enable_sound,
-                                               self.pips_volume, self.siren_volume,
-                                               self.air_volume, self.water_volume)
+                        try:
+                            play_sound_with_volume(self.siren_var.get(), "siren", self.enable_sound,
+                                                   self.pips_volume, self.siren_volume,
+                                                   self.air_volume, self.water_volume)
+                        except Exception as e:
+                            print(f"Error playing siren at end of break period: {e}")
                 elif cur_period['type'] in ['regular', 'overtime']:
                     half_periods = ['First Half', 'Second Half', 'Overtime First Half', 'Overtime Second Half']
                     if cur_period['name'] in half_periods:
                         # Play siren at end of each half
-                        play_sound_with_volume(self.siren_var.get(), "siren", self.enable_sound,
-                                               self.pips_volume, self.siren_volume,
-                                               self.air_volume, self.water_volume)
+                        try:
+                            play_sound_with_volume(self.siren_var.get(), "siren", self.enable_sound,
+                                                   self.pips_volume, self.siren_volume,
+                                                   self.air_volume, self.water_volume)
+                        except Exception as e:
+                            print(f"Error playing siren at end of half: {e}")
             
             self.next_period()
 
