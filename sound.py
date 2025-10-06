@@ -12,6 +12,7 @@ Cross-platform support:
 import subprocess
 import os
 import platform
+import threading
 from tkinter import messagebox
 
 # Platform detection
@@ -212,6 +213,36 @@ def play_sound(filename, enable_sound):
         messagebox.showerror("Sound Error", f"Unexpected error playing {filename}: {e}")
 
 
+def _play_sound_thread(file_path, filename, sound_type, sound_vol):
+    """
+    Internal function to play sound in a background thread on Windows.
+    This ensures reliable playback and prevents UI blocking.
+    
+    Args:
+        file_path: str absolute path to sound file
+        filename: str filename for logging
+        sound_type: str type of sound ("pips" or "siren")
+        sound_vol: float sound volume (0.0-1.0)
+    """
+    try:
+        if filename.lower().endswith('.wav'):
+            if WINSOUND_AVAILABLE:
+                # Use SND_ASYNC flag for non-blocking playback
+                winsound.PlaySound(file_path, winsound.SND_FILENAME | winsound.SND_ASYNC)
+                print(f"Successfully played: {filename} ({sound_type.title()} Volume: {int(sound_vol*100)}%)")
+            else:
+                print("Sound Error: winsound module not available")
+        else:
+            # Try playsound for non-WAV files
+            if PLAYSOUND_AVAILABLE:
+                playsound(file_path)
+                print(f"Successfully played: {filename} ({sound_type.title()} Volume: {int(sound_vol*100)}%)")
+            else:
+                print("Sound Warning: playsound module not available. Install with: pip install playsound")
+    except Exception as e:
+        print(f"Sound Error in playback thread: {e}")
+
+
 def play_sound_with_volume(filename, sound_type, enable_sound, pips_volume, siren_volume, 
                            air_volume, water_volume):
     """
@@ -220,7 +251,7 @@ def play_sound_with_volume(filename, sound_type, enable_sound, pips_volume, sire
     Cross-platform support:
     - Linux: Uses aplay for WAV files and omxplayer for MP3 files (Raspberry Pi compatible)
       with amixer for volume control
-    - Windows: Uses winsound for WAV files (volume control not supported), 
+    - Windows: Uses winsound for WAV files with threading for reliable playback,
       playsound for other formats if available
     
     Args:
@@ -259,21 +290,15 @@ def play_sound_with_volume(filename, sound_type, enable_sound, pips_volume, sire
         else:
             sound_vol = 0.5  # Default 50%
         
-        # Windows playback (volume control not fully supported)
+        # Windows playback with threading for reliability
         if IS_WINDOWS:
-            if filename.lower().endswith('.wav'):
-                if WINSOUND_AVAILABLE:
-                    winsound.PlaySound(file_path, winsound.SND_FILENAME)
-                    print(f"Successfully played: {filename} ({sound_type.title()} Volume: {int(sound_vol*100)}%)")
-                else:
-                    print("Sound Error: winsound module not available")
-            else:
-                # Try playsound for non-WAV files
-                if PLAYSOUND_AVAILABLE:
-                    playsound(file_path)
-                    print(f"Successfully played: {filename} ({sound_type.title()} Volume: {int(sound_vol*100)}%)")
-                else:
-                    print("Sound Warning: playsound module not available. Install with: pip install playsound")
+            # Run sound playback in background thread to prevent blocking and ensure reliability
+            playback_thread = threading.Thread(
+                target=_play_sound_thread,
+                args=(file_path, filename, sound_type, sound_vol),
+                daemon=True
+            )
+            playback_thread.start()
             return
         
         # Linux playback with volume control

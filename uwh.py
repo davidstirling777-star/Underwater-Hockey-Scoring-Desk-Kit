@@ -1707,8 +1707,18 @@ class GameManagementApp:
                 self.audio_device_warning_shown = handle_no_audio_device_warning(
                     self.pips_var, "pips volume", self.enable_sound, self.audio_device_warning_shown)
         
+        def on_pips_slider_release(event=None):
+            # Play pips sound when slider is released for immediate volume feedback
+            try:
+                play_sound_with_volume(self.pips_var.get(), "pips", 
+                    self.enable_sound, self.pips_volume, self.siren_volume, 
+                    self.air_volume, self.water_volume)
+            except Exception as e:
+                print(f"Error playing pips sound on slider release: {e}")
+        
         pips_vol_slider.bind("<Button-1>", on_pips_slider_interaction)
         pips_vol_slider.bind("<B1-Motion>", on_pips_slider_interaction)
+        pips_vol_slider.bind("<ButtonRelease-1>", on_pips_slider_release)
 
         # Row 5, column 0: "Siren"
         tk.Label(sounds_widget, text="Siren", font=("Arial", 12)).grid(row=5, column=0, sticky="nsew")
@@ -1770,8 +1780,18 @@ class GameManagementApp:
                 self.audio_device_warning_shown = handle_no_audio_device_warning(
                     self.siren_var, "siren volume", self.enable_sound, self.audio_device_warning_shown)
         
+        def on_siren_slider_release(event=None):
+            # Play siren sound when slider is released for immediate volume feedback
+            try:
+                play_sound_with_volume(self.siren_var.get(), "siren",
+                    self.enable_sound, self.pips_volume, self.siren_volume,
+                    self.air_volume, self.water_volume)
+            except Exception as e:
+                print(f"Error playing siren sound on slider release: {e}")
+        
         siren_vol_slider.bind("<Button-1>", on_siren_slider_interaction)
         siren_vol_slider.bind("<B1-Motion>", on_siren_slider_interaction)
+        siren_vol_slider.bind("<ButtonRelease-1>", on_siren_slider_release)
 
         # Air slider: row=2, column=4, rowspan=5, sticky="ns" (no text)
         air_vol_slider = tk.Scale(
