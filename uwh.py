@@ -2177,8 +2177,12 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
         if var_name in ["time_to_start_first_game", "between_game_break"]:
             self._update_start_first_game_in()
         
-        # Rebuild game sequence and save settings
-        self.build_game_sequence()
+        # Only rebuild game sequence if the variable affects the sequence structure
+        # Variables that don't affect game sequence: record_scorers_cap_number, team_timeouts_allowed, crib_time
+        if var_name not in ["record_scorers_cap_number", "team_timeouts_allowed", "crib_time"]:
+            self.build_game_sequence()
+        
+        # Always save settings when a variable changes
         self.save_game_settings()
     
     def _update_start_first_game_in(self):
@@ -2702,8 +2706,8 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
         self.variables["team_timeouts_allowed"]["used"] = self.team_timeouts_allowed_var.get()
         # Update UI state
         self.update_team_timeouts_allowed()
-        # Rebuild sequence and save
-        self.build_game_sequence()
+        # team_timeouts_allowed doesn't affect game sequence structure, only UI state
+        # So we don't need to rebuild the sequence
         self.save_game_settings()
     
     def _on_overtime_change(self):
