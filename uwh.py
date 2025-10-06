@@ -3327,6 +3327,15 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
         if not self.in_timeout:
             return
         if self.timer_seconds > 0:
+            # Enhancement: Play pip sound at 15 seconds remaining for team timeouts
+            if self.timer_seconds == 15:
+                try:
+                    play_sound_with_volume(self.pips_var.get(), "pips", self.enable_sound,
+                                           self.pips_volume, self.siren_volume,
+                                           self.air_volume, self.water_volume)
+                except Exception as e:
+                    print(f"Error playing pip sound at 15s timeout: {e}")
+            
             self.timer_seconds -= 1
             self.timer_job = self.master.after(1000, self.timeout_countdown)
         else:
