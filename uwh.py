@@ -3005,6 +3005,8 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
             self.penalties_button.config(state=tk.NORMAL)
 
         PAUSE_PERIODS = [
+            "First Game Starts In:",
+            "Between Game Break",
             "Half Time",
             "Overtime Game Break",
             "Overtime Half Time",
