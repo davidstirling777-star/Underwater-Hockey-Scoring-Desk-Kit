@@ -3917,6 +3917,7 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
             self.sudden_death_restore_time = self.sudden_death_seconds
             self.sudden_death_restore_active = True
             self.sudden_death_goal_scored = True
+            self.timer_running = False
             self.stop_sudden_death_timer()
             self.next_period()
             return
@@ -3949,11 +3950,6 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
                 self.current_index = self.find_period_index('Between Game Break')
                 self.start_current_period()
                 return
-                    
-        if cur_period['name'] == 'Sudden Death' and not getattr(self, 'sudden_death_goal_scored', False):
-            self.sudden_death_goal_scored = True
-            self.stop_sudden_death_timer()
-            self.next_period()
 
 if __name__ == "__main__":
     root = tk.Tk()
