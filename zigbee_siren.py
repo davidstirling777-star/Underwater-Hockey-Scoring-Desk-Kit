@@ -60,6 +60,7 @@ DEFAULT_CONFIG = {
     "mqtt_topic": "zigbee2mqtt/+",
     "siren_button_devices": ["siren_button"],  # Now supports multiple devices as a list
     "siren_button_device": "siren_button",     # Keep for backward compatibility
+    "siren_device_name": "zigbee_siren",       # The actual siren device to control
     "connection_timeout": 60,
     "reconnect_delay": 5,
     "enable_logging": True
@@ -450,6 +451,60 @@ class ZigbeeSirenController:
                 self.logger.error(f"Error calling siren callback: {e}")
         else:
             self.logger.warning("No siren callback set")
+    
+    def start_siren(self) -> bool:
+        """
+        Start the siren by sending MQTT ON command to the siren device.
+        
+        Returns:
+            bool: True if command sent successfully, False otherwise
+        """
+        if not MQTT_AVAILABLE:
+            self.logger.warning("MQTT not available - cannot control siren")
+            return False
+        
+        if not self.connected or not self.mqtt_client:
+            self.logger.warning("MQTT not connected - cannot start siren")
+            return False
+        
+        try:
+            siren_device = self.config.get("siren_device_name", "zigbee_siren")
+            topic = f"zigbee2mqtt/{siren_device}/set"
+            payload = json.dumps({"state": "ON"})
+            
+            self.logger.info(f"Starting siren: Publishing to {topic} with payload {payload}")
+            self.mqtt_client.publish(topic, payload)
+            return True
+        except Exception as e:
+            self.logger.error(f"Error starting siren: {e}")
+            return False
+    
+    def stop_siren(self) -> bool:
+        """
+        Stop the siren by sending MQTT OFF command to the siren device.
+        
+        Returns:
+            bool: True if command sent successfully, False otherwise
+        """
+        if not MQTT_AVAILABLE:
+            self.logger.warning("MQTT not available - cannot control siren")
+            return False
+        
+        if not self.connected or not self.mqtt_client:
+            self.logger.warning("MQTT not connected - cannot stop siren")
+            return False
+        
+        try:
+            siren_device = self.config.get("siren_device_name", "zigbee_siren")
+            topic = f"zigbee2mqtt/{siren_device}/set"
+            payload = json.dumps({"state": "OFF"})
+            
+            self.logger.info(f"Stopping siren: Publishing to {topic} with payload {payload}")
+            self.mqtt_client.publish(topic, payload)
+            return True
+        except Exception as e:
+            self.logger.error(f"Error stopping siren: {e}")
+            return False
     
     def _notify_status(self, connected: bool, message: str) -> None:
         """Notify connection status change."""
