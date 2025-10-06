@@ -3410,9 +3410,16 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
             return
         if penalty["seconds_remaining"] > 0:
             penalty["seconds_remaining"] -= 1
-            self.update_penalty_display()
-            self.schedule_penalty_countdown(penalty)
+            # Check if penalty just expired (reached 0)
+            if penalty["seconds_remaining"] == 0:
+                # Immediately remove the expired penalty
+                self.remove_penalty(penalty)  # This will update the display
+            else:
+                # Still time remaining, update display and schedule next countdown
+                self.update_penalty_display()
+                self.schedule_penalty_countdown(penalty)
         else:
+            # Should not normally reach here, but handle it just in case
             self.remove_penalty(penalty)  # This will update the display
 
     def remove_penalty(self, penalty):
