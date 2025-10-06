@@ -133,6 +133,7 @@ The web interface will be available at `http://your-pi-ip:8080`.
 **Username/Password:** Leave blank if no authentication is configured
 **MQTT Topic:** `zigbee2mqtt/+` (monitors all Zigbee2MQTT devices)
 **Button Device Names:** Enter device names (comma-separated for multiple buttons, e.g., `siren_button, referee_button_1`)
+**Siren Device Name:** Enter the Zigbee siren device name to control (e.g., `zigbee_siren`)
 
 ### 3. Test Connection
 - Click "Test Connection" to verify MQTT connectivity
@@ -149,9 +150,21 @@ All UWH application settings are now stored in a unified `settings.json` file in
 
 The application automatically creates this file with default settings on first run. You can edit it directly or use the application's UI tabs to modify settings. Changes made through the UI are automatically saved to this file.
 
-### 4. Test Siren
-- Click "Test Siren via MQTT" to test the siren manually
-- Press your physical Zigbee button to test wireless triggering
+### 5. Test Siren
+
+The "Test Siren via MQTT" button now supports press-and-hold functionality:
+
+- **Press and Hold**: Immediately starts the siren sound and sends MQTT ON command to the siren device
+- **Release**: Sends MQTT OFF command to stop the siren device
+
+This allows you to:
+1. Test the local siren sound playback instantly
+2. Control a remote Zigbee siren device via MQTT (when connected)
+3. Simulate the actual game siren behavior with precise control
+
+**Note**: The local sound will play as long as the audio file duration. The MQTT commands control the remote Zigbee siren device.
+
+You can also test wireless triggering by pressing your physical Zigbee button device.
 
 ## Sound Configuration
 
@@ -242,7 +255,8 @@ If using a different MQTT topic structure, modify the configuration:
   "soundSettings": { ... },
   "zigbeeSettings": {
     "mqtt_topic": "my_zigbee/+",
-    "siren_button_device": "my_button_name",
+    "siren_button_devices": ["my_button_name"],
+    "siren_device_name": "my_siren_device",
     "mqtt_broker": "localhost",
     "mqtt_port": 1883,
     ...
@@ -257,6 +271,20 @@ The UWH application now uses a unified `settings.json` file that contains all co
 - **gameSettings**: Game timing and rule configuration
 
 You can edit this file directly or use the application's configuration tabs to modify settings.
+
+### Siren Device Control
+
+The application can control a remote Zigbee siren device via MQTT. When you press the "Test Siren via MQTT" button:
+
+**ON Command (Button Press)**
+- Topic: `zigbee2mqtt/{siren_device_name}/set`
+- Payload: `{"state": "ON"}`
+
+**OFF Command (Button Release)**
+- Topic: `zigbee2mqtt/{siren_device_name}/set`
+- Payload: `{"state": "OFF"}`
+
+This is compatible with Sonoff ZBDongle-P and standard Zigbee2MQTT device conventions. Make sure your siren device is paired with Zigbee2MQTT and the device name matches the "Siren Device Name" setting in the UI.
 
 ### Multiple Button Support
 

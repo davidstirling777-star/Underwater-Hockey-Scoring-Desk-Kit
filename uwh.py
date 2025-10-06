@@ -1964,6 +1964,13 @@ class GameManagementApp:
         self.config_widgets["siren_button_devices"].insert(0, device_value)
         self.config_widgets["siren_button_devices"].grid(row=row, column=1, columnspan=3, sticky="ew", padx=5, pady=2)
         
+        row += 1
+        tk.Label(config_frame, text="Siren Device Name:", font=("Arial", 10)).grid(
+            row=row, column=0, sticky="w", padx=5, pady=2)
+        self.config_widgets["siren_device_name"] = tk.Entry(config_frame, font=("Arial", 10))
+        self.config_widgets["siren_device_name"].insert(0, config.get("siren_device_name", "zigbee_siren"))
+        self.config_widgets["siren_device_name"].grid(row=row, column=1, columnspan=3, sticky="ew", padx=5, pady=2)
+        
         # Configure column weights
         config_frame.grid_columnconfigure(1, weight=1)
         
@@ -1973,9 +1980,12 @@ class GameManagementApp:
         save_config_btn.grid(row=3, column=0, columnspan=2, pady=5)
         
         # Manual Siren Test Button
-        test_siren_btn = tk.Button(main_frame, text="Test Siren via MQTT", font=("Arial", 11),
-                                 command=self.test_wireless_siren)
+        test_siren_btn = tk.Button(main_frame, text="Test Siren via MQTT", font=("Arial", 11))
         test_siren_btn.grid(row=3, column=2, columnspan=2, pady=5)
+        
+        # Bind mouse down and mouse up events for press/release functionality
+        test_siren_btn.bind("<ButtonPress-1>", lambda event: self.start_wireless_siren())
+        test_siren_btn.bind("<ButtonRelease-1>", lambda event: self.stop_wireless_siren())
         
         # Information Section
         info_frame = tk.LabelFrame(main_frame, text="Setup Information", 
@@ -1987,11 +1997,15 @@ class GameManagementApp:
 1. Install Zigbee2MQTT on your system
 2. Install MQTT library: pip install paho-mqtt  
 3. Configure your Zigbee button devices in Zigbee2MQTT
-4. Set the device names above (comma-separated for multiple buttons)
-5. Configure MQTT broker connection details
-6. Click Connect (if not already connected) to start wireless siren connection
+4. Set the button device names above (comma-separated for multiple buttons)
+5. Set the siren device name (the Zigbee siren device to control)
+6. Configure MQTT broker connection details
+7. Click Connect (if not already connected) to start wireless siren connection
 
-The 'Test Siren via MQTT' will use the same sound file and volume settings as configured in the Sounds tab."""
+The 'Test Siren via MQTT' button works with press/release:
+- Press and hold: Starts siren sound and sends MQTT ON command
+- Release: Sends MQTT OFF command to stop the siren
+Sound file and volume settings are from the Sounds tab."""
         
         info_label = tk.Label(info_frame, text=info_text, font=("Arial", 9), 
                             justify="left", anchor="nw", wraplength=0)
@@ -2691,6 +2705,37 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
             
         except Exception as e:
             self.add_to_zigbee_log(f"Error triggering siren: {e}")
+    
+    def start_wireless_siren(self):
+        """Start the wireless siren (play sound and send MQTT ON command)."""
+        try:
+            # Start playing the siren sound
+            siren_file = self.siren_var.get()
+            self.add_to_zigbee_log(f"Starting wireless siren: {siren_file}")
+            
+            # Play sound with volume control
+            play_sound_with_volume(siren_file, "siren", self.enable_sound, self.pips_volume, 
+                                   self.siren_volume, self.air_volume, self.water_volume)
+            
+            # Send MQTT ON command to siren device
+            if self.zigbee_controller:
+                self.zigbee_controller.start_siren()
+            
+        except Exception as e:
+            self.add_to_zigbee_log(f"Error starting siren: {e}")
+    
+    def stop_wireless_siren(self):
+        """Stop the wireless siren (send MQTT OFF command)."""
+        try:
+            self.add_to_zigbee_log("Stopping wireless siren")
+            
+            # Send MQTT OFF command to siren device
+            if self.zigbee_controller:
+                self.zigbee_controller.stop_siren()
+            
+        except Exception as e:
+            self.add_to_zigbee_log(f"Error stopping siren: {e}")
+
 
     def update_zigbee_status(self, connected: bool, message: str):
         """Update Zigbee connection status in UI."""
