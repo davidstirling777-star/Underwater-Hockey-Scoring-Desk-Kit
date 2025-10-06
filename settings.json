@@ -22,11 +22,11 @@
   "gameSettings": {
     "time_to_start_first_game": "",
     "start_first_game_in": 1,
-    "team_timeouts_allowed": true,
+    "team_timeouts_allowed": false,
     "team_timeout_period": 1,
     "half_period": 10,
     "half_time_break": 3,
-    "overtime_allowed": true,
+    "overtime_allowed": false,
     "overtime_game_break": 1,
     "overtime_half_period": 1,
     "overtime_half_time_break": 1,
