@@ -828,7 +828,7 @@ class GameManagementApp:
         # Always start with "First Game Starts In:" period
         now = datetime.datetime.now()
         time_val = self.variables.get("time_to_start_first_game", {}).get("value", "")
-        game_starts_in_minutes = None
+        game_starts_in_seconds = None
         if time_val:
             match = re.fullmatch(r"(?:[0-9]|1[0-9]|2[0-3]):[0-5][0-9]", time_val.strip())
             if match:
@@ -837,12 +837,12 @@ class GameManagementApp:
                 if target < now:
                     target = target + datetime.timedelta(days=1)
                 delta = target - now
-                minutes_to_start = int(delta.total_seconds() // 60)
+                seconds_to_start = int(delta.total_seconds())
                 # Use the time directly without subtracting Between Game Break
-                game_starts_in_minutes = max(0, minutes_to_start)
+                game_starts_in_seconds = max(0, seconds_to_start)
         # First period: "First Game Starts In:" - only runs once at app start
-        if game_starts_in_minutes is not None:
-            seq.append({'name': 'First Game Starts In:', 'type': 'break', 'duration': game_starts_in_minutes * 60})
+        if game_starts_in_seconds is not None:
+            seq.append({'name': 'First Game Starts In:', 'type': 'break', 'duration': game_starts_in_seconds})
         else:
             # When time_to_start_first_game is blank, use start_first_game_in with minimum 30 seconds
             seq.append({'name': 'First Game Starts In:', 'type': 'break', 'duration': max(30, self.get_minutes('start_first_game_in'))})
@@ -2268,13 +2268,18 @@ Sound file and volume settings are from the Sounds tab."""
                     self.variables[var_name]["used"] = widget["checkbox"].get()
                 break
         
-        # Synchronize the two time fields bidirectionally
+        # Synchronize the two time fields unidirectionally
         if var_name == "time_to_start_first_game":
             # Update start_first_game_in when time_to_start_first_game changes
             self._update_start_first_game_in()
         elif var_name == "start_first_game_in":
-            # Update time_to_start_first_game when start_first_game_in changes
-            self._update_time_to_start_first_game()
+            # Clear time_to_start_first_game when start_first_game_in changes
+            # to ensure build_game_sequence uses start_first_game_in directly
+            self.variables["time_to_start_first_game"]["value"] = ""
+            for widget in self.widgets:
+                if widget["name"] == "time_to_start_first_game":
+                    widget["entry"].delete(0, tk.END)
+                    break
         
         # Only rebuild game sequence if the variable affects the sequence structure
         # Variables that don't affect game sequence: record_scorers_cap_number, team_timeouts_allowed, crib_time
