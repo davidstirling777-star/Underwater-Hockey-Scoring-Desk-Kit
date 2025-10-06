@@ -2689,8 +2689,8 @@ The 'Test Siren via MQTT' will use the same sound file and volume settings as co
         self.variables["team_timeouts_allowed"]["used"] = self.team_timeouts_allowed_var.get()
         # Update UI state
         self.update_team_timeouts_allowed()
-        # Rebuild sequence and save
-        self.build_game_sequence()
+        # team_timeouts_allowed doesn't affect game sequence structure, only UI state
+        # So we don't need to rebuild the sequence
         self.save_game_settings()
     
     def _on_overtime_change(self):
