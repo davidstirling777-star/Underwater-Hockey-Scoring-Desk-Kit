@@ -1057,7 +1057,7 @@ class GameManagementApp:
                 # Add reset warning as third bullet point (red and bold)
                 reset_warning_bullet = tk.Label(
                     widget1,
-                    text="• If you change anything in here, push the reset button!",
+                    text="• If you change any value in here, push the 'Reset Timer' Button!",
                     font=(default_font.cget("family"), default_font.cget("size") - 1, "bold"),
                     fg="red",
                     anchor="w", justify="left", wraplength=600
