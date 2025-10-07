@@ -2247,7 +2247,8 @@ class GameManagementApp:
 6. Configure MQTT broker connection details
 7. Click Connect (if not already connected) to start wireless siren connection
 
-The 'Test Siren via MQTT' button works with press/release:
+Physical Zigbee button presses trigger siren for the duration set in Sounds tab.
+The 'Test Siren via MQTT' UI button works with press/release:
 - Press and hold: Starts siren sound and sends MQTT ON command
 - Release: Sends MQTT OFF command to stop the siren
 Sound file and volume settings are from the Sounds tab."""
