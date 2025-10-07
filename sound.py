@@ -540,7 +540,8 @@ def _play_sound_with_volume_sync(filename, sound_type, enable_sound, pips_volume
         print(f"Sound Error: Failed to play {filename}. Command failed: {e}")
     except FileNotFoundError:
         # Fallback for development environments without aplay/omxplayer
-        print(f"Sound Warning: Audio player not found. Would play: {filename} (With {sound_type} volume: {int(sound_vol*100) if 'sound_vol' in locals() else 50}%, AIR: {air_vol if 'air_vol' in locals() else 50}%, WATER: {water_vol if 'water_vol' in locals() else 50}%)")
+        loop_msg = f" (looped {siren_loop_count}x for min 2s)" if 'siren_loop_count' in locals() and siren_loop_count > 1 else ""
+        print(f"Sound Warning: Audio player not found. Would play: {filename} (With {sound_type} volume: {int(sound_vol*100) if 'sound_vol' in locals() else 50}%, AIR: {air_vol if 'air_vol' in locals() else 50}%, WATER: {water_vol if 'water_vol' in locals() else 50}%){loop_msg}")
     except Exception as e:
         print(f"Sound Error: Unexpected error playing {filename}: {e}")
 
