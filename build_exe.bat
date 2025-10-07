@@ -20,7 +20,7 @@ if errorlevel 1 (
     )
 )
 
-REM List of files to include (with quotes for files with spaces)
+REM List of files to include (space-separated, quotes for files with spaces)
 set DATAFILES=LICENSE README.md "Tournament Draw.csv" ZIGBEE_SETUP.md pip-beep.mp3 pip-countdown-beep.mp3 pip-notification.mp3 pip-short-tone.mp3 requirements.txt settings.json siren-car-honk.mp3 siren-machinegun.mp3 siren-police.mp3 sound.py uwh.py zigbee_siren.py
 
 REM Build the --add-data argument for PyInstaller
