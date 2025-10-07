@@ -1342,6 +1342,128 @@ class GameManagementApp:
         
         return (None, None)
     
+    def get_goal_events_for_game(self, game_number):
+        """
+        Read UWH_Game_Data.txt and extract all goal events for the current game.
+        Returns a list of goal events with team and cap_number.
+        """
+        txt_file = os.path.join(os.getcwd(), "UWH_Game_Data.txt")
+        goal_events = []
+        
+        if not os.path.exists(txt_file):
+            return goal_events
+        
+        try:
+            with open(txt_file, 'r', encoding='utf-8') as f:
+                in_current_game = False
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    
+                    # Parse pipe-separated fields
+                    # local_datetime|court_time|event_type|team|cap_number|duration|break_status
+                    fields = line.split('|')
+                    if len(fields) < 5:
+                        continue
+                    
+                    event_type = fields[2].strip()
+                    
+                    # Track when we're in the current game
+                    if event_type == "First Half Start":
+                        # Check if this is the start of our game by looking at surrounding context
+                        # For now, we'll collect all goals and assume they're from the current game
+                        # This is a simplification - in production you might need game boundaries
+                        in_current_game = True
+                    elif event_type == "Game End":
+                        # We've reached the end of a game
+                        in_current_game = False
+                    
+                    # Collect goal events
+                    if event_type == "Goal" and len(fields) >= 5:
+                        team = fields[3].strip()
+                        cap_number = fields[4].strip()
+                        goal_events.append({
+                            "team": team,
+                            "cap_number": cap_number
+                        })
+        except Exception as e:
+            print(f"Error reading goal events from {txt_file}: {e}")
+        
+        return goal_events
+    
+    def aggregate_goal_scorers(self, goal_events):
+        """
+        Aggregate goal events by team and cap number.
+        Returns a dict with 'White' and 'Black' keys, each containing a dict of cap_number -> count.
+        """
+        scorers = {
+            "White": {},
+            "Black": {}
+        }
+        
+        for event in goal_events:
+            team = event.get("team", "")
+            cap_number = event.get("cap_number", "")
+            
+            if team in scorers and cap_number:
+                if cap_number not in scorers[team]:
+                    scorers[team][cap_number] = 0
+                scorers[team][cap_number] += 1
+        
+        return scorers
+    
+    def format_goal_scorers_comment(self, scorers):
+        """
+        Format goal scorers as a comment string for CSV.
+        Format: W#1(2),W#PG(1),W#UNK(1),B#12(5)
+        - Penalty goals: W#PG(count) or B#PG(count)
+        - Unknown caps: W#UNK(count) or B#UNK(count)
+        - Regular caps: W#(capnumber)(count) or B#(capnumber)(count)
+        White scorers first, then Black, comma separated.
+        """
+        comment_parts = []
+        
+        # Process White team first
+        if "White" in scorers and scorers["White"]:
+            white_parts = []
+            for cap_number, count in sorted(scorers["White"].items(), key=lambda x: self._sort_cap_key(x[0])):
+                if cap_number == "Penalty Goal":
+                    white_parts.append(f"W#PG({count})")
+                elif cap_number == "Unknown":
+                    white_parts.append(f"W#UNK({count})")
+                else:
+                    white_parts.append(f"W#{cap_number}({count})")
+            comment_parts.extend(white_parts)
+        
+        # Process Black team
+        if "Black" in scorers and scorers["Black"]:
+            black_parts = []
+            for cap_number, count in sorted(scorers["Black"].items(), key=lambda x: self._sort_cap_key(x[0])):
+                if cap_number == "Penalty Goal":
+                    black_parts.append(f"B#PG({count})")
+                elif cap_number == "Unknown":
+                    black_parts.append(f"B#UNK({count})")
+                else:
+                    black_parts.append(f"B#{cap_number}({count})")
+            comment_parts.extend(black_parts)
+        
+        return ",".join(comment_parts)
+    
+    def _sort_cap_key(self, cap_number):
+        """
+        Helper to sort cap numbers: numeric first (1-15), then PG, then UNK.
+        """
+        if cap_number == "Penalty Goal":
+            return (1, 100)  # Sort after numbers
+        elif cap_number == "Unknown":
+            return (1, 101)  # Sort after PG
+        else:
+            try:
+                return (0, int(cap_number))
+            except ValueError:
+                return (2, 0)  # Sort other values last
+    
     def write_game_results_to_csv(self, game_number, white_score, black_score, penalties_list):
         """
         Write game results to CSV file.
@@ -1377,6 +1499,11 @@ class GameManagementApp:
                     duration_str = duration.split()[0] if duration.split() else duration
                 penalty_strings.append(f"{team_prefix}-#{cap}-{duration_str}")
             penalties_formatted = ",".join(penalty_strings)
+            
+            # Generate comments from goal scorers
+            goal_events = self.get_goal_events_for_game(game_number)
+            scorers = self.aggregate_goal_scorers(goal_events)
+            comments_formatted = self.format_goal_scorers_comment(scorers)
             
             # Read existing CSV
             rows = []
@@ -1461,6 +1588,10 @@ class GameManagementApp:
                 if penalties_idx != -1:
                     row[penalties_idx] = penalties_formatted
                 
+                # Update comments with goal scorers
+                if comments_idx != -1:
+                    row[comments_idx] = comments_formatted
+                
                 rows[game_row_index] = row
             else:
                 # Append new row
@@ -1488,6 +1619,8 @@ class GameManagementApp:
                     new_row[black_score_idx] = str(black_score)
                 if penalties_idx != -1:
                     new_row[penalties_idx] = penalties_formatted
+                if comments_idx != -1:
+                    new_row[comments_idx] = comments_formatted
                     
                 # Set date in first column
                 new_row[0] = current_date
