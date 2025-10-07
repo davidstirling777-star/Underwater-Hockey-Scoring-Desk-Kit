@@ -31,6 +31,7 @@ The system automatically plays audio cues during different periods:
 **Notes:**
 - Pip sounds use the "Pips" sound file and volume settings from the Sounds tab
 - Siren sounds use the "Siren" sound file and volume settings from the Sounds tab
+- **Siren Minimum Duration**: All siren sounds play for a minimum of 2 seconds to ensure audibility for officials and players. If the sound file is shorter than 2 seconds, it will automatically loop until the 2-second minimum is reached.
 - Audio channels (Air/Water) use their respective volume settings
 - Game periods (halves) only play siren at the end, no countdown pips
 - Sudden Death periods have no automatic audio cues
