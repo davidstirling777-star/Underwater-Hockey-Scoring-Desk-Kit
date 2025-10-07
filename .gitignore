@@ -108,6 +108,7 @@ game_variables_tab_screenshot.png
 game_variables_after_change.png
 screenshot_*.png
 cap_dialog_*.png
+app_with_pygame_sound.png
 
 # Game data text logs
 UWH_Game_Data.txt

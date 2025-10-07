@@ -8,7 +8,7 @@ import subprocess
 import json
 from zigbee_siren import ZigbeeSirenController, is_mqtt_available
 from sound import (check_audio_device_available, handle_no_audio_device_warning, 
-                   get_sound_files, play_sound, play_sound_with_volume)
+                   get_sound_files, play_sound, play_sound_with_volume, preload_sounds)
 
 SETTINGS_FILE = "settings.json"
 
@@ -399,6 +399,9 @@ class GameManagementApp:
             
         self.pips_var = tk.StringVar(value=pips_default)
         self.siren_var = tk.StringVar(value=siren_default)
+        
+        # Preload all sound files into memory for instant playback
+        preload_sounds()
         
         # Track audio device warning to prevent loops
         self.audio_device_warning_shown = False
