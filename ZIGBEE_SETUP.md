@@ -152,17 +152,18 @@ The application automatically creates this file with default settings on first r
 
 ### 5. Test Siren
 
-The "Test Siren via MQTT" button now supports press-and-hold functionality:
+The "Test Siren via MQTT" button now supports press-and-hold functionality with continuous sound looping:
 
-- **Press and Hold**: Immediately starts the siren sound and sends MQTT ON command to the siren device
-- **Release**: Sends MQTT OFF command to stop the siren device
+- **Press and Hold**: Immediately starts the siren sound in a continuous loop and sends MQTT ON command to the siren device
+- **Release**: Stops the siren sound loop immediately and sends MQTT OFF command to stop the siren device
 
 This allows you to:
-1. Test the local siren sound playback instantly
+1. Test the local siren sound playback with continuous looping while the button is held
 2. Control a remote Zigbee siren device via MQTT (when connected)
 3. Simulate the actual game siren behavior with precise control
+4. Stop the siren instantly by releasing the button
 
-**Note**: The local sound will play as long as the audio file duration. The MQTT commands control the remote Zigbee siren device.
+**Note**: The local sound will loop continuously while the button is held down, stopping immediately when released. The MQTT commands control the remote Zigbee siren device in parallel.
 
 You can also test wireless triggering by pressing your physical Zigbee button device.
 
@@ -274,17 +275,21 @@ You can edit this file directly or use the application's configuration tabs to m
 
 ### Siren Device Control
 
-The application can control a remote Zigbee siren device via MQTT. When you press the "Test Siren via MQTT" button:
+The application can control a remote Zigbee siren device via MQTT. When you press and hold the "Test Siren via MQTT" button:
 
 **ON Command (Button Press)**
 - Topic: `zigbee2mqtt/{siren_device_name}/set`
 - Payload: `{"state": "ON"}`
+- Local behavior: Starts continuous siren sound loop
 
 **OFF Command (Button Release)**
 - Topic: `zigbee2mqtt/{siren_device_name}/set`
 - Payload: `{"state": "OFF"}`
+- Local behavior: Stops siren sound loop immediately
 
 This is compatible with Sonoff ZBDongle-P and standard Zigbee2MQTT device conventions. Make sure your siren device is paired with Zigbee2MQTT and the device name matches the "Siren Device Name" setting in the UI.
+
+**Note**: The local siren sound now loops continuously while the button is held, providing better feedback and testing capabilities. The loop stops immediately when the button is released.
 
 ### Multiple Button Support
 
