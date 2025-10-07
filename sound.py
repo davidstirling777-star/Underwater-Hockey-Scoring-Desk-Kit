@@ -312,7 +312,7 @@ def play_sound(filename, enable_sound):
 
 
 def _play_sound_with_volume_sync(filename, sound_type, enable_sound, pips_volume, siren_volume, 
-                                 air_volume, water_volume):
+                                 air_volume, water_volume, siren_duration=1.5):
     """
     Internal synchronous sound playback function with volume control.
     Called by play_sound_with_volume() in a separate thread to prevent UI blocking.
@@ -323,8 +323,8 @@ def _play_sound_with_volume_sync(filename, sound_type, enable_sound, pips_volume
     - Fallback Windows: Uses winsound for .wav, playsound for other formats if available
     
     Siren Duration Requirement:
-    - Siren sounds MUST play for a minimum of 2 seconds
-    - If the sound file is shorter than 2 seconds, it will be looped/replayed
+    - Siren sounds play for a configurable duration (default 1.5 seconds)
+    - If the sound file is shorter than the configured duration, it will be looped/replayed
     - This ensures sirens are always audible for officials and players
     - Pips and other sound types are NOT looped (play once only)
     
@@ -336,6 +336,7 @@ def _play_sound_with_volume_sync(filename, sound_type, enable_sound, pips_volume
         siren_volume: int/float for siren volume (0-100)
         air_volume: int/float for air channel volume (0-100)
         water_volume: int/float for water channel volume (0-100)
+        siren_duration: float for siren duration in seconds (default 1.5)
     """
     # Check if sound is enabled
     if not enable_sound:
@@ -353,9 +354,8 @@ def _play_sound_with_volume_sync(filename, sound_type, enable_sound, pips_volume
     else:
         sound_vol = 0.5  # Default 50%
     
-    # Minimum duration for siren sounds (in seconds)
-    # Requirement: Sirens must be audible for at least 2 seconds for officials/players
-    MINIMUM_SIREN_DURATION = 2.0
+    # Use configured siren duration (in seconds)
+    MINIMUM_SIREN_DURATION = siren_duration
     
     # Try pygame.mixer first (instant playback from preloaded sounds)
     if PYGAME_AVAILABLE and PYGAME_INITIALIZED and filename in _preloaded_sounds:
@@ -406,22 +406,21 @@ def _play_sound_with_volume_sync(filename, sound_type, enable_sound, pips_volume
         air_vol = int(air_volume)
         water_vol = int(water_volume)
         
-        # Minimum duration for siren sounds (in seconds)
-        # Requirement: Sirens must be audible for at least 2 seconds
-        MINIMUM_SIREN_DURATION = 2.0
+        # Use configured siren duration (in seconds)
+        MINIMUM_SIREN_DURATION = siren_duration
         
         # For fallback systems without duration detection:
         # Estimate short siren files are typically 0.2-0.6 seconds
-        # To be safe, play siren sounds 4 times to ensure >= 2 seconds total
-        # (4 plays × 0.5s average = 2.0s minimum)
-        siren_loop_count = 4 if sound_type == "siren" else 1
+        # Calculate loop count to reach desired duration
+        # (e.g., for 1.5s duration and 0.5s average file: 3 plays × 0.5s = 1.5s)
+        siren_loop_count = max(1, int(siren_duration / 0.5)) if sound_type == "siren" else 1
         
         # Windows playback with improved reliability
         if IS_WINDOWS:
             if filename.lower().endswith('.wav'):
                 if WINSOUND_AVAILABLE:
                     try:
-                        # For siren sounds: loop to ensure minimum 2-second duration
+                        # For siren sounds: loop to ensure configured duration
                         for i in range(siren_loop_count):
                             if i == 0:
                                 # First play: Use SND_ASYNC flag for non-blocking
@@ -492,7 +491,7 @@ def _play_sound_with_volume_sync(filename, sound_type, enable_sound, pips_volume
                     pass  # Ignore amixer errors in development environments
                 
             # Determine command based on file extension
-            # For siren sounds: loop multiple times to ensure minimum 2-second duration
+            # For siren sounds: loop multiple times to ensure configured duration
             if filename.lower().endswith('.wav'):
                 # Use aplay for WAV files with volume control if available
                 for i in range(siren_loop_count):
@@ -547,7 +546,7 @@ def _play_sound_with_volume_sync(filename, sound_type, enable_sound, pips_volume
 
 
 def play_sound_with_volume(filename, sound_type, enable_sound, pips_volume, siren_volume, 
-                           air_volume, water_volume):
+                           air_volume, water_volume, siren_duration=1.5):
     """
     Play a sound file asynchronously with volume control using threading to prevent UI blocking.
     
@@ -567,6 +566,7 @@ def play_sound_with_volume(filename, sound_type, enable_sound, pips_volume, sire
         siren_volume: IntVar or int for siren volume (0-100)
         air_volume: IntVar or int for air channel volume (0-100)
         water_volume: IntVar or int for water channel volume (0-100)
+        siren_duration: DoubleVar or float for siren duration in seconds (default 1.5)
     """
     # Extract values in main thread to avoid tkinter threading issues
     enable_sound_val = enable_sound.get() if hasattr(enable_sound, 'get') else enable_sound
@@ -574,13 +574,14 @@ def play_sound_with_volume(filename, sound_type, enable_sound, pips_volume, sire
     siren_volume_val = siren_volume.get() if hasattr(siren_volume, 'get') else siren_volume
     air_volume_val = air_volume.get() if hasattr(air_volume, 'get') else air_volume
     water_volume_val = water_volume.get() if hasattr(water_volume, 'get') else water_volume
+    siren_duration_val = siren_duration.get() if hasattr(siren_duration, 'get') else siren_duration
     
     # Create and start a daemon thread for sound playback
     # Daemon thread ensures the thread doesn't prevent application exit
     sound_thread = threading.Thread(
         target=_play_sound_with_volume_sync,
         args=(filename, sound_type, enable_sound_val, pips_volume_val, siren_volume_val, 
-              air_volume_val, water_volume_val),
+              air_volume_val, water_volume_val, siren_duration_val),
         daemon=True
     )
     sound_thread.start()

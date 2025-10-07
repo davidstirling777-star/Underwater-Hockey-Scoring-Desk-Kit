@@ -384,6 +384,7 @@ class GameManagementApp:
         self.air_volume = tk.DoubleVar(value=sound_settings.get("air_volume", 50.0))
         self.water_volume = tk.DoubleVar(value=sound_settings.get("water_volume", 50.0))
         self.enable_sound = tk.BooleanVar(value=sound_settings.get("enable_sound", True))
+        self.siren_duration = tk.DoubleVar(value=sound_settings.get("siren_duration", 1.5))
         
         # Initialize sound selection variables with auto-selection of first audio file if no saved setting
         sound_files = get_sound_files()
@@ -1847,7 +1848,7 @@ class GameManagementApp:
                 # Play the sound
                 play_sound_with_volume(self.pips_var.get(), "pips", 
                     self.enable_sound, self.pips_volume, self.siren_volume, 
-                    self.air_volume, self.water_volume)
+                    self.air_volume, self.water_volume, self.siren_duration)
                 
                 # Log successful playback initiation
                 success_msg = f"[{datetime.datetime.now().strftime('%H:%M:%S.%f')[:-3]}] Pips sound playback initiated successfully"
@@ -1947,7 +1948,7 @@ class GameManagementApp:
                 # Play the sound
                 play_sound_with_volume(self.siren_var.get(), "siren",
                     self.enable_sound, self.pips_volume, self.siren_volume,
-                    self.air_volume, self.water_volume)
+                    self.air_volume, self.water_volume, self.siren_duration)
                 
                 # Log successful playback initiation
                 success_msg = f"[{datetime.datetime.now().strftime('%H:%M:%S.%f')[:-3]}] Siren sound playback initiated successfully"
@@ -1992,6 +1993,40 @@ class GameManagementApp:
         siren_vol_slider.bind("<B1-Motion>", on_siren_slider_interaction)
         siren_vol_slider.bind("<ButtonRelease-1>", on_siren_slider_interaction)
 
+        # Row 7, column 0: "Number of seconds to play Siren"
+        tk.Label(sounds_widget, text="Number of seconds to play Siren", font=("Arial", 11)).grid(row=7, column=0, sticky="ew")
+
+        # Row 7, column 1, columnspan=2: Siren duration entry
+        siren_duration_entry = tk.Entry(sounds_widget, textvariable=self.siren_duration, font=("Arial", 11), width=10)
+        siren_duration_entry.grid(row=7, column=1, columnspan=2, sticky="w", padx=(0, 10))
+        
+        # Validate siren duration input - accept digits, period, and comma
+        def validate_siren_duration(new_value):
+            if new_value == "":
+                return True
+            # Replace comma with period for decimal separator
+            test_value = new_value.replace(',', '.')
+            try:
+                float(test_value)
+                return True
+            except ValueError:
+                return False
+        
+        vcmd = (sounds_widget.register(validate_siren_duration), '%P')
+        siren_duration_entry.config(validate='key', validatecommand=vcmd)
+        
+        # Normalize comma to period on focus out
+        def normalize_siren_duration(event=None):
+            try:
+                current_value = self.siren_duration.get()
+                # This will automatically handle the conversion
+            except tk.TclError:
+                # If the value is invalid, reset to default
+                self.siren_duration.set(1.5)
+        
+        siren_duration_entry.bind("<FocusOut>", normalize_siren_duration)
+        siren_duration_entry.bind("<Return>", normalize_siren_duration)
+
         # Air slider: row=2, column=4, rowspan=5, sticky="ns" (no text)
         air_vol_slider = tk.Scale(
             sounds_widget, from_=100, to=0, orient="vertical", variable=self.air_volume,
@@ -1999,10 +2034,10 @@ class GameManagementApp:
         )
         air_vol_slider.grid(row=2, column=4, rowspan=5, sticky="ns")
         
-        # Row 7, column 4: Air volume value label
+        # Row 8, column 4: Air volume value label
         air_vol_label = tk.Label(sounds_widget, text=f"{self.air_volume.get()}%", 
                                  font=("Arial", 11))
-        air_vol_label.grid(row=7, column=4, sticky="n")
+        air_vol_label.grid(row=8, column=4, sticky="n")
         
         # Add interaction detection for air volume slider
         def on_air_slider_interaction(event=None):
@@ -2024,10 +2059,10 @@ class GameManagementApp:
         )
         water_vol_slider.grid(row=2, column=5, rowspan=5, sticky="ns")
         
-        # Row 7, column 5: Water volume value label
+        # Row 8, column 5: Water volume value label
         water_vol_label = tk.Label(sounds_widget, text=f"{self.water_volume.get()}%", 
                                    font=("Arial", 11))
-        water_vol_label.grid(row=7, column=5, sticky="n")
+        water_vol_label.grid(row=8, column=5, sticky="n")
         
         # Add interaction detection for water volume slider
         def on_water_slider_interaction(event=None):
@@ -2041,6 +2076,13 @@ class GameManagementApp:
         water_vol_slider.bind("<Button-1>", on_water_slider_interaction)
         water_vol_slider.bind("<B1-Motion>", on_water_slider_interaction)
         water_vol_slider.bind("<ButtonRelease-1>", on_water_slider_interaction)
+
+        # Row 9, column 0, columnspan=6: Windows volume warning
+        warning_label = tk.Label(sounds_widget, 
+                               text="These Volume controls do not work on Windows Machines, only Linux-based machines", 
+                               font=("Arial", 9, "italic"), 
+                               fg="gray")
+        warning_label.grid(row=9, column=0, columnspan=6, sticky="ew", pady=(10, 0))
 
     def create_zigbee_siren_tab(self):
         """Create the Zigbee Siren configuration tab."""
@@ -2628,7 +2670,8 @@ Sound file and volume settings are from the Sounds tab."""
             "siren_volume": self.siren_volume.get(),
             "air_volume": self.air_volume.get(),
             "water_volume": self.water_volume.get(),
-            "enable_sound": self.enable_sound.get()
+            "enable_sound": self.enable_sound.get(),
+            "siren_duration": self.siren_duration.get()
         }
         save_sound_settings(settings)
         # Show a message to confirm settings were saved
@@ -2909,7 +2952,8 @@ Sound file and volume settings are from the Sounds tab."""
             
             # Use the existing sound playing method with volume control
             play_sound_with_volume(siren_file, "siren", self.enable_sound, self.pips_volume, 
-                                   self.siren_volume, self.air_volume, self.water_volume)
+                                   self.siren_volume, self.air_volume, self.water_volume,
+                                   self.siren_duration)
             
         except Exception as e:
             self.add_to_zigbee_log(f"Error triggering siren: {e}")
@@ -2947,7 +2991,8 @@ Sound file and volume settings are from the Sounds tab."""
                 siren_file = self.siren_var.get()
                 play_sound_with_volume(siren_file, "siren", self.enable_sound, 
                                        self.pips_volume, self.siren_volume, 
-                                       self.air_volume, self.water_volume)
+                                       self.air_volume, self.water_volume,
+                                       self.siren_duration)
                 
                 # Small delay to allow checking the flag and prevent tight loop
                 # This also allows the sound to play before potentially starting it again
@@ -3505,7 +3550,8 @@ Sound file and volume settings are from the Sounds tab."""
                         try:
                             play_sound_with_volume(self.pips_var.get(), "pips", self.enable_sound, 
                                                    self.pips_volume, self.siren_volume, 
-                                                   self.air_volume, self.water_volume)
+                                                   self.air_volume, self.water_volume,
+                                                   self.siren_duration)
                         except Exception as e:
                             print(f"Error playing pip sound at 30s: {e}")
                     elif 1 <= self.timer_seconds <= 10:
@@ -3513,7 +3559,8 @@ Sound file and volume settings are from the Sounds tab."""
                         try:
                             play_sound_with_volume(self.pips_var.get(), "pips", self.enable_sound,
                                                    self.pips_volume, self.siren_volume,
-                                                   self.air_volume, self.water_volume)
+                                                   self.air_volume, self.water_volume,
+                                                   self.siren_duration)
                         except Exception as e:
                             print(f"Error playing pip sound at {self.timer_seconds}s: {e}")
             
@@ -3532,7 +3579,8 @@ Sound file and volume settings are from the Sounds tab."""
                         try:
                             play_sound_with_volume(self.siren_var.get(), "siren", self.enable_sound,
                                                    self.pips_volume, self.siren_volume,
-                                                   self.air_volume, self.water_volume)
+                                                   self.air_volume, self.water_volume,
+                                                   self.siren_duration)
                         except Exception as e:
                             print(f"Error playing siren at end of break period: {e}")
                 elif cur_period['type'] in ['regular', 'overtime']:
@@ -3542,7 +3590,8 @@ Sound file and volume settings are from the Sounds tab."""
                         try:
                             play_sound_with_volume(self.siren_var.get(), "siren", self.enable_sound,
                                                    self.pips_volume, self.siren_volume,
-                                                   self.air_volume, self.water_volume)
+                                                   self.air_volume, self.water_volume,
+                                                   self.siren_duration)
                         except Exception as e:
                             print(f"Error playing siren at end of half: {e}")
             
@@ -3644,7 +3693,8 @@ Sound file and volume settings are from the Sounds tab."""
                 try:
                     play_sound_with_volume(self.pips_var.get(), "pips", self.enable_sound,
                                            self.pips_volume, self.siren_volume,
-                                           self.air_volume, self.water_volume)
+                                           self.air_volume, self.water_volume,
+                                           self.siren_duration)
                 except Exception as e:
                     print(f"Error playing pip sound at 15s timeout: {e}")
             
@@ -3674,7 +3724,8 @@ Sound file and volume settings are from the Sounds tab."""
             try:
                 play_sound_with_volume(self.siren_var.get(), "siren", self.enable_sound,
                                        self.pips_volume, self.siren_volume,
-                                       self.air_volume, self.water_volume)
+                                       self.air_volume, self.water_volume,
+                                       self.siren_duration)
             except Exception as e:
                 print(f"Error playing siren at end of timeout: {e}")
         # If a pending timeout exists, start it now
