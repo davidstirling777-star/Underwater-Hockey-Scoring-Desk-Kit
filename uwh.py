@@ -576,13 +576,13 @@ class GameManagementApp:
         self.white_goal_button = tk.Button(
             tab, text="Add Goal White", font=self.fonts["button"], bg="light grey", fg="black",
             activebackground="light grey", activeforeground="black",
-            command=lambda: self.add_goal_with_confirmation(self.white_score_var, "White")
+            command=lambda: self.add_goal_with_confirmation(self.white_score_var, "White", self.white_goal_button)
         )
         self.white_goal_button.grid(row=9, column=1, columnspan=2, padx=1, pady=1, sticky="nsew")
         self.black_goal_button = tk.Button(
             tab, text="Add Goal Black", font=self.fonts["button"], bg="light grey", fg="black",
             activebackground="light grey", activeforeground="black",
-            command=lambda: self.add_goal_with_confirmation(self.black_score_var, "Black")
+            command=lambda: self.add_goal_with_confirmation(self.black_score_var, "Black", self.black_goal_button)
         )
         self.black_goal_button.grid(row=9, column=6, columnspan=2, padx=1, pady=1, sticky="nsew")
 
@@ -609,7 +609,7 @@ class GameManagementApp:
         self.penalties_button = tk.Button(
             tab, text="Penalties", font=self.fonts["button"], bg="orange", fg="black",
             activebackground="orange", activeforeground="black",
-            command=self.show_penalties
+            command=lambda: self.show_penalties(self.penalties_button)
         )
         self.penalties_button.grid(row=10, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
 
@@ -3898,14 +3898,34 @@ Sound file and volume settings are from the Sounds tab."""
                 self.schedule_penalty_countdown(penalty)
         self.update_penalty_display()
 
-    def show_cap_number_dialog(self):
+    def show_cap_number_dialog(self, trigger_button=None):
         """
         Show a dialog to select a cap number (1-15) or Unknown.
         Returns the selected cap number as a string, or None if canceled.
+        
+        Args:
+            trigger_button: Optional button widget that triggered this dialog.
+                          If provided, dialog will be positioned near the button.
         """
         cap_number_dialog = tk.Toplevel(self.master)
         cap_number_dialog.title("Select Cap Number")
-        cap_number_dialog.geometry("400x300")
+        
+        # Position the dialog near the trigger button if provided
+        if trigger_button:
+            # Get button's screen coordinates
+            button_x = trigger_button.winfo_rootx()
+            button_y = trigger_button.winfo_rooty()
+            button_width = trigger_button.winfo_width()
+            button_height = trigger_button.winfo_height()
+            
+            # Position dialog to the right and slightly below the button
+            dialog_x = button_x + button_width + 10
+            dialog_y = button_y
+            
+            cap_number_dialog.geometry(f"400x300+{dialog_x}+{dialog_y}")
+        else:
+            cap_number_dialog.geometry("400x300")
+        
         cap_number_dialog.transient(self.master)
         cap_number_dialog.grab_set()
         
@@ -4015,10 +4035,32 @@ Sound file and volume settings are from the Sounds tab."""
         
         return selected_cap["value"]
 
-    def show_penalties(self):
+    def show_penalties(self, trigger_button=None):
+        """
+        Show the penalties dialog window.
+        
+        Args:
+            trigger_button: Optional button widget that triggered this dialog.
+                          If provided, dialog will be positioned near the button.
+        """
         penalty_window = tk.Toplevel(self.master)
         penalty_window.title("Penalties")
-        penalty_window.geometry("250x450")
+        
+        # Position the dialog near the trigger button if provided
+        if trigger_button:
+            # Get button's screen coordinates
+            button_x = trigger_button.winfo_rootx()
+            button_y = trigger_button.winfo_rooty()
+            button_width = trigger_button.winfo_width()
+            button_height = trigger_button.winfo_height()
+            
+            # Position dialog to the right and slightly below the button
+            dialog_x = button_x + button_width + 10
+            dialog_y = button_y
+            
+            penalty_window.geometry(f"250x450+{dialog_x}+{dialog_y}")
+        else:
+            penalty_window.geometry("250x450")
 
         button_frame = ttk.Frame(penalty_window, padding="10")
         button_frame.pack(side="top", fill="x")
@@ -4306,7 +4348,7 @@ Sound file and volume settings are from the Sounds tab."""
         if cur_period['name'] == 'Sudden Death':
             return
 
-    def add_goal_with_confirmation(self, score_var, team_name):
+    def add_goal_with_confirmation(self, score_var, team_name, trigger_button=None):
         cur_period = self.full_sequence[self.current_index]
         is_team_timeout = getattr(self, 'in_timeout', False)
         is_referee_timeout = getattr(self, 'referee_timeout_active', False)
@@ -4333,7 +4375,7 @@ Sound file and volume settings are from the Sounds tab."""
         # Get cap number if recording is enabled
         cap_number = None
         if self.record_scorers_cap_number_var.get():
-            cap_number = self.show_cap_number_dialog()
+            cap_number = self.show_cap_number_dialog(trigger_button)
             if cap_number is None:
                 # User canceled the dialog, don't add the goal
                 return
