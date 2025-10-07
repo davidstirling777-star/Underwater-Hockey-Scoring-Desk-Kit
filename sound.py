@@ -211,11 +211,10 @@ def _play_sound_sync(filename, enable_sound):
     
     Args:
         filename: str path to sound file
-        enable_sound: BooleanVar or bool indicating if sound is enabled
+        enable_sound: bool indicating if sound is enabled
     """
     # Check if sound is enabled
-    sound_enabled = enable_sound.get() if hasattr(enable_sound, 'get') else enable_sound
-    if not sound_enabled:
+    if not enable_sound:
         return
         
     if filename == "No sound files found" or filename == "Default":
@@ -299,11 +298,14 @@ def play_sound(filename, enable_sound):
         filename: str path to sound file
         enable_sound: BooleanVar or bool indicating if sound is enabled
     """
+    # Extract value in main thread to avoid tkinter threading issues
+    enable_sound_val = enable_sound.get() if hasattr(enable_sound, 'get') else enable_sound
+    
     # Create and start a daemon thread for sound playback
     # Daemon thread ensures the thread doesn't prevent application exit
     sound_thread = threading.Thread(
         target=_play_sound_sync,
-        args=(filename, enable_sound),
+        args=(filename, enable_sound_val),
         daemon=True
     )
     sound_thread.start()
@@ -323,26 +325,25 @@ def _play_sound_with_volume_sync(filename, sound_type, enable_sound, pips_volume
     Args:
         filename: str path to sound file
         sound_type: str type of sound ("pips" or "siren")
-        enable_sound: BooleanVar or bool indicating if sound is enabled
-        pips_volume: IntVar or int for pips volume (0-100)
-        siren_volume: IntVar or int for siren volume (0-100)
-        air_volume: IntVar or int for air channel volume (0-100)
-        water_volume: IntVar or int for water channel volume (0-100)
+        enable_sound: bool indicating if sound is enabled
+        pips_volume: int/float for pips volume (0-100)
+        siren_volume: int/float for siren volume (0-100)
+        air_volume: int/float for air channel volume (0-100)
+        water_volume: int/float for water channel volume (0-100)
     """
     # Check if sound is enabled
-    sound_enabled = enable_sound.get() if hasattr(enable_sound, 'get') else enable_sound
-    if not sound_enabled:
+    if not enable_sound:
         return
         
     if filename == "No sound files found" or filename == "Default":
         print(f"Cannot play '{filename}' - not a valid sound file")
         return
     
-    # Get sound-specific volume
+    # Get sound-specific volume (already extracted as plain values)
     if sound_type == "pips":
-        sound_vol = (pips_volume.get() if hasattr(pips_volume, 'get') else pips_volume) / 100.0
+        sound_vol = pips_volume / 100.0
     elif sound_type == "siren":
-        sound_vol = (siren_volume.get() if hasattr(siren_volume, 'get') else siren_volume) / 100.0
+        sound_vol = siren_volume / 100.0
     else:
         sound_vol = 0.5  # Default 50%
     
@@ -367,9 +368,9 @@ def _play_sound_with_volume_sync(filename, sound_type, enable_sound, pips_volume
             print(f"Sound Error: Sound file '{filename}' not found")
             return
         
-        # Get volume values for Linux channel control
-        air_vol = int(air_volume.get() if hasattr(air_volume, 'get') else air_volume)
-        water_vol = int(water_volume.get() if hasattr(water_volume, 'get') else water_volume)
+        # Get volume values for Linux channel control (already extracted as plain values)
+        air_vol = int(air_volume)
+        water_vol = int(water_volume)
         
         # Windows playback with improved reliability
         if IS_WINDOWS:
@@ -475,10 +476,9 @@ def play_sound_with_volume(filename, sound_type, enable_sound, pips_volume, sire
     ensuring the timer and UI remain responsive during sound playback.
     
     Cross-platform support:
-    - Linux: Uses aplay for WAV files and omxplayer for MP3 files (Raspberry Pi compatible)
-      with amixer for volume control
-    - Windows: Uses winsound for WAV files (volume control not supported), 
-      playsound for other formats if available
+    - Preferred: Uses pygame.mixer for instant preloaded sound playback (all platforms)
+    - Fallback Linux/Raspberry Pi: Uses aplay for .wav, omxplayer for .mp3, amixer for volume
+    - Fallback Windows: Uses winsound for .wav, playsound for other formats if available
     
     Args:
         filename: str path to sound file
@@ -489,12 +489,19 @@ def play_sound_with_volume(filename, sound_type, enable_sound, pips_volume, sire
         air_volume: IntVar or int for air channel volume (0-100)
         water_volume: IntVar or int for water channel volume (0-100)
     """
+    # Extract values in main thread to avoid tkinter threading issues
+    enable_sound_val = enable_sound.get() if hasattr(enable_sound, 'get') else enable_sound
+    pips_volume_val = pips_volume.get() if hasattr(pips_volume, 'get') else pips_volume
+    siren_volume_val = siren_volume.get() if hasattr(siren_volume, 'get') else siren_volume
+    air_volume_val = air_volume.get() if hasattr(air_volume, 'get') else air_volume
+    water_volume_val = water_volume.get() if hasattr(water_volume, 'get') else water_volume
+    
     # Create and start a daemon thread for sound playback
     # Daemon thread ensures the thread doesn't prevent application exit
     sound_thread = threading.Thread(
         target=_play_sound_with_volume_sync,
-        args=(filename, sound_type, enable_sound, pips_volume, siren_volume, 
-              air_volume, water_volume),
+        args=(filename, sound_type, enable_sound_val, pips_volume_val, siren_volume_val, 
+              air_volume_val, water_volume_val),
         daemon=True
     )
     sound_thread.start()
