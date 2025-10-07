@@ -175,9 +175,23 @@ The wireless siren uses the same sound settings as the regular siren:
 2. Select your preferred siren sound file
 3. Adjust siren volume as needed
 4. Adjust Air/Water channel volumes
-5. Click "Save Settings"
+5. Set the "Number of seconds to play Siren" duration
+6. Click "Save Settings"
 
 The wireless siren will automatically use these settings when triggered.
+
+### Zigbee Button Trigger Behavior
+
+When a physical Zigbee button is pressed, the siren behavior is:
+
+- **Single Press/Click Event**: Physical Zigbee buttons send a single event when pressed (action types: "single", "press", "click", "ON")
+- **Siren Duration**: The siren plays for the duration configured in the Sounds tab ("Number of seconds to play Siren")
+- **No Press-and-Hold**: Physical button triggers do NOT support press-and-hold functionality - they are momentary single events
+- **Duration Setting Applies**: The "Number of seconds to play Siren" setting **does** affect Zigbee button triggers
+
+**Example**: If you set "Number of seconds to play Siren" to 2.5 seconds, then pressing a Zigbee button will play the siren sound for 2.5 seconds.
+
+**Important Distinction**: This is different from the "Test Siren via MQTT" button in the UI, which supports press-and-hold for continuous looping. Physical Zigbee buttons use standard Zigbee event protocols and send single momentary events, not continuous press states.
 
 ## Troubleshooting
 
@@ -224,6 +238,15 @@ pip install paho-mqtt
 1. Configure Air/Water channel volumes in Sounds tab
 2. Test with regular siren button first
 3. Check system audio mixer: `alsamixer`
+
+**Problem:** Siren duration is too short or too long when Zigbee button is pressed
+1. Go to the Sounds tab
+2. Adjust "Number of seconds to play Siren" setting
+3. This setting controls siren playback duration for **both** app-initiated sirens and Zigbee button triggers
+4. Click "Save Settings" to apply changes
+5. Test with your Zigbee button
+
+**Note:** Physical Zigbee button presses send single momentary events (not press-and-hold). The siren will play for the configured duration each time the button is pressed.
 
 ### System Integration Issues
 
