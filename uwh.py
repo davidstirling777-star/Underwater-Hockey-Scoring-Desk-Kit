@@ -3692,8 +3692,9 @@ Sound file and volume settings are from the Sounds tab."""
             self.update_timer_display()
             return
         if self.timer_seconds > 0:
-            # Enhancement: Play pip sound at 15 seconds remaining for team timeouts - BEFORE decrementing
-            if self.timer_seconds == 15:
+            # Enhancement: Play pip sound at 15 seconds remaining for team timeouts
+            # Only play if no pending timeout exists
+            if self.timer_seconds == 15 and self.pending_timeout is None:
                 try:
                     play_sound_with_volume(self.pips_var.get(), "pips", self.enable_sound,
                                            self.pips_volume, self.siren_volume,
@@ -4043,7 +4044,7 @@ Sound file and volume settings are from the Sounds tab."""
 
         radio_frame = ttk.Frame(penalty_window)
         radio_frame.pack(side="top", anchor="w", pady=10, fill="both")
-        radio_variable = tk.StringVar()
+        radio_variable = tk.StringVar(value="")
         radio_button_1 = tk.Radiobutton(radio_frame, text="1 minute", variable=radio_variable, value="1 minute", indicatoron=True)
         radio_button_2 = tk.Radiobutton(radio_frame, text="2 minutes", variable=radio_variable, value="2 minutes", indicatoron=True)
         radio_button_3 = tk.Radiobutton(radio_frame, text="5 minutes", variable=radio_variable, value="5 minutes", indicatoron=True)
