@@ -47,6 +47,8 @@ The system now includes full Zigbee2MQTT integration for wireless siren control:
 - **Robust Error Handling**: Graceful fallback when wireless is unavailable
 - **Real-time Logging**: Activity monitoring and troubleshooting tools
 
+**Zigbee Button Behavior**: Physical Zigbee button presses trigger a single siren playback for the duration configured in the Sounds tab ("Number of seconds to play Siren"). This duration setting affects both app-initiated sirens and Zigbee button triggers.
+
 See `ZIGBEE_SETUP.md` for complete installation and configuration instructions.
 
 Some Features
