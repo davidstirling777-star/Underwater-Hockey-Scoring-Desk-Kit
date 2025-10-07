@@ -1684,11 +1684,40 @@ class GameManagementApp:
         # Row 2, column 3: Play button for pips demo sound
         def test_pips_sound():
             try:
+                # Get current settings
+                sound_file = self.pips_var.get()
+                pips_vol = self.pips_volume.get()
+                air_vol = self.air_volume.get()
+                water_vol = self.water_volume.get()
+                sound_enabled = self.enable_sound.get()
+                
+                # Log test start
+                timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
+                log_msg = f"[{timestamp}] Pips sound test started: file='{sound_file}', pips_vol={pips_vol}%, air_vol={air_vol}%, water_vol={water_vol}%, sound_enabled={sound_enabled}"
+                print(log_msg)
+                self.add_to_zigbee_log(f"Pips test: {sound_file} (Vol: {pips_vol}%, Air: {air_vol}%, Water: {water_vol}%)")
+                
+                # Check audio device availability
+                audio_available = check_audio_device_available(self.enable_sound)
+                device_msg = f"[{timestamp}] Audio device available: {audio_available}"
+                print(device_msg)
+                self.add_to_zigbee_log(f"Audio device available: {audio_available}")
+                
+                # Play the sound
                 play_sound_with_volume(self.pips_var.get(), "pips", 
                     self.enable_sound, self.pips_volume, self.siren_volume, 
                     self.air_volume, self.water_volume)
+                
+                # Log successful playback initiation
+                success_msg = f"[{datetime.datetime.now().strftime('%H:%M:%S.%f')[:-3]}] Pips sound playback initiated successfully"
+                print(success_msg)
+                self.add_to_zigbee_log("Pips sound playback initiated successfully")
+                
             except Exception as e:
-                print(f"Error testing pips sound: {e}")
+                error_timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
+                error_msg = f"[{error_timestamp}] Error testing pips sound: {type(e).__name__}: {e}"
+                print(error_msg)
+                self.add_to_zigbee_log(f"ERROR testing pips: {type(e).__name__}: {e}")
         
         pips_play_btn = tk.Button(sounds_widget, text="Play", font=("Arial", 11), width=5,
                                   command=test_pips_sound)
@@ -1755,11 +1784,40 @@ class GameManagementApp:
         # Row 5, column 3: Play button for siren demo sound
         def test_siren_sound():
             try:
+                # Get current settings
+                sound_file = self.siren_var.get()
+                siren_vol = self.siren_volume.get()
+                air_vol = self.air_volume.get()
+                water_vol = self.water_volume.get()
+                sound_enabled = self.enable_sound.get()
+                
+                # Log test start
+                timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
+                log_msg = f"[{timestamp}] Siren sound test started: file='{sound_file}', siren_vol={siren_vol}%, air_vol={air_vol}%, water_vol={water_vol}%, sound_enabled={sound_enabled}"
+                print(log_msg)
+                self.add_to_zigbee_log(f"Siren test: {sound_file} (Vol: {siren_vol}%, Air: {air_vol}%, Water: {water_vol}%)")
+                
+                # Check audio device availability
+                audio_available = check_audio_device_available(self.enable_sound)
+                device_msg = f"[{timestamp}] Audio device available: {audio_available}"
+                print(device_msg)
+                self.add_to_zigbee_log(f"Audio device available: {audio_available}")
+                
+                # Play the sound
                 play_sound_with_volume(self.siren_var.get(), "siren",
                     self.enable_sound, self.pips_volume, self.siren_volume,
                     self.air_volume, self.water_volume)
+                
+                # Log successful playback initiation
+                success_msg = f"[{datetime.datetime.now().strftime('%H:%M:%S.%f')[:-3]}] Siren sound playback initiated successfully"
+                print(success_msg)
+                self.add_to_zigbee_log("Siren sound playback initiated successfully")
+                
             except Exception as e:
-                print(f"Error testing siren sound: {e}")
+                error_timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
+                error_msg = f"[{error_timestamp}] Error testing siren sound: {type(e).__name__}: {e}"
+                print(error_msg)
+                self.add_to_zigbee_log(f"ERROR testing siren: {type(e).__name__}: {e}")
         
         siren_play_btn = tk.Button(sounds_widget, text="Play", font=("Arial", 11), width=5,
                                    command=test_siren_sound)
