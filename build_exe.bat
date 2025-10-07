@@ -1,6 +1,5 @@
 @echo off
 REM Build script for Windows executable using PyInstaller and a .spec file
-REM This script packages the Underwater Hockey Scoring Desk Kit as a standalone .exe
 
 echo Building Underwater Hockey Scoring Desk Kit executable for Windows using uwh.spec...
 echo.
@@ -18,7 +17,7 @@ if errorlevel 1 (
 )
 
 REM Build the executable using the .spec file
-pyinstaller --clean --onefile uwh.spec
+pyinstaller --clean uwh.spec
 
 if errorlevel 1 (
     echo ERROR: Build failed
