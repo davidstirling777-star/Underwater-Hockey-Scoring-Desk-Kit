@@ -3487,11 +3487,12 @@ Sound file and volume settings are from the Sounds tab."""
     def start_sudden_death_timer(self):
         if not self.timer_running:
             return
+        # Update display BEFORE incrementing for consistency
+        self.update_timer_display()
         if self.sudden_death_seconds < 0:
             self.sudden_death_seconds = 0
         else:
             self.sudden_death_seconds += 1
-        self.update_timer_display()
         self.sudden_death_timer_job = self.master.after(1000, self.start_sudden_death_timer)
 
     def stop_sudden_death_timer(self):
@@ -3508,8 +3509,8 @@ Sound file and volume settings are from the Sounds tab."""
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
-        self.update_timer_display()
         if not self.timer_running:
+            self.update_timer_display()
             return
         if self.timer_seconds > 0:
             cur_period = self.full_sequence[self.current_index] if self.full_sequence and self.current_index < len(self.full_sequence) else None
@@ -3541,7 +3542,7 @@ Sound file and volume settings are from the Sounds tab."""
                     self.sudden_death_restore_active = False
                     self.sudden_death_restore_time = None
             
-            # Sound logic for break periods
+            # Sound logic for break periods - play BEFORE decrementing timer
             if cur_period and cur_period['type'] == 'break':
                 break_periods = ['First Game Starts In:', 'Between Game Break', 'Half Time', 'Sudden Death Game Break', 
                                'Overtime Game Break', 'Overtime Half Time']
@@ -3565,7 +3566,9 @@ Sound file and volume settings are from the Sounds tab."""
                         except Exception as e:
                             print(f"Error playing pip sound at {self.timer_seconds}s: {e}")
             
+            # Decrement timer AFTER playing sounds
             self.timer_seconds -= 1
+            self.update_timer_display()
             self.timer_job = self.master.after(1000, self.countdown_timer)
         else:
             # Timer reached 0
@@ -3685,8 +3688,8 @@ Sound file and volume settings are from the Sounds tab."""
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
-        self.update_timer_display()
         if not self.in_timeout:
+            self.update_timer_display()
             return
         if self.timer_seconds > 0:
             # Enhancement: Play pip sound at 15 seconds remaining for team timeouts
@@ -3700,7 +3703,9 @@ Sound file and volume settings are from the Sounds tab."""
                 except Exception as e:
                     print(f"Error playing pip sound at 15s timeout: {e}")
             
+            # Decrement timer AFTER playing sound
             self.timer_seconds -= 1
+            self.update_timer_display()
             self.timer_job = self.master.after(1000, self.timeout_countdown)
         else:
             self.end_timeout()
