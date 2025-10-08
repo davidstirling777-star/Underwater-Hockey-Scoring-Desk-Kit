@@ -3922,28 +3922,43 @@ Sound file and volume settings are from the Sounds tab."""
             button_width = trigger_button.winfo_width()
             button_height = trigger_button.winfo_height()
             
-            # Position dialog to the right and slightly below the button
-            dialog_x = button_x + button_width + 10
-            dialog_y = button_y
-            
-            # Set initial geometry
-            cap_number_dialog.geometry(f"400x300+{dialog_x}+{dialog_y}")
-            
-            # Update to get accurate dimensions
+            # Set initial geometry to get accurate dialog dimensions
+            cap_number_dialog.geometry("400x300")
             cap_number_dialog.update_idletasks()
             
-            # Check if dialog would be partially off-screen
+            # Get screen and dialog dimensions
+            screen_width = cap_number_dialog.winfo_screenwidth()
             screen_height = cap_number_dialog.winfo_screenheight()
+            dialog_width = cap_number_dialog.winfo_reqwidth()
             dialog_height = cap_number_dialog.winfo_reqheight()
-            bottom_margin = 20  # Margin from bottom of screen
             
-            # Adjust Y coordinate if dialog extends beyond screen bottom
+            # Position dialog so its bottom edge is above the button top edge
+            dialog_y = button_y - dialog_height - 10  # 10px gap between dialog bottom and button top
+            dialog_x = button_x  # Align left edge with button
+            
+            # Ensure dialog doesn't go above screen top
+            top_margin = 20
+            if dialog_y < top_margin:
+                dialog_y = top_margin
+            
+            # Ensure dialog doesn't extend beyond screen bottom
+            bottom_margin = 20
             if dialog_y + dialog_height > screen_height - bottom_margin:
                 dialog_y = screen_height - dialog_height - bottom_margin
-                # Ensure dialog doesn't go above screen top
-                if dialog_y < 0:
-                    dialog_y = 0
-                cap_number_dialog.geometry(f"400x300+{dialog_x}+{dialog_y}")
+                if dialog_y < top_margin:
+                    dialog_y = top_margin
+            
+            # Ensure dialog doesn't extend beyond screen right edge
+            right_margin = 20
+            if dialog_x + dialog_width > screen_width - right_margin:
+                dialog_x = screen_width - dialog_width - right_margin
+            
+            # Ensure dialog doesn't go beyond screen left edge
+            left_margin = 20
+            if dialog_x < left_margin:
+                dialog_x = left_margin
+            
+            cap_number_dialog.geometry(f"400x300+{dialog_x}+{dialog_y}")
         else:
             cap_number_dialog.geometry("400x300")
         
@@ -4075,28 +4090,43 @@ Sound file and volume settings are from the Sounds tab."""
             button_width = trigger_button.winfo_width()
             button_height = trigger_button.winfo_height()
             
-            # Position dialog to the right and slightly below the button
-            dialog_x = button_x + button_width + 10
-            dialog_y = button_y
-            
-            # Set initial geometry
-            penalty_window.geometry(f"250x450+{dialog_x}+{dialog_y}")
-            
-            # Update to get accurate dimensions
+            # Set initial geometry to get accurate dialog dimensions
+            penalty_window.geometry("250x450")
             penalty_window.update_idletasks()
             
-            # Check if dialog would be partially off-screen
+            # Get screen and dialog dimensions
+            screen_width = penalty_window.winfo_screenwidth()
             screen_height = penalty_window.winfo_screenheight()
+            dialog_width = penalty_window.winfo_reqwidth()
             dialog_height = penalty_window.winfo_reqheight()
-            bottom_margin = 20  # Margin from bottom of screen
             
-            # Adjust Y coordinate if dialog extends beyond screen bottom
+            # Position dialog so its bottom edge is above the button top edge
+            dialog_y = button_y - dialog_height - 10  # 10px gap between dialog bottom and button top
+            dialog_x = button_x  # Align left edge with button
+            
+            # Ensure dialog doesn't go above screen top
+            top_margin = 20
+            if dialog_y < top_margin:
+                dialog_y = top_margin
+            
+            # Ensure dialog doesn't extend beyond screen bottom
+            bottom_margin = 20
             if dialog_y + dialog_height > screen_height - bottom_margin:
                 dialog_y = screen_height - dialog_height - bottom_margin
-                # Ensure dialog doesn't go above screen top
-                if dialog_y < 0:
-                    dialog_y = 0
-                penalty_window.geometry(f"250x450+{dialog_x}+{dialog_y}")
+                if dialog_y < top_margin:
+                    dialog_y = top_margin
+            
+            # Ensure dialog doesn't extend beyond screen right edge
+            right_margin = 20
+            if dialog_x + dialog_width > screen_width - right_margin:
+                dialog_x = screen_width - dialog_width - right_margin
+            
+            # Ensure dialog doesn't go beyond screen left edge
+            left_margin = 20
+            if dialog_x < left_margin:
+                dialog_x = left_margin
+            
+            penalty_window.geometry(f"250x450+{dialog_x}+{dialog_y}")
         else:
             penalty_window.geometry("250x450")
 
