@@ -3514,6 +3514,34 @@ Sound file and volume settings are from the Sounds tab."""
             return
         if self.timer_seconds > 0:
             cur_period = self.full_sequence[self.current_index] if self.full_sequence and self.current_index < len(self.full_sequence) else None
+            
+            # Play siren at 1s for break periods (plays 1s earlier than old 0s trigger)
+            if cur_period and cur_period['type'] == 'break':
+                break_periods = ['First Game Starts In:', 'Between Game Break', 'Half Time', 'Sudden Death Game Break', 
+                               'Overtime Game Break', 'Overtime Half Time']
+                if cur_period['name'] in break_periods and self.timer_seconds == 1:
+                    # Play siren at 1s (displays as 00:01, plays 1s earlier than old 0s trigger)
+                    try:
+                        play_sound_with_volume(self.siren_var.get(), "siren", self.enable_sound,
+                                               self.pips_volume, self.siren_volume,
+                                               self.air_volume, self.water_volume,
+                                               self.siren_duration)
+                    except Exception as e:
+                        print(f"Error playing siren at 1s for break period: {e}")
+            
+            # Play siren at 1s for regular/overtime periods (plays 1s earlier than old 0s trigger)
+            if cur_period and cur_period['type'] in ['regular', 'overtime']:
+                half_periods = ['First Half', 'Second Half', 'Overtime First Half', 'Overtime Second Half']
+                if cur_period['name'] in half_periods and self.timer_seconds == 1:
+                    # Play siren at 1s (displays as 00:01, plays 1s earlier than old 0s trigger)
+                    try:
+                        play_sound_with_volume(self.siren_var.get(), "siren", self.enable_sound,
+                                               self.pips_volume, self.siren_volume,
+                                               self.air_volume, self.water_volume,
+                                               self.siren_duration)
+                    except Exception as e:
+                        print(f"Error playing siren at 1s for half period: {e}")
+            
             if cur_period and cur_period['name'] == 'Between Game Break':
                 if self.timer_seconds == 30:
                     # Write game results to CSV/TXT BEFORE resetting scores
@@ -3547,17 +3575,17 @@ Sound file and volume settings are from the Sounds tab."""
                 break_periods = ['First Game Starts In:', 'Between Game Break', 'Half Time', 'Sudden Death Game Break', 
                                'Overtime Game Break', 'Overtime Half Time']
                 if cur_period['name'] in break_periods:
-                    if self.timer_seconds == 30:
-                        # Play one pip at 30s remaining (before decrement)
+                    if self.timer_seconds == 31:
+                        # Play one pip at 31s (displays as 00:31, plays 1s earlier than old 30s trigger)
                         try:
                             play_sound_with_volume(self.pips_var.get(), "pips", self.enable_sound, 
                                                    self.pips_volume, self.siren_volume, 
                                                    self.air_volume, self.water_volume,
                                                    self.siren_duration)
                         except Exception as e:
-                            print(f"Error playing pip sound at 30s: {e}")
-                    elif 1 <= self.timer_seconds <= 10:
-                        # Play one pip per second from 10s to 1s remaining (before decrement)
+                            print(f"Error playing pip sound at 31s: {e}")
+                    elif 2 <= self.timer_seconds <= 11:
+                        # Play one pip per second from 11s to 2s (displays 00:11 to 00:02, plays 1s earlier than old 10-1s trigger)
                         try:
                             play_sound_with_volume(self.pips_var.get(), "pips", self.enable_sound,
                                                    self.pips_volume, self.siren_volume,
@@ -3572,34 +3600,7 @@ Sound file and volume settings are from the Sounds tab."""
             
             self.timer_job = self.master.after(1000, self.countdown_timer)
         else:
-            # Timer reached 0
-            cur_period = self.full_sequence[self.current_index] if self.full_sequence and self.current_index < len(self.full_sequence) else None
-            if cur_period:
-                # Sound logic for when timer hits 0
-                if cur_period['type'] == 'break':
-                    break_periods = ['First Game Starts In:', 'Between Game Break', 'Half Time', 'Sudden Death Game Break', 
-                                   'Overtime Game Break', 'Overtime Half Time']
-                    if cur_period['name'] in break_periods:
-                        # Play siren at 0s for break periods
-                        try:
-                            play_sound_with_volume(self.siren_var.get(), "siren", self.enable_sound,
-                                                   self.pips_volume, self.siren_volume,
-                                                   self.air_volume, self.water_volume,
-                                                   self.siren_duration)
-                        except Exception as e:
-                            print(f"Error playing siren at end of break period: {e}")
-                elif cur_period['type'] in ['regular', 'overtime']:
-                    half_periods = ['First Half', 'Second Half', 'Overtime First Half', 'Overtime Second Half']
-                    if cur_period['name'] in half_periods:
-                        # Play siren at end of each half
-                        try:
-                            play_sound_with_volume(self.siren_var.get(), "siren", self.enable_sound,
-                                                   self.pips_volume, self.siren_volume,
-                                                   self.air_volume, self.water_volume,
-                                                   self.siren_duration)
-                        except Exception as e:
-                            print(f"Error playing siren at end of half: {e}")
-            
+            # Timer reached 0 - no sounds played here anymore (moved to 1s)
             self.next_period()
 
     def reset_timeouts_for_half(self):
@@ -3693,17 +3694,17 @@ Sound file and volume settings are from the Sounds tab."""
             self.update_timer_display()
             return
         if self.timer_seconds > 0:
-            # Enhancement: Play pip sound at 15 seconds remaining for team timeouts
+            # Enhancement: Play pip sound at 16 seconds (displays as 00:16, plays 1s earlier than old 15s trigger)
             # Only play if no pending timeout exists
             # Play sound BEFORE decrementing timer
-            if self.timer_seconds == 15 and self.pending_timeout is None:
+            if self.timer_seconds == 16 and self.pending_timeout is None:
                 try:
                     play_sound_with_volume(self.pips_var.get(), "pips", self.enable_sound,
                                            self.pips_volume, self.siren_volume,
                                            self.air_volume, self.water_volume,
                                            self.siren_duration)
                 except Exception as e:
-                    print(f"Error playing pip sound at 15s timeout: {e}")
+                    print(f"Error playing pip sound at 16s timeout: {e}")
             
             # Decrement timer AFTER playing sound
             self.timer_seconds -= 1

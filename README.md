@@ -16,21 +16,22 @@ The system automatically plays audio cues during different periods:
 
 | Period Type | Period Name | 30s Remaining | 10s-1s Remaining | 0s (End) |
 |-------------|-------------|---------------|------------------|----------|
-| **Break Periods** | First Game Starts In: | 1 Pip | 1 Pip per second | Siren |
-| | Between Game Break | 1 Pip | 1 Pip per second | Siren |
-| | Half Time | 1 Pip | 1 Pip per second | Siren |
-| | Overtime Game Break | 1 Pip | 1 Pip per second | Siren |
-| | Overtime Half Time | 1 Pip | 1 Pip per second | Siren |
-| | Sudden Death Game Break | 1 Pip | 1 Pip per second | Siren |
-| **Game Periods** | First Half | - | - | Siren |
-| | Second Half | - | - | Siren |
-| | Overtime First Half | - | - | Siren |
-| | Overtime Second Half | - | - | Siren |
+| **Break Periods** | First Game Starts In: | 1 Pip (at 31s) | 1 Pip per second (at 11s-2s) | Siren (at 1s) |
+| | Between Game Break | 1 Pip (at 31s) | 1 Pip per second (at 11s-2s) | Siren (at 1s) |
+| | Half Time | 1 Pip (at 31s) | 1 Pip per second (at 11s-2s) | Siren (at 1s) |
+| | Overtime Game Break | 1 Pip (at 31s) | 1 Pip per second (at 11s-2s) | Siren (at 1s) |
+| | Overtime Half Time | 1 Pip (at 31s) | 1 Pip per second (at 11s-2s) | Siren (at 1s) |
+| | Sudden Death Game Break | 1 Pip (at 31s) | 1 Pip per second (at 11s-2s) | Siren (at 1s) |
+| **Game Periods** | First Half | - | - | Siren (at 1s) |
+| | Second Half | - | - | Siren (at 1s) |
+| | Overtime First Half | - | - | Siren (at 1s) |
+| | Overtime Second Half | - | - | Siren (at 1s) |
 | | Sudden Death | - | - | - |
 
 **Notes:**
 - Pip sounds use the "Pips" sound file and volume settings from the Sounds tab
 - Siren sounds use the "Siren" sound file and volume settings from the Sounds tab
+- **Sound Timing**: All sounds play one second earlier than their target time. For example, the 30s pip plays when the timer displays "00:31", the 10s-1s pips play when the timer displays "00:11" through "00:02", and sirens play when the timer displays "00:01". This ensures the sound completes before the timer reaches the target value.
 - **Siren Minimum Duration**: All siren sounds play for a minimum of 2 seconds to ensure audibility for officials and players. If the sound file is shorter than 2 seconds, it will automatically loop until the 2-second minimum is reached.
 - Audio channels (Air/Water) use their respective volume settings
 - Game periods (halves) only play siren at the end, no countdown pips
