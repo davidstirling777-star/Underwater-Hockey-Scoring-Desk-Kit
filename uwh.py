@@ -3932,29 +3932,44 @@ Sound file and volume settings are from the Sounds tab."""
             dialog_width = cap_number_dialog.winfo_reqwidth()
             dialog_height = cap_number_dialog.winfo_reqheight()
             
+            # Define margins
+            top_margin = 20
+            bottom_margin = 20
+            left_margin = 20
+            right_margin = 20
+            gap = 10  # Gap between dialog bottom and button top
+            
             # Position dialog so its bottom edge is above the button top edge
-            dialog_y = button_y - dialog_height - 10  # 10px gap between dialog bottom and button top
+            # dialog_y is the top of the dialog
+            # dialog_y + dialog_height is the bottom of the dialog
+            # We want: dialog_y + dialog_height <= button_y - gap
+            # Therefore: dialog_y <= button_y - gap - dialog_height
+            dialog_y = button_y - gap - dialog_height
             dialog_x = button_x  # Align left edge with button
             
-            # Ensure dialog doesn't go above screen top
-            top_margin = 20
+            # Ensure dialog is fully visible on screen
+            # Check if dialog would go above screen top
             if dialog_y < top_margin:
                 dialog_y = top_margin
             
+            # After adjusting for top margin, ensure bottom edge is still above button
+            # If dialog bottom would be at or below button top, we have a constraint violation
+            # In this case, keep dialog as high as possible while staying on screen
+            if dialog_y + dialog_height > button_y - gap:
+                # Dialog cannot fit above button with gap, position as high as possible
+                dialog_y = max(top_margin, button_y - gap - dialog_height)
+            
             # Ensure dialog doesn't extend beyond screen bottom
-            bottom_margin = 20
             if dialog_y + dialog_height > screen_height - bottom_margin:
                 dialog_y = screen_height - dialog_height - bottom_margin
                 if dialog_y < top_margin:
                     dialog_y = top_margin
             
             # Ensure dialog doesn't extend beyond screen right edge
-            right_margin = 20
             if dialog_x + dialog_width > screen_width - right_margin:
                 dialog_x = screen_width - dialog_width - right_margin
             
             # Ensure dialog doesn't go beyond screen left edge
-            left_margin = 20
             if dialog_x < left_margin:
                 dialog_x = left_margin
             
@@ -4100,29 +4115,44 @@ Sound file and volume settings are from the Sounds tab."""
             dialog_width = penalty_window.winfo_reqwidth()
             dialog_height = penalty_window.winfo_reqheight()
             
+            # Define margins
+            top_margin = 20
+            bottom_margin = 20
+            left_margin = 20
+            right_margin = 20
+            gap = 10  # Gap between dialog bottom and button top
+            
             # Position dialog so its bottom edge is above the button top edge
-            dialog_y = button_y - dialog_height - 10  # 10px gap between dialog bottom and button top
+            # dialog_y is the top of the dialog
+            # dialog_y + dialog_height is the bottom of the dialog
+            # We want: dialog_y + dialog_height <= button_y - gap
+            # Therefore: dialog_y <= button_y - gap - dialog_height
+            dialog_y = button_y - gap - dialog_height
             dialog_x = button_x  # Align left edge with button
             
-            # Ensure dialog doesn't go above screen top
-            top_margin = 20
+            # Ensure dialog is fully visible on screen
+            # Check if dialog would go above screen top
             if dialog_y < top_margin:
                 dialog_y = top_margin
             
+            # After adjusting for top margin, ensure bottom edge is still above button
+            # If dialog bottom would be at or below button top, we have a constraint violation
+            # In this case, keep dialog as high as possible while staying on screen
+            if dialog_y + dialog_height > button_y - gap:
+                # Dialog cannot fit above button with gap, position as high as possible
+                dialog_y = max(top_margin, button_y - gap - dialog_height)
+            
             # Ensure dialog doesn't extend beyond screen bottom
-            bottom_margin = 20
             if dialog_y + dialog_height > screen_height - bottom_margin:
                 dialog_y = screen_height - dialog_height - bottom_margin
                 if dialog_y < top_margin:
                     dialog_y = top_margin
             
             # Ensure dialog doesn't extend beyond screen right edge
-            right_margin = 20
             if dialog_x + dialog_width > screen_width - right_margin:
                 dialog_x = screen_width - dialog_width - right_margin
             
             # Ensure dialog doesn't go beyond screen left edge
-            left_margin = 20
             if dialog_x < left_margin:
                 dialog_x = left_margin
             
