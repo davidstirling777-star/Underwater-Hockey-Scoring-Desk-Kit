@@ -4105,13 +4105,9 @@ Sound file and volume settings are from the Sounds tab."""
         penalty_window.geometry("250x450")
         penalty_window.update_idletasks()
         
-        # Check if we have a saved position from previous dialog usage
-        if self.penalty_dialog_last_position is not None:
-            # Use the saved position
-            dialog_x, dialog_y = self.penalty_dialog_last_position
-            penalty_window.geometry(f"250x450+{dialog_x}+{dialog_y}")
-        elif trigger_button:
-            # No saved position, calculate default position relative to trigger button
+        # Position dialog relative to trigger button if provided
+        if trigger_button:
+            # Calculate position relative to trigger button
             # Get button's screen coordinates
             button_x = trigger_button.winfo_rootx()
             button_y = trigger_button.winfo_rooty()
@@ -4129,9 +4125,9 @@ Sound file and volume settings are from the Sounds tab."""
             bottom_margin = 20
             left_margin = 20
             right_margin = 20
-            gap = 10  # Gap between dialog close button and button top (exactly 10 pixels)
+            gap = 10  # Gap between dialog bottom and button top (exactly 10 pixels)
             
-            # Position dialog so its bottom edge (close button) is exactly 10 pixels above the button top edge
+            # Position dialog so its bottom edge is exactly 10 pixels above the button top edge
             # dialog_y is the top of the dialog
             # dialog_y + dialog_height is the bottom of the dialog
             # We want: dialog_y + dialog_height = button_y - gap
@@ -4148,6 +4144,10 @@ Sound file and volume settings are from the Sounds tab."""
             if dialog_x < left_margin:
                 dialog_x = left_margin
             
+            penalty_window.geometry(f"250x450+{dialog_x}+{dialog_y}")
+        elif self.penalty_dialog_last_position is not None:
+            # No trigger button, but we have a saved position - use that
+            dialog_x, dialog_y = self.penalty_dialog_last_position
             penalty_window.geometry(f"250x450+{dialog_x}+{dialog_y}")
         else:
             # No trigger button and no saved position - use default centered position
@@ -4186,6 +4186,12 @@ Sound file and volume settings are from the Sounds tab."""
         radio_button_2.pack(anchor="w")
         radio_button_3.pack(anchor="w")
         radio_button_4.pack(anchor="w")
+        
+        # Ensure all radio buttons start in an unselected state
+        radio_button_1.deselect()
+        radio_button_2.deselect()
+        radio_button_3.deselect()
+        radio_button_4.deselect()
 
         summary_frame = ttk.Frame(penalty_window)
         summary_frame.pack(side="top", fill="both", expand=True)
