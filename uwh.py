@@ -376,6 +376,9 @@ class GameManagementApp:
         self.active_penalties = []
         self.penalty_timers_paused = False
         self.penalty_timer_jobs = []
+        
+        # Store last position of penalties dialog (None means use default positioning)
+        self.penalty_dialog_last_position = None
 
         # Initialize volume variables for sounds - load from settings
         sound_settings = load_sound_settings()
@@ -4092,22 +4095,28 @@ Sound file and volume settings are from the Sounds tab."""
         
         Args:
             trigger_button: Optional button widget that triggered this dialog.
-                          If provided, dialog will be positioned near the button.
+                          If provided, dialog will be positioned near the button
+                          (only if no saved position exists).
         """
         penalty_window = tk.Toplevel(self.master)
         penalty_window.title("Penalties")
         
-        # Position the dialog near the trigger button if provided
-        if trigger_button:
+        # Set initial geometry to get accurate dialog dimensions
+        penalty_window.geometry("250x450")
+        penalty_window.update_idletasks()
+        
+        # Check if we have a saved position from previous dialog usage
+        if self.penalty_dialog_last_position is not None:
+            # Use the saved position
+            dialog_x, dialog_y = self.penalty_dialog_last_position
+            penalty_window.geometry(f"250x450+{dialog_x}+{dialog_y}")
+        elif trigger_button:
+            # No saved position, calculate default position relative to trigger button
             # Get button's screen coordinates
             button_x = trigger_button.winfo_rootx()
             button_y = trigger_button.winfo_rooty()
             button_width = trigger_button.winfo_width()
             button_height = trigger_button.winfo_height()
-            
-            # Set initial geometry to get accurate dialog dimensions
-            penalty_window.geometry("250x450")
-            penalty_window.update_idletasks()
             
             # Get screen and dialog dimensions
             screen_width = penalty_window.winfo_screenwidth()
@@ -4120,15 +4129,14 @@ Sound file and volume settings are from the Sounds tab."""
             bottom_margin = 20
             left_margin = 20
             right_margin = 20
-            gap = 10  # Gap between dialog bottom and button top
+            gap = 10  # Gap between dialog close button and button top (exactly 10 pixels)
             
-            # Position dialog so its bottom edge is above the button top edge
+            # Position dialog so its bottom edge (close button) is exactly 10 pixels above the button top edge
             # dialog_y is the top of the dialog
             # dialog_y + dialog_height is the bottom of the dialog
-            # We want: dialog_y + dialog_height <= button_y - gap
-            # Therefore: dialog_y <= button_y - gap - dialog_height
+            # We want: dialog_y + dialog_height = button_y - gap
+            # Therefore: dialog_y = button_y - gap - dialog_height
             # Always use max() to ensure dialog never goes above top_margin
-            # and is always positioned above the button, even if crowded at top
             dialog_y = max(top_margin, button_y - gap - dialog_height)
             dialog_x = button_x  # Align left edge with button
             
@@ -4142,6 +4150,7 @@ Sound file and volume settings are from the Sounds tab."""
             
             penalty_window.geometry(f"250x450+{dialog_x}+{dialog_y}")
         else:
+            # No trigger button and no saved position - use default centered position
             penalty_window.geometry("250x450")
 
         button_frame = ttk.Frame(penalty_window, padding="10")
@@ -4277,6 +4286,32 @@ Sound file and volume settings are from the Sounds tab."""
         # --- PATCH: Close button directly under Start Penalty/Remove Selected buttons ---
         close_button = ttk.Button(start_button_frame, text="Close", command=penalty_window.destroy)
         close_button.pack(side="bottom", fill="x", padx=10, pady=(0,10))
+
+        # Function to save the dialog position when it's moved
+        def save_dialog_position(event=None):
+            # Only save position if the event is from the main window (not child widgets)
+            if event is None or event.widget == penalty_window:
+                try:
+                    # Use winfo methods to get actual screen position
+                    x_coord = penalty_window.winfo_x()
+                    y_coord = penalty_window.winfo_y()
+                    # Only save if we have valid coordinates
+                    if x_coord >= 0 and y_coord >= 0:
+                        self.penalty_dialog_last_position = (x_coord, y_coord)
+                except:
+                    pass
+        
+        # Bind the Configure event to save position when window is moved
+        penalty_window.bind('<Configure>', save_dialog_position)
+        
+        # Also save position when dialog is closed
+        def on_close():
+            save_dialog_position()
+            penalty_window.destroy()
+        
+        # Update the close button to use our custom close handler
+        close_button.config(command=on_close)
+        penalty_window.protocol("WM_DELETE_WINDOW", on_close)
 
         penalty_window.transient(self.master)
         penalty_window.grab_set()
