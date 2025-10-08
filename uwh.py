@@ -3922,7 +3922,24 @@ Sound file and volume settings are from the Sounds tab."""
             dialog_x = button_x + button_width + 10
             dialog_y = button_y
             
+            # Set initial geometry
             cap_number_dialog.geometry(f"400x300+{dialog_x}+{dialog_y}")
+            
+            # Update to get accurate dimensions
+            cap_number_dialog.update_idletasks()
+            
+            # Check if dialog would be partially off-screen
+            screen_height = cap_number_dialog.winfo_screenheight()
+            dialog_height = cap_number_dialog.winfo_reqheight()
+            bottom_margin = 20  # Margin from bottom of screen
+            
+            # Adjust Y coordinate if dialog extends beyond screen bottom
+            if dialog_y + dialog_height > screen_height - bottom_margin:
+                dialog_y = screen_height - dialog_height - bottom_margin
+                # Ensure dialog doesn't go above screen top
+                if dialog_y < 0:
+                    dialog_y = 0
+                cap_number_dialog.geometry(f"400x300+{dialog_x}+{dialog_y}")
         else:
             cap_number_dialog.geometry("400x300")
         
@@ -4058,7 +4075,24 @@ Sound file and volume settings are from the Sounds tab."""
             dialog_x = button_x + button_width + 10
             dialog_y = button_y
             
+            # Set initial geometry
             penalty_window.geometry(f"250x450+{dialog_x}+{dialog_y}")
+            
+            # Update to get accurate dimensions
+            penalty_window.update_idletasks()
+            
+            # Check if dialog would be partially off-screen
+            screen_height = penalty_window.winfo_screenheight()
+            dialog_height = penalty_window.winfo_reqheight()
+            bottom_margin = 20  # Margin from bottom of screen
+            
+            # Adjust Y coordinate if dialog extends beyond screen bottom
+            if dialog_y + dialog_height > screen_height - bottom_margin:
+                dialog_y = screen_height - dialog_height - bottom_margin
+                # Ensure dialog doesn't go above screen top
+                if dialog_y < 0:
+                    dialog_y = 0
+                penalty_window.geometry(f"250x450+{dialog_x}+{dialog_y}")
         else:
             penalty_window.geometry("250x450")
 
