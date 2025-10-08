@@ -3542,13 +3542,17 @@ Sound file and volume settings are from the Sounds tab."""
                     self.sudden_death_restore_active = False
                     self.sudden_death_restore_time = None
             
-            # Sound logic for break periods - play BEFORE decrementing timer
+            # Decrement timer BEFORE playing sounds
+            self.timer_seconds -= 1
+            self.update_timer_display()
+            
+            # Sound logic for break periods - play AFTER decrementing timer
             if cur_period and cur_period['type'] == 'break':
                 break_periods = ['First Game Starts In:', 'Between Game Break', 'Half Time', 'Sudden Death Game Break', 
                                'Overtime Game Break', 'Overtime Half Time']
                 if cur_period['name'] in break_periods:
-                    if self.timer_seconds == 30:
-                        # Play one pip at 30s remaining
+                    if self.timer_seconds == 29:
+                        # Play one pip at 30s remaining (now at 29 after decrement)
                         try:
                             play_sound_with_volume(self.pips_var.get(), "pips", self.enable_sound, 
                                                    self.pips_volume, self.siren_volume, 
@@ -3556,19 +3560,16 @@ Sound file and volume settings are from the Sounds tab."""
                                                    self.siren_duration)
                         except Exception as e:
                             print(f"Error playing pip sound at 30s: {e}")
-                    elif 1 <= self.timer_seconds <= 10:
-                        # Play one pip per second from 10s to 1s remaining
+                    elif 0 <= self.timer_seconds <= 9:
+                        # Play one pip per second from 10s to 1s remaining (now at 9-0 after decrement)
                         try:
                             play_sound_with_volume(self.pips_var.get(), "pips", self.enable_sound,
                                                    self.pips_volume, self.siren_volume,
                                                    self.air_volume, self.water_volume,
                                                    self.siren_duration)
                         except Exception as e:
-                            print(f"Error playing pip sound at {self.timer_seconds}s: {e}")
+                            print(f"Error playing pip sound at {self.timer_seconds + 1}s: {e}")
             
-            # Decrement timer AFTER playing sounds
-            self.timer_seconds -= 1
-            self.update_timer_display()
             self.timer_job = self.master.after(1000, self.countdown_timer)
         else:
             # Timer reached 0
@@ -3692,9 +3693,13 @@ Sound file and volume settings are from the Sounds tab."""
             self.update_timer_display()
             return
         if self.timer_seconds > 0:
+            # Decrement timer BEFORE playing sound
+            self.timer_seconds -= 1
+            self.update_timer_display()
+            
             # Enhancement: Play pip sound at 15 seconds remaining for team timeouts
             # Only play if no pending timeout exists
-            if self.timer_seconds == 15 and self.pending_timeout is None:
+            if self.timer_seconds == 14 and self.pending_timeout is None:
                 try:
                     play_sound_with_volume(self.pips_var.get(), "pips", self.enable_sound,
                                            self.pips_volume, self.siren_volume,
@@ -3703,9 +3708,6 @@ Sound file and volume settings are from the Sounds tab."""
                 except Exception as e:
                     print(f"Error playing pip sound at 15s timeout: {e}")
             
-            # Decrement timer AFTER playing sound
-            self.timer_seconds -= 1
-            self.update_timer_display()
             self.timer_job = self.master.after(1000, self.timeout_countdown)
         else:
             self.end_timeout()
