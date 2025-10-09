@@ -81,18 +81,19 @@ def open_folder_in_file_manager(folder_path):
     
     try:
         if system == 'Windows':
-            # Windows: Use explorer
-            subprocess.run(['explorer', os.path.normpath(folder_path)], check=True)
+            # Windows: Use explorer with Popen (doesn't wait for exit status)
+            # Explorer.exe often returns non-zero exit codes even on success
+            subprocess.Popen(['explorer', os.path.normpath(folder_path)])
         elif system == 'Darwin':
-            # macOS: Use open
-            subprocess.run(['open', folder_path], check=True)
+            # macOS: Use open (don't check exit status)
+            subprocess.Popen(['open', folder_path])
         else:
-            # Linux and other Unix-like systems: Use xdg-open
-            subprocess.run(['xdg-open', folder_path], check=True)
-    except subprocess.CalledProcessError as e:
-        messagebox.showerror("Error", f"Failed to open folder:\n{e}")
+            # Linux and other Unix-like systems: Use xdg-open (don't check exit status)
+            subprocess.Popen(['xdg-open', folder_path])
     except FileNotFoundError:
         messagebox.showerror("Error", f"File manager command not found on {system}")
+    except OSError as e:
+        messagebox.showerror("Error", f"Failed to open folder:\n{e}")
 
 def migrate_legacy_settings():
     """Migrate settings from legacy separate files to unified settings.json"""
