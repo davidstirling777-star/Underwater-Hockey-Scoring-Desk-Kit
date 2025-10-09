@@ -272,7 +272,7 @@ class GameManagementApp:
             "time_to_start_first_game": {"default": "", "checkbox": False, "unit": "hh:mm", "label": "Time to Start First Game:"},
             "start_first_game_in": {"default": 1, "checkbox": False, "unit": "minutes", "label": "First Game Starts In:"},
             "team_timeouts_allowed": {"default": True, "checkbox": True, "unit": "", "label": "Team time-outs allowed?"},
-            "team_timeout_period": {"default": 1, "checkbox": False, "unit": "minutes"},
+            "team_timeout_period": {"default": 1, "checkbox": False, "unit": "minutes", "label": "Team Time-Out Period:"},
             "half_period": {"default": 1, "checkbox": False, "unit": "minutes"},
             "half_time_break": {"default": 1, "checkbox": False, "unit": "minutes"},
             "overtime_allowed": {"default": True, "checkbox": True, "unit": "", "label": "Overtime allowed?"},

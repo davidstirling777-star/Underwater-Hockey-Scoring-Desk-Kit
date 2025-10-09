@@ -39,7 +39,7 @@
 39| │  ☑    │ Overtime Half Time Break         │ 1     │ minutes      │           │
 40| │  ☑    │ Sudden Death Game Break          │ 1     │ minutes      │           │
 41| │       │ Between Game Break               │ 5     │ minutes      │           │
-42| │  ☑    │ Timeout Period                   │ 1     │ minutes      │           │
+42| │  ☑    │ Team Time-Out Period             │ 1     │ minutes      │           │
 43| │  ☑    │ Crib Time                        │ 60    │ seconds      │           │
 44| ├──────────────────────────────────────────────────────────────────────────────┤
 45| │               [Reset Timer]                                                 │
