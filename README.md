@@ -95,15 +95,15 @@ If the 'Team time-outs allowed?' check box is selected, the Team Time-Out button
 Coping with Errors (like when a goal is scored right on the buzzer!)
 Summary of what happens when goals are added during the three "break" periods:
 
-In Between Game Break
-Scores After Goal	is added: What Happens
-Even	Progress to Overtime Game Break (if Overtime allowed)<br>OR Sudden Death Game Break (if Sudden Death allowed and Overtime not allowed)
-Uneven	Remain in Between Game Break. No progression; continue as normal.
+|In Between Game Break|
+|Scores After Goal	is added: What Happens|
+|Even	Progress to Overtime Game Break (if Overtime allowed)<br>OR Sudden Death Game Break (if Sudden Death allowed and Overtime not allowed)|
+|Uneven	Remain in Between Game Break. No progression; continue as normal.|
 
-In Overtime Game Break
-Scores After Goal	is added:|What Happens
-Even|Remain in Overtime Game Break. Proceed to overtime periods according to schedule.
-Uneven|Skip Overtime! Progress directly to Between Game Break.
+|In Overtime Game Break|
+|Scores After Goal	is added:|What Happens|
+|Even|Remain in Overtime Game Break. Proceed to overtime periods according to schedule.|
+|Uneven|Skip Overtime! Progress directly to Between Game Break.|
 
 Sudden Death Game Break
 Scores After Goal	is added:|What Happens
