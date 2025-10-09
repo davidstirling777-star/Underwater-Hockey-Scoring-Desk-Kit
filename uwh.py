@@ -269,7 +269,7 @@ class GameManagementApp:
 
         # --- Variable and font setup ---
         self.variables = {
-            "time_to_start_first_game": {"default": "", "checkbox": False, "unit": "hh:mm", "label": "Time to Start First Game:"},
+            "time_to_start_first_game": {"default": "", "checkbox": False, "unit": "HH:mm", "label": "Time to Start First Game:"},
             "start_first_game_in": {"default": 1, "checkbox": False, "unit": "minutes", "label": "First Game Starts In:"},
             "team_timeouts_allowed": {"default": True, "checkbox": True, "unit": "", "label": "Team time-outs allowed?"},
             "team_timeout_period": {"default": 1, "checkbox": False, "unit": "minutes"},
@@ -980,7 +980,7 @@ class GameManagementApp:
             label_text = var_info.get("label", f"{var_name.replace('_', ' ').title()}:")
             label_widget = tk.Label(widget1, text=label_text, font=(default_font.cget("family"), new_size, "bold"))
             label_widget.grid(row=row_idx, column=1, sticky="w", pady=4)
-            # Set up value box for time_to_start_first_game and validate as hh:mm
+            # Set up value box for time_to_start_first_game and validate as HH:mm
             entry = ttk.Entry(widget1, width=10)
             if var_name == "time_to_start_first_game":
                 entry.insert(0, "")
