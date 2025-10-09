@@ -4117,8 +4117,9 @@ Sound file and volume settings are from the Sounds tab."""
             # Get screen and dialog dimensions
             screen_width = penalty_window.winfo_screenwidth()
             screen_height = penalty_window.winfo_screenheight()
-            dialog_width = penalty_window.winfo_reqwidth()
-            dialog_height = penalty_window.winfo_reqheight()
+            # Use winfo_width/height instead of winfo_reqwidth/reqheight to get actual geometry
+            dialog_width = penalty_window.winfo_width()
+            dialog_height = penalty_window.winfo_height()
             
             # Define margins
             top_margin = 20
@@ -4132,8 +4133,8 @@ Sound file and volume settings are from the Sounds tab."""
             # dialog_y + dialog_height is the bottom of the dialog
             # We want: dialog_y + dialog_height = button_y - gap
             # Therefore: dialog_y = button_y - gap - dialog_height
-            # Always use max() to ensure dialog never goes above top_margin
-            dialog_y = max(top_margin, button_y - gap - dialog_height)
+            # No height restriction - dialog can be positioned anywhere on screen
+            dialog_y = button_y - gap - dialog_height
             dialog_x = button_x  # Align left edge with button
             
             # Ensure dialog doesn't extend beyond screen right edge
@@ -4177,6 +4178,8 @@ Sound file and volume settings are from the Sounds tab."""
 
         radio_frame = ttk.Frame(penalty_window)
         radio_frame.pack(side="top", anchor="w", pady=10, fill="both")
+        # Use ONE shared variable for all radio buttons and set to empty string
+        # This ensures no radio button is selected when the dialog opens
         radio_variable = tk.StringVar(value="")
         radio_button_1 = tk.Radiobutton(radio_frame, text="1 minute", variable=radio_variable, value="1 minute", indicatoron=True)
         radio_button_2 = tk.Radiobutton(radio_frame, text="2 minutes", variable=radio_variable, value="2 minutes", indicatoron=True)
@@ -4186,12 +4189,6 @@ Sound file and volume settings are from the Sounds tab."""
         radio_button_2.pack(anchor="w")
         radio_button_3.pack(anchor="w")
         radio_button_4.pack(anchor="w")
-        
-        # Ensure all radio buttons start in an unselected state
-        radio_button_1.deselect()
-        radio_button_2.deselect()
-        radio_button_3.deselect()
-        radio_button_4.deselect()
 
         summary_frame = ttk.Frame(penalty_window)
         summary_frame.pack(side="top", fill="both", expand=True)
