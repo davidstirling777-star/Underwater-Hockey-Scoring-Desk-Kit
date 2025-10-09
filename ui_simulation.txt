@@ -30,7 +30,7 @@
 30| │ Use?  │ Variable                         │ Value │ Units                    │
 31| ├───────┼──────────────────────────────────┼───────┼───────────────┬──────────┤
 32| │  ☑    │ Team time-outs allowed?          │ True  │              │           │
-33| │       │ Start First Game At This Time    │ 12:00 │ hh:mm        │           │
+33| │       │ Start First Game At This Time    │ 12:00 │ HH:mm        │           │
 34| │       │ Half Period                      │ 15    │ minutes      │           │
 35| │       │ Half Time Break                  │ 3     │ minutes      │           │
 36| │  ☑    │ Overtime allowed?                │ True  │              │           │
