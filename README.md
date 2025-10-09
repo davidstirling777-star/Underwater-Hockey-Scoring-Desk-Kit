@@ -6,7 +6,7 @@ The initial idea was to use a Raspberry Pi5 computer, tiny amplifier (Raspberry 
 
 The App opens with two windows.  One, called the Display Window, is designed for facing towards the players so they can see the time and score.  The second, called Underwater Hockey Game Management App, opens with the tab 'Game Variables' visible. There are three other tabs, Sounds, Zigbee Siren and Scoreboard. Both windows are able to be maximised to the screen size.
 
-'Game Variables' Tab
+**'Game Variables'** Tab
 Here, you can set most of the parameters of the games, select if Team Time-Outs, Overtime and Sudden Death aspects of the game are allowed.  All value boxes accept decimal time e.g. 1.5 (or 1,5) = 1 minute and 30 seconds.
 
 'Time to Start First Game' allows early setup of the system ensuring the first game starts at a particular time.  This is reliant on the Local Computer Time being correct.  The format is HH:mm (no leading zero and 24 hour format) there is a validation to ensure the time is correctly entered.
@@ -25,10 +25,10 @@ Here, you can set most of the parameters of the games, select if Team Time-Outs,
 'Crib Time:' has both a checkbox that when selected, enables the program to shorten the 'Between Game Break' by this value until the Court Time is aligned with the Local Computer Time, and a value box, in seconds, of the magnitude to crib (or claw back).  This value cannot make the 'Between Game Break' less than 31 seconds (more on that later).
 'Reset Timer' transfers the value to the program and starts the timer again with the new values.
 
-Presets Widget
+**Presets Widget**
 Here six buttons are located where commonly used settings can be stored.  Holding down the button for >4 seconds allows the name of the button to be altered and all the settings changed.  Click the save button and these settings will be saved in the JSON file (stored in the same location as the app itself).  A single click on these presets will transfer these settings to the corresponding settings in the 'Game Variables' tab.
 
-Tournament List
+**Tournament List**
 A sample CSV file is included with the distribution of this app
 This has a dropdown list where a CSV file can be selected that contains the draw for a Tournament or a list of games. The team names listed in the 'White' and 'Black' columns will appear on the Scoreboard Tab (and not on the 'Display Window' Screen.  If the team don't know who they are, they are in trouble.
 Expected CSV headers: date,#,White,Score,Black,Score,Referees,Penalties,Comments. where # is the Game Number [but this can actually also be 'game', 'game#' or 'game_number'].
@@ -39,11 +39,11 @@ When the 'Between Game Break' timer reached 30 seconds, the penalties and cap nu
 The 'Starting Game #' will show a list of Game Numbers in the CSV file selected above. This could be useful if the app crashes and the games need to be restarted, or if multiple days games are in the CSV file.
 
 
-Game Sequence
+**Game Sequence**
 This is a description of how the app progresses through the various stages of the game parts.
 
 
-'Sounds Tab'
+**'Sounds Tab'**
 'Save Settings' is a button that stores the user selected sound files to the JSON file (stored in the same location as the app itself).
 'Pips' is a dropdown box where a sound file can be selected. Any .MP3 or .WAV file can be placed in the same location as the app itself and these will appear in the 'Pips' dropdown box.
 'Siren' is a dropdown box where a sound file can be selected. Any .MP3 or .WAV file can be placed in the same location as the app itself and these will also appear in the 'Siren' dropdown box.
