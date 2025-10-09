@@ -95,20 +95,20 @@ If the 'Team time-outs allowed?' check box is selected, the Team Time-Out button
 Coping with Errors (like when a goal is scored right on the buzzer!)
 Summary of what happens when goals are added during the three "break" periods:
 
-|In Between Game Break|
-|Scores After Goal	is added: What Happens|
-|Even	Progress to Overtime Game Break (if Overtime allowed)<br>OR Sudden Death Game Break (if Sudden Death allowed and Overtime not allowed)|
-|Uneven	Remain in Between Game Break. No progression; continue as normal.|
+## What Happens When Goals Are Added During Breaks
 
-|In Overtime Game Break|
-|Scores After Goal	is added:|What Happens|
-|Even|Remain in Overtime Game Break. Proceed to overtime periods according to schedule.|
-|Uneven|Skip Overtime! Progress directly to Between Game Break.|
+This table explains the results and progression rules when a goal is added during a break period:
 
-Sudden Death Game Break
-Scores After Goal	is added:|What Happens
-Even|Remain in Sudden Death Game Break. Proceed to Sudden Death period as scheduled.
-Uneven|Progress directly to Between Game Break. (Skips Sudden Death period.)
+| Break Period              | Scores After Goal is Added | What Happens                                                                                                                                      |
+|---------------------------|---------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Between Game Break**    | Even                      | Progress to Overtime Game Break (if Overtime allowed) OR Sudden Death Game Break (if Sudden Death allowed and Overtime not allowed).              |
+|                           | Uneven                    | Remain in Between Game Break. No progression; continue as normal.                                                                                |
+| **Overtime Game Break**   | Even                      | Remain in Overtime Game Break. Proceed to overtime periods according to schedule.                                                                |
+|                           | Uneven                    | Skip Overtime! Progress directly to Between Game Break.                                                                                          |
+| **Sudden Death Game Break** | Even                    | Remain in Sudden Death Game Break. Proceed to Sudden Death period as scheduled.                                                                  |
+|                           | Uneven                    | Progress directly to Between Game Break. (Skips Sudden Death period.)                                                                            |
+
+This logic ensures the correct flow for tournament progression based on goals scored during break periods.
 
 
 ## New Features  (that don't work yet!!!)
