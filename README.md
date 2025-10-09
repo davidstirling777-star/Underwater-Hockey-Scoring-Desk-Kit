@@ -78,22 +78,6 @@ The system automatically plays audio cues during different periods:
 - Game periods (halves) only play siren at the end, no countdown pips
 - Sudden Death periods have no automatic audio cues
 
-## New Features  (that don't work yet!!!)
-
-### Zigbee2MQTT Wireless Siren Control
-The system now includes full Zigbee2MQTT integration for wireless siren control:
-- **Wireless Chief Referee Controls**: Use Zigbee buttons to trigger sirens remotely
-- **MQTT Integration**: Full Zigbee2MQTT compatibility with automatic reconnection
-- **Configuration UI**: Dedicated "Zigbee Siren" tab for easy setup and monitoring  
-- **Seamless Integration**: Uses existing sound files, volume controls, and audio channels
-- **Robust Error Handling**: Graceful fallback when wireless is unavailable
-- **Real-time Logging**: Activity monitoring and troubleshooting tools
-
-**Zigbee Button Behavior**: Physical Zigbee button presses trigger a single siren playback for the duration configured in the Sounds tab ("Number of seconds to play Siren"). This duration setting affects both app-initiated sirens and Zigbee button triggers.
-
-See `ZIGBEE_SETUP.md` for complete installation and configuration instructions.
-
-
 Scoreboard Tab
 In this tab, which can be maximised to fit the screen, is the Court Time.  This is synchronised to the 'Local Computer Time' when the app first opens.  If the 'Crib Time' is selected, the Court Time will try and move back to the 'Local Computer Time' by shortening the 'Between Game Break'.
 The next row is where the Game Sequence is announced.  Breaks are Red, Play is 'Light Coral'
@@ -106,8 +90,7 @@ If the 'Team time-outs allowed?' check box is selected, the Team Time-Out button
 'Penalties' is enabled during play but greyed out for breaks (as you cannot award a Penalty when play cannot be stopped [section 17.1.1 of CMAS rules]) but if the 'Referee Time-Out' button is pushed, the 'Penalties' button is enabled.  When the 'Penalties' button is pushed, a popup dialogue box appears that enables the selection of cap colour, Cap number and penalty time period.  'YOU MUST SELECT START PENALTY' to record the penalty. These penalties are written to the CSV file when the 'Between Game Break' timer reaches 30 seconds.  The penalties are also displayed on both screens along with the time remaining to serve.  When this time reaches zero, the penalty is removed from the list.  Penalties can be removed in case the wrong details were entered.
 
 
-Some Features
-
+##Some Other Features
 
 Coping with Errors (like when a goal is scored right on the buzzer!)
 Summary of what happens when goals are added during the three "break" periods:
@@ -126,6 +109,24 @@ Sudden Death Game Break
 Scores After Goal	is added: What Happens
 Even	Remain in Sudden Death Game Break. Proceed to Sudden Death period as scheduled.
 Uneven	Progress directly to Between Game Break. (Skips Sudden Death period.)
+
+
+## New Features  (that don't work yet!!!)
+
+### Zigbee2MQTT Wireless Siren Control
+The system now includes full Zigbee2MQTT integration for wireless siren control:
+- **Wireless Chief Referee Controls**: Use Zigbee buttons to trigger sirens remotely
+- **MQTT Integration**: Full Zigbee2MQTT compatibility with automatic reconnection
+- **Configuration UI**: Dedicated "Zigbee Siren" tab for easy setup and monitoring  
+- **Seamless Integration**: Uses existing sound files, volume controls, and audio channels
+- **Robust Error Handling**: Graceful fallback when wireless is unavailable
+- **Real-time Logging**: Activity monitoring and troubleshooting tools
+
+**Zigbee Button Behavior**: Physical Zigbee button presses trigger a single siren playback for the duration configured in the Sounds tab ("Number of seconds to play Siren"). This duration setting affects both app-initiated sirens and Zigbee button triggers.
+
+See `ZIGBEE_SETUP.md` for complete installation and configuration instructions.
+
+
 
 ## Installation and Running
 
