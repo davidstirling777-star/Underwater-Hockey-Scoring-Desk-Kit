@@ -101,14 +101,14 @@ Even	Progress to Overtime Game Break (if Overtime allowed)<br>OR Sudden Death Ga
 Uneven	Remain in Between Game Break. No progression; continue as normal.
 
 In Overtime Game Break
-Scores After Goal	is added: What Happens
-Even	Remain in Overtime Game Break. Proceed to overtime periods according to schedule.
-Uneven	Skip Overtime! Progress directly to Between Game Break.
+Scores After Goal	is added:|What Happens
+Even|Remain in Overtime Game Break. Proceed to overtime periods according to schedule.
+Uneven|Skip Overtime! Progress directly to Between Game Break.
 
 Sudden Death Game Break
-Scores After Goal	is added: What Happens
-Even	Remain in Sudden Death Game Break. Proceed to Sudden Death period as scheduled.
-Uneven	Progress directly to Between Game Break. (Skips Sudden Death period.)
+Scores After Goal	is added:|What Happens
+Even|Remain in Sudden Death Game Break. Proceed to Sudden Death period as scheduled.
+Uneven|Progress directly to Between Game Break. (Skips Sudden Death period.)
 
 
 ## New Features  (that don't work yet!!!)
