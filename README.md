@@ -90,7 +90,7 @@ If the 'Team time-outs allowed?' check box is selected, the Team Time-Out button
 'Penalties' is enabled during play but greyed out for breaks (as you cannot award a Penalty when play cannot be stopped [section 17.1.1 of CMAS rules]) but if the 'Referee Time-Out' button is pushed, the 'Penalties' button is enabled.  When the 'Penalties' button is pushed, a popup dialogue box appears that enables the selection of cap colour, Cap number and penalty time period.  'YOU MUST SELECT START PENALTY' to record the penalty. These penalties are written to the CSV file when the 'Between Game Break' timer reaches 30 seconds.  The penalties are also displayed on both screens along with the time remaining to serve.  When this time reaches zero, the penalty is removed from the list.  Penalties can be removed in case the wrong details were entered.
 
 
-##Some Other Features
+**Some Other Features:**
 
 Coping with Errors (like when a goal is scored right on the buzzer!)
 Summary of what happens when goals are added during the three "break" periods:
