@@ -2248,7 +2248,7 @@ class GameManagementApp:
         # Left column: Main setup instructions
         info_text_left = """Zigbee2MQTT Wireless Siren Setup:
 
-1. Install Zigbee2MQTT as a service on your system
+1. For Linux, install Zigbee2MQTT as a service on your system
    Recommended pm2 commands:
       sudo npm install -g pm2
       pm2 start zigbee2mqtt --name zigbee2mqtt
