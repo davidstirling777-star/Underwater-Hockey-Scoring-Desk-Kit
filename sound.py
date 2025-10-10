@@ -379,7 +379,7 @@ def _play_sound_with_volume_sync(filename, sound_type, enable_sound, pips_volume
                     # So loops=1 means play twice total, loops=2 means play 3 times total
                     sound.play(loops=loop_count - 1)
                     print(f"Played (pygame, looped {loop_count}x): {filename} "
-                          f"(Duration: {sound_duration:.2f}s → {sound_duration * loop_count:.2f}s, "
+                          f"(Duration: {sound_duration:.2f}s -> {sound_duration * loop_count:.2f}s, "
                           f"{sound_type.title()} Volume: {int(sound_vol*100)}%)")
                 else:
                     # Sound is already long enough, play once
