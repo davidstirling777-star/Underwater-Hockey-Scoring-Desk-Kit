@@ -4575,7 +4575,69 @@ Sound file and volume settings are from the Sounds tab."""
                 self.start_current_period()
                 return
 
+def is_zigbee2mqtt_running():
+    """
+    Check if Zigbee2MQTT process is running.
+    Uses pgrep to search for zigbee2mqtt process.
+    Returns True if running, False otherwise.
+    """
+    try:
+        result = subprocess.run(
+            ['pgrep', '-f', 'zigbee2mqtt'],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        # pgrep returns 0 if process found, 1 if not found
+        return result.returncode == 0
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+        return False
+
+def start_zigbee2mqtt():
+    """
+    Start Zigbee2MQTT as a subprocess if not already running.
+    Starts from the standard installation path /opt/zigbee2mqtt.
+    Logs to console if started or already running.
+    """
+    if is_zigbee2mqtt_running():
+        print("Zigbee2MQTT is already running")
+        return True
+    
+    print("Zigbee2MQTT not detected, attempting to start...")
+    
+    # Standard installation path for Zigbee2MQTT
+    zigbee2mqtt_path = '/opt/zigbee2mqtt'
+    
+    # Check if the directory exists
+    if not os.path.exists(zigbee2mqtt_path):
+        print(f"Warning: Zigbee2MQTT installation not found at {zigbee2mqtt_path}")
+        print("Zigbee2MQTT will not be started automatically")
+        return False
+    
+    try:
+        # Start Zigbee2MQTT using npm start in the installation directory
+        # Run as a detached subprocess in the background
+        subprocess.Popen(
+            ['npm', 'start'],
+            cwd=zigbee2mqtt_path,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True
+        )
+        print(f"Started Zigbee2MQTT from {zigbee2mqtt_path}")
+        # Give it a moment to start
+        time.sleep(2)
+        return True
+    except (FileNotFoundError, OSError) as e:
+        print(f"Failed to start Zigbee2MQTT: {e}")
+        return False
+
 if __name__ == "__main__":
+    # Check and start Zigbee2MQTT if needed (Linux/Raspberry Pi only)
+    import platform
+    if platform.system() == 'Linux':
+        start_zigbee2mqtt()
+    
     root = tk.Tk()
     app = GameManagementApp(root)
     
