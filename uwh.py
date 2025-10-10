@@ -2241,25 +2241,45 @@ class GameManagementApp:
                                  borderwidth=1, relief="solid")
         info_frame.grid(row=4, column=0, columnspan=4, sticky="ew", padx=5, pady=5)
         
-        info_text = """Zigbee2MQTT Wireless Siren Setup:
+        # Configure grid for two columns
+        info_frame.grid_columnconfigure(0, weight=1)
+        info_frame.grid_columnconfigure(1, weight=1)
+        
+        # Left column: Main setup instructions
+        info_text_left = """Zigbee2MQTT Wireless Siren Setup:
 
-1. Install Zigbee2MQTT on your system
+1. Install Zigbee2MQTT as a service on your system
+   Recommended pm2 commands:
+      sudo npm install -g pm2
+      pm2 start zigbee2mqtt --name zigbee2mqtt
+      pm2 save
+      pm2 startup
+
 2. Install MQTT library: pip install paho-mqtt  
 3. Configure your Zigbee button devices in Zigbee2MQTT
 4. Set the button device names above (comma-separated for multiple buttons)
 5. Set the siren device name (the Zigbee siren device to control)
 6. Configure MQTT broker connection details
-7. Click Connect (if not already connected) to start wireless siren connection
+7. Click Connect (if not already connected) to start wireless siren connection"""
+        
+        # Right column: Usage information
+        info_text_right = """Usage:
 
 Physical Zigbee button presses trigger siren for the duration set in Sounds tab.
+
 The 'Test Siren via MQTT' UI button works with press/release:
 - Press and hold: Starts siren sound and sends MQTT ON command
 - Release: Sends MQTT OFF command to stop the siren
+
 Sound file and volume settings are from the Sounds tab."""
         
-        info_label = tk.Label(info_frame, text=info_text, font=("Arial", 9), 
-                            justify="left", anchor="nw", wraplength=0)
-        info_label.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
+        info_label_left = tk.Label(info_frame, text=info_text_left, font=("Arial", 9), 
+                                  justify="left", anchor="nw", wraplength=0)
+        info_label_left.grid(row=0, column=0, sticky="nw", padx=5, pady=5)
+        
+        info_label_right = tk.Label(info_frame, text=info_text_right, font=("Arial", 9), 
+                                   justify="left", anchor="nw", wraplength=0)
+        info_label_right.grid(row=0, column=1, sticky="nw", padx=5, pady=5)
         
         # Log Section
         log_frame = tk.LabelFrame(main_frame, text="Activity Log", 
