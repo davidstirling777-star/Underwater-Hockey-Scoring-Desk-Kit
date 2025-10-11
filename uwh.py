@@ -2262,7 +2262,10 @@ class GameManagementApp:
    Recommended pm2 commands:"""
         
         info_text_left_part2 = """
-2. Install MQTT library: pip install paho-mqtt  
+2. Install MQTT library:
+   python3 -m venv ~/myenv
+   source ~/myenv/bin/activate
+   pip install paho-mqtt
 3. Configure your Zigbee button devices in Zigbee2MQTT
 4. Set the button device names above (comma-separated for multiple buttons)
 5. Set the siren device name (the Zigbee siren device to control)
