@@ -7,6 +7,7 @@ import threading
 import os
 import subprocess
 import json
+import webbrowser
 from zigbee_siren import ZigbeeSirenController, is_mqtt_available
 from sound import (check_audio_device_available, handle_no_audio_device_warning, 
                    get_sound_files, play_sound, play_sound_with_volume, preload_sounds)
@@ -2226,11 +2227,16 @@ class GameManagementApp:
         # Save Configuration Button
         save_config_btn = tk.Button(main_frame, text="Save Configuration", font=("Arial", 11),
                                   command=self.save_zigbee_config)
-        save_config_btn.grid(row=3, column=0, columnspan=2, pady=5)
+        save_config_btn.grid(row=3, column=0, columnspan=1, pady=5, padx=5)
+        
+        # Open Zigbee2MQTT Frontend Button
+        open_frontend_btn = tk.Button(main_frame, text="Open Zigbee2MQTT Frontend", font=("Arial", 11),
+                                     command=lambda: webbrowser.open("http://localhost:8080"))
+        open_frontend_btn.grid(row=3, column=1, columnspan=2, pady=5, padx=5)
         
         # Manual Siren Test Button
         test_siren_btn = tk.Button(main_frame, text="Test Siren via MQTT", font=("Arial", 11))
-        test_siren_btn.grid(row=3, column=2, columnspan=2, pady=5)
+        test_siren_btn.grid(row=3, column=3, columnspan=1, pady=5, padx=5)
         
         # Bind mouse down and mouse up events for press/release functionality
         test_siren_btn.bind("<ButtonPress-1>", lambda event: self.start_wireless_siren())
