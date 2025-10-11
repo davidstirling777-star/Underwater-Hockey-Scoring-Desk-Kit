@@ -2252,21 +2252,44 @@ class GameManagementApp:
         info_frame.grid_columnconfigure(1, weight=1)
         
         # Left column: Main setup instructions
-        info_text_left = """Zigbee2MQTT Wireless Siren Setup:
+        # Create a frame to hold the left column content
+        left_column_frame = tk.Frame(info_frame)
+        left_column_frame.grid(row=0, column=0, sticky="nw", padx=5, pady=5)
+        
+        info_text_left_part1 = """Zigbee2MQTT Wireless Siren Setup:
 
 1. For Linux, install Zigbee2MQTT as a service on your system
-   Recommended pm2 commands:
-      sudo npm install -g pm2
-      pm2 start zigbee2mqtt --name zigbee2mqtt
-      pm2 save
-      pm2 startup
-
+   Recommended pm2 commands:"""
+        
+        info_text_left_part2 = """
 2. Install MQTT library: pip install paho-mqtt  
 3. Configure your Zigbee button devices in Zigbee2MQTT
 4. Set the button device names above (comma-separated for multiple buttons)
 5. Set the siren device name (the Zigbee siren device to control)
 6. Configure MQTT broker connection details
 7. Click Connect (if not already connected) to start wireless siren connection"""
+        
+        # First part of instructions (before PM2 commands)
+        info_label_left_part1 = tk.Label(left_column_frame, text=info_text_left_part1, 
+                                         font=("Arial", 9), justify="left", anchor="nw", wraplength=0)
+        info_label_left_part1.grid(row=0, column=0, sticky="nw")
+        
+        # PM2 commands in a selectable Text widget
+        pm2_commands = """      sudo npm install -g pm2
+      pm2 start zigbee2mqtt --name zigbee2mqtt
+      pm2 save
+      pm2 startup"""
+        
+        pm2_text_widget = tk.Text(left_column_frame, height=4, width=50, font=("Arial", 9),
+                                  wrap=tk.NONE, relief="flat", bg=info_frame.cget("bg"))
+        pm2_text_widget.insert("1.0", pm2_commands)
+        pm2_text_widget.config(state="disabled")
+        pm2_text_widget.grid(row=1, column=0, sticky="nw")
+        
+        # Second part of instructions (after PM2 commands)
+        info_label_left_part2 = tk.Label(left_column_frame, text=info_text_left_part2, 
+                                         font=("Arial", 9), justify="left", anchor="nw", wraplength=0)
+        info_label_left_part2.grid(row=2, column=0, sticky="nw")
         
         # Right column: Usage information
         info_text_right = """Usage:
@@ -2278,10 +2301,6 @@ The 'Test Siren via MQTT' UI button works with press/release:
 - Release: Sends MQTT OFF command to stop the siren
 
 Sound file and volume settings are from the Sounds tab."""
-        
-        info_label_left = tk.Label(info_frame, text=info_text_left, font=("Arial", 9), 
-                                  justify="left", anchor="nw", wraplength=0)
-        info_label_left.grid(row=0, column=0, sticky="nw", padx=5, pady=5)
         
         info_label_right = tk.Label(info_frame, text=info_text_right, font=("Arial", 9), 
                                    justify="left", anchor="nw", wraplength=0)
