@@ -111,8 +111,6 @@ This table explains the results and progression rules when a goal is added durin
 This logic ensures the correct flow for tournament progression based on goals scored during break periods.
 
 
-## New Features  (that don't work yet!!!)
-
 ### Zigbee2MQTT Wireless Siren Control
 
 The system includes comprehensive Zigbee integration for wireless siren control with **full Windows support**:
