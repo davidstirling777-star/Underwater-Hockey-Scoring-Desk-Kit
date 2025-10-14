@@ -6,19 +6,30 @@ This guide explains how to set up and use the Zigbee2MQTT wireless siren functio
 
 The Zigbee2MQTT wireless siren integration allows Chief Referees to trigger the game siren remotely using Zigbee wireless buttons. This eliminates the need for wired connections between the referee and the scoring desk.
 
+**Platform Support:**
+- **Linux (Raspberry Pi)**: Full MQTT support via Zigbee2MQTT (recommended)
+- **Windows**: Direct serial communication with Zigbee dongle OR MQTT support
+
 ## Prerequisites
 
 ### Hardware Requirements
-- Raspberry Pi 5 (or compatible system)
-- Zigbee USB dongle (CC2531, CC2538, or similar)
+- Raspberry Pi 5 (or compatible system for Linux) OR Windows PC
+- Zigbee USB dongle (CC2531, CC2538, CP210x, Silicon Labs, or similar)
 - Zigbee button device (compatible with Zigbee2MQTT)
-- MQTT broker (can run on the same Pi)
+- MQTT broker (optional on Windows when using serial mode)
 
 ### Software Requirements
+
+#### For Linux (Raspberry Pi):
 - Python 3.12+ with tkinter
 - Zigbee2MQTT software
 - Mosquitto MQTT broker
-- Python MQTT library: `pip install paho-mqtt`
+- Python libraries: `pip install paho-mqtt pyserial`
+
+#### For Windows:
+- Python 3.12+ with tkinter
+- Python libraries: `pip install pyserial`
+- Optional: MQTT broker (Mosquitto for Windows) and `pip install paho-mqtt`
 
 ## Installation Steps
 
@@ -102,6 +113,118 @@ npm start
 ```
 
 The web interface will be available at `http://your-pi-ip:8080`.
+
+## Windows Setup (Serial Communication)
+
+Windows systems can use **direct serial communication** with the Zigbee dongle without requiring Zigbee2MQTT or MQTT broker. This is the simplest method for Windows users.
+
+### 1. Install Python Libraries
+
+```cmd
+pip install pyserial
+```
+
+Optional (for MQTT fallback):
+```cmd
+pip install paho-mqtt
+```
+
+### 2. Connect Zigbee Dongle
+
+1. Plug your Zigbee USB dongle into a USB port
+2. Windows will automatically detect and install drivers
+3. Check Device Manager to confirm COM port (e.g., COM3, COM4)
+   - Open Device Manager → Ports (COM & LPT)
+   - Look for entries containing: CC2531, CC2652, CP210x, Silicon Labs, or similar
+
+### 3. Auto-Detection
+
+The application will automatically:
+- Detect available COM ports on startup
+- Identify Zigbee dongles by manufacturer/description
+- Connect to the detected dongle
+
+**Common Zigbee Dongles Detected:**
+- TI CC2531, CC2652, CC2538 (Texas Instruments Zigbee chips)
+- CP2102, CP2104, CP210x (Silicon Labs USB-to-serial)
+- Silicon Labs devices
+- FTDI USB-to-serial adapters
+- CH340/CH341 USB-to-serial
+
+### 4. Manual Configuration (Optional)
+
+If auto-detection fails, you can manually specify the COM port in `settings.json`:
+
+```json
+{
+  "zigbeeSettings": {
+    "serial_port": "COM3",
+    "serial_baudrate": 115200,
+    "serial_timeout": 1.0,
+    "use_serial_fallback": true,
+    "prefer_mqtt": false
+  }
+}
+```
+
+### 5. Serial Communication Protocol
+
+The controller supports multiple data formats from the Zigbee dongle:
+
+**JSON Format** (recommended):
+```json
+{"action": "single"}
+{"click": "single"}
+{"state": "ON"}
+```
+
+**Simple Format:**
+```
+BUTTON_PRESS
+BTN:1
+```
+
+**Key-Value Format:**
+```
+action:single device:button1
+```
+
+### 6. Sending Siren Commands (Serial)
+
+When using serial mode, the controller can send commands to control a Zigbee siren:
+
+**ON Command:**
+```json
+{"state": "ON"}
+```
+
+**OFF Command:**
+```json
+{"state": "OFF"}
+```
+
+These commands are sent automatically when using the "Test Siren via MQTT" button in serial mode.
+
+### Windows MQTT Setup (Alternative)
+
+If you prefer to use MQTT on Windows (requires Zigbee2MQTT):
+
+1. **Install Mosquitto for Windows:**
+   - Download from: https://mosquitto.org/download/
+   - Run the installer
+   - Start the Mosquitto service
+
+2. **Install Zigbee2MQTT under WSL2:**
+   - Install WSL2: `wsl --install`
+   - Follow Linux installation steps within WSL2
+   - Configure Zigbee2MQTT to connect to Windows MQTT broker: `server: 'mqtt://host.docker.internal:1883'`
+
+3. **Configure Application:**
+   - Set `prefer_mqtt: true` in settings.json
+   - Configure MQTT broker as `localhost`
+   - Follow standard MQTT configuration steps
+
+The application will automatically use MQTT if available and configured.
 
 ## Device Pairing
 
@@ -266,6 +389,46 @@ sudo journalctl -u mosquitto -f
 # Restart service
 sudo systemctl restart mosquitto
 ```
+
+### Windows-Specific Issues
+
+**Problem:** Serial port not detected
+1. Check Device Manager for COM port
+2. Verify Zigbee dongle is properly connected
+3. Update USB drivers if needed
+4. Manually specify port in settings.json: `"serial_port": "COM3"`
+5. Check application logs for detection details
+
+**Problem:** Serial connection fails
+1. Verify correct COM port in Device Manager
+2. Close other applications using the COM port (Arduino IDE, PuTTY, etc.)
+3. Try different USB port
+4. Check baudrate setting (default: 115200)
+5. Review error messages in application logs
+
+**Problem:** Button presses not detected (Serial mode)
+1. Verify Zigbee dongle is sending data (check application logs)
+2. Ensure button is paired with Zigbee dongle firmware
+3. Check serial data format matches supported formats (JSON, simple, key-value)
+4. Try sending test commands manually using a serial terminal
+5. Increase logging level for debugging
+
+**Problem:** MQTT not working on Windows
+1. Verify Mosquitto service is running:
+   - Open Services (services.msc)
+   - Find "Mosquitto Broker" service
+   - Ensure it's Running
+2. Check firewall settings allow port 1883
+3. Test MQTT broker: `mosquitto_pub -h localhost -t test -m "hello"`
+4. Verify Zigbee2MQTT is connected (if using WSL2)
+
+**Problem:** Switching between Serial and MQTT
+1. Stop the controller before switching modes
+2. Update settings.json:
+   - `"prefer_mqtt": true` for MQTT priority
+   - `"prefer_mqtt": false` for Serial priority
+3. Restart the application
+4. Check connection status in Zigbee Siren tab
 
 ## Advanced Configuration
 
