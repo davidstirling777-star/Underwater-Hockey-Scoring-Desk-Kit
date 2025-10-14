@@ -63,7 +63,13 @@ DEFAULT_CONFIG = {
     "siren_device_name": "zigbee_siren",       # The actual siren device to control
     "connection_timeout": 60,
     "reconnect_delay": 5,
-    "enable_logging": True
+    "enable_logging": True,
+    # Serial configuration for Windows
+    "serial_port": "",                         # Auto-detect if empty
+    "serial_baudrate": 115200,
+    "serial_timeout": 1.0,
+    "use_serial_fallback": True,               # Use serial if MQTT unavailable
+    "prefer_mqtt": True                        # Prefer MQTT over serial when both available
 }
 
 class ZigbeeSirenController:
@@ -586,25 +592,22 @@ def get_platform_info() -> Dict[str, Any]:
 
 class WindowsZigbeeSirenController:
     """
-    Windows-specific Zigbee siren controller.
+    Windows-specific Zigbee siren controller with serial and MQTT support.
     
-    This class provides a framework for Windows Zigbee support using alternative
-    approaches to the Linux MQTT-based system. Currently provides logging and
-    graceful degradation, with structure for future expansion.
+    This class provides Windows Zigbee support through:
+    1. Direct serial communication with Zigbee dongle (via pyserial) - PRIMARY
+    2. Windows-compatible MQTT broker (Mosquitto for Windows, EMQX, etc.) - FALLBACK
     
-    Potential Windows Integration Approaches:
-    1. Direct serial communication with Zigbee dongle (via pyserial)
-    2. Windows-compatible MQTT broker (Mosquitto for Windows, EMQX, etc.)
-    3. Zigbee2MQTT running under WSL2 with Windows MQTT client
-    4. Alternative Zigbee libraries (python-zigpy, zigbee-herdsman-converters)
-    5. Network-based solutions (Zigbee hub with REST API or webhooks)
+    Serial Communication:
+    - Auto-detects Zigbee dongles (CC2531, CP210x, Silicon Labs, etc.)
+    - Reads button events from serial data
+    - Sends serial commands to trigger siren ON/OFF
+    - Robust error handling and reconnection logic
     
-    Future Development Notes:
-    - Implement serial port enumeration for Zigbee dongles on Windows
-    - Add COM port detection and configuration
-    - Support Windows service integration
-    - Add Windows-specific logging to Event Viewer
-    - Support Windows firewall configuration helpers
+    Connection Priority:
+    - If prefer_mqtt=True and MQTT available: Use MQTT
+    - If prefer_mqtt=False or MQTT unavailable: Use Serial
+    - Automatic fallback between methods if connection fails
     """
     
     def __init__(self, siren_callback: Optional[Callable] = None):
@@ -618,6 +621,14 @@ class WindowsZigbeeSirenController:
         self.connected = False
         self.connection_status_callback: Optional[Callable[[bool, str], None]] = None
         
+        # Connection management
+        self.mqtt_controller: Optional[ZigbeeSirenController] = None
+        self.serial_connection: Optional[serial.Serial] = None
+        self.serial_thread: Optional[threading.Thread] = None
+        self.should_stop = threading.Event()
+        self.using_mqtt = False
+        self.using_serial = False
+        
         # Set up logging
         self.logger = logging.getLogger(__name__)
         logging.basicConfig(
@@ -625,46 +636,307 @@ class WindowsZigbeeSirenController:
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
         )
         
-        # Load configuration (using same config structure as Linux version)
+        # Load configuration
         self.config = self.load_config()
         
         # Log platform information
         self.logger.info(f"Windows Zigbee controller initialized on {CURRENT_PLATFORM}")
-        self.logger.warning("Windows Zigbee support is currently limited.")
-        self.logger.info("For full functionality on Windows, consider:")
-        self.logger.info("  1. Installing Mosquitto MQTT broker for Windows")
-        self.logger.info("  2. Running Zigbee2MQTT under WSL2")
-        self.logger.info("  3. Using a network-based Zigbee hub with MQTT support")
+        self.logger.info("Windows Zigbee support modes:")
+        self.logger.info("  1. Direct serial communication with Zigbee dongle")
+        self.logger.info("  2. MQTT broker integration (requires Mosquitto for Windows)")
         
         # Check for available libraries
         if MQTT_AVAILABLE:
-            self.logger.info("MQTT library (paho-mqtt) is available - MQTT integration possible")
+            self.logger.info("MQTT library (paho-mqtt) is available")
         else:
             self.logger.warning("MQTT library not available. Install with: pip install paho-mqtt")
         
         if PYSERIAL_AVAILABLE:
-            self.logger.info("PySerial is available - direct serial communication possible")
+            self.logger.info("PySerial is available - serial communication enabled")
             self._detect_serial_ports()
         else:
-            self.logger.info("PySerial not available. For serial support: pip install pyserial")
+            self.logger.warning("PySerial not available. Install with: pip install pyserial")
     
-    def _detect_serial_ports(self) -> None:
-        """Detect available serial ports on Windows (for future Zigbee dongle support)."""
+    def _detect_serial_ports(self) -> Optional[str]:
+        """
+        Detect available serial ports and identify Zigbee dongles.
+        
+        Returns:
+            str: Path to detected Zigbee dongle, or None if not found
+        """
         if not PYSERIAL_AVAILABLE:
-            return
+            return None
+        
+        # Common Zigbee dongle identifiers
+        zigbee_identifiers = [
+            'CC2531', 'CC2652', 'CC2538',  # TI Zigbee chips
+            'CP210', 'CP2102', 'CP2104',   # Silicon Labs USB-to-serial
+            'Silicon Labs',                 # Silicon Labs devices
+            'FTDI',                         # FTDI USB-to-serial
+            'CH340', 'CH341',              # CH340/CH341 USB-to-serial
+            'Zigbee', 'ZigBee'             # Generic Zigbee identifiers
+        ]
         
         try:
             ports = serial.tools.list_ports.comports()
+            detected_zigbee_port = None
+            
             if ports:
                 self.logger.info("Available COM ports detected:")
                 for port in ports:
-                    self.logger.info(f"  - {port.device}: {port.description}")
-                    # Future: Check for Zigbee dongle identifiers in description
-                    # Common identifiers: Silicon Labs, CP210x, CC2531, CC2652
+                    description = port.description.upper()
+                    manufacturer = (port.manufacturer or "").upper()
+                    
+                    # Check if this is a potential Zigbee dongle
+                    is_zigbee = any(identifier.upper() in description or 
+                                   identifier.upper() in manufacturer 
+                                   for identifier in zigbee_identifiers)
+                    
+                    marker = " [POTENTIAL ZIGBEE DONGLE]" if is_zigbee else ""
+                    self.logger.info(f"  - {port.device}: {port.description}{marker}")
+                    
+                    if is_zigbee and not detected_zigbee_port:
+                        detected_zigbee_port = port.device
+                        self.logger.info(f"  → Auto-detected Zigbee dongle: {port.device}")
             else:
                 self.logger.info("No COM ports detected")
+            
+            return detected_zigbee_port
+            
         except Exception as e:
             self.logger.error(f"Error detecting serial ports: {e}")
+            return None
+    
+    def _open_serial_connection(self, port: str) -> bool:
+        """
+        Open serial connection to Zigbee dongle.
+        
+        Args:
+            port: COM port path (e.g., 'COM3')
+        
+        Returns:
+            bool: True if connection successful, False otherwise
+        """
+        if not PYSERIAL_AVAILABLE:
+            self.logger.error("PySerial not available - cannot open serial connection")
+            return False
+        
+        try:
+            self.logger.info(f"Opening serial connection to {port} at {self.config['serial_baudrate']} baud")
+            
+            self.serial_connection = serial.Serial(
+                port=port,
+                baudrate=self.config['serial_baudrate'],
+                timeout=self.config['serial_timeout'],
+                bytesize=serial.EIGHTBITS,
+                parity=serial.PARITY_NONE,
+                stopbits=serial.STOPBITS_ONE
+            )
+            
+            # Give the connection a moment to stabilize
+            time.sleep(0.5)
+            
+            if self.serial_connection.is_open:
+                self.logger.info(f"Serial connection established to {port}")
+                return True
+            else:
+                self.logger.error(f"Failed to open serial connection to {port}")
+                return False
+                
+        except serial.SerialException as e:
+            self.logger.error(f"Serial connection error: {e}")
+            return False
+        except Exception as e:
+            self.logger.error(f"Unexpected error opening serial connection: {e}")
+            return False
+    
+    def _close_serial_connection(self) -> None:
+        """Close serial connection."""
+        if self.serial_connection and self.serial_connection.is_open:
+            try:
+                self.serial_connection.close()
+                self.logger.info("Serial connection closed")
+            except Exception as e:
+                self.logger.error(f"Error closing serial connection: {e}")
+        self.serial_connection = None
+    
+    def _serial_read_loop(self) -> None:
+        """
+        Main serial reading loop running in separate thread.
+        Reads incoming data and processes button events.
+        """
+        self.logger.info("Serial read loop started")
+        
+        while not self.should_stop.is_set():
+            try:
+                if not self.serial_connection or not self.serial_connection.is_open:
+                    self.logger.warning("Serial connection lost, attempting reconnect...")
+                    self._notify_status(False, "Serial connection lost")
+                    
+                    # Try to reconnect
+                    port = self.config.get('serial_port', '')
+                    if not port:
+                        port = self._detect_serial_ports()
+                    
+                    if port and self._open_serial_connection(port):
+                        self._notify_status(True, f"Serial reconnected: {port}")
+                    else:
+                        time.sleep(self.config['reconnect_delay'])
+                        continue
+                
+                # Read data from serial port
+                if self.serial_connection.in_waiting > 0:
+                    try:
+                        # Read line from serial port
+                        line = self.serial_connection.readline()
+                        
+                        # Decode and strip whitespace
+                        data_str = line.decode('utf-8', errors='ignore').strip()
+                        
+                        if data_str:
+                            self.logger.debug(f"Serial data received: {data_str}")
+                            self._parse_serial_data(data_str)
+                    
+                    except UnicodeDecodeError as e:
+                        self.logger.warning(f"Failed to decode serial data: {e}")
+                    except Exception as e:
+                        self.logger.error(f"Error reading serial data: {e}")
+                
+                # Small delay to prevent CPU spinning
+                time.sleep(0.01)
+                
+            except Exception as e:
+                self.logger.error(f"Error in serial read loop: {e}")
+                time.sleep(1)
+        
+        self.logger.info("Serial read loop stopped")
+    
+    def _parse_serial_data(self, data: str) -> None:
+        """
+        Parse incoming serial data and process button events.
+        
+        Expected formats:
+        - JSON: {"action": "single", "device": "button1"}
+        - Simple: BUTTON_PRESS or BTN:1
+        - Zigbee2MQTT format: action:single device:button1
+        
+        Args:
+            data: Raw string data from serial port
+        """
+        try:
+            # Try parsing as JSON first (most common for Zigbee2MQTT-like format)
+            if data.startswith('{') and data.endswith('}'):
+                try:
+                    json_data = json.loads(data)
+                    self._process_button_event("serial_device", json_data)
+                    return
+                except json.JSONDecodeError:
+                    pass
+            
+            # Parse simple button press commands
+            data_upper = data.upper()
+            
+            # Common button trigger keywords
+            button_keywords = ['BUTTON', 'BTN', 'PRESS', 'CLICK', 'ACTION']
+            
+            if any(keyword in data_upper for keyword in button_keywords):
+                self.logger.info(f"Button event detected from serial: {data}")
+                self._trigger_siren()
+                return
+            
+            # Try to parse key-value format (action:single device:button1)
+            if ':' in data:
+                parts = {}
+                for item in data.split():
+                    if ':' in item:
+                        key, value = item.split(':', 1)
+                        parts[key.lower()] = value.lower()
+                
+                if parts:
+                    self._process_button_event("serial_device", parts)
+                    return
+            
+            # If we can't parse it, log for debugging
+            self.logger.debug(f"Unrecognized serial data format: {data}")
+            
+        except Exception as e:
+            self.logger.error(f"Error parsing serial data: {e}")
+    
+    def _process_button_event(self, device_name: str, data: Dict[str, Any]) -> None:
+        """
+        Process button events from serial data.
+        Same logic as MQTT version for consistency.
+        
+        Args:
+            device_name: Name of the device (for logging)
+            data: Dictionary containing button event data
+        """
+        try:
+            # Look for button press events
+            if "action" in data:
+                action = data["action"]
+                self.logger.info(f"Button action from {device_name}: {action}")
+                
+                if action in ["single", "press", "click", "on", "1"]:
+                    self._trigger_siren()
+                    
+            elif "click" in data:
+                click_type = data["click"]
+                self.logger.info(f"Button click from {device_name}: {click_type}")
+                
+                if click_type == "single":
+                    self._trigger_siren()
+                    
+            elif "state" in data:
+                state = data["state"]
+                self.logger.info(f"Button state from {device_name}: {state}")
+                
+                if state == "ON" or state == "on":
+                    self._trigger_siren()
+                    
+        except Exception as e:
+            self.logger.error(f"Error processing button event: {e}")
+    
+    def _trigger_siren(self) -> None:
+        """Trigger the siren through the callback."""
+        self.logger.info("Triggering wireless siren (serial)")
+        
+        if self.siren_callback:
+            try:
+                threading.Thread(target=self.siren_callback, daemon=True).start()
+            except Exception as e:
+                self.logger.error(f"Error calling siren callback: {e}")
+        else:
+            self.logger.warning("No siren callback set")
+    
+    def _send_serial_command(self, command: str) -> bool:
+        """
+        Send command over serial connection.
+        
+        Args:
+            command: Command string to send
+        
+        Returns:
+            bool: True if sent successfully, False otherwise
+        """
+        if not self.serial_connection or not self.serial_connection.is_open:
+            self.logger.warning("Serial connection not available")
+            return False
+        
+        try:
+            # Ensure command ends with newline
+            if not command.endswith('\n'):
+                command += '\n'
+            
+            self.serial_connection.write(command.encode('utf-8'))
+            self.serial_connection.flush()
+            
+            self.logger.debug(f"Serial command sent: {command.strip()}")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Error sending serial command: {e}")
+            return False
     
     def load_config(self) -> Dict[str, Any]:
         """Load configuration from unified settings file."""
@@ -719,28 +991,220 @@ class WindowsZigbeeSirenController:
         """
         Start the Windows Zigbee controller.
         
-        Currently returns False with informative logging.
-        Future implementations can add actual Windows Zigbee integration here.
+        Attempts to connect using MQTT (if available and preferred) or Serial.
+        Falls back between methods based on configuration and availability.
         
         Returns:
             bool: True if started successfully, False otherwise
         """
-        self.logger.warning("Windows Zigbee controller start requested")
-        self.logger.info("Native Windows Zigbee support not yet implemented")
-        self.logger.info("Workaround: Use MQTT broker on Windows with Zigbee2MQTT")
+        self.logger.info("Starting Windows Zigbee controller...")
         
-        # If MQTT is available, suggest using the standard controller
-        if MQTT_AVAILABLE:
-            self.logger.info("MQTT library is available - consider using standard MQTT integration")
+        # Determine connection method
+        prefer_mqtt = self.config.get('prefer_mqtt', True)
+        use_serial_fallback = self.config.get('use_serial_fallback', True)
         
-        self._notify_status(False, "Windows Zigbee not supported (use MQTT)")
+        # Try MQTT first if preferred and available
+        if prefer_mqtt and MQTT_AVAILABLE:
+            self.logger.info("Attempting MQTT connection (preferred method)...")
+            if self._start_mqtt():
+                self.using_mqtt = True
+                self.using_serial = False
+                self.connected = True
+                self._notify_status(True, "Connected via MQTT")
+                return True
+            else:
+                self.logger.warning("MQTT connection failed")
+        
+        # Try serial if MQTT failed or not preferred
+        if PYSERIAL_AVAILABLE:
+            self.logger.info("Attempting serial connection...")
+            if self._start_serial():
+                self.using_serial = True
+                self.using_mqtt = False
+                self.connected = True
+                return True
+            else:
+                self.logger.warning("Serial connection failed")
+        
+        # Try MQTT as fallback if serial failed and we haven't tried MQTT yet
+        if not prefer_mqtt and use_serial_fallback and MQTT_AVAILABLE:
+            self.logger.info("Attempting MQTT connection (fallback)...")
+            if self._start_mqtt():
+                self.using_mqtt = True
+                self.using_serial = False
+                self.connected = True
+                self._notify_status(True, "Connected via MQTT (fallback)")
+                return True
+        
+        # Failed to connect with any method
+        self.logger.error("Failed to start - no connection method available")
+        self._notify_status(False, "Connection failed")
         return False
+    
+    def _start_mqtt(self) -> bool:
+        """
+        Start MQTT connection using the standard controller.
+        
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            if not MQTT_AVAILABLE:
+                return False
+            
+            self.mqtt_controller = ZigbeeSirenController(self.siren_callback)
+            
+            # Copy our callbacks to the MQTT controller
+            if self.connection_status_callback:
+                self.mqtt_controller.set_connection_status_callback(self.connection_status_callback)
+            
+            return self.mqtt_controller.start()
+            
+        except Exception as e:
+            self.logger.error(f"Error starting MQTT: {e}")
+            return False
+    
+    def _start_serial(self) -> bool:
+        """
+        Start serial connection to Zigbee dongle.
+        
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        if not PYSERIAL_AVAILABLE:
+            self.logger.error("PySerial not available")
+            return False
+        
+        try:
+            # Get serial port from config or auto-detect
+            port = self.config.get('serial_port', '')
+            
+            if not port or port == '':
+                self.logger.info("No serial port configured, attempting auto-detection...")
+                port = self._detect_serial_ports()
+            
+            if not port:
+                self.logger.error("No Zigbee dongle detected")
+                self._notify_status(False, "No Zigbee dongle found")
+                return False
+            
+            # Open serial connection
+            if not self._open_serial_connection(port):
+                self._notify_status(False, f"Failed to open {port}")
+                return False
+            
+            # Start serial reading thread
+            self.should_stop.clear()
+            self.serial_thread = threading.Thread(target=self._serial_read_loop, daemon=True)
+            self.serial_thread.start()
+            
+            self.logger.info(f"Serial connection started on {port}")
+            self._notify_status(True, f"Serial: {port}")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Error starting serial connection: {e}")
+            self._notify_status(False, f"Serial error: {str(e)}")
+            return False
     
     def stop(self) -> None:
         """Stop the Windows Zigbee controller."""
+        self.logger.info("Stopping Windows Zigbee controller...")
+        
+        # Stop MQTT if active
+        if self.using_mqtt and self.mqtt_controller:
+            try:
+                self.mqtt_controller.stop()
+            except Exception as e:
+                self.logger.error(f"Error stopping MQTT controller: {e}")
+            self.mqtt_controller = None
+        
+        # Stop serial if active
+        if self.using_serial:
+            self.should_stop.set()
+            
+            # Wait for serial thread to finish
+            if self.serial_thread and self.serial_thread.is_alive():
+                self.serial_thread.join(timeout=5)
+            
+            # Close serial connection
+            self._close_serial_connection()
+        
         self.connected = False
+        self.using_mqtt = False
+        self.using_serial = False
         self._notify_status(False, "Stopped")
         self.logger.info("Windows Zigbee controller stopped")
+    
+    def start_siren(self) -> bool:
+        """
+        Start the siren via MQTT or serial command.
+        
+        Returns:
+            bool: True if command sent successfully, False otherwise
+        """
+        if self.using_mqtt and self.mqtt_controller:
+            return self.mqtt_controller.start_siren()
+        
+        elif self.using_serial:
+            # Send siren ON command via serial
+            commands = [
+                '{"state": "ON"}',           # JSON format
+                'SIREN_ON',                   # Simple format
+                'state:ON'                    # Key-value format
+            ]
+            
+            success = False
+            for cmd in commands:
+                if self._send_serial_command(cmd):
+                    success = True
+                    break
+            
+            if success:
+                self.logger.info("Siren ON command sent via serial")
+            else:
+                self.logger.warning("Failed to send siren ON command")
+            
+            return success
+        
+        else:
+            self.logger.warning("Not connected - cannot start siren")
+            return False
+    
+    def stop_siren(self) -> bool:
+        """
+        Stop the siren via MQTT or serial command.
+        
+        Returns:
+            bool: True if command sent successfully, False otherwise
+        """
+        if self.using_mqtt and self.mqtt_controller:
+            return self.mqtt_controller.stop_siren()
+        
+        elif self.using_serial:
+            # Send siren OFF command via serial
+            commands = [
+                '{"state": "OFF"}',          # JSON format
+                'SIREN_OFF',                  # Simple format
+                'state:OFF'                   # Key-value format
+            ]
+            
+            success = False
+            for cmd in commands:
+                if self._send_serial_command(cmd):
+                    success = True
+                    break
+            
+            if success:
+                self.logger.info("Siren OFF command sent via serial")
+            else:
+                self.logger.warning("Failed to send siren OFF command")
+            
+            return success
+        
+        else:
+            self.logger.warning("Not connected - cannot stop siren")
+            return False
     
     def _notify_status(self, connected: bool, message: str) -> None:
         """Notify connection status change."""
@@ -752,22 +1216,65 @@ class WindowsZigbeeSirenController:
     
     def get_status(self) -> Dict[str, Any]:
         """Get current status information."""
-        return {
+        status = {
             "connected": self.connected,
             "platform": CURRENT_PLATFORM,
             "mqtt_available": MQTT_AVAILABLE,
             "pyserial_available": PYSERIAL_AVAILABLE,
-            "broker": "N/A (Windows)",
-            "topic": "N/A (Windows)",
-            "devices": [],
-            "device": ""
+            "connection_method": "none"
         }
+        
+        if self.using_mqtt and self.mqtt_controller:
+            mqtt_status = self.mqtt_controller.get_status()
+            status.update({
+                "connection_method": "mqtt",
+                "broker": mqtt_status.get("broker", "N/A"),
+                "topic": mqtt_status.get("topic", "N/A"),
+                "devices": mqtt_status.get("devices", []),
+                "device": mqtt_status.get("device", "")
+            })
+        
+        elif self.using_serial and self.serial_connection:
+            status.update({
+                "connection_method": "serial",
+                "broker": "N/A (Serial)",
+                "topic": "N/A (Serial)",
+                "devices": ["serial_device"],
+                "device": "serial_device",
+                "serial_port": self.serial_connection.port if self.serial_connection else "N/A"
+            })
+        
+        else:
+            status.update({
+                "broker": "N/A",
+                "topic": "N/A",
+                "devices": [],
+                "device": ""
+            })
+        
+        return status
     
     def test_connection(self) -> bool:
-        """Test connection (currently not implemented for Windows)."""
-        self.logger.warning("Connection test not implemented for Windows native mode")
-        self.logger.info("To use Zigbee on Windows, install MQTT broker and use standard controller")
-        return False
+        """Test connection for the active method."""
+        if self.using_mqtt and self.mqtt_controller:
+            return self.mqtt_controller.test_connection()
+        
+        elif self.using_serial and self.serial_connection:
+            # Test serial connection by checking if port is open
+            try:
+                if self.serial_connection and self.serial_connection.is_open:
+                    self.logger.info("Serial connection test: OK")
+                    return True
+                else:
+                    self.logger.warning("Serial connection test: Port not open")
+                    return False
+            except Exception as e:
+                self.logger.error(f"Serial connection test failed: {e}")
+                return False
+        
+        else:
+            self.logger.warning("No active connection to test")
+            return False
 
 
 def create_controller(siren_callback: Optional[Callable] = None):
