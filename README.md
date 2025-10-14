@@ -114,13 +114,33 @@ This logic ensures the correct flow for tournament progression based on goals sc
 ## New Features  (that don't work yet!!!)
 
 ### Zigbee2MQTT Wireless Siren Control
-The system now includes full Zigbee2MQTT integration for wireless siren control:
+
+The system includes comprehensive Zigbee integration for wireless siren control with **full Windows support**:
+
+#### Platform Support
+- **Linux (Raspberry Pi)**: Full MQTT support via Zigbee2MQTT (recommended production setup)
+- **Windows**: Direct serial communication with Zigbee dongle OR MQTT support
+
+#### Key Features
 - **Wireless Chief Referee Controls**: Use Zigbee buttons to trigger sirens remotely
-- **MQTT Integration**: Full Zigbee2MQTT compatibility with automatic reconnection
+- **Dual Connection Methods**:
+  - **MQTT Integration**: Full Zigbee2MQTT compatibility with automatic reconnection (Linux/Windows)
+  - **Serial Communication**: Direct USB dongle communication on Windows (no MQTT required)
+- **Auto-Detection**: Automatically detects Zigbee dongles (CC2531, CP210x, Silicon Labs, etc.) on Windows
 - **Configuration UI**: Dedicated "Zigbee Siren" tab for easy setup and monitoring  
 - **Seamless Integration**: Uses existing sound files, volume controls, and audio channels
-- **Robust Error Handling**: Graceful fallback when wireless is unavailable
+- **Robust Error Handling**: Graceful fallback when wireless is unavailable with automatic reconnection
 - **Real-time Logging**: Activity monitoring and troubleshooting tools
+- **Fallback Logic**: Automatically switches between MQTT and Serial based on availability
+
+#### Windows Serial Mode (Simplified Setup)
+Windows users can use the **simplified serial mode** without installing Zigbee2MQTT or MQTT broker:
+1. Plug in Zigbee USB dongle (auto-detected)
+2. Install `pyserial`: `pip install pyserial`
+3. Start application - automatically connects via serial
+4. Press Zigbee button to trigger siren
+
+**Supported Zigbee Dongles**: CC2531, CC2652, CC2538, CP210x, Silicon Labs, FTDI, CH340/CH341
 
 **Zigbee Button Behavior**: Physical Zigbee button presses trigger a single siren playback for the duration configured in the Sounds tab ("Number of seconds to play Siren"). This duration setting affects both app-initiated sirens and Zigbee button triggers.
 
