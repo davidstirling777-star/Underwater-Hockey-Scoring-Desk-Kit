@@ -5,6 +5,7 @@ This guide explains how to set up and use the Zigbee2MQTT wireless siren functio
 ## Overview
 
 The Zigbee2MQTT wireless siren integration allows Chief Referees to trigger the game siren remotely using Zigbee wireless buttons. This eliminates the need for wired connections between the referee and the scoring desk.
+The exact action names ("long_press", "release", etc.) may differ depending on your Zigbee button device. You can inspect the MQTT payloads using mosquitto_sub or your Activity Log.
 
 **Platform Support:**
 - **Linux (Raspberry Pi)**: Full MQTT support via Zigbee2MQTT (recommended)
