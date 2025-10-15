@@ -414,7 +414,7 @@ class GameManagementApp:
         self.audio_device_warning_shown = False
 
         # Initialize Zigbee siren controller
-        self.zigbee_controller = ZigbeeSirenController(siren_callback=self.trigger_wireless_siren)
+        self.zigbee_controller = ZigbeeSirenController(siren_callback=self.trigger_wireless_siren, gui_log_callback=self.add_to_zigbee_log)
         self.zigbee_status_var = tk.StringVar(value="Disconnected")
         self.zigbee_controller.set_connection_status_callback(self.update_zigbee_status)
         

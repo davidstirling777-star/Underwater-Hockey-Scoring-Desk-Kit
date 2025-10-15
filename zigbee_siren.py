@@ -80,14 +80,16 @@ class ZigbeeSirenController:
     and provides callbacks for siren activation.
     """
     
-    def __init__(self, siren_callback: Optional[Callable] = None):
+    def __init__(self, siren_callback: Optional[Callable] = None, gui_log_callback: Optional[Callable[[str], None]] = None):
         """
         Initialize the Zigbee siren controller.
         
         Args:
             siren_callback: Function to call when siren should be activated
+            gui_log_callback: Function to call to log messages to GUI Activity Log
         """
         self.siren_callback = siren_callback
+        self.gui_log_callback = gui_log_callback
         self.mqtt_client: Optional[mqtt.Client] = None
         self.connected = False
         self.connection_thread: Optional[threading.Thread] = None
@@ -422,6 +424,10 @@ class ZigbeeSirenController:
                 action = data["action"]
                 self.logger.info(f"Button action from {device_name}: {action}")
                 
+                # Log to GUI if callback is available
+                if self.gui_log_callback:
+                    self.gui_log_callback(f"Button '{device_name}' action '{action}' received via Zigbee/MQTT.")
+                
                 # Trigger siren on button press (various action types)
                 if action in ["single", "press", "click", "on", "1"]:
                     self._trigger_siren()
@@ -430,6 +436,10 @@ class ZigbeeSirenController:
                 click_type = data["click"]
                 self.logger.info(f"Button click from {device_name}: {click_type}")
                 
+                # Log to GUI if callback is available
+                if self.gui_log_callback:
+                    self.gui_log_callback(f"Button '{device_name}' action '{click_type}' received via Zigbee/MQTT.")
+                
                 # Trigger on single click
                 if click_type == "single":
                     self._trigger_siren()
@@ -437,6 +447,10 @@ class ZigbeeSirenController:
             elif "state" in data:
                 state = data["state"]
                 self.logger.info(f"Button state from {device_name}: {state}")
+                
+                # Log to GUI if callback is available
+                if self.gui_log_callback:
+                    self.gui_log_callback(f"Button '{device_name}' action '{state}' received via Zigbee/MQTT.")
                 
                 # Trigger on ON state
                 if state == "ON":
@@ -610,14 +624,16 @@ class WindowsZigbeeSirenController:
     - Automatic fallback between methods if connection fails
     """
     
-    def __init__(self, siren_callback: Optional[Callable] = None):
+    def __init__(self, siren_callback: Optional[Callable] = None, gui_log_callback: Optional[Callable[[str], None]] = None):
         """
         Initialize the Windows Zigbee siren controller.
         
         Args:
             siren_callback: Function to call when siren should be activated
+            gui_log_callback: Function to call to log messages to GUI Activity Log
         """
         self.siren_callback = siren_callback
+        self.gui_log_callback = gui_log_callback
         self.connected = False
         self.connection_status_callback: Optional[Callable[[bool, str], None]] = None
         
@@ -877,6 +893,10 @@ class WindowsZigbeeSirenController:
                 action = data["action"]
                 self.logger.info(f"Button action from {device_name}: {action}")
                 
+                # Log to GUI if callback is available
+                if self.gui_log_callback:
+                    self.gui_log_callback(f"Button '{device_name}' action '{action}' received via Zigbee/MQTT.")
+                
                 if action in ["single", "press", "click", "on", "1"]:
                     self._trigger_siren()
                     
@@ -884,12 +904,20 @@ class WindowsZigbeeSirenController:
                 click_type = data["click"]
                 self.logger.info(f"Button click from {device_name}: {click_type}")
                 
+                # Log to GUI if callback is available
+                if self.gui_log_callback:
+                    self.gui_log_callback(f"Button '{device_name}' action '{click_type}' received via Zigbee/MQTT.")
+                
                 if click_type == "single":
                     self._trigger_siren()
                     
             elif "state" in data:
                 state = data["state"]
                 self.logger.info(f"Button state from {device_name}: {state}")
+                
+                # Log to GUI if callback is available
+                if self.gui_log_callback:
+                    self.gui_log_callback(f"Button '{device_name}' action '{state}' received via Zigbee/MQTT.")
                 
                 if state == "ON" or state == "on":
                     self._trigger_siren()
@@ -1052,7 +1080,7 @@ class WindowsZigbeeSirenController:
             if not MQTT_AVAILABLE:
                 return False
             
-            self.mqtt_controller = ZigbeeSirenController(self.siren_callback)
+            self.mqtt_controller = ZigbeeSirenController(self.siren_callback, self.gui_log_callback)
             
             # Copy our callbacks to the MQTT controller
             if self.connection_status_callback:
@@ -1277,7 +1305,7 @@ class WindowsZigbeeSirenController:
             return False
 
 
-def create_controller(siren_callback: Optional[Callable] = None):
+def create_controller(siren_callback: Optional[Callable] = None, gui_log_callback: Optional[Callable[[str], None]] = None):
     """
     Factory function to create the appropriate controller for the current platform.
     
@@ -1287,6 +1315,7 @@ def create_controller(siren_callback: Optional[Callable] = None):
     
     Args:
         siren_callback: Function to call when siren should be activated
+        gui_log_callback: Function to call to log messages to GUI Activity Log
     
     Returns:
         Appropriate controller instance for the platform
@@ -1301,13 +1330,13 @@ def create_controller(siren_callback: Optional[Callable] = None):
             logger.info("MQTT available on Windows - using standard MQTT controller")
             logger.info("Ensure MQTT broker (Mosquitto/EMQX) is installed and running on Windows")
             # Use standard controller if MQTT is available
-            return ZigbeeSirenController(siren_callback)
+            return ZigbeeSirenController(siren_callback, gui_log_callback)
         else:
             logger.warning("MQTT not available on Windows - using limited Windows controller")
             logger.info("Install MQTT support: pip install paho-mqtt")
             # Use Windows-specific controller with limited functionality
-            return WindowsZigbeeSirenController(siren_callback)
+            return WindowsZigbeeSirenController(siren_callback, gui_log_callback)
     
     # On Linux or other platforms, use standard MQTT controller
     logger.info(f"Running on {CURRENT_PLATFORM} - using standard MQTT controller")
-    return ZigbeeSirenController(siren_callback)
+    return ZigbeeSirenController(siren_callback, gui_log_callback)
