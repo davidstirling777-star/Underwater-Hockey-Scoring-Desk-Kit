@@ -1,5 +1,5 @@
 // Arduino Nano Every Siren Button Sketch
-// NO/COM waterproof button: COM to GND, NO to D2 (or change pin below)
+// Normally Open (NO)/COM waterproof button: COM to GND, NO to D2 (or change pin below)
 
 const int buttonPin = 2; // Adjust to your wiring (D2 default)
 bool lastButtonState = HIGH; // Assume not pressed (INPUT_PULLUP)
