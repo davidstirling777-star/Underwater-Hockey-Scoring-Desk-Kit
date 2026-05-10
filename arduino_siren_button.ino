@@ -1,5 +1,6 @@
 // Arduino Nano ESP32 Siren Button Sketch
 // Pin D21 monitoring: 5V = SIREN_ON (LED off), LOW = SIREN_OFF (LED on)
+// All other pins pulled HIGH to prevent floating/noise issues
 
 const int signalPin = 21; // D21 - monitor for 5V or LOW
 bool lastSignalState = LOW; // Assume starting LOW
@@ -9,6 +10,14 @@ void setup() {
   pinMode(LED_BUILTIN, OUTPUT);     // Set the built-in LED as an output
   Serial.begin(115200);             // ESP32 uses 115200 baud
   delay(500);                       // Wait for serial to stabilize
+  
+  // Pull all other GPIO pins HIGH to prevent floating states
+  for (int pin = 0; pin < 50; pin++) {
+    if (pin != signalPin && pin != LED_BUILTIN) {
+      pinMode(pin, OUTPUT);
+      digitalWrite(pin, HIGH);
+    }
+  }
 }
 
 void loop() {
