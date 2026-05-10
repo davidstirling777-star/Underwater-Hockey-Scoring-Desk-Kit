@@ -1,8 +1,11 @@
 // Arduino Nano ESP32 Siren Button Sketch
-// Pin D21 monitoring: 5V = SIREN_ON (LED off), LOW = SIREN_OFF (LED on)
+// Pin D21 monitoring: 3V3 = SIREN_ON (LED off), LOW = SIREN_OFF (LED on)
+// The Arduino Nano ESP32 GPIO pins operate strictly at 3.3V.
+// Applying voltages higher than 3.3V to any digital or analog pin will 
+// likely damage the microcontroller. The pins are not 5V tolerant.
 // All other pins pulled HIGH to prevent floating/noise issues
 
-const int signalPin = 21; // D21 - monitor for 5V or LOW
+const int signalPin = 21; // D21 - monitor for 3V3 or LOW
 bool lastSignalState = LOW; // Assume starting LOW
 
 void setup() {
@@ -23,7 +26,7 @@ void setup() {
 void loop() {
   bool signalState = digitalRead(signalPin);
 
-  // Signal went HIGH (5V applied)
+  // Signal went HIGH (3V3 applied)
   if (signalState == HIGH && lastSignalState == LOW) {
     Serial.println("SIREN_ON");
     digitalWrite(LED_BUILTIN, LOW);  // Turn LED off
