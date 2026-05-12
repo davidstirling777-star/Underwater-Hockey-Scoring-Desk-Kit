@@ -11,7 +11,9 @@ unsigned long lastSirenTime = 0; // Track time of last SIREN_ON output
 const unsigned long SIREN_INTERVAL = 500; // 500ms = 0.5 seconds
 bool sirenActive = false; // Track if siren is currently active
 int debounceCounter = 0; // Track consecutive LOW reads
+int releaseDebounceCounter = 0; // Track consecutive HIGH reads
 const int DEBOUNCE_THRESHOLD = 3; // Require 3 consecutive LOW reads (~30ms hold time)
+const int RELEASE_DEBOUNCE_THRESHOLD = 3; // Require 3 consecutive HIGH reads (~30ms release confirmation)
 
 void setup() {
   pinMode(signalPin, INPUT);        // signalPin as input (monitors external signal)
@@ -35,8 +37,10 @@ void loop() {
   // Track debounce counter for LOW state
   if (signalState == LOW) {
     debounceCounter++;
+    releaseDebounceCounter = 0; // Reset release counter
   } else {
-    debounceCounter = 0; // Reset counter when pin goes HIGH
+    debounceCounter = 0; // Reset press counter
+    releaseDebounceCounter++;
   }
 
   // signalPin held LOW long enough - start siren sequence
@@ -59,8 +63,8 @@ void loop() {
     pinMode(signalPin, INPUT); // Switch back to input mode
   }
   
-  // signalPin went HIGH (no longer grounded) - stop siren
-  if (signalState == HIGH && sirenActive) {
+  // signalPin held HIGH long enough - stop siren
+  if (releaseDebounceCounter == RELEASE_DEBOUNCE_THRESHOLD && sirenActive) {
     Serial.println("SIREN_OFF");
     digitalWrite(LED_BUILTIN, LOW); // Turn LED off
     sirenActive = false;
