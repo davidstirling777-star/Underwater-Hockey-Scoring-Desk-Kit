@@ -9,6 +9,7 @@ const int signalPin = 13; // D13 - monitor for LOW (grounded) or HIGH
 bool lastSignalState = HIGH; // Assume starting HIGH (not grounded)
 unsigned long lastSirenTime = 0; // Track time of last SIREN_ON output
 const unsigned long SIREN_INTERVAL = 500; // 500ms = 0.5 seconds
+bool sirenActive = false; // Track if siren is currently active
 
 void setup() {
   pinMode(signalPin, INPUT);        // D13 as input (monitors external signal)
@@ -34,18 +35,26 @@ void loop() {
     Serial.println("SIREN_ON");
     digitalWrite(LED_BUILTIN, LOW);  // Turn LED off
     lastSirenTime = currentTime;
+    sirenActive = true;
   }
   
   // D13 is still LOW - repeat SIREN_ON every 0.5 seconds
-  if (signalState == LOW && (currentTime - lastSirenTime >= SIREN_INTERVAL)) {
+  if (signalState == LOW && sirenActive && (currentTime - lastSirenTime >= SIREN_INTERVAL)) {
     Serial.println("SIREN_ON");
     lastSirenTime = currentTime;
+    
+    // Momentarily pull pin HIGH to verify it's still grounded
+    pinMode(signalPin, OUTPUT);
+    digitalWrite(signalPin, HIGH);
+    delayMicroseconds(100); // 100 microsecond pulse
+    pinMode(signalPin, INPUT); // Switch back to input mode
   }
   
   // D13 went HIGH (no longer grounded) - stop siren
-  if (signalState == HIGH && lastSignalState == LOW) {
+  if (signalState == HIGH && lastSignalState == LOW && sirenActive) {
     Serial.println("SIREN_OFF");
     digitalWrite(LED_BUILTIN, HIGH); // Turn LED on
+    sirenActive = false;
   }
   
   lastSignalState = signalState;
