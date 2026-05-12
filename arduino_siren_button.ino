@@ -1,5 +1,5 @@
 // Arduino Nano ESP32 Siren Button Sketch
-// Pin D13 monitoring: LOW = SIREN_ON (repeat every 0.5s), HIGH = SIREN_OFF
+// Pin D12 monitoring: LOW = SIREN_ON (repeat every 0.5s), HIGH = SIREN_OFF
 // The Arduino Nano ESP32 GPIO pins operate strictly at 3.3V.
 // Applying voltages higher than 3.3V to any digital or analog pin will 
 // likely damage the microcontroller. The pins are not 5V tolerant.
@@ -10,6 +10,8 @@ bool lastSignalState = HIGH; // Assume starting HIGH (not grounded)
 unsigned long lastSirenTime = 0; // Track time of last SIREN_ON output
 const unsigned long SIREN_INTERVAL = 500; // 500ms = 0.5 seconds
 bool sirenActive = false; // Track if siren is currently active
+int debounceCounter = 0; // Track consecutive LOW reads
+const int DEBOUNCE_THRESHOLD = 3; // Require 3 consecutive LOW reads (~30ms hold time)
 
 void setup() {
   pinMode(signalPin, INPUT);        // signalPin as input (monitors external signal)
@@ -30,8 +32,15 @@ void loop() {
   bool signalState = digitalRead(signalPin);
   unsigned long currentTime = millis();
 
-  // signalPin went LOW (grounded) - start siren sequence
-  if (signalState == LOW && lastSignalState == HIGH) {
+  // Track debounce counter for LOW state
+  if (signalState == LOW) {
+    debounceCounter++;
+  } else {
+    debounceCounter = 0; // Reset counter when pin goes HIGH
+  }
+
+  // signalPin held LOW long enough - start siren sequence
+  if (debounceCounter == DEBOUNCE_THRESHOLD && !sirenActive) {
     Serial.println("SIREN_ON");
     digitalWrite(LED_BUILTIN, HIGH);  // Turn LED on
     lastSirenTime = currentTime;
@@ -51,12 +60,11 @@ void loop() {
   }
   
   // signalPin went HIGH (no longer grounded) - stop siren
-  if (signalState == HIGH && lastSignalState == LOW && sirenActive) {
+  if (signalState == HIGH && sirenActive) {
     Serial.println("SIREN_OFF");
     digitalWrite(LED_BUILTIN, LOW); // Turn LED off
     sirenActive = false;
   }
   
-  lastSignalState = signalState;
   delay(10); // 10ms poll for debouncing
 }
