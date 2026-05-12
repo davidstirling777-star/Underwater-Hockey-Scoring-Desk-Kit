@@ -33,7 +33,7 @@ void loop() {
   // D13 went LOW (grounded) - start siren sequence
   if (signalState == LOW && lastSignalState == HIGH) {
     Serial.println("SIREN_ON");
-    digitalWrite(LED_BUILTIN, LOW);  // Turn LED off
+    digitalWrite(LED_BUILTIN, HIGH);  // Turn LED on
     lastSirenTime = currentTime;
     sirenActive = true;
   }
@@ -53,7 +53,7 @@ void loop() {
   // D13 went HIGH (no longer grounded) - stop siren
   if (signalState == HIGH && lastSignalState == LOW && sirenActive) {
     Serial.println("SIREN_OFF");
-    digitalWrite(LED_BUILTIN, HIGH); // Turn LED on
+    digitalWrite(LED_BUILTIN, LOW); // Turn LED off
     sirenActive = false;
   }
   
