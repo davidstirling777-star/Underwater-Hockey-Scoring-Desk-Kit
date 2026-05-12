@@ -5,14 +5,14 @@
 // likely damage the microcontroller. The pins are not 5V tolerant.
 // All other pins pulled HIGH to prevent floating/noise issues
 
-const int signalPin = 13; // D13 - monitor for LOW (grounded) or HIGH
+const int signalPin = 12; // signalPin - monitor for LOW (grounded) or HIGH
 bool lastSignalState = HIGH; // Assume starting HIGH (not grounded)
 unsigned long lastSirenTime = 0; // Track time of last SIREN_ON output
 const unsigned long SIREN_INTERVAL = 500; // 500ms = 0.5 seconds
 bool sirenActive = false; // Track if siren is currently active
 
 void setup() {
-  pinMode(signalPin, INPUT);        // D13 as input (monitors external signal)
+  pinMode(signalPin, INPUT);        // signalPin as input (monitors external signal)
   pinMode(LED_BUILTIN, OUTPUT);     // Set the built-in LED as an output
   Serial.begin(9600);               // ESP32 uses 115200 baud, UNO used 9600
   delay(500);                       // Wait for serial to stabilize
@@ -30,7 +30,7 @@ void loop() {
   bool signalState = digitalRead(signalPin);
   unsigned long currentTime = millis();
 
-  // D13 went LOW (grounded) - start siren sequence
+  // signalPin went LOW (grounded) - start siren sequence
   if (signalState == LOW && lastSignalState == HIGH) {
     Serial.println("SIREN_ON");
     digitalWrite(LED_BUILTIN, HIGH);  // Turn LED on
@@ -38,7 +38,7 @@ void loop() {
     sirenActive = true;
   }
   
-  // D13 is still LOW - repeat SIREN_ON every 0.5 seconds
+  // signalPin is still LOW - repeat SIREN_ON every 0.5 seconds
   if (signalState == LOW && sirenActive && (currentTime - lastSirenTime >= SIREN_INTERVAL)) {
     Serial.println("SIREN_ON");
     lastSirenTime = currentTime;
@@ -50,7 +50,7 @@ void loop() {
     pinMode(signalPin, INPUT); // Switch back to input mode
   }
   
-  // D13 went HIGH (no longer grounded) - stop siren
+  // signalPin went HIGH (no longer grounded) - stop siren
   if (signalState == HIGH && lastSignalState == LOW && sirenActive) {
     Serial.println("SIREN_OFF");
     digitalWrite(LED_BUILTIN, LOW); // Turn LED off
