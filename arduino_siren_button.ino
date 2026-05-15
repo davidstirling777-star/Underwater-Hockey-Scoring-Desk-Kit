@@ -62,5 +62,5 @@ void loop() {
     sirenActive = false;
   }
   
-  delay(100); // 100ms poll for debouncing
+  delay(10); // 10ms poll for debouncing
 }
