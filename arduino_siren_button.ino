@@ -4,7 +4,6 @@
 // The Arduino Nano ESP32 GPIO pins operate strictly at 3.3V.
 // Applying voltages higher than 3.3V to any digital or analog pin will 
 // likely damage the Nano microcontroller. The pins are not 5V tolerant.
-// All other pins pulled HIGH to prevent floating/noise issues
 
 const int signalPin = 12; // signalPin - monitor for LOW (grounded) or HIGH
 bool lastSignalState = HIGH; // Assume starting HIGH (not grounded)
@@ -21,13 +20,6 @@ void setup() {
   pinMode(LED_BUILTIN, OUTPUT);     // Set the built-in LED as an output
   Serial.begin(9600);               // Nano and ESP32 can easily use 115200 baud, UNO used 9600
   delay(500);                       // Wait for serial to stabilize
-  
-  // Pull all other GPIO pins HIGH to prevent floating states, then pull LED LOW
-  for (int pin = 0; pin < 50; pin++) {
-    if (pin != signalPin && pin != LED_BUILTIN) {
-      pinMode(pin, OUTPUT);
-      digitalWrite(pin, HIGH);
-      digitalWrite(LED_BUILTIN, LOW);  // Turn LED off
     }
   }
 }
