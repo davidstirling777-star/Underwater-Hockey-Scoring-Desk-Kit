@@ -20,8 +20,6 @@ void setup() {
   pinMode(LED_BUILTIN, OUTPUT);     // Set the built-in LED as an output
   Serial.begin(9600);               // Nano and ESP32 can easily use 115200 baud, UNO used 9600
   delay(500);                       // Wait for serial to stabilize
-    }
-  }
 }
 
 void loop() {
