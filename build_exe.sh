@@ -19,6 +19,7 @@ DATA_FILES=(
     "siren-police.mp3"
     "sound.py"
     "zigbee_siren.py"
+    "arduino_siren_button.ino"
     "serial_siren_listener.py"
 )
 
