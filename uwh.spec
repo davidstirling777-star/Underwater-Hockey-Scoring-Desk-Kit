@@ -7,14 +7,27 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[
-        # Example: Include all JSON and CSV files at any folder level
-        ('*.json', '.'),        # Root level JSON files
-        ('data/*.csv', 'data'), # CSV files inside a 'data' folder
-        # Add more patterns as needed. For example:
-        # ('assets/*.png', 'assets'),
-        # ('configs/*.yaml', 'configs'),
+         # Audio files
+        ('pip-beep.mp3', '.'),
+        ('pip-countdown-beep.mp3', '.'),
+        ('pip-notification.mp3', '.'),
+        ('pip-short-tone.mp3', '.'),
+        ('siren-car-honk.mp3', '.'),
+        ('siren-machinegun.mp3', '.'),
+        ('siren-police.mp3', '.'),
+        # Data and config files
+        ('LICENSE', '.'),
+        ('README.md', '.'),
+        ('Tournament Draw.csv', '.'),
+        ('ZIGBEE_SETUP.md', '.'),
+        ('settings.json', '.'),
+        # Python helper modules
+        ('sound.py', '.'),
+        ('zigbee_siren.py', '.'),
+        ('serial_siren_listener.py', '.'),
+        ('arduino_siren_button.ino', '.'),
     ],
-    hiddenimports=[],
+    hiddenimports=['pygame', 'paho.mqtt.client', 'serial'],
     hookspath=[],
     runtime_hooks=[],
     excludes=[],
