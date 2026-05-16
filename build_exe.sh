@@ -19,6 +19,7 @@ DATA_FILES=(
     "siren-police.mp3"
     "sound.py"
     "zigbee_siren.py"
+    "serial_siren_listener.py"
 )
 
 # --- Step 1: Create and activate virtual environment ---
