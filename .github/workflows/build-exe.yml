@@ -27,7 +27,10 @@ jobs:
 
     - name: Build EXE with PyInstaller
       run: |
-        pyinstaller --onefile --add-data "assets;assets" uwh.py
+        pyinstaller --onefile `
+          --add-data "assets;assets" `
+          --module-collection-mode "playsound=pyz+py" `
+          uwh.py
 
     - name: Upload Executable
       uses: actions/upload-artifact@v4
