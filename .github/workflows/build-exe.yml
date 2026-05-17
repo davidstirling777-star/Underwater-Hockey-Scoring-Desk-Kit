@@ -33,7 +33,7 @@ jobs:
           uwh.py
 
     - name: Upload Executable
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v4.3.1
       with:
         name: uwh-windows-exe
         path: dist/uwh.exe
