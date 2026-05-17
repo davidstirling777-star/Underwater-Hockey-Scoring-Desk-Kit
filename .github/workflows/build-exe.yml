@@ -30,7 +30,6 @@ jobs:
       run: |
         pyinstaller --onefile `
           --add-data "assets;assets" `
-          --module-collection-mode "playsound=pyz+py" `
           uwh.py
 
     - name: Upload Executable
