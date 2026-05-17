@@ -1,13 +1,14 @@
 import os
 import sys
 
-def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-    return os.path.join(base_path, relative_path)
+# Tell Python to check PyInstaller's extracted runtime directory for modules
+if getattr(sys, 'frozen', False):
+    sys.path.insert(0, sys._MEIPASS)
+
+# NOW you can safely import your custom helper modules
+import sound
+import zigbee_siren
+import serial_siren_listener
 import tkinter as tk
 from tkinter import ttk, messagebox, font
 import datetime
