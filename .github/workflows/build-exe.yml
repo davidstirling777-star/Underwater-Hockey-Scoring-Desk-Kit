@@ -22,7 +22,6 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip setuptools wheel
-        pip install PyInstaller
         pip install playsound --only-binary playsound
         if (Test-Path requirements.txt) { pip install -r requirements.txt }
 
@@ -37,3 +36,19 @@ jobs:
       with:
         name: uwh-windows-exe
         path: dist/uwh.exe
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: dist/uwh.exe
+        tag_name: release-${{ github.run_number }}
+        name: UWH Scoring App - Build ${{ github.run_number }}
+        body: |
+          Underwater Hockey Scoring Desk Kit executable
+          
+          Built from commit: ${{ github.sha }}
+          Build date: ${{ github.event.head_commit.timestamp }}
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
