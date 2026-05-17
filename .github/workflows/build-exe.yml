@@ -27,15 +27,7 @@ jobs:
 
     - name: Build EXE with PyInstaller
       run: |
-        pyinstaller --onefile `
-          --add-data "*.mp3;." `
-          --add-data "settings.json;." `
-          --add-data "Tournament Draw.csv;." `
-          --add-data "LICENSE;." `
-          --add-data "README.md;." `
-          --add-data "ZIGBEE_SETUP.md;." `
-          --add-data "arduino_siren_button.ino;." `
-          uwh.py
+        pyinstaller --onefile --add-data "assets;assets" uwh.py
 
     - name: Upload Executable
       uses: actions/upload-artifact@v4
