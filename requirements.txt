@@ -1,4 +1,4 @@
 paho-mqtt
 pyserial
 pygame
-PyInstaller
+PyInstaller>=5.0
