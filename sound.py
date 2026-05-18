@@ -231,4 +231,88 @@ def play_sound(filename, enable_sound):
     """
     sound_thread = threading.Thread(target=_play_sound_sync, args=(filename, enable_sound))
     sound_thread.daemon = True
+
+    def play_sound_with_volume(filename, sound_type, enable_sound, pips_volume, siren_volume, air_volume, water_volume, siren_duration):
+    """
+    Play a sound file with volume control.
+    
+    Args:
+        filename: Name of the sound file to play
+        sound_type: Type of sound ("pips" or "siren") - determines which volume to use
+        enable_sound: BooleanVar or bool indicating if sound is enabled
+        pips_volume: DoubleVar for pips volume (0-100)
+        siren_volume: DoubleVar for siren volume (0-100)
+        air_volume: DoubleVar for air volume (0-100) - Linux only
+        water_volume: DoubleVar for water volume (0-100) - Linux only
+        siren_duration: DoubleVar for siren duration in seconds
+    """
+    sound_enabled = enable_sound.get() if hasattr(enable_sound, 'get') else enable_sound
+    
+    # Get the appropriate volume based on sound type
+    if sound_type == "pips":
+        volume = pips_volume.get() if hasattr(pips_volume, 'get') else pips_volume
+    else:  # siren
+        volume = siren_volume.get() if hasattr(siren_volume, 'get') else siren_volume
+    
+    # Normalize volume to 0.0-1.0 range for pygame
+    normalized_volume = max(0.0, min(100.0, volume)) / 100.0
+    
+    sound_thread = threading.Thread(
+        target=_play_sound_with_volume_sync,
+        args=(filename, sound_type, sound_enabled, normalized_volume, air_volume, water_volume, siren_duration)
+    )
+    sound_thread.daemon = True
+    sound_thread.start()
+
+
+def _play_sound_with_volume_sync(filename, sound_type, enable_sound, normalized_volume, air_volume, water_volume, siren_duration):
+    """
+    Internal synchronous sound playback function with volume control.
+    """
+    if not enable_sound:
+        return
+    
+    if filename == "No sound files found" or filename == "Default":
+        return
+    
+    try:
+        file_path = resource_path(os.path.join("assets", filename))
+        if not os.path.exists(file_path):
+            print(f"Sound Error: Sound file '{filename}' not found at {file_path}")
+            return
+        
+        # Use pygame.mixer for volume control if available
+        if PYGAME_INITIALIZED and filename in _preloaded_sounds:
+            sound = _preloaded_sounds[filename]
+            sound.set_volume(normalized_volume)
+            sound.play()
+            return
+        
+        # Windows fallback
+        if IS_WINDOWS:
+            if filename.lower().endswith('.wav'):
+                if WINSOUND_AVAILABLE:
+                    winsound.PlaySound(file_path, winsound.SND_FILENAME | winsound.SND_ASYNC)
+            elif filename.lower().endswith('.mp3'):
+                if PYGAME_INITIALIZED:
+                    pygame.mixer.set_volume(normalized_volume)
+                    pygame.mixer.music.load(file_path)
+                    pygame.mixer.music.play()
+        
+        # Linux fallback with amixer volume control
+        elif IS_LINUX:
+            air_vol = air_volume.get() if hasattr(air_volume, 'get') else air_volume
+            water_vol = water_volume.get() if hasattr(water_volume, 'get') else water_volume
+            
+            if filename.lower().endswith('.wav'):
+                subprocess.Popen(['aplay', '-q', file_path])
+            elif filename.lower().endswith('.mp3'):
+                subprocess.Popen(
+                    ['omxplayer', '-o', 'local', file_path],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL
+                )
+    
+    except Exception as e:
+        print(f"Error in sound playback with volume: {e}")
     sound_thread.start()
