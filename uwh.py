@@ -1758,13 +1758,7 @@ class GameManagementApp:
 
     def open_csv_folder(self):
         """Open the folder containing CSV files in the system file manager."""
-        csv_file = self.csv_var.get() if hasattr(self, 'csv_var') else None
-        
-        if not csv_file or csv_file == "No CSV files found":
-            messagebox.showinfo("Info", "No CSV file selected")
-            return
-        
-        # Get the directory containing the CSV file
+        # Get the application's working directory
         csv_folder = os.getcwd()
         open_folder_in_file_manager(csv_folder)
 
