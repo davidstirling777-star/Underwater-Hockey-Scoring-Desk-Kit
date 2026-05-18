@@ -32,13 +32,13 @@ jobs:
           uwh.py
 
     - name: Upload Executable
-      uses: actions/upload-artifact@v4.3.1
+      uses: actions/upload-artifact@v7.0.1
       with:
         name: uwh-windows-exe
         path: dist/uwh.exe
 
     - name: Create GitHub Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v3.0.0
       with:
         files: dist/uwh.exe
         tag_name: release-${{ github.run_number }}
