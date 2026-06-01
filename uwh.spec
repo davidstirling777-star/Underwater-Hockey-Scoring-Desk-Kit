@@ -21,10 +21,6 @@ a = Analysis(
         ('Tournament Draw.csv', '.'),
         ('ZIGBEE_SETUP.md', '.'),
         ('settings.json', '.'),
-        # Python helper modules
-        ('sound.py', '.'),
-        ('zigbee_siren.py', '.'),
-        ('serial_siren_listener.py', '.'),
         ('arduino_siren_button.ino', '.'),
     ],
     hiddenimports=['pygame', 'paho.mqtt.client', 'serial'],
