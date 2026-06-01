@@ -32,6 +32,12 @@ jobs:
       run: |
         pyinstaller --onefile `
           --add-data "assets;assets" `
+          --add-data "sound.py;." `
+          --add-data "zigbee_siren.py;." `
+          --add-data "serial_siren_listener.py;." `
+          --hidden-import=pygame `
+          --hidden-import=paho.mqtt.client `
+          --hidden-import=serial `
           uwh.py
 
     - name: Upload Executable
