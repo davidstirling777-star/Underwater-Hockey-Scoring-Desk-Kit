@@ -31,10 +31,19 @@ jobs:
     - name: Build EXE with PyInstaller
       run: |
         pyinstaller --onefile `
-          --add-data "assets;assets" `
-          --add-data "sound.py;." `
-          --add-data "zigbee_siren.py;." `
-          --add-data "serial_siren_listener.py;." `
+          --add-data "pip-beep.mp3;." `
+          --add-data "pip-countdown-beep.mp3;." `
+          --add-data "pip-notification.mp3;." `
+          --add-data "pip-short-tone.mp3;." `
+          --add-data "siren-car-honk.mp3;." `
+          --add-data "siren-machinegun.mp3;." `
+          --add-data "siren-police.mp3;." `
+          --add-data "LICENSE;." `
+          --add-data "README.md;." `
+          --add-data "Tournament Draw.csv;." `
+          --add-data "ZIGBEE_SETUP.md;." `
+          --add-data "settings.json;." `
+          --add-data "arduino_siren_button.ino;." `
           --hidden-import=pygame `
           --hidden-import=paho.mqtt.client `
           --hidden-import=serial `
