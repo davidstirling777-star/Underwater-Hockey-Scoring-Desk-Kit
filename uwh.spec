@@ -15,13 +15,14 @@ a = Analysis(
         ('assets/siren-car-honk.mp3', 'assets'),
         ('assets/siren-machinegun.mp3', 'assets'),
         ('assets/siren-police.mp3', 'assets'),
-        # Data and config files from assets folder
+        # Data files from assets folder
         ('assets/LICENSE', 'assets'),
-        ('assets/README.md', 'assets'),
-        ('assets/Tournament Draw.csv', 'assets'),
-        ('assets/ZIGBEE_SETUP.md', 'assets'),
         ('assets/settings.json', 'assets'),
+        ('assets/Tournament Draw.csv', 'assets'),
         ('assets/arduino_siren_button.ino', 'assets'),
+        # Documentation files from root
+        ('README.md', '.'),
+        ('ZIGBEE_SETUP.md', '.'),
         # Python modules in root
         ('sound.py', '.'),
         ('zigbee_siren.py', '.'),
