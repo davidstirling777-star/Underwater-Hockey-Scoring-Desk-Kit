@@ -1,6 +1,19 @@
 import os
 import sys
 
+def get_executable_directory():
+    """Returns the absolute path to the folder where the .exe sits."""
+    if getattr(sys, 'frozen', False):
+        return os.path.dirname(sys.executable)
+    else:
+        return os.path.dirname(os.path.abspath(__file__))
+
+# Establish the base directory and file paths
+BASE_DIR = get_executable_directory()
+SETTINGS_PATH = os.path.join(BASE_DIR, 'settings.json')
+DRAW_PATH = os.path.join(BASE_DIR, 'Tournament_Draw.csv')
+
+
 # Tell Python to check PyInstaller's extracted runtime directory for modules
 if getattr(sys, 'frozen', False):
     sys.path.insert(0, sys._MEIPASS)
