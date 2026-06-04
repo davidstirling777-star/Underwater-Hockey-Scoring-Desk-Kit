@@ -25,10 +25,10 @@ a = Analysis(
         ('assets/siren-machinegun.mp3', 'assets'),
         ('assets/siren-police.mp3', 'assets'),
         # Data files from assets folder
-        ('assets/LICENSE', 'assets'),
-        ('assets/settings.json', 'assets'),
+        ('assets/LICENSE', '.'),
+        ('assets/settings.json', '.'),
         ('assets/Tournament_Draw.csv', '.'),
-        ('assets/arduino_siren_button.ino', 'assets'),
+        ('assets/arduino_siren_button.ino', '.'),
         # Documentation files from root
         ('README.md', '.'),
         ('ZIGBEE_SETUP.md', '.'),
