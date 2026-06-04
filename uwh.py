@@ -10,13 +10,15 @@ def get_executable_directory():
 
 # Establish the base directory and file paths
 BASE_DIR = get_executable_directory()
+
+# These files live in the root directory next to the EXE
 SETTINGS_PATH = os.path.join(BASE_DIR, 'settings.json')
 DRAW_PATH = os.path.join(BASE_DIR, 'Tournament_Draw.csv')
 
-
-# Tell Python to check PyInstaller's extracted runtime directory for modules
+# Tell Python to check PyInstaller's '_internal' folder for your helper modules
 if getattr(sys, 'frozen', False):
-    sys.path.insert(0, sys._MEIPASS)
+    internal_dir = os.path.join(BASE_DIR, '_internal')
+    sys.path.insert(0, internal_dir)
 
 # NOW you can safely import your custom helper modules
 import sound
