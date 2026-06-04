@@ -16,7 +16,7 @@ a = Analysis(
     pathex=[spec_dir],
     binaries=[],
     datas=[
-        # Audio files from assets folder  - sound files stay in 'assets' subfolder
+        # 1. Audio files - stay safely hidden inside '_internal/assets'
         ('assets/pip-beep.mp3', 'assets'),
         ('assets/pip-countdown-beep.mp3', 'assets'),
         ('assets/pip-notification.mp3', 'assets'),
@@ -24,19 +24,23 @@ a = Analysis(
         ('assets/siren-car-honk.mp3', 'assets'),
         ('assets/siren-machinegun.mp3', 'assets'),
         ('assets/siren-police.mp3', 'assets'),
-        # Data files - These go to ROOT directory (same folder as UnderwaterHockeyScoringDesk.exe)
-        ('assets/LICENSE', '.'),
-        ('assets/settings.json', '.'),
-        ('assets/Tournament_Draw.csv', '.'),
-        ('assets/arduino_siren_button.ino', '.'),
-        # Documentation files from root
-        ('README.md', '.'),
-        ('ZIGBEE_SETUP.md', '.'),
-        # Python modules in root
+
+        # 2. Writable data files - FORCE these up to the ROOT directory
+        ('assets/LICENSE', '_internal/..'),
+        ('assets/settings.json', '_internal/..'),
+        ('assets/Tournament_Draw.csv', '_internal/..'),
+        ('assets/arduino_siren_button.ino', '_internal/..'),
+        
+        # 3. Documentation files - FORCE up to the ROOT directory
+        ('README.md', '_internal/..'),
+        ('ZIGBEE_SETUP.md', '_internal/..'),
+
+        # 4. Python modules - stay internal
         ('sound.py', '.'),
         ('zigbee_siren.py', '.'),
         ('serial_siren_listener.py', '.'),
     ],
+
     hiddenimports=['pygame', 'paho.mqtt.client', 'serial'],
     hookspath=[],
     runtime_hooks=[],
