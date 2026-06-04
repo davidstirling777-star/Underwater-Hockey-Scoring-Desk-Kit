@@ -26,10 +26,10 @@ a = Analysis(
         ('assets/siren-police.mp3', 'assets'),
 
         # 2. Writable data files
-        ('assets/LICENSE', '..'),
-        ('assets/settings.json', '..'),
-        ('assets/Tournament_Draw.csv', '..'),
-        ('assets/arduino_siren_button.ino', '..'),
+        ('assets/LICENSE', '.'),
+        ('assets/settings.json', '.'),
+        ('assets/Tournament_Draw.csv', '.'),
+        ('assets/arduino_siren_button.ino', '.'),
         
         # 3. Documentation files
         ('README.md', '.'),
