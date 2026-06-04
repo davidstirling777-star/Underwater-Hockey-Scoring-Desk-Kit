@@ -29,13 +29,6 @@ jobs:
         pip install playsound --only-binary playsound
         if (Test-Path requirements.txt) { pip install -r requirements.txt }
 
-    - name: Debug - Show directory structure
-      run: |
-        echo "Current directory:"
-        pwd
-        echo "Files in current directory:"
-        ls -la
-
     - name: Build EXE with PyInstaller
       run: |
         pyinstaller uwh.spec
