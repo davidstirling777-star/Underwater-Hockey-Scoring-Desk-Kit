@@ -413,7 +413,11 @@ class GameManagementApp:
         if pips_default == "Default" and available_audio_files:
             pips_default = available_audio_files[0]
         if siren_default == "Default" and available_audio_files:
-            siren_default = available_audio_files[0]
+            # Try to default to siren-police.mp3 if available, otherwise use first available
+            if "siren-police.mp3" in available_audio_files:
+                siren_default = "siren-police.mp3"
+            else:
+                siren_default = available_audio_files[0]
             
         self.pips_var = tk.StringVar(value=pips_default)
         self.siren_var = tk.StringVar(value=siren_default)
