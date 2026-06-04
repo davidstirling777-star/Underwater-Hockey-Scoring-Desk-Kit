@@ -25,15 +25,15 @@ a = Analysis(
         ('assets/siren-machinegun.mp3', 'assets'),
         ('assets/siren-police.mp3', 'assets'),
 
-        # 2. Writable data files - FORCE these up to the ROOT directory
-        ('assets/LICENSE', '_internal/..'),
-        ('assets/settings.json', '_internal/..'),
-        ('assets/Tournament_Draw.csv', '_internal/..'),
-        ('assets/arduino_siren_button.ino', '_internal/..'),
+        # 2. Writable data files
+        ('assets/LICENSE', '_internal/.'),
+        ('assets/settings.json', '_internal/.'),
+        ('assets/Tournament_Draw.csv', '_internal/.'),
+        ('assets/arduino_siren_button.ino', '_internal/.'),
         
-        # 3. Documentation files - FORCE up to the ROOT directory
-        ('README.md', '_internal/..'),
-        ('ZIGBEE_SETUP.md', '_internal/..'),
+        # 3. Documentation files
+        ('README.md', '_internal/.'),
+        ('ZIGBEE_SETUP.md', '_internal/.'),
 
         # 4. Python modules - stay internal
         ('sound.py', '.'),
