@@ -27,7 +27,7 @@ a = Analysis(
         # Data files from assets folder
         ('assets/LICENSE', 'assets'),
         ('assets/settings.json', 'assets'),
-        ('assets/Tournament_Draw.csv', 'assets'),
+        ('assets/Tournament_Draw.csv', '.'),
         ('assets/arduino_siren_button.ino', 'assets'),
         # Documentation files from root
         ('README.md', '.'),
