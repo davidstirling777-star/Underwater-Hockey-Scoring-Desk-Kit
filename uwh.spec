@@ -16,7 +16,7 @@ a = Analysis(
     pathex=[spec_dir],
     binaries=[],
     datas=[
-        # Audio files from assets folder
+        # Audio files from assets folder  - sound files stay in 'assets' subfolder
         ('assets/pip-beep.mp3', 'assets'),
         ('assets/pip-countdown-beep.mp3', 'assets'),
         ('assets/pip-notification.mp3', 'assets'),
@@ -24,7 +24,7 @@ a = Analysis(
         ('assets/siren-car-honk.mp3', 'assets'),
         ('assets/siren-machinegun.mp3', 'assets'),
         ('assets/siren-police.mp3', 'assets'),
-        # Data files from assets folder
+        # Data files - These go to ROOT directory (same folder as UnderwaterHockeyScoringDesk.exe)
         ('assets/LICENSE', '.'),
         ('assets/settings.json', '.'),
         ('assets/Tournament_Draw.csv', '.'),
