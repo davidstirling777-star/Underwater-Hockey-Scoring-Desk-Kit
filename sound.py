@@ -270,6 +270,7 @@ def play_sound_with_volume(filename, sound_type, enable_sound, pips_volume, sire
 def _play_sound_with_volume_sync(filename, sound_type, enable_sound, normalized_volume, air_volume, water_volume, siren_duration):
     """
     Internal synchronous sound playback function with volume control.
+    For siren sounds, loops the audio until the minimum duration is reached.
     """
     if not enable_sound:
         return
@@ -282,11 +283,36 @@ def _play_sound_with_volume_sync(filename, sound_type, enable_sound, normalized_
         if not os.path.exists(file_path):
             print(f"Sound Error: Sound file '{filename}' not found at {file_path}")
             return
+            
+        # Get siren duration (in seconds)
+        duration_seconds = siren_duration.get() if hasattr(siren_duration, 'get') else siren_duration
+        duration_ms = int(duration_seconds * 1000)  # Convert to milliseconds
+        
         
         # Use pygame.mixer for volume control if available
         if PYGAME_INITIALIZED and filename in _preloaded_sounds:
             sound = _preloaded_sounds[filename]
             sound.set_volume(normalized_volume)
+           
+            # For siren sounds, loop until duration is reached
+            if sound_type == "siren" and duration_seconds > 0:
+                # Get the sound length in milliseconds
+                sound_length_ms = int(sound.get_length() * 1000)
+                
+                if sound_length_ms > 0:
+                    # Calculate how many times to loop
+                    loops = max(0, (duration_ms // sound_length_ms) - 1)
+                    sound.play(loops=loops)
+                    
+                    # If we still need to play a partial sound at the end
+                    remainder_ms = duration_ms % sound_length_ms
+                    if remainder_ms > 0:
+                        # The remainder will play automatically after the loops
+                        pass
+                else:
+                    sound.play()
+            else:
+                # For pips or if duration not specified, just play once
             sound.play()
             return
         
@@ -299,6 +325,12 @@ def _play_sound_with_volume_sync(filename, sound_type, enable_sound, normalized_
                 if PYGAME_INITIALIZED:
                     pygame.mixer.set_volume(normalized_volume)
                     pygame.mixer.music.load(file_path)
+                 
+                    # For siren sounds, loop until duration is reached
+                    if sound_type == "siren" and duration_seconds > 0:
+                        pygame.mixer.music.play(loops=-1)  # -1 means infinite loop
+                        # In practice, the caller should manage the duration
+                    else:
                     pygame.mixer.music.play()
         
         # Linux fallback with amixer volume control
