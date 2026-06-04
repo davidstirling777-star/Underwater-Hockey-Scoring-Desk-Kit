@@ -1,23 +1,49 @@
 import os
 import sys
+import shutil
 
 def get_executable_directory():
-    """Returns the absolute path to the folder where the .exe sits."""
+    """Returns the absolute path to the root folder where the .exe sits."""
     if getattr(sys, 'frozen', False):
         return os.path.dirname(sys.executable)
     else:
         return os.path.dirname(os.path.abspath(__file__))
 
-# Establish the base directory and file paths
+# Establish the base directory (Root folder containing the EXE)
 BASE_DIR = get_executable_directory()
 
-# These files live in the root directory next to the EXE
+# Final, writable paths where the files SHOULD live for the user
 SETTINGS_PATH = os.path.join(BASE_DIR, 'settings.json')
 DRAW_PATH = os.path.join(BASE_DIR, 'Tournament_Draw.csv')
+LICENSE_PATH = os.path.join(BASE_DIR, 'LICENSE')
+INO_PATH = os.path.join(BASE_DIR, 'arduino_siren_button.ino')
+README_PATH = os.path.join(BASE_DIR, 'README.md')
+ZIGBEE_PATH = os.path.join(BASE_DIR, 'ZIGBEE_SETUP.md')
 
-# Tell Python to check PyInstaller's '_internal' folder for your helper modules
+# --- SELF-EXTRACTING ROUTINE FOR PYINSTALLER 6 ---
+# If running compiled, ensure files exist in the root folder. If missing, copy them from _internal.
 if getattr(sys, 'frozen', False):
     internal_dir = os.path.join(BASE_DIR, '_internal')
+    
+    # List of files we want to push out to the root directory
+    files_to_extract = [
+        ('settings.json', SETTINGS_PATH),
+        ('Tournament_Draw.csv', DRAW_PATH),
+        ('LICENSE', LICENSE_PATH),
+        ('arduino_siren_button.ino', INO_PATH),
+        ('README.md', README_PATH),
+        ('ZIGBEE_SETUP.md', ZIGBEE_PATH)
+    ]
+    
+    for filename, target_path in files_to_extract:
+        # Only copy if the file doesn't already exist in the root directory
+        # This ensures user modifications to settings.json are NEVER overwritten
+        if not os.path.exists(target_path):
+            source_path = os.path.join(internal_dir, filename)
+            if os.path.exists(source_path):
+                shutil.copy2(source_path, target_path)
+
+    # Tell Python to check the '_internal' folder for your helper modules
     sys.path.insert(0, internal_dir)
 
 # NOW you can safely import your custom helper modules
