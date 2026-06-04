@@ -59,6 +59,7 @@ exe = EXE(
     strip=False,
     upx=True,
     console=False,
+    contents_directory='.',  # to force various files to be at same level as app
 )
 
 coll = COLLECT(                # KEY: This is what collects everything into the root folder
