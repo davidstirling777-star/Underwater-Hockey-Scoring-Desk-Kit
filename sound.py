@@ -231,8 +231,10 @@ def play_sound(filename, enable_sound):
     """
     sound_thread = threading.Thread(target=_play_sound_sync, args=(filename, enable_sound))
     sound_thread.daemon = True
+    sound_thread.start()
 
-    def play_sound_with_volume(filename, sound_type, enable_sound, pips_volume, siren_volume, air_volume, water_volume, siren_duration):
+
+def play_sound_with_volume(filename, sound_type, enable_sound, pips_volume, siren_volume, air_volume, water_volume, siren_duration):
     """
     Play a sound file with volume control.
     
@@ -315,4 +317,3 @@ def _play_sound_with_volume_sync(filename, sound_type, enable_sound, normalized_
     
     except Exception as e:
         print(f"Error in sound playback with volume: {e}")
-    sound_thread.start()
