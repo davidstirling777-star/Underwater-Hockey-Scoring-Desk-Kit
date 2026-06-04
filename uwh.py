@@ -343,7 +343,7 @@ class GameManagementApp:
         self.timer_var = tk.StringVar(value="00:00")
         self.court_time_var = tk.StringVar(value="Court Time is 00:00:00")
         self.half_label_var = tk.StringVar(value="")
-        self.game_number_var = tk.StringVar(value="Game 121")
+        self.game_number_var = tk.StringVar(value="Game 1")
         self.white_team_var = tk.StringVar(value="White")
         self.black_team_var = tk.StringVar(value="Black")
         self.referee_timeout_timer_var = tk.StringVar(value="Ref Time-Out")
@@ -639,11 +639,11 @@ class GameManagementApp:
     def update_penalty_display(self):
         """
         Robustly ensures that the penalty grid is only shown if there are penalties left to serve,
-        and that 'Game 121' label is shown otherwise.
+        and that 'Game 1' label is shown otherwise.
         Applies to both main and display windows.
         """
         main_has_penalties = bool(self.active_penalties or self.stored_penalties)
-        # Main window: show penalty grid if any penalties; otherwise show 'Game 121'
+        # Main window: show penalty grid if any penalties; otherwise show 'Game 1'
         if main_has_penalties:
             if self.game_label.winfo_ismapped():
                 self.game_label.grid_remove()
@@ -1695,9 +1695,9 @@ class GameManagementApp:
             elif self.game_numbers and len(self.game_numbers) > self.current_game_index:
                 return self.game_numbers[self.current_game_index]
             else:
-                return "121"  # fallback to default
+                return "1"  # fallback to default
         except Exception:
-            return "121"  # fallback to default
+            return "1"  # fallback to default
 
     def update_game_number_display(self):
         """Update the game number display based on current Tournament List selection."""
