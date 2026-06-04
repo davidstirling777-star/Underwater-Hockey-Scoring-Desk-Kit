@@ -51,14 +51,23 @@ pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,           # Add this line (changed from [])
-    a.zipfiles,           # Add this line
-    a.datas,              # Add this line
     [],
+    exclude_binaries=True,    # KEY: This tells PyInstaller "don't include binaries in the EXE"
     name='UnderwaterHockeyScoringDesk',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
     console=False,
+)
+
+coll = COLLECT(                # KEY: This is what collects everything into the root folder
+    exe,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    name='UnderwaterHockeyScoringDesk'
 )
