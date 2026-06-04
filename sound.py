@@ -313,7 +313,7 @@ def _play_sound_with_volume_sync(filename, sound_type, enable_sound, normalized_
                     sound.play()
             else:
                 # For pips or if duration not specified, just play once
-            sound.play()
+                sound.play()
             return
         
         # Windows fallback
@@ -331,7 +331,7 @@ def _play_sound_with_volume_sync(filename, sound_type, enable_sound, normalized_
                         pygame.mixer.music.play(loops=-1)  # -1 means infinite loop
                         # In practice, the caller should manage the duration
                     else:
-                    pygame.mixer.music.play()
+                        pygame.mixer.music.play()
         
         # Linux fallback with amixer volume control
         elif IS_LINUX:
