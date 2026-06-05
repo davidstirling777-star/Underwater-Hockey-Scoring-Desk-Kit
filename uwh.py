@@ -443,7 +443,7 @@ class GameManagementApp:
         
         # Penalty timer system
         self.active_penalties = []
-               self.penalty_timers_paused = False
+        self.penalty_timers_paused = False
         self.penalty_timer_jobs = []
         
         # Store last position of penalties dialog (None means use default positioning)
