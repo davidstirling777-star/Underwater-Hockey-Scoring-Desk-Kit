@@ -1,3 +1,4 @@
+
 import os
 import sys
 import shutil
@@ -154,7 +155,8 @@ def migrate_legacy_settings():
     migrated = False
     
     # Migrate game_settings.json (sound settings)
-    legacy_sound_file = os.path.join(os.getcwd(), "game_settings.json")
+    # CHANGED: Use BASE_DIR instead of os.getcwd() to guarantee looking next to the .exe
+    legacy_sound_file = os.path.join(BASE_DIR, "game_settings.json")
     if os.path.exists(legacy_sound_file):
         try:
             with open(legacy_sound_file, "r") as f:
@@ -166,7 +168,8 @@ def migrate_legacy_settings():
             print(f"Error migrating game_settings.json: {e}")
     
     # Migrate zigbee_config.json (zigbee settings)
-    legacy_zigbee_file = os.path.join(os.getcwd(), "zigbee_config.json")
+    # CHANGED: Use BASE_DIR instead of os.getcwd()
+    legacy_zigbee_file = os.path.join(BASE_DIR, "zigbee_config.json")
     if os.path.exists(legacy_zigbee_file):
         try:
             with open(legacy_zigbee_file, "r") as f:
@@ -185,9 +188,9 @@ def migrate_legacy_settings():
 
 def load_unified_settings():
     """Load unified settings from JSON file."""
-    settings_path = os.path.join(os.getcwd(), SETTINGS_FILE)
-    if os.path.exists(settings_path):
-        with open(settings_path, "r") as f:
+    # CHANGED: Use the absolute SETTINGS_PATH defined at the top of the file
+    if os.path.exists(SETTINGS_PATH):
+        with open(SETTINGS_PATH, "r") as f:
             try:
                 return json.load(f)
             except Exception:
@@ -199,8 +202,8 @@ def load_unified_settings():
 
 def save_unified_settings(settings):
     """Save unified settings to JSON file."""
-    settings_path = os.path.join(os.getcwd(), SETTINGS_FILE)
-    with open(settings_path, "w") as f:
+    # CHANGED: Use the absolute SETTINGS_PATH defined at the top of the file
+    with open(SETTINGS_PATH, "w") as f:
         json.dump(settings, f, indent=2)
 
 def get_default_unified_settings():
@@ -557,14 +560,17 @@ class GameManagementApp:
         # Create pipe-separated line
         event_line = "|".join(str(field) for field in fields)
         
-        txt_file = os.path.join(os.getcwd(), "UWH_Game_Data.txt")
+        # CHANGED: Use BASE_DIR instead of os.getcwd() to guarantee it saves next to the .exe
+        txt_file = os.path.join(BASE_DIR, "UWH_Game_Data.txt")
         
         try:
             # Open in append mode, create if doesn't exist
-            with open(txt_file, 'a') as f:
+            # Pro-tip: Explicitly setting encoding='utf-8' prevents rare Windows crashes if player names have special characters
+            with open(txt_file, 'a', encoding='utf-8') as f:
                 f.write(event_line + "\n")
         except Exception as e:
             print(f"Error logging game event: {e}")
+
 
     def create_scoreboard_tab(self):
         tab = ttk.Frame(self.notebook)
@@ -1311,7 +1317,8 @@ class GameManagementApp:
             return game_numbers
             
         try:
-            csv_path = os.path.join(os.getcwd(), csv_filename)
+            # CHANGED: Use BASE_DIR instead of os.getcwd() so it successfully finds the CSV next to the EXE
+            csv_path = os.path.join(BASE_DIR, csv_filename)
             if not os.path.exists(csv_path):
                 return game_numbers
                 
@@ -1352,7 +1359,6 @@ class GameManagementApp:
             print(f"Error parsing CSV file {csv_filename}: {e}")
         
         return sorted(set(game_numbers), key=int) if game_numbers else []
-    
     def parse_csv_team_names(self, csv_filename, game_number):
         """
         Parse CSV file and extract team names for a specific game number.
@@ -1363,7 +1369,8 @@ class GameManagementApp:
             return (None, None)
             
         try:
-            csv_path = os.path.join(os.getcwd(), csv_filename)
+            # CHANGED: Use BASE_DIR instead of os.getcwd()
+            csv_path = os.path.join(BASE_DIR, csv_filename)
             if not os.path.exists(csv_path):
                 return (None, None)
                 
@@ -1417,7 +1424,8 @@ class GameManagementApp:
         Read UWH_Game_Data.txt and extract all goal events for the current game.
         Returns a list of goal events with team and cap_number.
         """
-        txt_file = os.path.join(os.getcwd(), "UWH_Game_Data.txt")
+        # CHANGED: Use BASE_DIR instead of os.getcwd()
+        txt_file = os.path.join(BASE_DIR, "UWH_Game_Data.txt")
         goal_events = []
         
         if not os.path.exists(txt_file):
@@ -1441,12 +1449,8 @@ class GameManagementApp:
                     
                     # Track when we're in the current game
                     if event_type == "First Half Start":
-                        # Check if this is the start of our game by looking at surrounding context
-                        # For now, we'll collect all goals and assume they're from the current game
-                        # This is a simplification - in production you might need game boundaries
                         in_current_game = True
                     elif event_type == "Game End":
-                        # We've reached the end of a game
                         in_current_game = False
                     
                     # Collect goal events
@@ -1486,11 +1490,6 @@ class GameManagementApp:
     def format_goal_scorers_comment(self, scorers):
         """
         Format goal scorers as a comment string for CSV.
-        Format: W#1(2),W#PG(1),W#UNK(1),B#12(5)
-        - Penalty goals: W#PG(count) or B#PG(count)
-        - Unknown caps: W#UNK(count) or B#UNK(count)
-        - Regular caps: W#(capnumber)(count) or B#(capnumber)(count)
-        White scorers first, then Black, comma separated.
         """
         comment_parts = []
         
@@ -1525,190 +1524,15 @@ class GameManagementApp:
         Helper to sort cap numbers: numeric first (1-15), then PG, then UNK.
         """
         if cap_number == "Penalty Goal":
-            return (1, 100)  # Sort after numbers
+            return (1, 100)
         elif cap_number == "Unknown":
-            return (1, 101)  # Sort after PG
+            return (1, 101)
         else:
             try:
                 return (0, int(cap_number))
             except ValueError:
-                return (2, 0)  # Sort other values last
-    
-    def write_game_results_to_csv(self, game_number, white_score, black_score, penalties_list):
-        """
-        Write game results to CSV file.
-        Updates existing row if game number exists, otherwise appends new row.
-        Expected header: date,#,White,Score,Black,Score,Referees,Penalties,Comments
-        
-        Args:
-            game_number: The game number to write results for
-            white_score: White team's score
-            black_score: Black team's score  
-            penalties_list: List of penalty dicts with 'team', 'cap', 'duration' keys
-        """
-        csv_file = self.csv_var.get() if hasattr(self, 'csv_var') else None
-        if not csv_file or csv_file == "No CSV files found":
-            print("No CSV file selected, skipping game results write")
-            return
-            
-        try:
-            import csv
-            csv_path = os.path.join(os.getcwd(), csv_file)
-            
-            # Format penalties as comma-separated W-#cap-duration, B-#cap-duration
-            penalty_strings = []
-            for penalty in penalties_list:
-                team_prefix = "W" if penalty["team"] == "White" else "B"
-                cap = penalty["cap"]
-                duration = penalty["duration"]
-                # Convert duration to short form: "2 minutes" -> "2", "Rest of Game" -> "Rest"
-                if "Rest" in duration:
-                    duration_str = "Rest"
-                else:
-                    # Extract just the number from duration like "2 minutes"
-                    duration_str = duration.split()[0] if duration.split() else duration
-                penalty_strings.append(f"{team_prefix}-#{cap}-{duration_str}")
-            penalties_formatted = ",".join(penalty_strings)
-            
-            # Generate comments from goal scorers
-            goal_events = self.get_goal_events_for_game(game_number)
-            scorers = self.aggregate_goal_scorers(goal_events)
-            comments_formatted = self.format_goal_scorers_comment(scorers)
-            
-            # Read existing CSV
-            rows = []
-            header_row = None
-            if os.path.exists(csv_path):
-                with open(csv_path, 'r', encoding='utf-8', newline='') as f:
-                    reader = csv.reader(f)
-                    for row in reader:
-                        if header_row is None:
-                            header_row = row
-                        else:
-                            rows.append(row)
-            
-            # If no header exists, create one
-            if header_row is None:
-                header_row = ['date', '#', 'White', 'Score', 'Black', 'Score', 'Referees', 'Penalties', 'Comments']
-            
-            # Normalize header to lowercase for matching
-            header_lower = [col.strip().lower() for col in header_row]
-            
-            # Find column indices (case-insensitive)
-            game_num_idx = -1
-            white_idx = -1
-            white_score_idx = -1
-            black_idx = -1
-            black_score_idx = -1
-            penalties_idx = -1
-            comments_idx = -1
-            
-            for i, col in enumerate(header_lower):
-                if col in ['#', 'game', 'game#', 'game_number']:
-                    game_num_idx = i
-                elif col == 'white':
-                    white_idx = i
-                elif col == 'black':
-                    black_idx = i
-                elif col in ['penalties', 'penalty']:
-                    penalties_idx = i
-                elif col in ['comments', 'comment']:
-                    comments_idx = i
-            
-            # Find score columns (they come after team name columns)
-            if white_idx != -1 and white_idx + 1 < len(header_lower) and header_lower[white_idx + 1] == 'score':
-                white_score_idx = white_idx + 1
-            if black_idx != -1 and black_idx + 1 < len(header_lower) and header_lower[black_idx + 1] == 'score':
-                black_score_idx = black_idx + 1
-            
-            # If penalties column doesn't exist, add it
-            if penalties_idx == -1:
-                header_row.append('Penalties')
-                penalties_idx = len(header_row) - 1
-                if comments_idx == -1:
-                    header_row.append('Comments')
-                    comments_idx = len(header_row) - 1
-            
-            # Find if game number already exists
-            game_row_index = -1
-            for i, row in enumerate(rows):
-                if len(row) > game_num_idx:
-                    try:
-                        if str(int(row[game_num_idx])) == str(game_number):
-                            game_row_index = i
-                            break
-                    except (ValueError, IndexError):
-                        continue
-            
-            if game_row_index != -1:
-                # Update existing row
-                row = rows[game_row_index]
-                
-                # Ensure we have enough columns
-                while len(row) < len(header_row):
-                    row.append("")
-                
-                # Update scores
-                if white_score_idx != -1:
-                    row[white_score_idx] = str(white_score)
-                if black_score_idx != -1:
-                    row[black_score_idx] = str(black_score)
-                    
-                # Update penalties
-                if penalties_idx != -1:
-                    row[penalties_idx] = penalties_formatted
-                
-                # Update comments with goal scorers
-                if comments_idx != -1:
-                    row[comments_idx] = comments_formatted
-                
-                rows[game_row_index] = row
-            else:
-                # Append new row
-                # Get team names from CSV if available
-                white_team, black_team = self.parse_csv_team_names(csv_file, game_number)
-                if not white_team:
-                    white_team = "Team A"
-                if not black_team:
-                    black_team = "Team B"
-                
-                # Create new row with current date
-                current_date = datetime.datetime.now().strftime("%Y-%m-%d")
-                new_row = [''] * len(header_row)
-                
-                # Fill in the values we know
-                if game_num_idx != -1:
-                    new_row[game_num_idx] = str(game_number)
-                if white_idx != -1:
-                    new_row[white_idx] = white_team
-                if white_score_idx != -1:
-                    new_row[white_score_idx] = str(white_score)
-                if black_idx != -1:
-                    new_row[black_idx] = black_team
-                if black_score_idx != -1:
-                    new_row[black_score_idx] = str(black_score)
-                if penalties_idx != -1:
-                    new_row[penalties_idx] = penalties_formatted
-                if comments_idx != -1:
-                    new_row[comments_idx] = comments_formatted
-                    
-                # Set date in first column
-                new_row[0] = current_date
-                
-                rows.append(new_row)
-            
-            # Write back to CSV
-            with open(csv_path, 'w', encoding='utf-8', newline='') as f:
-                writer = csv.writer(f)
-                writer.writerow(header_row)
-                writer.writerows(rows)
-            
-            print(f"Game results written to {csv_file}: Game #{game_number}, W:{white_score} B:{black_score}, Penalties:{penalties_formatted}")
-            
-        except Exception as e:
-            print(f"Error writing game results to CSV: {e}")
-            import traceback
-            traceback.print_exc()
+                return (2, 0)
+
     
     def on_csv_file_changed(self, event=None):
         """Handle CSV file selection change - update game numbers dropdown."""
@@ -1803,9 +1627,10 @@ class GameManagementApp:
 
     def open_csv_folder(self):
         """Open the folder containing CSV files in the system file manager."""
-        # Get the application's working directory
-        csv_folder = os.getcwd()
+        # CHANGED: Use BASE_DIR instead of os.getcwd() so it always opens the folder containing the EXE and CSVs
+        csv_folder = BASE_DIR
         open_folder_in_file_manager(csv_folder)
+
 
     def create_sounds_tab(self):
         tab = ttk.Frame(self.notebook)
