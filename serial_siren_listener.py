@@ -2,7 +2,8 @@ import time
 import serial
 import serial.tools.list_ports
 import threading
-import pygame  # Direct link to monitor real-time speaker audio channels
+import pygame
+import sound  # Direct link to your custom preloaded sound system
 
 def find_arduino_port():
     """Searches for an attached Arduino or active USB Serial COM port on Windows."""
@@ -28,31 +29,46 @@ def find_arduino_port():
     return None
 
 def is_local_audio_playing():
-    """
-    Checks if Pygame is actively blasting audio out of the laptop speakers.
-    Returns True if audio is playing, False if the track has finished.
-    """
+    """Checks if Pygame is actively blasting audio out of the laptop speakers."""
     try:
-        # Pygame mixer channel 0 handles core sound effects in your app layout
         return pygame.mixer.get_busy()
     except Exception:
         return False
 
 def trigger_dual_siren_systems(uwh_app):
-    """Triggers both the remote wireless Zigbee system and local computer speakers."""
+    """Triggers both the remote wireless Zigbee system and local computer speakers with all required variables."""
     # 1. Fire the wireless hardware siren over MQTT
     try:
         uwh_app.start_wireless_siren()
     except Exception as net_err:
         print(f"Wireless Trigger Note: {net_err}")
         
-    # 2. Fire the preloaded MP3 track through your laptop speakers
+    # 2. Fire the preloaded MP3 track through your laptop speakers using all 8 required arguments
     try:
-        import sound
+        # Extract variables dynamically from uwh_app context
         track = uwh_app.siren_var.get() if hasattr(uwh_app, 'siren_var') else "siren-police.mp3"
         vol = float(uwh_app.siren_volume.get()) if hasattr(uwh_app, 'siren_volume') else 50.0
-        sound.play_sound_with_volume(track, vol)
-        print(f"Local Audio Played: '{track}' at {vol}% volume.")
+        
+        # Pull the remaining 6 positional arguments required by your sound.py module
+        enable_sound = uwh_app.enable_sound.get() if hasattr(uwh_app, 'enable_sound') else True
+        pips_vol = float(uwh_app.pips_volume.get()) if hasattr(uwh_app, 'pips_volume') else 50.0
+        siren_vol = float(uwh_app.siren_volume.get()) if hasattr(uwh_app, 'siren_volume') else 50.0
+        air_vol = float(uwh_app.air_volume.get()) if hasattr(uwh_app, 'air_volume') else 50.0
+        water_vol = float(uwh_app.water_volume.get()) if hasattr(uwh_app, 'water_volume') else 50.0
+        duration = float(uwh_app.siren_duration.get()) if hasattr(uwh_app, 'siren_duration') else 1.5
+
+        # Execute with all 8 arguments in the exact order required by your function signature
+        sound.play_sound_with_volume(
+            track, 
+            vol, 
+            enable_sound, 
+            pips_vol, 
+            siren_vol, 
+            air_vol, 
+            water_vol, 
+            duration
+        )
+        print(f"Local Audio Played Successfully: '{track}'")
     except Exception as audio_err:
         print(f"Local Speaker Playback Error: {audio_err}")
 
@@ -69,7 +85,7 @@ def serial_listener_thread(uwh_app):
             
         print(f"Attempting to connect to siren button on {port}...")
         try:
-            with serial.Serial(port, 9600, timeout=0.1) as ser:  # Low timeout keeps loop highly responsive
+            with serial.Serial(port, 9600, timeout=0.1) as ser:
                 ser.dtr = True
                 ser.rts = True
                 time.sleep(4)  # Let system architectures boot cleanly first
@@ -79,9 +95,7 @@ def serial_listener_thread(uwh_app):
                 while True:
                     raw_data = ser.readline()
                     
-                    # ─── PERFECT AUDIO CYCLE GUARD ───
-                    # If the button is still physically held down, but Pygame reports that the 
-                    # local speaker audio has finished playing its track completely:
+                    # If the button is still physically held down, but the speaker audio has finished playing:
                     if button_held_down and not is_local_audio_playing():
                         print("Button is still held, but the MP3 finished playing. Cycling track again!")
                         trigger_dual_siren_systems(uwh_app)
