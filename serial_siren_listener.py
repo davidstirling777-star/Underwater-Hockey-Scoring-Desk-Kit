@@ -2,7 +2,7 @@ import time
 import serial
 import serial.tools.list_ports
 import threading
-import sound  # Direct reference to your custom preloaded sound system
+import pygame  # Direct link to monitor real-time speaker audio channels
 
 def find_arduino_port():
     """Searches for an attached Arduino or active USB Serial COM port on Windows."""
@@ -27,10 +27,38 @@ def find_arduino_port():
             
     return None
 
+def is_local_audio_playing():
+    """
+    Checks if Pygame is actively blasting audio out of the laptop speakers.
+    Returns True if audio is playing, False if the track has finished.
+    """
+    try:
+        # Pygame mixer channel 0 handles core sound effects in your app layout
+        return pygame.mixer.get_busy()
+    except Exception:
+        return False
+
+def trigger_dual_siren_systems(uwh_app):
+    """Triggers both the remote wireless Zigbee system and local computer speakers."""
+    # 1. Fire the wireless hardware siren over MQTT
+    try:
+        uwh_app.start_wireless_siren()
+    except Exception as net_err:
+        print(f"Wireless Trigger Note: {net_err}")
+        
+    # 2. Fire the preloaded MP3 track through your laptop speakers
+    try:
+        import sound
+        track = uwh_app.siren_var.get() if hasattr(uwh_app, 'siren_var') else "siren-police.mp3"
+        vol = float(uwh_app.siren_volume.get()) if hasattr(uwh_app, 'siren_volume') else 50.0
+        sound.play_sound_with_volume(track, vol)
+        print(f"Local Audio Played: '{track}' at {vol}% volume.")
+    except Exception as audio_err:
+        print(f"Local Speaker Playback Error: {audio_err}")
+
 def serial_listener_thread(uwh_app):
     """Background loop that monitors the serial port for button presses."""
     button_held_down = False
-    last_trigger_time = 0.0
     
     while True:
         port = find_arduino_port()
@@ -41,41 +69,22 @@ def serial_listener_thread(uwh_app):
             
         print(f"Attempting to connect to siren button on {port}...")
         try:
-            with serial.Serial(port, 9600, timeout=1) as ser:
+            with serial.Serial(port, 9600, timeout=0.1) as ser:  # Low timeout keeps loop highly responsive
                 ser.dtr = True
                 ser.rts = True
-                time.sleep(4)  # Let MQTT and audio structures boot cleanly first
+                time.sleep(4)  # Let system architectures boot cleanly first
                 ser.reset_input_buffer()
                 print(f"Successfully connected to siren button on {port}!")
                 
                 while True:
-                    current_time = time.time()
                     raw_data = ser.readline()
                     
-                    # Get the siren duration dynamically from the app settings
-                    siren_duration = 1.5
-                    if hasattr(uwh_app, 'siren_duration'):
-                        try:
-                            siren_duration = float(uwh_app.siren_duration.get())
-                        except Exception:
-                            siren_duration = 1.5
-
-                    # --- DUAL-TRIGGER RE-TRIGGER CHECK ---
-                    if button_held_down and (current_time - last_trigger_time >= siren_duration):
-                        print(f"Button is still held, and {siren_duration}s passed. Re-triggering MP3 cycle!")
-                        last_trigger_time = current_time
-                        
-                        # 1. Keep the remote physical wireless network box running
-                        uwh_app.start_wireless_siren()
-                        
-                        # 2. Re-trigger audio on computer speakers
-                        try:
-                            track = uwh_app.siren_var.get() if hasattr(uwh_app, 'siren_var') else "siren-police.mp3"
-                            vol = float(uwh_app.siren_volume.get()) if hasattr(uwh_app, 'siren_volume') else 50.0
-                            sound.play_sound_with_volume(track, vol)
-                            print(f"Local Audio Cycled: {track} at {vol}% volume.")
-                        except Exception as audio_err:
-                            print(f"Local Audio Cycle Error: {audio_err}")
+                    # ─── PERFECT AUDIO CYCLE GUARD ───
+                    # If the button is still physically held down, but Pygame reports that the 
+                    # local speaker audio has finished playing its track completely:
+                    if button_held_down and not is_local_audio_playing():
+                        print("Button is still held, but the MP3 finished playing. Cycling track again!")
+                        trigger_dual_siren_systems(uwh_app)
 
                     if not raw_data:
                         continue
@@ -84,29 +93,18 @@ def serial_listener_thread(uwh_app):
                     
                     if line == "SIREN_ON":
                         if not button_held_down:
-                            print("Button Triggered: SIREN_ON (Initial Press).")
+                            print("Button Triggered: SIREN_ON (Initial Press Captured).")
                             button_held_down = True
-                            last_trigger_time = current_time
-                            
-                            # 1. Fire the wireless hardware siren over MQTT
-                            uwh_app.start_wireless_siren()
-                            
-                            # 2. Play the selected MP3 track through computer speakers directly
-                            try:
-                                track = uwh_app.siren_var.get() if hasattr(uwh_app, 'siren_var') else "siren-police.mp3"
-                                vol = float(uwh_app.siren_volume.get()) if hasattr(uwh_app, 'siren_volume') else 50.0
-                                sound.play_sound_with_volume(track, vol)
-                                print(f"Local Audio Started: {track} at {vol}% volume.")
-                            except Exception as audio_err:
-                                print(f"Local Audio Start Error: {audio_err}")
+                            trigger_dual_siren_systems(uwh_app)
                             
                     elif line == "SIREN_OFF":
                         if button_held_down:
                             print("Button Released: SIREN_OFF matched.")
                             button_held_down = False
-                            
-                            # Stop the remote hardware wireless signal
-                            uwh_app.stop_wireless_siren()
+                            try:
+                                uwh_app.stop_wireless_siren()
+                            except Exception:
+                                pass
                             
         except serial.SerialException as se:
             print(f"Serial connection lost on {port}: {se}. Re-hunting for port in 3 seconds...")
