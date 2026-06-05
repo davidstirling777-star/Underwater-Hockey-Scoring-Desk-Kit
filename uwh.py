@@ -73,7 +73,7 @@ import os
 import subprocess
 import json
 import webbrowser
-from zigbee_siren import ZigbeeSirenController, is_mqtt_available
+#from zigbee_siren import ZigbeeSirenController, is_mqtt_available
 from sound import (check_audio_device_available, handle_no_audio_device_warning, 
                    get_sound_files, play_sound, play_sound_with_volume, preload_sounds)
 
