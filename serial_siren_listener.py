@@ -2,6 +2,8 @@ import time
 import serial
 import serial.tools.list_ports
 import threading
+import pygame
+import sound
 
 def find_arduino_port():
     """Searches for an attached Arduino or active USB Serial COM port on Windows."""
@@ -42,7 +44,7 @@ def serial_listener_thread(uwh_app):
             with serial.Serial(port, 9600, timeout=0.1) as ser:
                 ser.dtr = True
                 ser.rts = True
-                time.sleep(4)  # Let system architectures boot cleanly first
+                time.sleep(4)  # Let system architectures finish booting
                 ser.reset_input_buffer()
                 print(f"Successfully connected to siren button on {port}!")
                 
@@ -58,33 +60,48 @@ def serial_listener_thread(uwh_app):
                             print("Button Triggered: SIREN_ON (Initial Press Captured).")
                             button_held_down = True
                             
-                            # ─── NATIVE APP HOOKS ───
-                            # We toggle your app's built-in looping attributes to handle the sound natively
-                            uwh_app.siren_loop_active = True
-                            
-                            # Execute the app's native master siren trigger functions
-                            if hasattr(uwh_app, 'start_siren_loop'):
-                                uwh_app.start_siren_loop()
-                            elif hasattr(uwh_app, 'start_siren'):
-                                uwh_app.start_siren()
-                            else:
-                                # Fallback to standard wireless call if loops aren't named standard
+                            # 1. Fire the wireless hardware siren over MQTT
+                            try:
                                 uwh_app.start_wireless_siren()
+                            except Exception as net_err:
+                                print(f"Wireless Trigger Note: {net_err}")
+                            
+                            # 2. Fire the local computer speaker audio onto a dedicated continuous loop channel
+                            try:
+                                track = uwh_app.siren_var.get() if hasattr(uwh_app, 'siren_var') else "siren-police.mp3"
+                                siren_vol = float(uwh_app.siren_volume.get()) if hasattr(uwh_app, 'siren_volume') else 50.0
+                                sound_enabled = uwh_app.enable_sound.get() if hasattr(uwh_app, 'enable_sound') else True
+                                
+                                if sound_enabled and hasattr(sound, '_preloaded_sounds') and track in sound._preloaded_sounds:
+                                    siren_channel = pygame.mixer.Channel(7)
+                                    sound_object = sound._preloaded_sounds[track]
+                                    
+                                    # Scale volume (0.0 to 1.0)
+                                    siren_channel.set_volume(siren_vol / 100.0)
+                                    
+                                    # loops=-1 instructs Pygame to loop the MP3 track internally forever
+                                    siren_channel.play(sound_object, loops=-1)
+                                    print(f"Local Speaker Audio Looping Started: '{track}' on Channel 7")
+                            except Exception as audio_err:
+                                print(f"Local Speaker Playback Error: {audio_err}")
                             
                     elif line == "SIREN_OFF":
                         if button_held_down:
                             print("Button Released: SIREN_OFF matched.")
                             button_held_down = False
                             
-                            # ─── NATIVE APP HOOKS ───
-                            uwh_app.siren_loop_active = False
-                            
-                            if hasattr(uwh_app, 'stop_siren_loop'):
-                                uwh_app.stop_siren_loop()
-                            elif hasattr(uwh_app, 'stop_siren'):
-                                uwh_app.stop_siren()
-                            else:
+                            # 1. Terminate remote wireless network broadcast
+                            try:
                                 uwh_app.stop_wireless_siren()
+                            except Exception:
+                                pass
+                                
+                            # 2. Instantly hard-stops the audio channel down to 0ms, cutting the fade
+                            try:
+                                pygame.mixer.Channel(7).stop()
+                                print("Local Speaker Audio Stopped Instantly.")
+                            except Exception as stop_err:
+                                print(f"Error stopping channel audio: {stop_err}")
                             
         except serial.SerialException as se:
             print(f"Serial connection lost on {port}: {se}. Re-hunting for port in 3 seconds...")
