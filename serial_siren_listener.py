@@ -2,7 +2,6 @@ import time
 import serial
 import serial.tools.list_ports
 import threading
-import pygame  # Imported to check the real-time playback state of the audio mixer
 
 def find_arduino_port():
     """Searches for an attached Arduino or active USB Serial COM port on Windows."""
@@ -29,8 +28,8 @@ def find_arduino_port():
 
 def serial_listener_thread(uwh_app):
     """Background loop that monitors the serial port for button presses."""
-    # Enforce global tracker state outside the engine connection loops
     button_held_down = False
+    last_trigger_time = 0.0
     
     while True:
         port = find_arduino_port()
@@ -49,13 +48,23 @@ def serial_listener_thread(uwh_app):
                 print(f"Successfully connected to siren button on {port}!")
                 
                 while True:
+                    current_time = time.time()
                     raw_data = ser.readline()
                     
-                    # --- CRITICAL RE-TRIGGER CHECK ---
-                    # If the button is currently being held down, but PyGame's mixer has finished
-                    # playing the MP3 file, automatically trigger the sound again to cycle it smoothly.
-                    if button_held_down and not pygame.mixer.get_busy():
-                        print("Button is still held, but audio finished. Cycling MP3 back to the start!")
+                    # Get the siren duration dynamically from the app settings (defaults to 1.5s)
+                    siren_duration = 1.5
+                    if hasattr(uwh_app, 'siren_duration'):
+                        try:
+                            siren_duration = float(uwh_app.siren_duration.get())
+                        except Exception:
+                            siren_duration = 1.5
+
+                    # --- FIXED TIME-BASED RE-TRIGGER CHECK ---
+                    # If the button is still held down, and the exact duration of the MP3 has passed,
+                    # cycle it by running start_wireless_siren again and resetting the timestamp clock.
+                    if button_held_down and (current_time - last_trigger_time >= siren_duration):
+                        print(f"Button is still held, and {siren_duration}s passed. Re-triggering MP3 cycle!")
+                        last_trigger_time = current_time
                         uwh_app.start_wireless_siren()
 
                     if not raw_data:
@@ -67,6 +76,7 @@ def serial_listener_thread(uwh_app):
                         if not button_held_down:
                             print("Button Triggered: SIREN_ON (Initial Press).")
                             button_held_down = True
+                            last_trigger_time = current_time
                             uwh_app.start_wireless_siren()
                             
                     elif line == "SIREN_OFF":
