@@ -461,9 +461,6 @@ class GameManagementApp:
         # Initialize sound selection variables with auto-selection of first audio file if no saved setting
         sound_files = get_sound_files()
         available_audio_files = sound_files if sound_files != ["No sound files found"] else []
-        # This tells the imported listener file to spawn the thread tracking 'self'
-        serial_siren_listener.start_serial_listener(self)
-        print("DEBUG: start_serial_listener hook successfully triggered on app boot.")
         
         pips_default = sound_settings.get("pips_sound", "Default")
         siren_default = sound_settings.get("siren_sound", "Default")
@@ -487,6 +484,19 @@ class GameManagementApp:
         # Track audio device warning to prevent loops
         self.audio_device_warning_shown = False
 
+        # ─── CRASH-PROOF SERIAL HARDWARE BUTTON HOOK ─────────────────────────
+        # Runs safely now that sound engine elements are completely loaded
+        try:
+            import serial_siren_listener
+            if hasattr(serial_siren_listener, 'start_serial_listener'):
+                serial_siren_listener.start_serial_listener(self)
+                print("DEBUG: Serial siren button tracking thread successfully spawned.")
+            else:
+                print("CRITICAL: 'serial_siren_listener.py' found, but 'start_serial_listener' is missing!")
+        except Exception as e:
+            print(f"DEBUG: Failed to initialize serial button module thread: {e}")
+        # ─────────────────────────────────────────────────────────────────────
+
         # Initialize Zigbee siren controller
         self.zigbee_controller = ZigbeeSirenController(siren_callback=self.trigger_wireless_siren, gui_log_callback=self.add_to_zigbee_log)
         self.zigbee_status_var = tk.StringVar(value="Disconnected")
@@ -502,6 +512,7 @@ class GameManagementApp:
         self.connection_watchdog_max_attempts = 3
         self.connection_watchdog_job = None
         self.user_initiated_action = False
+
 
         self.create_scoreboard_tab()
         self.create_settings_tab()
