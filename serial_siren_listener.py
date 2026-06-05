@@ -1,33 +1,31 @@
-import serial
-import serial.tools.list_ports
-import threading
-
-def find_arduino_port():
-    ports = serial.tools.list_ports.comports()
-    for port in ports:
-        # Look for Nano Every or generic Arduino descriptors
-        if ("Arduino" in port.description or
-            "Nano Every" in port.description or
-            "VID:PID=2341:0058" in port.hwid or
-            "VID:PID=2341:0042" in port.hwid):
-            return port.device
-    # If not found, return first found USB serial port
-    for port in ports:
-        if "USB" in port.device:
-            return port.device
-    return None
+import time
 
 def serial_listener_thread(uwh_app):
     port = find_arduino_port()
     if not port:
         print("No Arduino serial port found for siren button.")
         return
+        
     print(f"Listening for siren button on {port}")
     try:
+        # Open connection
         with serial.Serial(port, 9600, timeout=1) as ser:
+            # CRITICAL FOR NANO EVERY: Enable DTR to wake up the board
+            ser.dtr = True 
+            
+            # Wait 2 full seconds for the Arduino hardware to clear its bootloader
+            time.sleep(2) 
+            
+            # Clear any garbage data that filled the buffer during the boot cycle
+            ser.reset_input_buffer() 
+            
             button_state = False
             while True:
                 line = ser.readline().decode("utf-8", errors="replace").strip()
+                
+                # Debugging log line: uncomment this if you need to watch raw incoming data
+                # if line: print(f"Raw incoming: {line}") 
+                
                 if line == "SIREN_ON":
                     if not button_state:
                         uwh_app.start_wireless_siren()
@@ -36,9 +34,6 @@ def serial_listener_thread(uwh_app):
                     if button_state:
                         uwh_app.stop_wireless_siren()
                         button_state = False
+                        
     except Exception as e:
         print(f"Serial listener error: {e}")
-
-def start_serial_listener(uwh_app):
-    t = threading.Thread(target=serial_listener_thread, args=(uwh_app,), daemon=True)
-    t.start()
