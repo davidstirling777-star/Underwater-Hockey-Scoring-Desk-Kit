@@ -1,7 +1,35 @@
 import time
 import serial
+import serial.tools.list_ports
+import threading
+
+def find_arduino_port():
+    """Searches for an attached Arduino or active USB Serial COM port on Windows."""
+    ports = serial.tools.list_ports.comports()
+    for port in ports:
+        description = port.description or ""
+        hwid = port.hwid or ""
+        device = port.device or ""
+        
+        # Look for Nano Every, standard Arduinos, or CH340 clones
+        if ("Arduino" in description or
+            "Nano" in description or
+            "VID:PID=2341:0058" in hwid or # Nano Every standard VID:PID
+            "VID:PID=2341:0042" in hwid or
+            "1A86:7523" in hwid):          # CH340 USB Clone chip VID:PID
+            return device
+            
+    # Fallback: Look for ANY active USB serial port on Windows
+    for port in ports:
+        description = port.description or ""
+        device = port.device or ""
+        if "USB Serial" in description or "COM" in device:
+            return device
+            
+    return None
 
 def serial_listener_thread(uwh_app):
+    """Background loop that monitors the serial port for button presses."""
     while True:  # Outer loop keeps trying to reconnect if the USB is unplugged
         port = find_arduino_port()
         if not port:
@@ -11,10 +39,10 @@ def serial_listener_thread(uwh_app):
             
         print(f"Attempting to connect to siren button on {port}...")
         try:
-            # 1. Open port with DTR and explicit timeouts
+            # Open port with DTR and explicit timeouts
             with serial.Serial(port, 9600, timeout=1) as ser:
                 ser.dtr = True
-                ser.rts = True  # RTS signal combined with DTR ensures clone chips wake up stably
+                ser.rts = True  # RTS combined with DTR ensures clone chips wake up stably
                 time.sleep(2)   # Wait for the bootloader clear cycle
                 ser.reset_input_buffer()
                 print(f"Successfully connected to siren button on {port}!")
@@ -22,18 +50,13 @@ def serial_listener_thread(uwh_app):
                 button_state = False
                 
                 while True:
-                    # Read the binary line directly from the serial hardware interface buffer
                     raw_data = ser.readline()
                     
-                    # If data is empty but we didn't crash, the timeout reached; keep checking
                     if not raw_data:
                         continue
                         
-                    # 2. FIX: Safely replace formatting characters and explicitly strip standard endline tokens
+                    # Safely remove hidden layout tokens and decode
                     line = raw_data.decode("utf-8", errors="replace").replace("\r", "").replace("\n", "").strip()
-                    
-                    # Debug log to terminal: verify what Python visually intercepts
-                    # print(f"Interpreted Serial Value: '{line}'") 
                     
                     if line == "SIREN_ON":
                         if not button_state:
@@ -47,9 +70,13 @@ def serial_listener_thread(uwh_app):
                             button_state = False
                             
         except serial.SerialException as se:
-            # Captures standard Windows physical interface disconnects cleanly
             print(f"Serial connection lost on {port}: {se}. Re-hunting for port in 3 seconds...")
             time.sleep(3)
         except Exception as e:
             print(f"Serial listener encountered an error: {e}. Retrying...")
             time.sleep(3)
+
+def start_serial_listener(uwh_app):
+    """CRITICAL HOOK: Spawns the background daemon thread called by uwh.py."""
+    t = threading.Thread(target=serial_listener_thread, args=(uwh_app,), daemon=True)
+    t.start()
