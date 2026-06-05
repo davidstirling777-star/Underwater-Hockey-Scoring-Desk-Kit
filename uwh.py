@@ -443,7 +443,7 @@ class GameManagementApp:
         
         # Penalty timer system
         self.active_penalties = []
-        self.penalty_timers_paused = False
+               self.penalty_timers_paused = False
         self.penalty_timer_jobs = []
         
         # Store last position of penalties dialog (None means use default positioning)
@@ -484,15 +484,12 @@ class GameManagementApp:
         # Track audio device warning to prevent loops
         self.audio_device_warning_shown = False
 
-        # ─── CRASH-PROOF SERIAL HARDWARE BUTTON HOOK ─────────────────────────
-        # Runs safely now that sound engine elements are completely loaded
+        # ─── INLINE HARDWARE TRIGGER (CLEAN & STABLE) ────────────────────────
+        # Fires safely now that audio components are active. No crashing overrides.
         try:
             import serial_siren_listener
-            if hasattr(serial_siren_listener, 'start_serial_listener'):
-                serial_siren_listener.start_serial_listener(self)
-                print("DEBUG: Serial siren button tracking thread successfully spawned.")
-            else:
-                print("CRITICAL: 'serial_siren_listener.py' found, but 'start_serial_listener' is missing!")
+            serial_siren_listener.start_serial_listener(self)
+            print("DEBUG: Serial hardware listener thread successfully active.")
         except Exception as e:
             print(f"DEBUG: Failed to initialize serial button module thread: {e}")
         # ─────────────────────────────────────────────────────────────────────
@@ -512,7 +509,6 @@ class GameManagementApp:
         self.connection_watchdog_max_attempts = 3
         self.connection_watchdog_job = None
         self.user_initiated_action = False
-
 
         self.create_scoreboard_tab()
         self.create_settings_tab()
@@ -537,6 +533,7 @@ class GameManagementApp:
         self.scale_fonts(None)
 
         # --- Sudden Death restoration variables ---
+
         self.sudden_death_restore_time = None
         self.sudden_death_restore_active = False
 
