@@ -12,7 +12,7 @@ else:
     spec_dir = os.getcwd()
 
 a = Analysis(
-    ['uwh.py'],
+    ['uwh.py', 'sound.py', 'zigbee_siren.py', 'serial_siren_listener.py'],  # <-- UPDATE THIS LINE HERE
     pathex=[spec_dir],
     binaries=[],
     datas=[
@@ -34,12 +34,8 @@ a = Analysis(
         # 3. Documentation files
         ('README.md', '.'),
         ('ZIGBEE_SETUP.md', '.'),
+    ], # (Note: You can remove the old copies of sound.py and serial_siren_listener.py from this data block)
 
-        # 4. Python modules - stay internal
-        ('sound.py', '.'),
-        ('zigbee_siren.py', '.'),
-        ('serial_siren_listener.py', '.'),
-    ],
 
     hiddenimports=['pygame', 'paho.mqtt.client', 'serial'],
     hookspath=[],
