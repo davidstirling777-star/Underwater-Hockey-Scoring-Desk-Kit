@@ -2,6 +2,7 @@ import time
 import serial
 import serial.tools.list_ports
 import threading
+import sound  # Direct reference to your custom preloaded sound system
 
 def find_arduino_port():
     """Searches for an attached Arduino or active USB Serial COM port on Windows."""
@@ -64,12 +65,17 @@ def serial_listener_thread(uwh_app):
                         print(f"Button is still held, and {siren_duration}s passed. Re-triggering MP3 cycle!")
                         last_trigger_time = current_time
                         
+                        # 1. Keep the remote physical wireless network box running
                         uwh_app.start_wireless_siren()
                         
-                        if hasattr(uwh_app, 'trigger_siren_sound'):
-                            uwh_app.trigger_siren_sound()
-                        elif hasattr(uwh_app, 'play_siren'):
-                            uwh_app.play_siren()
+                        # 2. Re-trigger audio on computer speakers
+                        try:
+                            track = uwh_app.siren_var.get() if hasattr(uwh_app, 'siren_var') else "siren-police.mp3"
+                            vol = float(uwh_app.siren_volume.get()) if hasattr(uwh_app, 'siren_volume') else 50.0
+                            sound.play_sound_with_volume(track, vol)
+                            print(f"Local Audio Cycled: {track} at {vol}% volume.")
+                        except Exception as audio_err:
+                            print(f"Local Audio Cycle Error: {audio_err}")
 
                     if not raw_data:
                         continue
@@ -82,20 +88,25 @@ def serial_listener_thread(uwh_app):
                             button_held_down = True
                             last_trigger_time = current_time
                             
+                            # 1. Fire the wireless hardware siren over MQTT
                             uwh_app.start_wireless_siren()
-                            if hasattr(uwh_app, 'trigger_siren_sound'):
-                                uwh_app.trigger_siren_sound()
-                            elif hasattr(uwh_app, 'play_siren'):
-                                uwh_app.play_siren()
+                            
+                            # 2. Play the selected MP3 track through computer speakers directly
+                            try:
+                                track = uwh_app.siren_var.get() if hasattr(uwh_app, 'siren_var') else "siren-police.mp3"
+                                vol = float(uwh_app.siren_volume.get()) if hasattr(uwh_app, 'siren_volume') else 50.0
+                                sound.play_sound_with_volume(track, vol)
+                                print(f"Local Audio Started: {track} at {vol}% volume.")
+                            except Exception as audio_err:
+                                print(f"Local Audio Start Error: {audio_err}")
                             
                     elif line == "SIREN_OFF":
                         if button_held_down:
                             print("Button Released: SIREN_OFF matched.")
                             button_held_down = False
-                            uwh_app.stop_wireless_siren()
                             
-                            if hasattr(uwh_app, 'stop_siren_sound'):
-                                uwh_app.stop_siren_sound()
+                            # Stop the remote hardware wireless signal
+                            uwh_app.stop_wireless_siren()
                             
         except serial.SerialException as se:
             print(f"Serial connection lost on {port}: {se}. Re-hunting for port in 3 seconds...")
@@ -104,7 +115,6 @@ def serial_listener_thread(uwh_app):
             print(f"Serial listener encountered an error: {e}. Retrying...")
             time.sleep(3)
 
-# ─── RESTORED THE CRITICAL EXPORT HOOK HERE ──────────────────────────
 def start_serial_listener(uwh_app):
     """Spawns the background daemon thread called by uwh.py."""
     t = threading.Thread(target=serial_listener_thread, args=(uwh_app,), daemon=True)
