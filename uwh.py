@@ -543,6 +543,16 @@ class GameManagementApp:
         self.sync_penalty_display_to_external()
         self.reset_timer()  # <-- moved here, after display window creation
 
+        # ─── FINAL APPLICATION HARDWARE INITIALIZATION HOOK ──────────────────
+        # Moved to the absolute end of __init__ to guarantee everything is ready!
+        try:
+            import serial_siren_listener
+            serial_siren_listener.start_serial_listener(self)
+            print("DEBUG: Serial hardware listener thread successfully active.")
+        except Exception as e:
+            print(f"DEBUG: Failed to initialize serial button module thread: {e}")
+        # ─────────────────────────────────────────────────────────────────────
+
     def log_game_event(self, event_type, team=None, cap_number=None, duration=None, break_status=None):
         """
         Log a game event to UWH_Game_Data.txt.
