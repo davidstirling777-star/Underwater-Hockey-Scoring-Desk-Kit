@@ -1,3 +1,31 @@
+import time
+import serial
+import serial.tools.list_ports
+import threading
+
+def find_arduino_port():
+    """Searches for an attached Arduino or active USB Serial COM port on Windows."""
+    ports = serial.tools.list_ports.comports()
+    for port in ports:
+        description = port.description or ""
+        hwid = port.hwid or ""
+        device = port.device or ""
+        
+        if ("Arduino" in description or
+            "Nano" in description or
+            "VID:PID=2341:0058" in hwid or 
+            "VID:PID=2341:0042" in hwid or
+            "1A86:7523" in hwid):          
+            return device
+            
+    for port in ports:
+        description = port.description or ""
+        device = port.device or ""
+        if "USB Serial" in description or "COM" in device:
+            return device
+            
+    return None
+
 def serial_listener_thread(uwh_app):
     """Background loop that monitors the serial port for button presses."""
     button_held_down = False
@@ -23,7 +51,7 @@ def serial_listener_thread(uwh_app):
                     current_time = time.time()
                     raw_data = ser.readline()
                     
-                    # Get the siren duration dynamically from the app settings (defaults to 1.5s)
+                    # Get the siren duration dynamically from the app settings
                     siren_duration = 1.5
                     if hasattr(uwh_app, 'siren_duration'):
                         try:
@@ -36,10 +64,8 @@ def serial_listener_thread(uwh_app):
                         print(f"Button is still held, and {siren_duration}s passed. Re-triggering MP3 cycle!")
                         last_trigger_time = current_time
                         
-                        # 1. Keep the remote physical wireless box running
                         uwh_app.start_wireless_siren()
                         
-                        # 2. ADDED: Explicitly force Python to play the MP3 through the computer speakers
                         if hasattr(uwh_app, 'trigger_siren_sound'):
                             uwh_app.trigger_siren_sound()
                         elif hasattr(uwh_app, 'play_siren'):
@@ -56,7 +82,6 @@ def serial_listener_thread(uwh_app):
                             button_held_down = True
                             last_trigger_time = current_time
                             
-                            # Fire both targets on initial press
                             uwh_app.start_wireless_siren()
                             if hasattr(uwh_app, 'trigger_siren_sound'):
                                 uwh_app.trigger_siren_sound()
@@ -69,7 +94,6 @@ def serial_listener_thread(uwh_app):
                             button_held_down = False
                             uwh_app.stop_wireless_siren()
                             
-                            # Optional: If your app has a sound stop function, call it here
                             if hasattr(uwh_app, 'stop_siren_sound'):
                                 uwh_app.stop_siren_sound()
                             
@@ -79,3 +103,9 @@ def serial_listener_thread(uwh_app):
         except Exception as e:
             print(f"Serial listener encountered an error: {e}. Retrying...")
             time.sleep(3)
+
+# ─── RESTORED THE CRITICAL EXPORT HOOK HERE ──────────────────────────
+def start_serial_listener(uwh_app):
+    """Spawns the background daemon thread called by uwh.py."""
+    t = threading.Thread(target=serial_listener_thread, args=(uwh_app,), daemon=True)
+    t.start()
