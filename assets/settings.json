@@ -17,7 +17,9 @@
     "siren_button_device": "siren_button",
     "connection_timeout": 60,
     "reconnect_delay": 5,
-    "enable_logging": true
+    "enable_logging": true,
+    "use_serial_fallback": false,
+    "prefer_mqtt": true
   },
   "gameSettings": {
     "time_to_start_first_game": "",
