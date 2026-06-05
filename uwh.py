@@ -13,6 +13,18 @@ def get_executable_directory():
 # Establish the base directory (Root folder containing the EXE)
 BASE_DIR = get_executable_directory()
 
+# --- EMERGENCY RUNTIME DEBUG LOGGING ---
+# Captures console prints from background threads and drops them into a text file
+if getattr(sys, 'frozen', False):
+    log_file_path = os.path.join(BASE_DIR, "debug_log.txt")
+    # Open file in append mode; buffering=1 forces it to write to disk instantly
+    log_file = open(log_file_path, "a", encoding="utf-8", buffering=1)
+    sys.stdout = log_file
+    sys.stderr = log_file
+    print("\n--- APP LAUNCHED: SERIAL DEBUGGER INITIALISED ---")
+# ----------------------------------------
+
+
 # Final, writable paths where the files SHOULD live for the user
 SETTINGS_PATH = os.path.join(BASE_DIR, 'settings.json')
 DRAW_PATH = os.path.join(BASE_DIR, 'Tournament_Draw.csv')
