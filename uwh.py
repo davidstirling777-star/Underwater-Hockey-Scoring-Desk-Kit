@@ -461,6 +461,9 @@ class GameManagementApp:
         # Initialize sound selection variables with auto-selection of first audio file if no saved setting
         sound_files = get_sound_files()
         available_audio_files = sound_files if sound_files != ["No sound files found"] else []
+        # This tells the imported listener file to spawn the thread tracking 'self'
+        serial_siren_listener.start_serial_listener(self)
+        print("DEBUG: start_serial_listener hook successfully triggered on app boot.")
         
         pips_default = sound_settings.get("pips_sound", "Default")
         siren_default = sound_settings.get("siren_sound", "Default")
