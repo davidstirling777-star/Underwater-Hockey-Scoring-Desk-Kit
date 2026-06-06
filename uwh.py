@@ -161,6 +161,28 @@ def open_folder_in_file_manager(folder_path):
     except OSError as e:
         messagebox.showerror("Error", f"Failed to open folder:\n{e}")
 
++def load_hardware_detection_cache():
++    """Load cached hardware detection results from settings.json"""
++    try:
++        unified_settings = load_unified_settings()
++        return unified_settings.get("hardwareDetection", {})
++    except Exception:
++        return {}
++
+def save_hardware_detection_cache(arduino_port, zigbee_port):
+    """Save hardware detection results to settings.json for faster future startups"""
+    try:
+        unified_settings = load_unified_settings()
+        unified_settings["hardwareDetection"] = {
+            "arduino_port": arduino_port,
+            "zigbee_port": zigbee_port,
+            "last_detected": datetime.datetime.now().isoformat()
+        }
+        save_unified_settings(unified_settings)
+        print(f"Saved hardware detection cache: Arduino={arduino_port}, Zigbee={zigbee_port}")
+    except Exception as e:
+        print(f"Warning: Could not save hardware detection cache: {e}")
+
 def auto_detect_com_ports():
     """
     Auto-detect COM ports for Arduino and Zigbee dongle.
@@ -242,6 +264,9 @@ def auto_detect_com_ports():
     if not zigbee_port:
         print("Warning: Zigbee not detected automatically. Defaulting to COM6.")
         zigbee_port = "COM6"
+        +    
+        # Save detection results for future use
+        save_hardware_detection_cache(arduino_port, zigbee_port)
     
     return arduino_port, zigbee_port
 
@@ -571,6 +596,7 @@ class GameManagementApp:
         # AUTO-DETECT ARDUINO AND ZIGBEE PORTS
         # Call auto-detection before initializing hardware listeners
         try:
+            print("Starting hardware auto-detection...")
             arduino_com, zigbee_com = auto_detect_com_ports()
             print(f"Assignment Complete -> Arduino: {arduino_com} | Zigbee: {zigbee_com}")
         except Exception as e:
@@ -579,6 +605,8 @@ class GameManagementApp:
         # Store for use by serial_siren_listener if needed
         self.arduino_port = arduino_com
         self.zigbee_port = zigbee_com
+        # Store detection cache for diagnostics
+        self.last_hardware_detection = load_hardware_detection_cache()
 
         # ─── INLINE HARDWARE TRIGGER (CLEAN & STABLE) ────────────────────────
         # Fires safely now that audio components are active. No crashing overrides.
@@ -3143,6 +3171,96 @@ Sound file and volume settings are from the Sounds tab."""
             self.log_text.config(state=tk.DISABLED)
         except Exception as e:
             print(f"Error adding to Zigbee log: {e}")
+
+    def show_hardware_diagnostics(self):
+        """Display hardware detection diagnostics in a new window."""
+        diag_window = tk.Toplevel(self.master)
+        diag_window.title("Hardware Diagnostics")
+        diag_window.geometry("500x400")
+        
+        # Title
+        title = tk.Label(diag_window, text="Hardware Detection Diagnostics", 
+                        font=("Arial", 14, "bold"))
+        title.pack(pady=10)
+        
+        # Create scrollable text widget
+        text_frame = tk.Frame(diag_window)
+        text_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        scrollbar = ttk.Scrollbar(text_frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        diag_text = tk.Text(text_frame, wrap=tk.WORD, yscrollcommand=scrollbar.set,
+                           font=("Courier", 10), height=15, width=60)
+        diag_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.config(command=diag_text.yview)
+        
+        # Gather diagnostics information
+        diag_info = "HARDWARE DETECTION DIAGNOSTICS\n"
+        diag_info += "=" * 50 + "\n\n"
+        
+        # Current Detection
+        diag_info += "CURRENT SETTINGS:\n"
+        diag_info += f"  Arduino Port:    {self.arduino_port}\n"
+        diag_info += f"  Zigbee Port:     {self.zigbee_port}\n\n"
+        
+        # Last Cached Detection
+        diag_info += "CACHED DETECTION (from settings.json):\n"
+        if self.last_hardware_detection:
+            diag_info += f"  Arduino Port:    {self.last_hardware_detection.get('arduino_port', 'N/A')}\n"
+            diag_info += f"  Zigbee Port:     {self.last_hardware_detection.get('zigbee_port', 'N/A')}\n"
+            diag_info += f"  Last Detected:   {self.last_hardware_detection.get('last_detected', 'N/A')}\n\n"
+        else:
+            diag_info += "  No cached detection found\n\n"
+        
+        # Connection Status
+        diag_info += "CONNECTION STATUS:\n"
+        try:
+            import serial
+            import serial.tools.list_ports
+            
+            ports = list(serial.tools.list_ports.comports())
+            diag_info += f"  Available COM Ports: {len(ports)}\n"
+            
+            for port in ports:
+                diag_info += f"\n    Port: {port.device}\n"
+                diag_info += f"      Description: {port.description or 'N/A'}\n"
+                diag_info += f"      HWID: {port.hwid or 'N/A'}\n"
+        except Exception as e:
+            diag_info += f"  Error scanning ports: {e}\n"
+        
+        diag_info += "\n\nZigbee Status:\n"
+        if hasattr(self, 'zigbee_controller') and self.zigbee_controller:
+            diag_info += f"  Connected: {self.zigbee_controller.connected}\n"
+            diag_info += f"  MQTT Broker: {self.zigbee_controller.config.get('mqtt_broker', 'N/A')}\n"
+            diag_info += f"  MQTT Port: {self.zigbee_controller.config.get('mqtt_port', 'N/A')}\n"
+        
+        diag_text.insert("1.0", diag_info)
+        diag_text.config(state=tk.DISABLED)
+        
+        # Refresh button
+        refresh_btn = tk.Button(diag_window, text="Refresh", 
+                               command=lambda: self.show_hardware_diagnostics())
+        refresh_btn.pack(pady=5)
+
+    def re_detect_hardware(self):
+        """Re-run hardware detection and update settings."""
+        try:
+            result = messagebox.askyesno("Re-detect Hardware",
+                "This will scan for Arduino and Zigbee devices again.\n"
+                "Continue?")
+            if result:
+                arduino_port, zigbee_port = auto_detect_com_ports()
+                self.arduino_port = arduino_port
+                self.zigbee_port = zigbee_port
+                self.last_hardware_detection = load_hardware_detection_cache()
+                
+                messagebox.showinfo("Detection Complete",
+                    f"Arduino: {arduino_port}\n"
+                    f"Zigbee: {zigbee_port}\n\n"
+                    f"Restart the application for changes to take effect.")
+        except Exception as e:
+            messagebox.showerror("Detection Error", f"Error during re-detection: {e}")
 
     def clear_zigbee_log(self):
         """Clear the Zigbee log."""
