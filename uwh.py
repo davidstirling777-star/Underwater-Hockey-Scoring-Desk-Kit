@@ -161,14 +161,14 @@ def open_folder_in_file_manager(folder_path):
     except OSError as e:
         messagebox.showerror("Error", f"Failed to open folder:\n{e}")
 
-+def load_hardware_detection_cache():
-+    """Load cached hardware detection results from settings.json"""
-+    try:
-+        unified_settings = load_unified_settings()
-+        return unified_settings.get("hardwareDetection", {})
-+    except Exception:
-+        return {}
-+
+def load_hardware_detection_cache():
+    """Load cached hardware detection results from settings.json"""
+    try:
+        unified_settings = load_unified_settings()
+        return unified_settings.get("hardwareDetection", {})
+    except Exception:
+        return {}
+
 def save_hardware_detection_cache(arduino_port, zigbee_port):
     """Save hardware detection results to settings.json for faster future startups"""
     try:
