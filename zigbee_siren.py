@@ -51,25 +51,83 @@ SETTINGS_FILE = "settings.json"
 # Legacy file for backward compatibility migration
 ZIGBEE_CONFIG_FILE = "zigbee_config.json"
 
-# Default configuration
+def auto_detect_com_ports():
+    """
+    Scans COM ports sequentially. Finds the Arduino first, locks its port out,
+    and then actively probes remaining ports for the Zigbee dongle to avoid conflicts.
+    """
+    arduino_port = None
+    zigbee_port = None
+    
+    if not PYSERIAL_AVAILABLE:
+        print("pyserial not available. Skipping scan. Using defaults.")
+        return "COM5", "COM6"
+        
+    ports = list(serial.tools.list_ports.comports())
+    assigned_ports = set()
+    
+    print(f"Scanning system... Found {len(ports)} available COM ports.")
+    
+    # Pass 1: Look for Arduino by its hardware description text
+    for p in ports:
+        desc = p.description.lower()
+        if "arduino" in desc or "ch340" in desc or "usb-serial" in desc:
+            print(f"Found Arduino candidate on {p.device}")
+            arduino_port = p.device
+            assigned_ports.add(p.device)  # Locks this port out of the next scan pass
+            
+    # Pass 2: Actively scan remaining ports for the Zigbee dongle
+    for p in ports:
+        if p.device in assigned_ports:
+            continue  # SAFETY: Bypasses the Arduino port entirely to avoid conflicts
+            
+        print(f"Testing port {p.device} for Zigbee controller...")
+        try:
+            with serial.Serial(p.device, 9600, timeout=1) as ser:
+                time.sleep(1)  # Allow device initialization
+                
+                # If your Zigbee dongle matches these descriptors, claim it
+                if "ti cc2531" in p.description.lower() or "silicon labs" in p.description.lower():
+                    zigbee_port = p.device
+                    assigned_ports.add(p.device)
+                    print(f"Found Zigbee Dongle on {p.device}")
+                    
+        except (serial.SerialException, PermissionError):
+            print(f"Port {p.device} is busy or locked. Skipping safely.")
+            continue
+
+    # Fallback defaults if a device wasn't detected
+    if not arduino_port:
+        print("Warning: Arduino not detected. Defaulting to COM5.")
+        arduino_port = "COM5"
+    if not zigbee_port:
+        print("Warning: Zigbee not detected. Defaulting to COM6.")
+        zigbee_port = "COM6"
+        
+    return arduino_port, zigbee_port
+
+
+# Run the safe dynamic scanner immediately upon module import
+detected_arduino, detected_zigbee = auto_detect_com_ports()
+
+# Default configuration using isolated ports
 DEFAULT_CONFIG = {
     "mqtt_broker": "localhost",
     "mqtt_port": 1883,
     "mqtt_username": "",
     "mqtt_password": "",
     "mqtt_topic": "zigbee2mqtt/+",
-    "siren_button_devices": ["siren_button"],  # Now supports multiple devices as a list
-    "siren_button_device": "siren_button",     # Keep for backward compatibility
-    "siren_device_name": "zigbee_siren",       # The actual siren device to control
+    "siren_button_devices": ["siren_button"],  
+    "siren_button_device": "siren_button",     
+    "siren_device_name": "zigbee_siren",       
     "connection_timeout": 60,
     "reconnect_delay": 5,
     "enable_logging": True,
-    # Serial configuration for Windows
-    "serial_port": "",                         # Auto-detect if empty
+    "serial_port": detected_zigbee,            # Assigned isolated Zigbee port
     "serial_baudrate": 115200,
     "serial_timeout": 1.0,
-    "use_serial_fallback": True,               # Use serial if MQTT unavailable
-    "prefer_mqtt": True                        # Prefer MQTT over serial when both available
+    "use_serial_fallback": True,               
+    "prefer_mqtt": True                        
 }
 
 class ZigbeeSirenController:
