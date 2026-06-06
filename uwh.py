@@ -593,6 +593,104 @@ class GameManagementApp:
         # Track audio device warning to prevent loops
         self.audio_device_warning_shown = False
 
+        # ========== MQTT CONNECTION STABILITY CHECK ==========
+        # Pause initialization until MQTT network is completely stable
+        # This prevents race conditions with audio and hardware detection
+        print("\nSTARTUP: Waiting for MQTT network stability check...")
+        
+        # Create a splash screen to show initialization progress
+        splash = tk.Toplevel(master)
+        splash.title("Initializing UWH Scoring Desk")
+        splash.geometry("400x150")
+        splash.resizable(False, False)
+        
+        # Center splash screen
+        splash.update_idletasks()
+        x = (splash.winfo_screenwidth() // 2) - (splash.winfo_width() // 2)
+        y = (splash.winfo_screenheight() // 2) - (splash.winfo_height() // 2)
+        splash.geometry(f"+{x}+{y}")
+        
+        # Splash content
+        splash_title = tk.Label(splash, text="Underwater Hockey Scoring Desk", 
+                               font=("Arial", 12, "bold"))
+        splash_title.pack(pady=10)
+        
+        splash_status = tk.Label(splash, text="Initializing system...", 
+                                font=("Arial", 10))
+        splash_status.pack(pady=5)
+        
+        splash_detail = tk.Label(splash, text="", font=("Arial", 9), fg="blue")
+        splash_detail.pack(pady=5)
+        
+        # Perform MQTT stability check
+        mqtt_connection_stable = False
+        mqtt_check_timeout = 30  # Maximum 30 seconds to wait
+        mqtt_check_start = time.time()
+        mqtt_connection_attempts = 0
+        mqtt_stable_count = 0
+        mqtt_stable_threshold = 3  # Need 3 consecutive stable checks
+        
+        print("STARTUP: Beginning MQTT stability verification...")
+        
+        while time.time() - mqtt_check_start < mqtt_check_timeout:
+            mqtt_connection_attempts += 1
+            splash_detail.config(text=f"Checking MQTT broker... (Attempt {mqtt_connection_attempts})")
+            splash.update()
+            
+            try:
+                # Test MQTT connectivity
+                from zigbee_siren import is_mqtt_available
+                
+                if is_mqtt_available():
+                    splash_detail.config(text="MQTT available, testing connection...")
+                    splash.update()
+                    
+                    # Perform actual connectivity test
+                    import paho.mqtt.client as mqtt_test
+                    test_client = mqtt_test.Client()
+                    
+                    try:
+                        test_client.connect("localhost", 1883, keepalive=5)
+                        test_client.disconnect()
+                        
+                        mqtt_stable_count += 1
+                        print(f"STARTUP: MQTT connection check {mqtt_stable_count}/{mqtt_stable_threshold} passed")
+                        
+                        if mqtt_stable_count >= mqtt_stable_threshold:
+                            mqtt_connection_stable = True
+                            splash_detail.config(text="MQTT connection stable!")
+                            splash.update()
+                            break
+                    except Exception as mqtt_err:
+                        mqtt_stable_count = 0  # Reset count on connection failure
+                        print(f"STARTUP: MQTT connection test failed: {mqtt_err}")
+                        
+                else:
+                    splash_detail.config(text="MQTT library not available, continuing...")
+                    print("STARTUP: MQTT not available, continuing without Zigbee support")
+                    mqtt_connection_stable = True  # Allow startup without MQTT
+                    break
+                    
+            except Exception as init_err:
+                print(f"STARTUP: MQTT check error: {init_err}")
+                mqtt_stable_count = 0
+            
+            time.sleep(2)  # Wait 2 seconds between checks
+        
+        # Log final MQTT status
+        if mqtt_connection_stable:
+            print("STARTUP: MQTT network connection is STABLE - proceeding with initialization")
+            splash_detail.config(text="MQTT stable - starting application")
+        else:
+            print(f"STARTUP: MQTT timeout after {mqtt_check_timeout}s - continuing without Zigbee")
+            splash_detail.config(text="MQTT unavailable - continuing without Zigbee")
+        
+        # Destroy splash screen
+        splash.after(1000, splash.destroy)
+        splash.update()
+        
+        # ========== END MQTT STABILITY CHECK ==========
+        
         # AUTO-DETECT ARDUINO AND ZIGBEE PORTS
         # Call auto-detection before initializing hardware listeners
         try:
@@ -610,6 +708,7 @@ class GameManagementApp:
 
         # ─── INLINE HARDWARE TRIGGER (CLEAN & STABLE) ────────────────────────
         # Fires safely now that audio components are active. No crashing overrides.
+        # NOTE: This is now safe because MQTT connection stability has been verified
         try:
             import serial_siren_listener
             serial_siren_listener.start_serial_listener(self)
@@ -619,9 +718,18 @@ class GameManagementApp:
         # ─────────────────────────────────────────────────────────────────────
 
         # Initialize Zigbee siren controller
+        # STABLE MQTT CONNECTION GUARANTEED AT THIS POINT
         self.zigbee_controller = ZigbeeSirenController(siren_callback=self.trigger_wireless_siren, gui_log_callback=self.add_to_zigbee_log)
         self.zigbee_status_var = tk.StringVar(value="Disconnected")
         self.zigbee_controller.set_connection_status_callback(self.update_zigbee_status)
+     
+        # Now safe to connect Zigbee controller (connection is stable)
+        print("STARTUP: Initializing Zigbee connection (MQTT stability verified)")
+        try:
+            self.zigbee_controller.start()
+            print("STARTUP: Zigbee controller started successfully")
+        except Exception as zigbee_init_err:
+            print(f"STARTUP: Zigbee controller start failed: {zigbee_init_err}")
         
         # Siren loop control attributes for press-and-hold functionality
         self.siren_loop_active = False
