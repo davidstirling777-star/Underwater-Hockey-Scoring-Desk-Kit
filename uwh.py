@@ -568,7 +568,7 @@ class GameManagementApp:
         # Track audio device warning to prevent loops
         self.audio_device_warning_shown = False
 
-        +        # ─── AUTO-DETECT ARDUINO AND ZIGBEE PORTS ────────────────────────
+        # AUTO-DETECT ARDUINO AND ZIGBEE PORTS
         # Call auto-detection before initializing hardware listeners
         try:
             arduino_com, zigbee_com = auto_detect_com_ports()
@@ -579,8 +579,6 @@ class GameManagementApp:
         # Store for use by serial_siren_listener if needed
         self.arduino_port = arduino_com
         self.zigbee_port = zigbee_com
-        # ─────────────────────────────────────────────────────────────────────
-
 
         # ─── INLINE HARDWARE TRIGGER (CLEAN & STABLE) ────────────────────────
         # Fires safely now that audio components are active. No crashing overrides.
