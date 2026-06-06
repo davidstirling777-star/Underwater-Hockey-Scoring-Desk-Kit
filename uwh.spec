@@ -34,7 +34,8 @@ a = Analysis(
         # 3. Documentation files
         ('README.md', '.'),
         ('ZIGBEE_SETUP.md', '.'),
-    ], # (Note: You can remove the old copies of sound.py and serial_siren_listener.py from this data block)
+        ('HARDWARE_SETUP.md', '.'),
+    ],
 
 
     hiddenimports=['pygame', 'paho.mqtt.client', 'serial'],
