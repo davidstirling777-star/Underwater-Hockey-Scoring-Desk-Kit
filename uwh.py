@@ -61,7 +61,7 @@ if getattr(sys, 'frozen', False):
 
 # NOW you can safely import your custom helper modules
 import sound
-#import zigbee_siren
+import zigbee_siren
 import serial_siren_listener
 import tkinter as tk
 from tkinter import ttk, messagebox, font
@@ -160,6 +160,90 @@ def open_folder_in_file_manager(folder_path):
         messagebox.showerror("Error", f"File manager command not found on {system}")
     except OSError as e:
         messagebox.showerror("Error", f"Failed to open folder:\n{e}")
+
+def auto_detect_com_ports():
+    """
+    Auto-detect COM ports for Arduino and Zigbee dongle.
+    
+    Returns a tuple (arduino_port, zigbee_port) with detected ports.
+    Falls back to default ports if auto-detection fails.
+    
+    Returns:
+        tuple: (arduino_port, zigbee_port) - strings with COM port names
+    """
+    try:
+        import serial
+        import serial.tools.list_ports
+    except ImportError:
+        print("WARNING: pyserial not available. Using default port assignments.")
+        return "COM5", "COM6"
+    
+    arduino_port = None
+    zigbee_port = None
+    
+    # 1. Get a list of all physically connected COM ports
+    ports = list(serial.tools.list_ports.comports())
+    assigned_ports = set()
+    
+    print(f"Scanning system... Found {len(ports)} available COM ports.")
+    
+    # 2. First Pass: Look for Arduino by its hardware description
+    for p in ports:
+        desc = (p.description or "").lower()
+        hwid = (p.hwid or "").lower()
+        device = p.device or ""
+        
+        if ("arduino" in desc or "ch340" in desc or "usb-serial" in desc or
+            "vid:pid=2341" in hwid or "1a86:7523" in hwid):
+            print(f"Found Arduino candidate via hardware profile on {device}")
+            arduino_port = device
+            assigned_ports.add(device)
+            break  # Stop looking for Arduino once found
+    
+    # 3. Second Pass: Scan remaining ports to identify Zigbee devices dynamically
+    for p in ports:
+        if p.device in assigned_ports:
+            continue  # Skip the port already assigned to the Arduino
+        
+        desc = (p.description or "").lower()
+        device = p.device or ""
+        
+        print(f"Testing port {device} for Zigbee or missing devices...")
+        
+        # Check hardware description for known Zigbee dongle identifiers
+        if ("ti cc2531" in desc or "silicon labs" in desc or 
+            "cp210" in desc or "sonoff" in desc or "zigbee" in desc):
+            zigbee_port = device
+            assigned_ports.add(device)
+            print(f"Found Zigbee Dongle on {device}")
+            break
+        
+        # Optional: Try to open port briefly and check for device response
+        try:
+            with serial.Serial(device, 9600, timeout=1) as ser:
+                time.sleep(0.5)  # Allow device initialization
+                # Port is accessible and responding
+                # If we haven't found a Zigbee port yet, use this one
+                if not zigbee_port:
+                    zigbee_port = device
+                    assigned_ports.add(device)
+                    print(f"Found alternative device on {device}")
+                    
+        except (serial.SerialException, PermissionError):
+            # Port is busy or locked by another system process (skip safely)
+            print(f"Port {device} is locked or unavailable. Skipping.")
+            continue
+    
+    # 4. Fallback default assignments if autodetect fails
+    if not arduino_port:
+        print("Warning: Arduino not detected automatically. Defaulting to COM5.")
+        arduino_port = "COM5"
+    
+    if not zigbee_port:
+        print("Warning: Zigbee not detected automatically. Defaulting to COM6.")
+        zigbee_port = "COM6"
+    
+    return arduino_port, zigbee_port
 
 def migrate_legacy_settings():
     """Migrate settings from legacy separate files to unified settings.json"""
@@ -483,6 +567,20 @@ class GameManagementApp:
         
         # Track audio device warning to prevent loops
         self.audio_device_warning_shown = False
+
+        +        # ─── AUTO-DETECT ARDUINO AND ZIGBEE PORTS ────────────────────────
+        # Call auto-detection before initializing hardware listeners
+        try:
+            arduino_com, zigbee_com = auto_detect_com_ports()
+            print(f"Assignment Complete -> Arduino: {arduino_com} | Zigbee: {zigbee_com}")
+        except Exception as e:
+            print(f"Error during port auto-detection: {e}")
+            arduino_com, zigbee_com = "COM5", "COM6"
+        # Store for use by serial_siren_listener if needed
+        self.arduino_port = arduino_com
+        self.zigbee_port = zigbee_com
+        # ─────────────────────────────────────────────────────────────────────
+
 
         # ─── INLINE HARDWARE TRIGGER (CLEAN & STABLE) ────────────────────────
         # Fires safely now that audio components are active. No crashing overrides.
