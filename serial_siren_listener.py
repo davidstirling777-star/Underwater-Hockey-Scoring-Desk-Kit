@@ -5,6 +5,10 @@ import threading
 import pygame
 import sound
 
+# Global flag to track if the serial listener thread is already active
+_serial_listener_started = False
+_serial_listener_lock = threading.Lock()
+
 def find_arduino_port():
     """Searches for an attached Arduino or active USB Serial COM port on Windows."""
     ports = serial.tools.list_ports.comports()
@@ -115,6 +119,23 @@ def serial_listener_thread(uwh_app):
             time.sleep(3)
 
 def start_serial_listener(uwh_app):
-    """Spawns the background daemon thread."""
-    t = threading.Thread(target=serial_listener_thread, args=(uwh_app,), daemon=True)
-    t.start()
+    """Spawns the background daemon thread with thread-safety protection.
+    
+    Only one serial listener thread will be created, even if this function is called multiple times.
+    Uses a lock to prevent race conditions and a global flag to track if the thread is already active.
+    """
+    global _serial_listener_started
+    
+    with _serial_listener_lock:
+        # Check if thread is already started
+        if _serial_listener_started:
+            print("DEBUG: Serial listener thread already active. Skipping duplicate initialization.")
+            return
+        
+        # Mark as started before spawning thread
+        _serial_listener_started = True
+        
+        # Now spawn the daemon thread
+        t = threading.Thread(target=serial_listener_thread, args=(uwh_app,), daemon=True)
+        t.start()
+        print("DEBUG: Serial listener thread spawned successfully (first and only time).")
