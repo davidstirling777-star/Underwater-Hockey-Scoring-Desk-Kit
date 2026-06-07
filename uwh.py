@@ -3434,14 +3434,20 @@ Sound file and volume settings are from the Sounds tab."""
         self.scale_display_fonts(None)
         self.sync_display_widgets()
 
-    def sync_display_widgets(self):
-        # Event-driven approach: No polling needed since all widgets use textvariable
-        # Background colors still need to be synchronized for the half label
-        def sync_backgrounds():
-            # Only sync background colors that can't be handled by textvariable
-            self.display_half_label.config(bg=self.half_label.cget("bg"))
-            self.master.after(200, sync_backgrounds)  # Reduced frequency for background sync only
-        sync_backgrounds()
+def sync_display_widgets(self):
+    """Safely sync display window background colors."""
+    def sync_backgrounds():
+        try:
+            # Check if display window still exists before updating
+            if self.display_window.winfo_exists():
+                self.display_half_label.config(bg=self.half_label.cget("bg"))
+                self.master.after(200, sync_backgrounds)
+            # If window is closed, the loop stops automatically
+        except (tk.TclError, AttributeError, RuntimeError):
+            # Silently stop if widgets are destroyed
+            pass
+    
+    sync_backgrounds()
 
     def reset_timer(self):
         self.white_score_var.set(0)
