@@ -1,6 +1,11 @@
 """
 Zigbee2MQTT Wireless Siren Integration Module
 
+ARCHITECTURE NOTE:
+- All siren sound control logic happens in the zigbee_siren module
+- uwh.py only calls controller methods: test_wireless_siren(), start_wireless_siren(), stop_wireless_siren()
+- The Zigbee controller calls uwh.py's callback to play sounds when needed
+
 This module provides wireless siren control through Zigbee2MQTT for the 
 Underwater Hockey Scoring Desk Kit. It handles MQTT communication, button
 event processing, and integration with the main sound system.
@@ -529,6 +534,53 @@ class ZigbeeSirenController:
                 self.logger.error(f"Error calling siren callback: {e}")
         else:
             self.logger.warning("No siren callback set")
+    
+    def test_siren(self) -> None:
+        """
+        Test the siren by triggering it immediately.
+        Used for manual testing via UI button.
+        Calls the siren callback which plays the configured sound.
+        """
+        self.logger.info("Manual siren test triggered")
+        self._trigger_siren()
+    
+    def start_siren_continuous(self, sound_config: Dict[str, Any]) -> None:
+        """
+        Start continuous siren playback with looping sound.
+        Used for press-and-hold UI button functionality.
+        
+        Args:
+            sound_config: Dictionary with sound settings:
+                - 'file': siren sound file name
+                - 'enable': bool, whether sound is enabled
+                - 'pips_volume': volume 0-100
+                - 'siren_volume': volume 0-100
+                - 'air_volume': volume 0-100
+                - 'water_volume': volume 0-100
+                - 'duration': duration in seconds
+        """
+        self.logger.info(f"Starting continuous siren playback: {sound_config.get('file', 'unknown')}")
+        
+        # Send MQTT ON command
+        self.start_siren()
+        
+        # Note: Sound playback is handled by the callback mechanism
+        # The UI should implement looping at the application level if needed
+        # by repeatedly calling the siren_callback or setting a flag
+    
+    def stop_siren_continuous(self) -> None:
+        """
+        Stop continuous siren playback.
+        Used for releasing a press-and-hold UI button.
+        Sends MQTT OFF command to stop the device.
+        """
+        self.logger.info("Stopping continuous siren playback")
+        
+        # Send MQTT OFF command
+        self.stop_siren()
+        
+        # Note: The callback will stop being called by the UI
+        # Sound playback cessation is handled by the application level
     
     def start_siren(self) -> bool:
         """
