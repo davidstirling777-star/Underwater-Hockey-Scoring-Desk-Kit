@@ -2378,8 +2378,8 @@ class GameManagementApp:
         test_siren_btn.grid(row=3, column=3, columnspan=1, pady=5, padx=5)
         
         # Bind mouse down and mouse up events for press/release functionality
-        test_siren_btn.bind("<ButtonPress-1>", lambda event: self.start_wireless_siren())
-        test_siren_btn.bind("<ButtonRelease-1>", lambda event: self.stop_wireless_siren())
+        test_siren_btn.bind("<ButtonPress-1>", lambda event: self.zigbee_controller.start_siren_continuous())
+        test_siren_btn.bind("<ButtonRelease-1>", lambda event: self.zigbee_controller.stop_siren_continuous())
         
         # Information Section
         info_frame = tk.LabelFrame(main_frame, text="Setup Information", 
