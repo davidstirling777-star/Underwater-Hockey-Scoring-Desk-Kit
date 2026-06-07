@@ -438,7 +438,7 @@ def save_preset_settings(presets):
 
 class GameManagementApp:
     def _on_display_window_close(self):
-    """Handle display window close event safely."""
+        """Handle display window close event safely."""
     try:
         # Clean stop procedures before destroying
         self.display_window.destroy()
