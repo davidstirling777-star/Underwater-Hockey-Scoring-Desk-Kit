@@ -439,11 +439,11 @@ def save_preset_settings(presets):
 class GameManagementApp:
     def _on_display_window_close(self):
         """Handle display window close event safely."""
-        try:
-            # Clean stop procedures before destroying
-            self.display_window.destroy()
-        except tk.TclError:
-            pass  # Already destroyed
+            try:
+                # Clean stop procedures before destroying
+                self.display_window.destroy()
+            except tk.TclError:
+                pass  # Already destroyed
         
     def __init__(self, master):
         self.master = master
