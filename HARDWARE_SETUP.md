@@ -1,8 +1,17 @@
-# Hardware Detection and Setup Guide
+# Hardware Setup and Detection Guide
+
+Example hardware:
+Inital setup uses a MINIX Fanless MiniPC Z150-0dB Intel N150 8G/256GB.  Why? Because it runs on 12 V and runs Windows 11.
+MSI Pro MP273A 27" FHD 100Hz Business Monitor.  Why? Because it runs on 12 V.
+
+Siren is triggered manually using an Arduino Nano Every (with headers) plugged into an Arduino Nano Screw Terminal Adapter, Solder a pull-up resister between D3 and +5V (or 3V3 for the nano).
+
+<img width="471" height="655" alt="image" src="https://github.com/user-attachments/assets/e09b4403-d146-45e1-96ce-83d95353f7f2" />
+
 
 ## Automatic Hardware Detection
 
-The Underwater Hockey Scoring Desk Kit includes automatic hardware detection that identifies and configures your Arduino siren button and Zigbee wireless dongle without manual port configuration.
+The Underwater Hockey Scoring Desk Kit includes automatic hardware detection that identifies and configures the USB COM ports that the Arduino siren button and Zigbee wireless dongle are plugged into without manual port configuration.
 
 ### How It Works
 

@@ -73,7 +73,7 @@ def serial_listener_thread(uwh_app):
                                 
                                 # 1. Fire the wireless hardware siren
                                 try:
-                                    uwh_app.start_wireless_siren()
+                                    uwh_app.zigbee_controller.start_siren_continuous()
                                 except Exception as net_err:
                                     print(f"Wireless Trigger Note: {net_err}")
                                 
@@ -98,7 +98,7 @@ def serial_listener_thread(uwh_app):
                                 
                                 # 1. Terminate remote wireless broadcast
                                 try:
-                                    uwh_app.stop_wireless_siren()
+                                    uwh_app.zigbee_controller.stop_siren_continuous()
                                 except Exception:
                                     pass
                                     

@@ -1,8 +1,6 @@
-A project to allow the use of cheap computers, modern computer languages and hardware to make a scoring system for Underwater Hockey.
+A project to allow the use of a computer, modern computer languages and readily avaible Arduino hardware to make a scoring and siren system for Underwater Hockey.
 
-The Software has a user interface that is hopefully accessible, logical and easily understood by novices.  
-
-The initial idea was to use a Raspberry Pi5 computer, tiny amplifier (Raspberry DigiAMP+) and Bluetooth or Wi-Fi remote control to minimise connections.  A hardware button backup for wireless remote control would be nice but not yet implemented. The reason for gravitating to a Raspberry Pi is the HATs that are available, such as a dual channel amplifier, will drastically reduces wires and connections (hopefully leading to a robust system).
+The Software has a user interface that is accessible, logical and easily understood by novices.  Example Hardware can be found in HARDWARE_SETUP.md
 
 The App opens with two windows.  One, called the Display Window, is designed for facing towards the players so they can see the time and score.  The second, called Underwater Hockey Game Management App, opens with the tab 'Game Variables' visible. There are three other tabs, Sounds, Zigbee Siren and Scoreboard. Both windows are able to be maximised to the screen size.
 
@@ -20,17 +18,17 @@ Here, you can set most of the parameters of the games, select if Team Time-Outs,
 'Overtime Half Period:' The time in minutes of the Overtime halves.
 'Overtime Half Time Break:' The time in minutes of the Overtime half time break.
 'Sudden Death Game Break:' has both a checkbox that when selected, enables the program to enter Sudden Death if the scores are tied at the end of Overtime play, and a value box where the time in minutes of the break between the end of the Overtime and the start of Sudden Death.
-'Between Game Break:'  The time in minutes of the break between the end of the game and the start of the next game.
-'Record Scorers Cap Number' enables a popup dialogue box where the cap number of the player scoring the goal can be entered.  There is also the option of 'Unknown' and 'Penalty Goal'.  The cap number data are stored in the CSV file selected in the 'Tournament List' widget (section). More on that later.
+'Between Game Break:'  The time in minutes of the break between the end of the game and the start of the next game.  This time came be shortend by "Crib Time" (see below).
+'Record Scorers Cap Number' enables a popup dialogue box to appear when a goal is scored, where the cap number of the player scoring the goal can be entered.  There is also the option of 'Unknown' and 'Penalty Goal'.  The cap number data are stored in the CSV file selected in the 'Tournament List' widget (section). More on that later.
 'Crib Time:' has both a checkbox that when selected, enables the program to shorten the 'Between Game Break' by this value until the Court Time is aligned with the Local Computer Time, and a value box, in seconds, of the magnitude to crib (or claw back).  This value cannot make the 'Between Game Break' less than 31 seconds (more on that later).
-'Reset Timer' transfers the value to the program and starts the timer again with the new values.
+'Reset Timer' transfers the entered values to the program and starts the timer again with the new values.
 
 **Presets Widget**
-Here six buttons are located where commonly used settings can be stored.  Holding down the button for >4 seconds allows the name of the button to be altered and all the settings changed.  Click the save button and these settings will be saved in the JSON file (stored in the same location as the app itself).  A single click on these presets will transfer these settings to the corresponding settings in the 'Game Variables' tab.
+Here, six buttons are located where commonly used settings can be stored.  Holding down the button for >4 seconds allows the name of the button to be altered and all the settings changed.  Click the save button and these settings will be saved in the JSON file (stored in the same file directory location as the app itself).  A single click on these presets will transfer these settings to the corresponding settings in the 'Game Variables' tab.
 
 **Tournament List**
-A sample CSV file is included with the distribution of this app
-This has a dropdown list where a CSV file can be selected that contains the draw for a Tournament or a list of games. The team names listed in the 'White' and 'Black' columns will appear on the Scoreboard Tab (and not on the 'Display Window' Screen.  If the teams don't know who they are, they are in trouble.
+A sample CSV file is included with the distribution of this app.
+This has a dropdown list where a CSV file can be selected that contains the draw for a Tournament or a list of games. The team names listed in the 'White' and 'Black' columns will appear on the Scoreboard Tab (and not on the 'Display Window' Screen (If the teams don't know who they are, they are in trouble).
 Expected CSV headers: date,#,White,Score,Black,Score,Referees,Penalties,Comments. where # is the Game Number [but this can actually also be 'game', 'game#' or 'game_number'].
 THIS CSV FILE GETS MODIFIED as the games progress as the app stores the scores, what Cap Numbers were penalised (into the 'Penalties' column), and if the 'Record Scorers Cap Number' checkbox is selected, the Cap Numbers' to which goals were attributed (into the 'Comments' column).
 
@@ -47,9 +45,9 @@ This is a description of how the app progresses through the various stages of th
 'Save Settings' is a button that stores the user selected sound files to the JSON file (stored in the same location as the app itself).
 'Pips' is a dropdown box where a sound file can be selected. Any .MP3 or .WAV file can be placed in the same location as the app itself and these will appear in the 'Pips' dropdown box.
 'Siren' is a dropdown box where a sound file can be selected. Any .MP3 or .WAV file can be placed in the same location as the app itself and these will also appear in the 'Siren' dropdown box.
-The volume controls are only effective in Linux systems.  Microsoft Windows apparently does not allow Python apps to control volume. The two controls Air and Water anr volume controls for the two channels.
+The volume controls are only effective in Linux systems.  Microsoft Windows apparently does not allow Python apps to control volume. The two controls 'Air' and 'Water' and volume controls for the two channels.
 'Pips' play at pre-determined periods
-'Siren' play at pre-determined periods and also when the Chief Referee activate the button to stop or start play.
+'Siren' play at pre-determined periods and also when the Chief Referee activates the button to stop or start play.
 'Number of seconds to play Siren' is a value box to alter how long the Siren sounds at the pre-determined periods.  If the sound file is shorter than the value, it will automatically loop until the selected minimum is reached.
 
 ## Sound Timing Table
@@ -61,9 +59,9 @@ The system automatically plays audio cues during different periods:
 | **Break Periods** | First Game Starts In: | 1 Pip (at 30s) | 1 Pip per second (at 10s-1s) | Siren (at 0s) |
 | | Between Game Break | 1 Pip (at 30s) | 1 Pip per second (at 10s-1s) | Siren (at 0s) |
 | | Half Time | 1 Pip (at 30s) | 1 Pip per second (at (at 10s-1s) | Siren (at 0s) |
-| | Overtime Game Break | 1 Pip (at 31s) | 1 Pip per second (at 10s-1s) | Siren (at 0s) |
-| | Overtime Half Time | 1 Pip (at 31s) | 1 Pip per second (at 10s-1s) | Siren (at 0s) |
-| | Sudden Death Game Break | 1 Pip (at 31s) | 1 Pip per second (at 10s-1s) | Siren (at 0s) |
+| | Overtime Game Break | 1 Pip (at 30s) | 1 Pip per second (at 10s-1s) | Siren (at 0s) |
+| | Overtime Half Time | 1 Pip (at 30s) | 1 Pip per second (at 10s-1s) | Siren (at 0s) |
+| | Sudden Death Game Break | 1 Pip (at 30s) | 1 Pip per second (at 10s-1s) | Siren (at 0s) |
 | **Game Periods** | First Half | - | - | Siren (at 0s) |
 | | Second Half | - | - | Siren (at 0s) |
 | | Overtime First Half | - | - | Siren (at 0s) |
@@ -71,20 +69,20 @@ The system automatically plays audio cues during different periods:
 | | Sudden Death | - | - | - |
 
 **Notes:**
-- Pip sounds use the "Pips" sound file and volume settings from the Sounds tab
-- Siren sounds use the "Siren" sound file and volume settings from the Sounds tab
+- Pip sounds use the "Pips" sound file and, if it is a Linux system, volume settings from the Sounds tab
+- Siren sounds use the "Siren" sound file and, if it is a Linux system, volume settings from the Sounds tab
 - **Siren Minimum Duration**: All siren sounds play for a minimum period to ensure audibility for officials and players. If the sound file is shorter than the specified period, it will automatically loop until the minimum is reached.
 - Audio channels (Air/Water) use their respective volume settings
 - Game periods (halves) only play siren at the end, no countdown pips
 - Sudden Death periods have no automatic audio cues
 
-Scoreboard Tab
-In this tab, which can be maximised to fit the screen, is the Court Time.  This is synchronised to the 'Local Computer Time' when the app first opens.  If the 'Crib Time' is selected, the Court Time will try and move back to the 'Local Computer Time' by shortening the 'Between Game Break'.
-The next row is where the Game Sequence is announced.  Breaks are 'Red', Play is 'Light Coral Blue'
+**Scoreboard Tab**
+In this tab, which can be maximised to fit the screen, is the Court Time.  This is synchronised to the 'Local Computer Time' when the app first opens.  If the 'Crib Time' is selected, the Court Time, which may have been extended by 'Ref' or 'Team' 'Time Outs' will try and move back to the 'Local Computer Time' by shortening the 'Between Game Break'.
+The next row is where the Game Sequence is announced.  Breaks are 'Red', Play is 'Light Coral Blue'.
 Under that is the Game Number, picked up from the CSV file.
 Then are the Team names, picked up from the CSV file.
 The Scores, which will get written to the CSV file when the 'Between Game Break' timer reaches 30 seconds, are displayed next.
-If the 'Team time-outs allowed?' check box is selected, the Team Time-Out buttons are selectable.  Only one team time-out per half, no team time-outs are permitted in Overtime or Sudden Death.
+If the 'Team time-outs allowed?' check box is selected, the Team Time-Out buttons are selectable.  Only one team time-out per half, no team time-outs are permitted in Overtime or Sudden Death as per CMAS rules as of October 2025.
 'Add Goal White' adds a goal to white and if the 'Record Scorers Cap Number' check box is ticked, a popup dialogue box where the cap number of the player scoring the goal can be entered.
 'Referee Time-Out' stops Court Time and the timer of whatever period the timer is displaying.  This is a toggle button.
 'Penalties' is enabled during play but greyed out for breaks (as you cannot award a Penalty when play cannot be stopped [section 17.1.1 of CMAS rules]) but if the 'Referee Time-Out' button is pushed, the 'Penalties' button is enabled.  When the 'Penalties' button is pushed, a popup dialogue box appears that enables the selection of cap colour, Cap number and penalty time period.  'YOU MUST SELECT START PENALTY' to record the penalty. These penalties are written to the CSV file when the 'Between Game Break' timer reaches 30 seconds.  The penalties are also displayed on both screens along with the time remaining to serve.  When this time reaches zero, the penalty is removed from the list.  Penalties can be removed in case the wrong details were entered.
@@ -113,10 +111,10 @@ This logic ensures the correct flow for tournament progression based on goals sc
 
 ### Zigbee2MQTT Wireless Siren Control
 
-The system includes comprehensive Zigbee integration for wireless siren control with **full Windows support**:
+The system includes comprehensive Zigbee integration for wireless siren control with **full Windows support** Yeah, Right!:
 
 #### Platform Support
-- **Linux (Raspberry Pi)**: Full MQTT support via Zigbee2MQTT (recommended production setup)
+- **Linux (Raspberry Pi)**: Full MQTT support via Zigbee2MQTT
 - **Windows**: Direct serial communication with Zigbee dongle OR MQTT support
 
 #### Key Features
@@ -155,6 +153,7 @@ See `ZIGBEE_SETUP.md` for complete installation and configuration instructions.
 - tkinter (usually comes with Python, or install via `sudo apt-get install python3-tk` on Linux)
 
 #### Installing Dependencies
+If you understand this, good luck.  I don't!  This was generated by AI.
 ```bash
 pip install -r requirements.txt
 ```
@@ -247,7 +246,7 @@ pyinstaller --clean uwh.spec
 ```
 
 #### Distribution
-
+Tell them yo get it from GitHub!  Or
 When distributing the executable to other users:
 1. Share the entire `dist` folder contents (the executable may extract temporary files at runtime)
 2. Or, copy just the executable file - it's standalone and contains all dependencies

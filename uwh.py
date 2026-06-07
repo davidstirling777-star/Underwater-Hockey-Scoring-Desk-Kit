@@ -437,6 +437,14 @@ def save_preset_settings(presets):
     save_unified_settings(unified_settings)
 
 class GameManagementApp:
+    def _on_display_window_close(self):
+        """Handle display window close event safely."""
+        try:
+            # Clean stop procedures before destroying
+            self.display_window.destroy()
+        except tk.TclError:
+            pass  # Already destroyed
+        
     def __init__(self, master):
         self.master = master
         self.master.title("Underwater Hockey Game Management App")
@@ -733,7 +741,6 @@ class GameManagementApp:
         
         # Siren loop control attributes for press-and-hold functionality
         self.siren_loop_active = False
-        self.siren_loop_thread = None
         
         # Connection watchdog variables
         self.connection_watchdog_active = False
@@ -2379,8 +2386,8 @@ class GameManagementApp:
         test_siren_btn.grid(row=3, column=3, columnspan=1, pady=5, padx=5)
         
         # Bind mouse down and mouse up events for press/release functionality
-        test_siren_btn.bind("<ButtonPress-1>", lambda event: self.start_wireless_siren())
-        test_siren_btn.bind("<ButtonRelease-1>", lambda event: self.stop_wireless_siren())
+        test_siren_btn.bind("<ButtonPress-1>", lambda event: self.zigbee_controller.start_siren_continuous())
+        test_siren_btn.bind("<ButtonRelease-1>", lambda event: self.zigbee_controller.stop_siren_continuous())
         
         # Information Section
         info_frame = tk.LabelFrame(main_frame, text="Setup Information", 
@@ -3146,85 +3153,6 @@ Sound file and volume settings are from the Sounds tab."""
             self.add_to_zigbee_log(f"Error saving config: {e}")
             messagebox.showerror("Configuration Error", f"Error saving configuration: {e}")
 
-    def test_wireless_siren(self):
-        """Test the wireless siren manually."""
-        self.add_to_zigbee_log("Manual siren test triggered")
-        self.trigger_wireless_siren()
-
-    def trigger_wireless_siren(self):
-        """Trigger the wireless siren using current sound settings."""
-        try:
-            # Use the same sound file and volume as the regular siren
-            siren_file = self.siren_var.get()
-            self.add_to_zigbee_log(f"Triggering wireless siren: {siren_file}")
-            
-            # Use the existing sound playing method with volume control
-            play_sound_with_volume(siren_file, "siren", self.enable_sound, self.pips_volume, 
-                                   self.siren_volume, self.air_volume, self.water_volume,
-                                   self.siren_duration)
-            
-        except Exception as e:
-            self.add_to_zigbee_log(f"Error triggering siren: {e}")
-    
-    def start_wireless_siren(self):
-        """Start the wireless siren (play sound in loop and send MQTT ON command)."""
-        try:
-            # Start playing the siren sound in a loop
-            siren_file = self.siren_var.get()
-            self.add_to_zigbee_log(f"Starting wireless siren loop: {siren_file}")
-            
-            # Set the loop flag to True
-            self.siren_loop_active = True
-            
-            # Start a daemon thread to loop the siren sound
-            if self.siren_loop_thread is None or not self.siren_loop_thread.is_alive():
-                self.siren_loop_thread = threading.Thread(
-                    target=self._siren_loop_worker,
-                    daemon=True
-                )
-                self.siren_loop_thread.start()
-            
-            # Send MQTT ON command to siren device
-            if self.zigbee_controller:
-                self.zigbee_controller.start_siren()
-            
-        except Exception as e:
-            self.add_to_zigbee_log(f"Error starting siren: {e}")
-    
-    def _siren_loop_worker(self):
-        """Worker thread that continuously plays the siren sound while the loop is active."""
-        try:
-            while self.siren_loop_active:
-                # Play sound with volume control
-                siren_file = self.siren_var.get()
-                play_sound_with_volume(siren_file, "siren", self.enable_sound, 
-                                       self.pips_volume, self.siren_volume, 
-                                       self.air_volume, self.water_volume,
-                                       self.siren_duration)
-                
-                # Small delay to allow checking the flag and prevent tight loop
-                # This also allows the sound to play before potentially starting it again
-                time.sleep(0.1)
-                
-        except Exception as e:
-            print(f"Siren loop worker error: {e}")
-    
-    def stop_wireless_siren(self):
-        """Stop the wireless siren (stop sound loop and send MQTT OFF command)."""
-        try:
-            self.add_to_zigbee_log("Stopping wireless siren loop")
-            
-            # Set the loop flag to False to stop the looping thread
-            self.siren_loop_active = False
-            
-            # Send MQTT OFF command to siren device
-            if self.zigbee_controller:
-                self.zigbee_controller.stop_siren()
-            
-        except Exception as e:
-            self.add_to_zigbee_log(f"Error stopping siren: {e}")
-
-
     def update_zigbee_status(self, connected: bool, message: str):
         """Update Zigbee connection status in UI."""
         try:
@@ -3514,14 +3442,20 @@ Sound file and volume settings are from the Sounds tab."""
         self.scale_display_fonts(None)
         self.sync_display_widgets()
 
-    def sync_display_widgets(self):
-        # Event-driven approach: No polling needed since all widgets use textvariable
-        # Background colors still need to be synchronized for the half label
-        def sync_backgrounds():
-            # Only sync background colors that can't be handled by textvariable
-            self.display_half_label.config(bg=self.half_label.cget("bg"))
-            self.master.after(200, sync_backgrounds)  # Reduced frequency for background sync only
-        sync_backgrounds()
+def sync_display_widgets(self):
+    """Safely sync display window background colors."""
+    def sync_backgrounds():
+        try:
+            # Check if display window still exists before updating
+            if self.display_window.winfo_exists():
+                self.display_half_label.config(bg=self.half_label.cget("bg"))
+                self.master.after(200, sync_backgrounds)
+            # If window is closed, the loop stops automatically
+        except (tk.TclError, AttributeError, RuntimeError):
+            # Silently stop if widgets are destroyed
+            pass
+    
+    sync_backgrounds()
 
     def reset_timer(self):
         self.white_score_var.set(0)
