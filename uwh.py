@@ -733,7 +733,6 @@ class GameManagementApp:
         
         # Siren loop control attributes for press-and-hold functionality
         self.siren_loop_active = False
-        self.siren_loop_thread = None
         
         # Connection watchdog variables
         self.connection_watchdog_active = False
@@ -3145,29 +3144,6 @@ Sound file and volume settings are from the Sounds tab."""
         except Exception as e:
             self.add_to_zigbee_log(f"Error saving config: {e}")
             messagebox.showerror("Configuration Error", f"Error saving configuration: {e}")
-
-    def test_wireless_siren(self):
-        """Test the wireless siren manually."""
-        self.add_to_zigbee_log("Manual siren test triggered")
-        self.trigger_wireless_siren()
-
-    def start_wireless_siren(self):
-    """Start the wireless siren (send MQTT ON command)."""
-    try:
-        self.add_to_zigbee_log("Starting wireless siren")
-        if self.zigbee_controller:
-            self.zigbee_controller.start_siren()
-    except Exception as e:
-        self.add_to_zigbee_log(f"Error starting siren: {e}")
-    
-def stop_wireless_siren(self):
-    """Stop the wireless siren (send MQTT OFF command)."""
-    try:
-        self.add_to_zigbee_log("Stopping wireless siren")
-        if self.zigbee_controller:
-            self.zigbee_controller.stop_siren()
-    except Exception as e:
-        self.add_to_zigbee_log(f"Error stopping siren: {e}")
 
     def update_zigbee_status(self, connected: bool, message: str):
         """Update Zigbee connection status in UI."""
