@@ -696,11 +696,9 @@ class GameManagementApp:
         # Destroy splash screen
         splash.after(1000, splash.destroy)
         splash.update()
-        
         # ========== END MQTT STABILITY CHECK ==========
         
         # AUTO-DETECT ARDUINO AND ZIGBEE PORTS
-        # Call auto-detection before initializing hardware listeners
         try:
             print("Starting hardware auto-detection...")
             arduino_com, zigbee_com = auto_detect_com_ports()
@@ -708,30 +706,27 @@ class GameManagementApp:
         except Exception as e:
             print(f"Error during port auto-detection: {e}")
             arduino_com, zigbee_com = "COM5", "COM6"
-        # Store for use by serial_siren_listener if needed
+            
         self.arduino_port = arduino_com
         self.zigbee_port = zigbee_com
-        # Store detection cache for diagnostics
         self.last_hardware_detection = load_hardware_detection_cache()
 
-        # ─── INLINE HARDWARE TRIGGER (CLEAN & STABLE) ────────────────────────
-        # Fires safely now that audio components are active. No crashing overrides.
-        # NOTE: This is now safe because MQTT connection stability has been verified
-        try:
-            import serial_siren_listener
-            serial_siren_listener.start_serial_listener(self)
-            print("DEBUG: Serial hardware listener thread successfully active.")
-        except Exception as e:
-            print(f"DEBUG: Failed to initialize serial button module thread: {e}")
-        # ─────────────────────────────────────────────────────────────────────
-
-        # Initialize Zigbee siren controller
-        # STABLE MQTT CONNECTION GUARANTEED AT THIS POINT
-        self.zigbee_controller = ZigbeeSirenController(siren_callback=self.trigger_wireless_siren, gui_log_callback=self.add_to_zigbee_log)
+        # 1. INSTANTIATE ALL GUI TRACKING VARIABLES FIRST (Prevents Callback Crashing)
         self.zigbee_status_var = tk.StringVar(value="Disconnected")
+        self.siren_loop_active = False
+        self.connection_watchdog_active = False
+        self.connection_watchdog_attempts = 0
+        self.connection_watchdog_max_attempts = 3
+        self.connection_watchdog_job = None
+        self.user_initiated_action = False
+
+        # 2. INITIALIZE ZIGBEE CONTROLLER NOW THAT STATUS VARS EXIST
+        self.zigbee_controller = ZigbeeSirenController(
+            siren_callback=self.trigger_wireless_siren, 
+            gui_log_callback=self.add_to_zigbee_log
+        )
         self.zigbee_controller.set_connection_status_callback(self.update_zigbee_status)
      
-        # Now safe to connect Zigbee controller (connection is stable)
         print("STARTUP: Initializing Zigbee connection (MQTT stability verified)")
         try:
             self.zigbee_controller.start()
@@ -739,31 +734,17 @@ class GameManagementApp:
         except Exception as zigbee_init_err:
             print(f"STARTUP: Zigbee controller start failed: {zigbee_init_err}")
         
-        # Siren loop control attributes for press-and-hold functionality
-        self.siren_loop_active = False
-        
-        # Connection watchdog variables
-        self.connection_watchdog_active = False
-        self.connection_watchdog_attempts = 0
-        self.connection_watchdog_max_attempts = 3
-        self.connection_watchdog_job = None
-        self.user_initiated_action = False
-
+        # 3. BUILD INTERFACE ARCHITECTURE
         self.create_scoreboard_tab()
         self.create_settings_tab()
         self.create_sounds_tab()
         self.create_zigbee_siren_tab()
         
-        # Select Game Variables tab by default
         self.notebook.select(1)
-        
-        # Initialize USB dongle status after creating the Zigbee tab
         self.update_usb_dongle_status()
-        
-        # Start connection watchdog instead of direct auto-connect
         self.start_connection_watchdog()
         
-        self.load_game_settings()  # Load game settings from unified file
+        self.load_game_settings()
         self.load_settings()
         self.build_game_sequence()
         self.master.bind('<Configure>', self.scale_fonts)
@@ -771,16 +752,25 @@ class GameManagementApp:
         self.master.update_idletasks()
         self.scale_fonts(None)
 
-        # --- Sudden Death restoration variables ---
-
+        # Sudden Death restoration variables
         self.sudden_death_restore_time = None
         self.sudden_death_restore_active = False
 
-        # --- Display window and penalty grid must be created before display updates ---
+        # Display window configurations
         self.create_display_window()
         self.start_penalty_display_updates()
         self.sync_penalty_display_to_external()
-        self.reset_timer()  # <-- moved here, after display window creation
+        self.reset_timer()
+
+        # 4. FINAL APPLICATION HARDWARE INITIALIZATION HOOK (SINGLE INSTANCE)
+        # Kept at the absolute end so everything—including UI widgets—is 100% built.
+        try:
+            import serial_siren_listener
+            serial_siren_listener.start_serial_listener(self)
+            print("DEBUG: Serial hardware listener thread successfully active.")
+        except Exception as e:
+            print(f"DEBUG: Failed to initialize serial button module thread: {e}")
+        # ─────────────────────────────────────────────────────────────────────
 
         # ─── FINAL APPLICATION HARDWARE INITIALIZATION HOOK ──────────────────
         # Moved to the absolute end of __init__ to guarantee everything is ready!
