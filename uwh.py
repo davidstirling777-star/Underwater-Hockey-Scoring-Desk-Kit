@@ -3151,79 +3151,23 @@ Sound file and volume settings are from the Sounds tab."""
         self.add_to_zigbee_log("Manual siren test triggered")
         self.trigger_wireless_siren()
 
-    def trigger_wireless_siren(self):
-        """Trigger the wireless siren using current sound settings."""
-        try:
-            # Use the same sound file and volume as the regular siren
-            siren_file = self.siren_var.get()
-            self.add_to_zigbee_log(f"Triggering wireless siren: {siren_file}")
-            
-            # Use the existing sound playing method with volume control
-            play_sound_with_volume(siren_file, "siren", self.enable_sound, self.pips_volume, 
-                                   self.siren_volume, self.air_volume, self.water_volume,
-                                   self.siren_duration)
-            
-        except Exception as e:
-            self.add_to_zigbee_log(f"Error triggering siren: {e}")
-    
     def start_wireless_siren(self):
-        """Start the wireless siren (play sound in loop and send MQTT ON command)."""
-        try:
-            # Start playing the siren sound in a loop
-            siren_file = self.siren_var.get()
-            self.add_to_zigbee_log(f"Starting wireless siren loop: {siren_file}")
-            
-            # Set the loop flag to True
-            self.siren_loop_active = True
-            
-            # Start a daemon thread to loop the siren sound
-            if self.siren_loop_thread is None or not self.siren_loop_thread.is_alive():
-                self.siren_loop_thread = threading.Thread(
-                    target=self._siren_loop_worker,
-                    daemon=True
-                )
-                self.siren_loop_thread.start()
-            
-            # Send MQTT ON command to siren device
-            if self.zigbee_controller:
-                self.zigbee_controller.start_siren()
-            
-        except Exception as e:
-            self.add_to_zigbee_log(f"Error starting siren: {e}")
+    """Start the wireless siren (send MQTT ON command)."""
+    try:
+        self.add_to_zigbee_log("Starting wireless siren")
+        if self.zigbee_controller:
+            self.zigbee_controller.start_siren()
+    except Exception as e:
+        self.add_to_zigbee_log(f"Error starting siren: {e}")
     
-    def _siren_loop_worker(self):
-        """Worker thread that continuously plays the siren sound while the loop is active."""
-        try:
-            while self.siren_loop_active:
-                # Play sound with volume control
-                siren_file = self.siren_var.get()
-                play_sound_with_volume(siren_file, "siren", self.enable_sound, 
-                                       self.pips_volume, self.siren_volume, 
-                                       self.air_volume, self.water_volume,
-                                       self.siren_duration)
-                
-                # Small delay to allow checking the flag and prevent tight loop
-                # This also allows the sound to play before potentially starting it again
-                time.sleep(0.1)
-                
-        except Exception as e:
-            print(f"Siren loop worker error: {e}")
-    
-    def stop_wireless_siren(self):
-        """Stop the wireless siren (stop sound loop and send MQTT OFF command)."""
-        try:
-            self.add_to_zigbee_log("Stopping wireless siren loop")
-            
-            # Set the loop flag to False to stop the looping thread
-            self.siren_loop_active = False
-            
-            # Send MQTT OFF command to siren device
-            if self.zigbee_controller:
-                self.zigbee_controller.stop_siren()
-            
-        except Exception as e:
-            self.add_to_zigbee_log(f"Error stopping siren: {e}")
-
+def stop_wireless_siren(self):
+    """Stop the wireless siren (send MQTT OFF command)."""
+    try:
+        self.add_to_zigbee_log("Stopping wireless siren")
+        if self.zigbee_controller:
+            self.zigbee_controller.stop_siren()
+    except Exception as e:
+        self.add_to_zigbee_log(f"Error stopping siren: {e}")
 
     def update_zigbee_status(self, connected: bool, message: str):
         """Update Zigbee connection status in UI."""
