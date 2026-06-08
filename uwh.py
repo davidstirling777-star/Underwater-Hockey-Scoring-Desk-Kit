@@ -447,11 +447,6 @@ class GameManagementApp:
         
     def __init__(self, master):
         self.master = master
-        raise Exception(
-            f"create_display_window={hasattr(GameManagementApp,'create_display_window')}\n"
-            f"sync_display_widgets={hasattr(GameManagementApp,'sync_display_widgets')}\n"
-            f"reset_timer={hasattr(GameManagementApp,'reset_timer')}"
-        )
         self.master.title("Underwater Hockey Game Management App")
         self.master.geometry('1200x800')
 
