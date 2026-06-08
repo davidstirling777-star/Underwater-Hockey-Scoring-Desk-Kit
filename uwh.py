@@ -3383,126 +3383,126 @@ Sound file and volume settings are from the Sounds tab."""
                         label.config(fg="grey")
                     if entry:
                         entry.config(state="disabled")
-
-    def create_display_window(self):
-        self.display_window = tk.Toplevel(self.master)
-        self.display_window.title("Display Window")
-        self.display_window.geometry('1200x800')
-
-        tab = ttk.Frame(self.display_window)
-        tab.pack(fill="both", expand=True,)
-
-        for i in range(11):
-            tab.grid_rowconfigure(i, weight=1)
-        for i in range(9):
-            tab.grid_columnconfigure(i, weight=1)
-
-        self.display_court_time_label = tk.Label(tab, textvariable=self.court_time_var, font=self.display_fonts["court_time"], bg="lightgrey")
-        self.display_court_time_label.grid(row=0, column=0, columnspan=9, padx=1, pady=1, sticky="nsew")
-
-        self.display_half_label = tk.Label(tab, textvariable=self.half_label_var, font=self.display_fonts["half"], bg="lightcoral")
-        self.display_half_label.grid(row=1, column=0, columnspan=9, padx=1, pady=1, sticky="nsew")
-
-        self.display_white_label = tk.Label(tab, textvariable=self.white_team_var, font=self.display_fonts["team"], bg="white", fg="black")
-        self.display_white_label.grid(row=2, column=0, columnspan=3, padx=1, pady=1, sticky="nsew")
-        self.display_black_label = tk.Label(tab, textvariable=self.black_team_var, font=self.display_fonts["team"], bg="black", fg="white")
-        self.display_black_label.grid(row=2, column=6, columnspan=3, padx=1, pady=1, sticky="nsew")
-
-        self.display_game_label = tk.Label(tab, textvariable=self.game_number_var, font=self.display_fonts["game_no"], bg="light grey")
-        self.display_game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
-        self.display_penalty_grid_frame, self.display_penalty_labels = self.create_penalty_grid_widget(tab, is_display=True)
-        self.display_penalty_grid_frame.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
-        self.display_penalty_grid_frame.grid_remove()  # hide initially
-
-        self.display_white_score = tk.Label(tab, textvariable=self.white_score_var, font=self.display_fonts["score"], bg="white", fg="black")
-        self.display_white_score.grid(row=3, column=0, rowspan=8, columnspan=3, padx=1, pady=1, sticky="nsew")
-        self.display_black_score = tk.Label(tab, textvariable=self.black_score_var, font=self.display_fonts["score"], bg="black", fg="white")
-        self.display_black_score.grid(row=3, column=6, rowspan=8, columnspan=3, padx=1, pady=1, sticky="nsew")
-
-        self.display_timer_label = tk.Label(tab, textvariable=self.timer_var, font=self.display_fonts["timer"], bg="lightgrey", fg="black")
-        self.display_timer_label.grid(row=3, column=3, rowspan=8, columnspan=3, padx=1, pady=1, sticky="nsew")
-
-        # Referee timeout timer label for display window
-        self.display_referee_timeout_timer_label = tk.Label(
-            tab, textvariable=self.referee_timeout_timer_var, 
-            font=self.display_fonts["referee_timeout_timer"], 
-            bg="red", fg="white"
-        )
-        self.display_referee_timeout_timer_label.grid(row=10, column=3, rowspan=1, columnspan=3, padx=0, pady=1, sticky="nsew")
-        self.display_referee_timeout_timer_label.grid_remove()  # Hide initially
-
-        self.display_window.bind('<Configure>', self.scale_display_fonts)
-        self.display_initial_width = self.display_window.winfo_width() or 1200
-        self.display_window.update_idletasks()
-        self.scale_display_fonts(None)
-        self.sync_display_widgets()
-
-def sync_display_widgets(self):
-    """Safely sync display window background colors."""
-    def sync_backgrounds():
-        try:
-            # Check if display window still exists before updating
-            if self.display_window.winfo_exists():
-                self.display_half_label.config(bg=self.half_label.cget("bg"))
-                self.master.after(200, sync_backgrounds)
-            # If window is closed, the loop stops automatically
-        except (tk.TclError, AttributeError, RuntimeError):
-            # Silently stop if widgets are destroyed
-            pass
+                        
+        def create_display_window(self):
+            self.display_window = tk.Toplevel(self.master)
+            self.display_window.title("Display Window")
+            self.display_window.geometry('1200x800')
     
-    sync_backgrounds()
-
-def reset_timer(self):
-    self.white_score_var.set(0)
-    self.black_score_var.set(0)
-    self.current_index = 0
-    self.timer_running = True
-    self.sudden_death_goal_scored = False
-    if self.timer_job:
-        self.master.after_cancel(self.timer_job)
-        self.timer_job = None
-    self.sudden_death_timer_job = None
-    self.sudden_death_seconds = 0
-    # Rebuild game sequence to reflect any settings changes (e.g., cleared "Time to Start First Game")
-    self.build_game_sequence()
-    if self.full_sequence:
-        self.timer_seconds = self.full_sequence[0]["duration"]
-        # Event-driven: Update the StringVar instead of calling .config()
-        self.half_label_var.set(self.full_sequence[0]["name"])
-        self.update_half_label_background(self.full_sequence[0]["name"])
-    else:
-        self.timer_seconds = 0
-        # Event-driven: Update the StringVar instead of calling .config()
-        self.half_label_var.set("")
-    self.update_timer_display()
-
-    now = datetime.datetime.now()
-    self.court_time_seconds = now.hour * 3600 + now.minute * 60 + now.second
-    self.court_time_paused = False
-    self.update_court_time()
-    self.start_current_period()
+            tab = ttk.Frame(self.display_window)
+            tab.pack(fill="both", expand=True,)
+    
+            for i in range(11):
+                tab.grid_rowconfigure(i, weight=1)
+            for i in range(9):
+                tab.grid_columnconfigure(i, weight=1)
+    
+            self.display_court_time_label = tk.Label(tab, textvariable=self.court_time_var, font=self.display_fonts["court_time"], bg="lightgrey")
+            self.display_court_time_label.grid(row=0, column=0, columnspan=9, padx=1, pady=1, sticky="nsew")
+    
+            self.display_half_label = tk.Label(tab, textvariable=self.half_label_var, font=self.display_fonts["half"], bg="lightcoral")
+            self.display_half_label.grid(row=1, column=0, columnspan=9, padx=1, pady=1, sticky="nsew")
+    
+            self.display_white_label = tk.Label(tab, textvariable=self.white_team_var, font=self.display_fonts["team"], bg="white", fg="black")
+            self.display_white_label.grid(row=2, column=0, columnspan=3, padx=1, pady=1, sticky="nsew")
+            self.display_black_label = tk.Label(tab, textvariable=self.black_team_var, font=self.display_fonts["team"], bg="black", fg="white")
+            self.display_black_label.grid(row=2, column=6, columnspan=3, padx=1, pady=1, sticky="nsew")
+    
+            self.display_game_label = tk.Label(tab, textvariable=self.game_number_var, font=self.display_fonts["game_no"], bg="light grey")
+            self.display_game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
+            self.display_penalty_grid_frame, self.display_penalty_labels = self.create_penalty_grid_widget(tab, is_display=True)
+            self.display_penalty_grid_frame.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
+            self.display_penalty_grid_frame.grid_remove()  # hide initially
+    
+            self.display_white_score = tk.Label(tab, textvariable=self.white_score_var, font=self.display_fonts["score"], bg="white", fg="black")
+            self.display_white_score.grid(row=3, column=0, rowspan=8, columnspan=3, padx=1, pady=1, sticky="nsew")
+            self.display_black_score = tk.Label(tab, textvariable=self.black_score_var, font=self.display_fonts["score"], bg="black", fg="white")
+            self.display_black_score.grid(row=3, column=6, rowspan=8, columnspan=3, padx=1, pady=1, sticky="nsew")
+    
+            self.display_timer_label = tk.Label(tab, textvariable=self.timer_var, font=self.display_fonts["timer"], bg="lightgrey", fg="black")
+            self.display_timer_label.grid(row=3, column=3, rowspan=8, columnspan=3, padx=1, pady=1, sticky="nsew")
+    
+            # Referee timeout timer label for display window
+            self.display_referee_timeout_timer_label = tk.Label(
+                tab, textvariable=self.referee_timeout_timer_var, 
+                font=self.display_fonts["referee_timeout_timer"], 
+                bg="red", fg="white"
+            )
+            self.display_referee_timeout_timer_label.grid(row=10, column=3, rowspan=1, columnspan=3, padx=0, pady=1, sticky="nsew")
+            self.display_referee_timeout_timer_label.grid_remove()  # Hide initially
+    
+            self.display_window.bind('<Configure>', self.scale_display_fonts)
+            self.display_initial_width = self.display_window.winfo_width() or 1200
+            self.display_window.update_idletasks()
+            self.scale_display_fonts(None)
+            self.sync_display_widgets()
+    
+    def sync_display_widgets(self):
+        """Safely sync display window background colors."""
+        def sync_backgrounds():
+            try:
+                # Check if display window still exists before updating
+                if self.display_window.winfo_exists():
+                    self.display_half_label.config(bg=self.half_label.cget("bg"))
+                    self.master.after(200, sync_backgrounds)
+                # If window is closed, the loop stops automatically
+            except (tk.TclError, AttributeError, RuntimeError):
+                # Silently stop if widgets are destroyed
+                pass
         
-    def update_court_time(self):
-        if self.court_time_job is not None:
-            self.master.after_cancel(self.court_time_job)
-            self.court_time_job = None
-
-        if self.court_time_seconds is None:
-            now = datetime.datetime.now()
-            self.court_time_seconds = now.hour * 3600 + now.minute * 60 + now.second
-
-        if self.court_time_paused:
+        sync_backgrounds()
+    
+    def reset_timer(self):
+        self.white_score_var.set(0)
+        self.black_score_var.set(0)
+        self.current_index = 0
+        self.timer_running = True
+        self.sudden_death_goal_scored = False
+        if self.timer_job:
+            self.master.after_cancel(self.timer_job)
+            self.timer_job = None
+        self.sudden_death_timer_job = None
+        self.sudden_death_seconds = 0
+        # Rebuild game sequence to reflect any settings changes (e.g., cleared "Time to Start First Game")
+        self.build_game_sequence()
+        if self.full_sequence:
+            self.timer_seconds = self.full_sequence[0]["duration"]
+            # Event-driven: Update the StringVar instead of calling .config()
+            self.half_label_var.set(self.full_sequence[0]["name"])
+            self.update_half_label_background(self.full_sequence[0]["name"])
+        else:
+            self.timer_seconds = 0
+            # Event-driven: Update the StringVar instead of calling .config()
+            self.half_label_var.set("")
+        self.update_timer_display()
+    
+        now = datetime.datetime.now()
+        self.court_time_seconds = now.hour * 3600 + now.minute * 60 + now.second
+        self.court_time_paused = False
+        self.update_court_time()
+        self.start_current_period()
+            
+        def update_court_time(self):
+            if self.court_time_job is not None:
+                self.master.after_cancel(self.court_time_job)
+                self.court_time_job = None
+    
+            if self.court_time_seconds is None:
+                now = datetime.datetime.now()
+                self.court_time_seconds = now.hour * 3600 + now.minute * 60 + now.second
+    
+            if self.court_time_paused:
+                self.court_time_job = self.master.after(1000, self.update_court_time)
+                return
+    
+            self.court_time_seconds += 1
+    
+            hours, remainder = divmod(self.court_time_seconds, 3600)
+            minutes, seconds = divmod(remainder, 60)
+            time_string = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+            # Event-driven: Update the StringVar instead of calling .config()
+            self.court_time_var.set(f"Court Time is {time_string}")
             self.court_time_job = self.master.after(1000, self.update_court_time)
-            return
-
-        self.court_time_seconds += 1
-
-        hours, remainder = divmod(self.court_time_seconds, 3600)
-        minutes, seconds = divmod(remainder, 60)
-        time_string = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
-        # Event-driven: Update the StringVar instead of calling .config()
-        self.court_time_var.set(f"Court Time is {time_string}")
-        self.court_time_job = self.master.after(1000, self.update_court_time)
 
     def update_timer_display(self):
         if self.referee_timeout_active:
