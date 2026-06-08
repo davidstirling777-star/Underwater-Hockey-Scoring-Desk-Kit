@@ -888,15 +888,12 @@ class GameManagementApp:
         self.referee_timeout_timer_label.grid(row=8, column=3, rowspan=1, columnspan=3, padx=0, pady=1, sticky="nsew")
         self.referee_timeout_timer_label.grid_remove()  # Hide initially
 
-        print("Class =", type(self))
-        print("Has white_team_timeout =", hasattr(self, "white_team_timeout"))
-        print("Method =", getattr(self, "white_team_timeout", None))
-
-        timeout_methods = [m for m in dir(self) if "timeout" in m.lower()]
-
         raise Exception(
-            f"Class={self.__class__.__name__}\n"
-            f"Timeout methods={timeout_methods}"
+            f"countdown_timer={hasattr(self, 'countdown_timer')}\n"
+            f"reset_timeouts_for_half={hasattr(self, 'reset_timeouts_for_half')}\n"
+            f"white_team_timeout={hasattr(self, 'white_team_timeout')}\n"
+            f"black_team_timeout={hasattr(self, 'black_team_timeout')}\n"
+            f"timeout_countdown={hasattr(self, 'timeout_countdown')}"
         )
 
         self.white_timeout_button = tk.Button(
