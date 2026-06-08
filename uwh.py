@@ -892,12 +892,12 @@ class GameManagementApp:
         print("Has white_team_timeout =", hasattr(self, "white_team_timeout"))
         print("Method =", getattr(self, "white_team_timeout", None))
 
-        # White Team Timeout Button
-        if not hasattr(self, "white_team_timeout"):
-            self.add_to_zigbee_log(
-                "ERROR: white_team_timeout missing from GameManagementApp"
-            )
-            raise Exception("white_team_timeout missing")
+        timeout_methods = [m for m in dir(self) if "timeout" in m.lower()]
+
+        raise Exception(
+            f"Class={self.__class__.__name__}\n"
+            f"Timeout methods={timeout_methods}"
+        )
 
         self.white_timeout_button = tk.Button(
             tab, text="White Team\nTime-Out", font=self.fonts["timeout_button"], bg="white", fg="black",
