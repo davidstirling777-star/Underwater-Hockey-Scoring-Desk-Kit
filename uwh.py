@@ -888,6 +888,10 @@ class GameManagementApp:
         self.referee_timeout_timer_label.grid(row=8, column=3, rowspan=1, columnspan=3, padx=0, pady=1, sticky="nsew")
         self.referee_timeout_timer_label.grid_remove()  # Hide initially
 
+        print("Class =", type(self))
+        print("Has white_team_timeout =", hasattr(self, "white_team_timeout"))
+        print("Method =", getattr(self, "white_team_timeout", None))
+
         self.white_timeout_button = tk.Button(
             tab, text="White Team\nTime-Out", font=self.fonts["timeout_button"], bg="white", fg="black",
             activebackground="white", activeforeground="black",
