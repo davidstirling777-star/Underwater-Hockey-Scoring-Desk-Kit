@@ -448,10 +448,9 @@ class GameManagementApp:
     def __init__(self, master):
         self.master = master
         raise Exception(
-            f"update_court_time={hasattr(GameManagementApp,'update_court_time')}\n"
-            f"update_timer_display={hasattr(GameManagementApp,'update_timer_display')}\n"
-            f"adjust_between_game_break_for_crib_time={hasattr(GameManagementApp,'adjust_between_game_break_for_crib_time')}\n"
-            f"start_current_period={hasattr(GameManagementApp,'start_current_period')}"
+            f"sync_display_widgets={hasattr(GameManagementApp,'sync_display_widgets')}\n"
+            f"reset_timer={hasattr(GameManagementApp,'reset_timer')}\n"
+            f"update_court_time={hasattr(GameManagementApp,'update_court_time')}"
         )
 
         self.master.title("Underwater Hockey Game Management App")
