@@ -3913,7 +3913,7 @@ def reset_timer(self):
         self.update_timer_display()
         self.timer_job = self.master.after(1000, self.timeout_countdown)
 
-    def timeout_countdown(self):
+   def timeout_countdown(self):
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
@@ -3932,810 +3932,766 @@ def reset_timer(self):
                                            self.siren_duration)
                 except Exception as e:
                     print(f"Error playing pip sound at 16s timeout: {e}")
-            
-            # Decrement timer AFTER playing sound
-            self.timer_seconds -= 1
-            self.update_timer_display()
-            
-            self.timer_job = self.master.after(1000, self.timeout_countdown)
-        else:
-            self.end_timeout()
-
-    def end_timeout(self):
-        self.in_timeout = False
-        prev_active_team = self.active_timeout_team  # Store who just finished
-        self.active_timeout_team = None
-        self.court_time_paused = False
-        self.resume_all_penalty_timers()
-        self.timer_running = self.saved_timer_running
-        self.timer_seconds = self.saved_timer_seconds
-        self.current_index = self.saved_index
-        # Event-driven: Update the StringVar instead of calling .config()
-        self.half_label_var.set(self.saved_half_label)
-        self.half_label.config(bg=self.saved_half_label_bg)
-        self.update_timer_display()
-        if self.timer_job:
-            self.master.after_cancel(self.timer_job)
-            self.timer_job = None
-        # Play siren at end of team timeout unless there is a pending timeout
-        if self.pending_timeout is None:
-            try:
-                play_sound_with_volume(self.siren_var.get(), "siren", self.enable_sound,
-                                       self.pips_volume, self.siren_volume,
-                                       self.air_volume, self.water_volume,
-                                       self.siren_duration)
-            except Exception as e:
-                print(f"Error playing siren at end of timeout: {e}")
-        # If a pending timeout exists, start it now
-        if self.pending_timeout is not None:
-            if self.pending_timeout == "white" and self.white_timeouts_this_half < 1:
-                self.pending_timeout = None
-                self.white_team_timeout()
-            elif self.pending_timeout == "black" and self.black_timeouts_this_half < 1:
-                self.pending_timeout = None
-                self.black_team_timeout()
-            else:
-                self.pending_timeout = None
-        elif self.timer_running:
-            self.timer_job = self.master.after(1000, self.countdown_timer)
-
-    def save_timer_state(self):
-        self.saved_timer_running = self.timer_running
-        self.saved_timer_seconds = self.timer_seconds
-        self.saved_index = self.current_index
-        # Event-driven: Get text from StringVar instead of widget
-        self.saved_half_label = self.half_label_var.get()
-        self.saved_half_label_bg = self.half_label.cget("bg")
-        self.saved_sudden_death_goal_scored = getattr(self, "sudden_death_goal_scored", False)
-
-    def show_timeout_popup(self, team):
-        popup = tk.Toplevel(self.master)
-        popup.title("Time-Out Limit")
-        popup.geometry("350x100")
-        label = tk.Label(popup, text="One time-out period per team per half", font=self.fonts["button"])
-        label.pack(pady=20)
-        btn = tk.Button(popup, text="OK", font=self.fonts["button"], command=popup.destroy)
-        btn.pack(pady=5)
-
-    def update_half_label_background(self, period_name):
-        red_periods = {
-            "first_game_starts_in:",
-            "game_starts_in:",
-            "half_time",
-            "half_time_break",
-            "overtime_game_break",
-            "overtime_half_time",
-            "overtime_half_time_break",
-            "between_game_break",
-            "between_game_break_starts_in:",
-            "start_first_game_at_this_time",
-            "sudden_death_game_break",
-            "white_team_time-out",
-            "black_team_time-out",
-            "referee_time-out",
-            "white_team_time-out",
-            "black_team_time-out",
-            "white_team_time-out",
-            "black_team_time-out",
-            "white_team_time-out",
-            "black_team_time-out"
-        }
-        internal_name = period_name.lower().replace(" ", "_")
-        if "time_out" in internal_name or internal_name in red_periods:
-            self.half_label.config(bg="red")
-        else:
-            self.half_label.config(bg="lightblue")
-
-    def convert_duration_to_seconds(self, duration):
-        if duration == "1 minute":
-            return 60
-        elif duration == "2 minutes":
-            return 120
-        elif duration == "5 minutes":
-            return 300
-        elif duration == "Rest of the match":
-            return -1
-        return 0
-
-    def start_penalty_timer(self, team, cap, duration):
-        seconds = self.convert_duration_to_seconds(duration)
-        if seconds == 0:
-            return False
-        penalty = {
-            "team": team,
+          
+           # Decrement timer AFTER playing sound
+           self.timer_seconds -= 1
+           self.update_timer_display()           
+           self.timer_job = self.master.after(1000, self.timeout_countdown)
+       else:
+           self.end_timeout()
+           
+   def end_timeout(self):
+       self.in_timeout = False
+       prev_active_team = self.active_timeout_team  # Store who just finished
+       self.active_timeout_team = None
+       self.court_time_paused = False
+       self.resume_all_penalty_timers()
+       self.timer_running = self.saved_timer_running
+       self.timer_seconds = self.saved_timer_seconds
+       self.current_index = self.saved_index
+       # Event-driven: Update the StringVar instead of calling .config()
+       self.half_label_var.set(self.saved_half_label)
+       self.half_label.config(bg=self.saved_half_label_bg)
+       self.update_timer_display()
+       if self.timer_job:
+           self.master.after_cancel(self.timer_job)
+           self.timer_job = None
+       # Play siren at end of team timeout unless there is a pending timeout
+       if self.pending_timeout is None:
+           try:
+               play_sound_with_volume(self.siren_var.get(), "siren", self.enable_sound,
+                                      self.pips_volume, self.siren_volume,
+                                      self.air_volume, self.water_volume,
+                                      self.siren_duration)
+           except Exception as e:
+               print(f"Error playing siren at end of timeout: {e}")
+       # If a pending timeout exists, start it now
+       if self.pending_timeout is not None:
+           if self.pending_timeout == "white" and self.white_timeouts_this_half < 1:
+               self.pending_timeout = None
+               self.white_team_timeout()
+           elif self.pending_timeout == "black" and self.black_timeouts_this_half < 1:
+               self.pending_timeout = None
+               self.black_team_timeout()
+           else:
+               self.pending_timeout = None
+       elif self.timer_running:
+           self.timer_job = self.master.after(1000, self.countdown_timer)
+   def save_timer_state(self):
+       self.saved_timer_running = self.timer_running
+       self.saved_timer_seconds = self.timer_seconds
+       self.saved_index = self.current_index
+       # Event-driven: Get text from StringVar instead of widget
+       self.saved_half_label = self.half_label_var.get()
+       self.saved_half_label_bg = self.half_label.cget("bg")
+       self.saved_sudden_death_goal_scored = getattr(self, "sudden_death_goal_scored", False)
+   def show_timeout_popup(self, team):
+       popup = tk.Toplevel(self.master)
+       popup.title("Time-Out Limit")
+       popup.geometry("350x100")
+       label = tk.Label(popup, text="One time-out period per team per half", font=self.fonts["button"])
+       label.pack(pady=20)
+       btn = tk.Button(popup, text="OK", font=self.fonts["button"], command=popup.destroy)
+       btn.pack(pady=5)
+   def update_half_label_background(self, period_name):
+       red_periods = {
+           "first_game_starts_in:",
+           "game_starts_in:",
+           "half_time",
+           "half_time_break",
+           "overtime_game_break",
+           "overtime_half_time",
+           "overtime_half_time_break",
+           "between_game_break",
+           "between_game_break_starts_in:",
+           "start_first_game_at_this_time",
+           "sudden_death_game_break",
+           "white_team_time-out",
+           "black_team_time-out",
+           "referee_time-out",
+           "white_team_time-out",
+           "black_team_time-out",
+           "white_team_time-out",
+           "black_team_time-out",
+           "white_team_time-out",
+           "black_team_time-out"
+       }
+       internal_name = period_name.lower().replace(" ", "_")
+       if "time_out" in internal_name or internal_name in red_periods:
+           self.half_label.config(bg="red")
+       else:
+           self.half_label.config(bg="lightblue")
+   def convert_duration_to_seconds(self, duration):
+       if duration == "1 minute":
+           return 60
+       elif duration == "2 minutes":
+           return 120
+       elif duration == "5 minutes":
+           return 300
+       elif duration == "Rest of the match":
+           return -1
+       return 0
+   def start_penalty_timer(self, team, cap, duration):
+       seconds = self.convert_duration_to_seconds(duration)
+       if seconds == 0:
+           return False
+       penalty = {
+           "team": team,
             "cap": cap,
-            "duration": duration,
-            "seconds_remaining": seconds,
-            "timer_job": None,
-            "is_rest_of_match": seconds == -1
-        }
-        self.active_penalties.append(penalty)
-        self.stored_penalties.append({"team": team, "cap": cap, "duration": duration})
-        
-        # Log the penalty start
-        self.log_game_event("Penalty Start", team=team, cap_number=str(cap), duration=duration)
-        
-        self.update_penalty_display()
-        if not penalty["is_rest_of_match"]:
-            self.schedule_penalty_countdown(penalty)
-        return True
-
-    def schedule_penalty_countdown(self, penalty):
-        if not self.penalty_timers_paused and penalty["seconds_remaining"] > 0:
-            penalty["timer_job"] = self.master.after(1000, lambda: self.penalty_countdown(penalty))
-
-    def penalty_countdown(self, penalty):
-        """
-        Handles countdown for an individual penalty. When the timer runs down to zero,
-        removes the penalty and updates the penalty display robustly.
-        """
-        if penalty not in self.active_penalties:
-            # Don't need to call update_penalty_display here, remove_penalty does it
-            return
-        if penalty.get("timer_job"):
-            try:
-                self.master.after_cancel(penalty["timer_job"])
-            except Exception:
-                pass
-            penalty["timer_job"] = None
-        if self.penalty_timers_paused or penalty.get("is_rest_of_match"):
-            return
-        if penalty["seconds_remaining"] > 0:
-            penalty["seconds_remaining"] -= 1
-            # Check if penalty just expired (reached 0)
-            if penalty["seconds_remaining"] == 0:
-                # Immediately remove the expired penalty
-                self.remove_penalty(penalty)  # This will update the display
-            else:
-                # Still time remaining, update display and schedule next countdown
-                self.update_penalty_display()
-                self.schedule_penalty_countdown(penalty)
-        else:
-            # Should not normally reach here, but handle it just in case
-            self.remove_penalty(penalty)  # This will update the display
-
-    def remove_penalty(self, penalty):
-        if penalty in self.active_penalties:
-            if penalty["timer_job"]:
-                self.master.after_cancel(penalty["timer_job"])
-                penalty["timer_job"] = None
-            self.active_penalties.remove(penalty)
-            for stored in self.stored_penalties[:]:
-                if (stored["team"] == penalty["team"] and 
-                    stored["cap"] == penalty["cap"] and 
-                    stored["duration"] == penalty["duration"]):
-                    self.stored_penalties.remove(stored)
-                    break
-            # Ensure widget display updates after ALL removals
-            self.update_penalty_display()
-
-    def clear_all_penalties(self):
-        for penalty in self.active_penalties[:]:
-            self.remove_penalty(penalty)
-        self.update_penalty_display()
-
-    def pause_all_penalty_timers(self):
-        self.penalty_timers_paused = True
-        for penalty in self.active_penalties:
-            if penalty["timer_job"]:
-                self.master.after_cancel(penalty["timer_job"])
-                penalty["timer_job"] = None
-        self.update_penalty_display()
-
-    def resume_all_penalty_timers(self):
-        self.penalty_timers_paused = False
-        for penalty in self.active_penalties:
-            if not penalty["is_rest_of_match"] and penalty["seconds_remaining"] > 0:
-                self.schedule_penalty_countdown(penalty)
-        self.update_penalty_display()
-
-    def show_cap_number_dialog(self, trigger_button=None):
-        """
-        Show a dialog to select a cap number (1-15) or Unknown.
-        Returns the selected cap number as a string, or None if canceled.
-        
-        Args:
-            trigger_button: Optional button widget that triggered this dialog.
-                          If provided, dialog will be positioned near the button.
-        """
-        cap_number_dialog = tk.Toplevel(self.master)
-        cap_number_dialog.title("Select Cap Number")
-        
-        # Position the dialog near the trigger button if provided
-        if trigger_button:
-            # Get button's screen coordinates
-            button_x = trigger_button.winfo_rootx()
-            button_y = trigger_button.winfo_rooty()
-            button_width = trigger_button.winfo_width()
-            button_height = trigger_button.winfo_height()
-            
-            # Set initial geometry to get accurate dialog dimensions
-            cap_number_dialog.geometry("400x300")
-            cap_number_dialog.update_idletasks()
-            
-            # Get screen and dialog dimensions
-            screen_width = cap_number_dialog.winfo_screenwidth()
-            screen_height = cap_number_dialog.winfo_screenheight()
-            dialog_width = cap_number_dialog.winfo_reqwidth()
-            dialog_height = cap_number_dialog.winfo_reqheight()
-            
-            # Define margins
-            top_margin = 20
-            bottom_margin = 20
-            left_margin = 20
-            right_margin = 20
-            gap = 10  # Gap between dialog bottom and button top
-            
-            # Position dialog so its bottom edge is above the button top edge
-            # dialog_y is the top of the dialog
-            # dialog_y + dialog_height is the bottom of the dialog
-            # We want: dialog_y + dialog_height <= button_y - gap
-            # Therefore: dialog_y <= button_y - gap - dialog_height
-            dialog_y = button_y - gap - dialog_height
-            dialog_x = button_x  # Align left edge with button
-            
-            # Ensure dialog is fully visible on screen
-            # Check if dialog would go above screen top
-            if dialog_y < top_margin:
-                dialog_y = top_margin
-            
-            # After adjusting for top margin, ensure bottom edge is still above button
-            # If dialog bottom would be at or below button top, we have a constraint violation
-            # In this case, keep dialog as high as possible while staying on screen
-            if dialog_y + dialog_height > button_y - gap:
-                # Dialog cannot fit above button with gap, position as high as possible
-                dialog_y = max(top_margin, button_y - gap - dialog_height)
-            
-            # Ensure dialog doesn't extend beyond screen bottom
-            if dialog_y + dialog_height > screen_height - bottom_margin:
-                dialog_y = screen_height - dialog_height - bottom_margin
-                if dialog_y < top_margin:
-                    dialog_y = top_margin
-            
-            # Ensure dialog doesn't extend beyond screen right edge
-            if dialog_x + dialog_width > screen_width - right_margin:
-                dialog_x = screen_width - dialog_width - right_margin
-            
-            # Ensure dialog doesn't go beyond screen left edge
-            if dialog_x < left_margin:
-                dialog_x = left_margin
-            
-            cap_number_dialog.geometry(f"400x300+{dialog_x}+{dialog_y}")
-        else:
-            cap_number_dialog.geometry("400x300")
-        
-        cap_number_dialog.transient(self.master)
-        cap_number_dialog.grab_set()
-        
-        selected_cap = {"value": None}
-        
-        # Title label
-        title_label = tk.Label(cap_number_dialog, text="Select Scorer's Cap Number:", 
-                               font=("Arial", 12, "bold"))
-        title_label.pack(pady=10)
-        
-        # Frame for the button matrix
-        matrix_frame = tk.Frame(cap_number_dialog)
-        matrix_frame.pack(pady=10)
-        
-        def select_cap(cap):
-            selected_cap["value"] = str(cap)
-            # Highlight the selected button and keep it highlighted
-            def apply_highlight():
-                for widget in matrix_frame.winfo_children():
-                    if hasattr(widget, 'cap_value') and widget.cap_value == cap:
-                        widget.config(relief=tk.SUNKEN, bg="lightblue")
-                    elif isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
-                        widget.config(relief=tk.RAISED, bg=widget.original_bg)
-                for widget in bottom_frame.winfo_children():
-                    if isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
-                        widget.config(relief=tk.RAISED, bg=widget.original_bg)
-            # Apply immediately and schedule again to override button's default behavior
-            apply_highlight()
-            cap_number_dialog.after(1, apply_highlight)
-        
-        def select_unknown():
-            selected_cap["value"] = "Unknown"
-            # Highlight Unknown button and keep it highlighted
-            def apply_highlight():
-                for widget in matrix_frame.winfo_children():
-                    if isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
-                        widget.config(relief=tk.RAISED, bg=widget.original_bg)
-                for widget in bottom_frame.winfo_children():
-                    if hasattr(widget, 'is_unknown'):
-                        widget.config(relief=tk.SUNKEN, bg="lightblue")
-                    elif isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
-                        widget.config(relief=tk.RAISED, bg=widget.original_bg)
-            # Apply immediately and schedule again to override button's default behavior
-            apply_highlight()
-            cap_number_dialog.after(1, apply_highlight)
-        
-        def select_penalty_goal():
-            selected_cap["value"] = "Penalty Goal"
-            # Highlight Penalty Goal button and keep it highlighted
-            def apply_highlight():
-                for widget in matrix_frame.winfo_children():
-                    if isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
-                        widget.config(relief=tk.RAISED, bg=widget.original_bg)
-                for widget in bottom_frame.winfo_children():
-                    if hasattr(widget, 'is_penalty_goal'):
-                        widget.config(relief=tk.SUNKEN, bg="lightblue")
-                    elif isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
-                        widget.config(relief=tk.RAISED, bg=widget.original_bg)
-            # Apply immediately and schedule again to override button's default behavior
-            apply_highlight()
-            cap_number_dialog.after(1, apply_highlight)
-        
-        def on_ok():
-            if selected_cap["value"] is not None:
-                cap_number_dialog.destroy()
-            else:
-                messagebox.showwarning("No Selection", "Please select a cap number or Unknown.")
-        
-        # Create 5x3 matrix of buttons (1-15)
-        button_width = 5
-        button_height = 2
-        for row in range(3):
-            for col in range(5):
-                cap_num = row * 5 + col + 1
-                btn = tk.Button(matrix_frame, text=str(cap_num), width=button_width, height=button_height,
-                               command=lambda c=cap_num: select_cap(c))
-                btn.cap_value = cap_num
-                btn.original_bg = btn.cget('bg')  # Store original background color
-                btn.grid(row=row, column=col, padx=2, pady=2)
-        
-        # Bottom frame for Unknown and OK buttons
-        bottom_frame = tk.Frame(cap_number_dialog)
-        bottom_frame.pack(pady=10)
-        
-        # Unknown button (columnspan 2, half the original width)
-        unknown_btn = tk.Button(bottom_frame, text="Unknown", width=button_width * 2 + 3, height=button_height,
-                               command=select_unknown)
-        unknown_btn.is_unknown = True
-        unknown_btn.original_bg = unknown_btn.cget('bg')  # Store original background color
-        unknown_btn.grid(row=0, column=0, columnspan=2, padx=2, pady=2)
-        
-        # Penalty Goal button (columnspan 2)
-        penalty_goal_btn = tk.Button(bottom_frame, text="Penalty Goal", width=button_width * 2 + 3, height=button_height,
-                                    command=select_penalty_goal)
-        penalty_goal_btn.is_penalty_goal = True
-        penalty_goal_btn.original_bg = penalty_goal_btn.cget('bg')  # Store original background color
-        penalty_goal_btn.grid(row=0, column=2, columnspan=2, padx=2, pady=2)
-        
-        # OK button (in column 4)
-        ok_btn = tk.Button(bottom_frame, text="OK", width=button_width, height=button_height,
-                          command=on_ok)
-        ok_btn.original_bg = ok_btn.cget('bg')  # Store original background color
-        ok_btn.grid(row=0, column=4, padx=2, pady=2)
-        
-        # Wait for the dialog to close
-        self.master.wait_window(cap_number_dialog)
-        
-        return selected_cap["value"]
-
-    def show_penalties(self, trigger_button=None):
-        """
-        Show the penalties dialog window.
-        
-        Args:
-            trigger_button: Optional button widget that triggered this dialog.
-                          If provided, dialog will be positioned near the button
-                          (only if no saved position exists).
-        """
-        penalty_window = tk.Toplevel(self.master)
-        penalty_window.title("Penalties")
-        
-        # Set initial geometry to get accurate dialog dimensions
-        penalty_window.geometry("250x450")
-        penalty_window.update_idletasks()
-        
-        # Position dialog relative to trigger button if provided
-        if trigger_button:
-            # Calculate position relative to trigger button
-            # Get button's screen coordinates
-            button_x = trigger_button.winfo_rootx()
-            button_y = trigger_button.winfo_rooty()
-            button_width = trigger_button.winfo_width()
-            button_height = trigger_button.winfo_height()
-            
-            # Get screen and dialog dimensions
-            screen_width = penalty_window.winfo_screenwidth()
-            screen_height = penalty_window.winfo_screenheight()
-            # Use winfo_width/height instead of winfo_reqwidth/reqheight to get actual geometry
-            dialog_width = penalty_window.winfo_width()
-            dialog_height = penalty_window.winfo_height()
-            
-            # Define margins
-            top_margin = 20
-            bottom_margin = 20
-            left_margin = 20
-            right_margin = 20
-            gap = 10  # Gap between dialog bottom and button top (exactly 10 pixels)
-            
-            # Position dialog so its bottom edge is exactly 10 pixels above the button top edge
-            # dialog_y is the top of the dialog
-            # dialog_y + dialog_height is the bottom of the dialog
-            # We want: dialog_y + dialog_height = button_y - gap
-            # Therefore: dialog_y = button_y - gap - dialog_height
-            # No height restriction - dialog can be positioned anywhere on screen
-            dialog_y = button_y - gap - dialog_height
-            dialog_x = button_x  # Align left edge with button
-            
-            # Ensure dialog doesn't extend beyond screen right edge
-            if dialog_x + dialog_width > screen_width - right_margin:
-                dialog_x = screen_width - dialog_width - right_margin
-            
-            # Ensure dialog doesn't go beyond screen left edge
-            if dialog_x < left_margin:
-                dialog_x = left_margin
-            
-            penalty_window.geometry(f"250x450+{dialog_x}+{dialog_y}")
-        elif self.penalty_dialog_last_position is not None:
-            # No trigger button, but we have a saved position - use that
-            dialog_x, dialog_y = self.penalty_dialog_last_position
-            penalty_window.geometry(f"250x450+{dialog_x}+{dialog_y}")
-        else:
-            # No trigger button and no saved position - use default centered position
-            penalty_window.geometry("250x450")
-
-        button_frame = ttk.Frame(penalty_window, padding="10")
-        button_frame.pack(side="top", fill="x")
-        selected_team = tk.StringVar()
-
-        button_white = tk.Button(button_frame, text="White", width=10, command=lambda: select_team("White"))
-        button_white.pack(side="left", padx=5, expand=True)
-        button_black = tk.Button(button_frame, text="Black", width=10, command=lambda: select_team("Black"))
-        button_black.pack(side="left", padx=5, expand=True)
-
-        def select_team(team):
-            selected_team.set(team)
-            button_white.config(relief=tk.SUNKEN if team == "White" else tk.RAISED)
-            button_black.config(relief=tk.SUNKEN if team == "Black" else tk.RAISED)
-
-        select_team(selected_team.get())
-
-        numbers = list(range(1, 16))
-        dropdown_options = ["Pick Cap Number"] + numbers
-        dropdown_variable = tk.StringVar(value=dropdown_options[0])
-        dropdown = ttk.Combobox(penalty_window, textvariable=dropdown_variable, values=dropdown_options, state="readonly", height=16)
-        dropdown.pack(pady=10)
-
-        radio_frame = ttk.Frame(penalty_window)
-        radio_frame.pack(side="top", anchor="w", pady=10, fill="both")
-        # Use ONE shared variable for all radio buttons and set to empty string
-        # This ensures no radio button is selected when the dialog opens
-        radio_variable = tk.StringVar(value="")
-        radio_button_1 = tk.Radiobutton(radio_frame, text="1 minute", variable=radio_variable, value="1 minute", indicatoron=True)
-        radio_button_2 = tk.Radiobutton(radio_frame, text="2 minutes", variable=radio_variable, value="2 minutes", indicatoron=True)
-        radio_button_3 = tk.Radiobutton(radio_frame, text="5 minutes", variable=radio_variable, value="5 minutes", indicatoron=True)
-        radio_button_4 = tk.Radiobutton(radio_frame, text="Rest of the match", variable=radio_variable, value="Rest of the match", indicatoron=True)
-        radio_button_1.pack(anchor="w")
-        radio_button_2.pack(anchor="w")
-        radio_button_3.pack(anchor="w")
-        radio_button_4.pack(anchor="w")
-
-        summary_frame = ttk.Frame(penalty_window)
-        summary_frame.pack(side="top", fill="both", expand=True)
-        summary_label = ttk.Label(summary_frame, text="Stored Penalties (max 6):")
-        summary_label.pack(anchor="w")
-        penalty_listbox = tk.Listbox(summary_frame, height=6, exportselection=0)
-        penalty_listbox.pack(fill="both", expand=True)
-
-        def refresh_penalty_listbox():
-            selection = penalty_listbox.curselection()
-            selected_index = selection[0] if selection else None
-
-            penalty_listbox.delete(0, tk.END)
-            for penalty in getattr(self, 'active_penalties', []):
-                if penalty["is_rest_of_match"]:
-                    time_str = "REST OF MATCH"
-                else:
-                    mins, secs = divmod(penalty["seconds_remaining"], 60)
-                    time_str = f"{int(mins):02d}:{int(secs):02d}"
-                penalty_listbox.insert(tk.END, f"{penalty['team']} #{penalty['cap']} {time_str}")
-
-            for p in getattr(self, 'stored_penalties', []):
-                if not any(ap["team"] == p["team"] and ap["cap"] == p["cap"] and ap["duration"] == p["duration"]
-                        for ap in getattr(self, 'active_penalties', [])):
-                    penalty_listbox.insert(tk.END, f"{p['team']} #{p['cap']} {p['duration']}")
-
-            if selected_index is not None and penalty_listbox.size() > selected_index:
-                penalty_listbox.selection_set(selected_index)
-                penalty_listbox.activate(selected_index)
-            elif penalty_listbox.size() > 0:
-                penalty_listbox.selection_clear(0, tk.END)
-
-        refresh_penalty_listbox()
-
-        def periodic_refresh():
-            if penalty_window.winfo_exists():
-                refresh_penalty_listbox()
-                penalty_window.after(1000, periodic_refresh)
-        penalty_window.after(1000, periodic_refresh)
-
-        def start_penalty():
-            team = selected_team.get()
-            cap = dropdown_variable.get()
-            duration = radio_variable.get()
-            if team not in ["White", "Black"]:
-                messagebox.showerror("Error", "Choose White or Black team.")
-                return
-            if cap == "Pick Cap Number":
-                messagebox.showerror("Error", "Choose a cap number.")
-                return
-            if duration == "":
-                messagebox.showerror("Error", "Choose a penalty duration.")
-                return
-            if len(self.stored_penalties) >= 6:
-                messagebox.showerror("Error", "Maximum 6 penalties can be stored.")
-                return
-
-            if self.start_penalty_timer(team, cap, duration):
-                refresh_penalty_listbox()
-                selected_team.set("")
-                select_team("")
-                dropdown_variable.set(dropdown_options[0])
-                radio_variable.set("")
-            else:
-                messagebox.showerror("Error", "Failed to start penalty timer.")
-
-        def remove_penalty():
-            selection = penalty_listbox.curselection()
-            if not selection:
-                messagebox.showerror("Error", "Please select a penalty to remove.")
-                return
-
-            idx = selection[0]
-            active_count = len(getattr(self, 'active_penalties', []))
-
-            if idx < active_count:
-                penalty_to_remove = self.active_penalties[idx]
-                self.remove_penalty(penalty_to_remove)
-                refresh_penalty_listbox()
-            else:
-                stored_idx = idx - active_count
-                if 0 <= stored_idx < len(self.stored_penalties):
-                    self.stored_penalties.pop(stored_idx)
-                    refresh_penalty_listbox()
-
-        start_button_frame = ttk.Frame(penalty_window)
-        start_button_frame.pack(side="bottom", fill="x", pady=10)
-
-        button_container = ttk.Frame(start_button_frame)
-        button_container.pack(expand=True, fill="x")
-    
-        start_button = ttk.Button(button_container, text="Start Penalty", command=start_penalty)
-        start_button.pack(side="left", expand=True, fill="x", padx=(0, 5))
-
-        remove_button = ttk.Button(button_container, text="Remove Selected", command=remove_penalty)
-        remove_button.pack(side="right", expand=True, fill="x", padx=(5, 0))
-
-        # --- PATCH: Close button directly under Start Penalty/Remove Selected buttons ---
-        close_button = ttk.Button(start_button_frame, text="Close", command=penalty_window.destroy)
-        close_button.pack(side="bottom", fill="x", padx=10, pady=(0,10))
-
-        # Function to save the dialog position when it's moved
-        def save_dialog_position(event=None):
-            # Only save position if the event is from the main window (not child widgets)
-            if event is None or event.widget == penalty_window:
-                try:
-                    # Use winfo methods to get actual screen position
-                    x_coord = penalty_window.winfo_x()
-                    y_coord = penalty_window.winfo_y()
-                    # Only save if we have valid coordinates
-                    if x_coord >= 0 and y_coord >= 0:
-                        self.penalty_dialog_last_position = (x_coord, y_coord)
-                except:
-                    pass
-        
-        # Bind the Configure event to save position when window is moved
-        penalty_window.bind('<Configure>', save_dialog_position)
-        
-        # Also save position when dialog is closed
-        def on_close():
-            save_dialog_position()
-            penalty_window.destroy()
-        
-        # Update the close button to use our custom close handler
-        close_button.config(command=on_close)
-        penalty_window.protocol("WM_DELETE_WINDOW", on_close)
-
-        penalty_window.transient(self.master)
-        penalty_window.grab_set()
-
-    def toggle_referee_timeout(self):
-        if not self.referee_timeout_active:
-            self.referee_timeout_active = True
-            self.referee_timeout_button.config(
-                bg=self.referee_timeout_active_bg,
-                fg=self.referee_timeout_active_fg,
-                activebackground=self.referee_timeout_active_bg,
-                activeforeground=self.referee_timeout_active_fg
-            )
-            self.saved_state = {
-                "timer_seconds": self.timer_seconds,
-                "timer_running": self.timer_running,
-                "timer_job": self.timer_job,
-                "current_index": self.current_index,
-                # Event-driven: Get text from StringVar instead of widget
-                "half_label_text": self.half_label_var.get(),
-                "half_label_bg": self.half_label.cget("bg"),
-                "court_time_paused": self.court_time_paused,
-                "court_time_job": self.court_time_job,
-            }
-            if self.timer_job:
-                self.master.after_cancel(self.timer_job)
-                self.timer_job = None
-            self.timer_running = False
-            if self.court_time_job:
-                self.master.after_cancel(self.court_time_job)
-                self.court_time_job = None
-            self.court_time_paused = True
-            self.pause_all_penalty_timers()
-            self.referee_timeout_elapsed = 0
-            # Event-driven: Update the StringVar instead of calling .config()
-            self.half_label_var.set("Ref Time-Out")
-            self.half_label.config(bg="red")
-            # Show the referee timeout timer label
-            self.referee_timeout_timer_label.grid()
-            if hasattr(self, "display_referee_timeout_timer_label"):
-                self.display_referee_timeout_timer_label.grid()
-            self.referee_timeout_countup()
-            # --- PATCH: Explicitly enable penalties button during referee timeout ---
-            if hasattr(self, "penalties_button"):
-                self.penalties_button.config(state=tk.NORMAL)
-        else:
-            self.referee_timeout_active = False
-            self.referee_timeout_button.config(
-                bg=self.referee_timeout_default_bg,
-                fg=self.referee_timeout_default_fg,
-                activebackground=self.referee_timeout_default_bg,
-                activeforeground=self.referee_timeout_default_fg
-            )
-            # Hide the referee timeout timer label
-            self.referee_timeout_timer_label.grid_remove()
-            if hasattr(self, "display_referee_timeout_timer_label"):
-                self.display_referee_timeout_timer_label.grid_remove()
-            self.timer_seconds = self.saved_state["timer_seconds"]
-            self.timer_running = self.saved_state["timer_running"]
-            self.current_index = self.saved_state["current_index"]
-            # Event-driven: Update the StringVar instead of calling .config()
-            self.half_label_var.set(self.saved_state["half_label_text"])
-            self.half_label.config(bg=self.saved_state["half_label_bg"])
-            self.court_time_paused = self.saved_state.get("court_time_paused", False)
-            # Only resume penalty timers if we're not in a break period
-            cur_period = self.full_sequence[self.current_index]
-            PAUSE_PERIODS = [
-                "First Game Starts In:",
-                "Between Game Break",
-                "Half Time",
-                "Overtime Game Break",
-                "Overtime Half Time",
-                "Sudden Death Game Break",
-                "White Team Time-Out",
-                "Black Team Time-Out",
-                "Referee Time-Out"
-            ]
-            if cur_period['name'] not in PAUSE_PERIODS:
-                self.resume_all_penalty_timers()
-            self.update_timer_display()
-            # --- PATCH: Resume Team Time-Out timer if it was interrupted ---
-            if self.in_timeout:
-                # Resume the timeout countdown
-                if self.timer_job:
-                    self.master.after_cancel(self.timer_job)
-                    self.timer_job = None
-                self.timer_job = self.master.after(1000, self.timeout_countdown)
-            elif self.timer_running:
-                self.timer_job = self.master.after(1000, self.countdown_timer)
-            if not self.court_time_paused:
-                self.court_time_job = self.master.after(1000, self.update_court_time)
-            # --- PATCH: Restore penalties button state after referee timeout ends ---
-            # (reusing cur_period from line 3773)
-            if cur_period['type'] == 'break':
-                self.penalties_button.config(state=tk.DISABLED)
-            else:
-                self.penalties_button.config(state=tk.NORMAL)
-
-    def referee_timeout_countup(self):
-        if not self.referee_timeout_active:
-            return
-        mins, secs = divmod(self.referee_timeout_elapsed, 60)
-        # Update the referee timeout timer label
-        self.referee_timeout_timer_var.set(f"Ref Time-Out: {int(mins):02d}:{int(secs):02d}")
-        self.referee_timeout_elapsed += 1
-        self.timer_job = self.master.after(1000, self.referee_timeout_countup)
-
-    def restore_sudden_death_after_goal_removal(self):
-        self.sudden_death_goal_scored = False
-        self.current_index = self.find_period_index('Sudden Death')
-        self.sudden_death_seconds = self.sudden_death_restore_time
-        self.sudden_death_restore_active = False
-        self.sudden_death_restore_time = None
-        self.start_current_period()
-
-    def adjust_score_with_confirm(self, score_var, team_name):
-        if score_var.get() == 0:
-            return
-        if not messagebox.askyesno(
-            "Subtract Goal",
-            f"Are you sure you want to remove goal from {team_name}?"
-        ):
-            return
-        cur_period = self.full_sequence[self.current_index]
-        is_team_timeout = getattr(self, 'in_timeout', False)
-        is_referee_timeout = getattr(self, 'referee_timeout_active', False)
-        is_break = cur_period['type'] == 'break'
-        if is_break or is_team_timeout or is_referee_timeout:
-            # Customize the warning message based on the situation
-            if is_team_timeout:
-                warning_msg = f"You are about to adjust a goal for {team_name} during a Team Time-Out. Are you sure?"
-            elif is_referee_timeout:
-                warning_msg = f"You are about to adjust a goal for {team_name} during a Referee Time-Out. Are you sure?"
-            else:
-                warning_msg = f"You are about to adjust a goal for {team_name} during a break or half time. Are you sure?"
-            
-            if not messagebox.askyesno(
-                "Adjust Goal During Break?",
-                warning_msg
-            ):
-                return
-        if score_var.get() > 0:
-            if (cur_period['name'] == 'Between Game Break'
-                and getattr(self, 'sudden_death_restore_active', False)
-                and self.sudden_death_restore_time is not None
-                and self.timer_seconds > 30):
-                score_var.set(score_var.get() - 1)
-                self.restore_sudden_death_after_goal_removal()
-                return
-            score_var.set(score_var.get() - 1)
-        if cur_period['name'] == 'Sudden Death':
-            return
-
-    def add_goal_with_confirmation(self, score_var, team_name, trigger_button=None):
-        cur_period = self.full_sequence[self.current_index]
-        is_team_timeout = getattr(self, 'in_timeout', False)
-        is_referee_timeout = getattr(self, 'referee_timeout_active', False)
-        is_break = cur_period['type'] == 'break'
-        
-        # Determine if we should show a warning and what message to use
-        show_warning = is_break or is_team_timeout or is_referee_timeout
-        
-        if show_warning:
-            # Customize the warning message based on the situation
-            if is_team_timeout:
-                warning_msg = f"You are about to add a goal for {team_name} during a Team Time-Out. Are you sure?"
-            elif is_referee_timeout:
-                warning_msg = f"You are about to add a goal for {team_name} during a Referee Time-Out. Are you sure?"
-            else:
-                warning_msg = f"You are about to add a goal for {team_name} during a break or half time. Are you sure?"
-            
-            if not messagebox.askyesno(
-                "Add Goal During Break?",
-                warning_msg
-            ):
-                return
-        
-        # Get cap number if recording is enabled
-        cap_number = None
-        if self.record_scorers_cap_number_var.get():
-            cap_number = self.show_cap_number_dialog(trigger_button)
-            if cap_number is None:
-                # User canceled the dialog, don't add the goal
-                return
-        
-        score_var.set(score_var.get() + 1)
-        
-        # Log the goal with cap number and break/timeout status
-        break_status = None
-        if is_team_timeout:
-            break_status = "Team Time-Out"
-        elif is_referee_timeout:
-            break_status = "Referee Time-Out"
-        elif is_break:
-            break_status = "Break"
-        
-        self.log_game_event("Goal", team=team_name, cap_number=cap_number, break_status=break_status)
+           "duration": duration,
+          "seconds_remaining": seconds,
+           "timer_job": None,
+           "is_rest_of_match": seconds == -1
+       }
+       self.active_penalties.append(penalty)
+       self.stored_penalties.append({"team": team, "cap": cap, "duration": duration})
+       
+       # Log the penalty start
+       self.log_game_event("Penalty Start", team=team, cap_number=str(cap), duration=duration)     
+       self.update_penalty_display()
+       if not penalty["is_rest_of_match"]:
+           self.schedule_penalty_countdown(penalty)
+       return True
+   def schedule_penalty_countdown(self, penalty):
+       if not self.penalty_timers_paused and penalty["seconds_remaining"] > 0:
+           penalty["timer_job"] = self.master.after(1000, lambda: self.penalty_countdown(penalty))
+   def penalty_countdown(self, penalty):
+       """
+       Handles countdown for an individual penalty. When the timer runs down to zero,
+       removes the penalty and updates the penalty display robustly.
+       """
+       if penalty not in self.active_penalties:
+           # Don't need to call update_penalty_display here, remove_penalty does it
+           return
+       if penalty.get("timer_job"):
+           try:
+               self.master.after_cancel(penalty["timer_job"])
+           except Exception:
+               pass
+           penalty["timer_job"] = None
+       if self.penalty_timers_paused or penalty.get("is_rest_of_match"):
+           return
+       if penalty["seconds_remaining"] > 0:
+           penalty["seconds_remaining"] -= 1
+           # Check if penalty just expired (reached 0)
+           if penalty["seconds_remaining"] == 0:
+               # Immediately remove the expired penalty
+               self.remove_penalty(penalty)  # This will update the display
+           else:
+               # Still time remaining, update display and schedule next countdown
+               self.update_penalty_display()
+               self.schedule_penalty_countdown(penalty)
+       else:
+           # Should not normally reach here, but handle it just in case
+           self.remove_penalty(penalty)  # This will update the display
+   def remove_penalty(self, penalty):
+       if penalty in self.active_penalties:
+           if penalty["timer_job"]:
+               self.master.after_cancel(penalty["timer_job"])
+               penalty["timer_job"] = None
+           self.active_penalties.remove(penalty)
+           for stored in self.stored_penalties[:]:
+               if (stored["team"] == penalty["team"] and 
+                   stored["cap"] == penalty["cap"] and 
+                   stored["duration"] == penalty["duration"]):
+                   self.stored_penalties.remove(stored)
+                   break
+           # Ensure widget display updates after ALL removals
+           self.update_penalty_display()
+   def clear_all_penalties(self):
+       for penalty in self.active_penalties[:]:
+           self.remove_penalty(penalty)
+       self.update_penalty_display()
+   def pause_all_penalty_timers(self):
+       self.penalty_timers_paused = True
+       for penalty in self.active_penalties:
+           if penalty["timer_job"]:
+               self.master.after_cancel(penalty["timer_job"])
+               penalty["timer_job"] = None
+       self.update_penalty_display()
+   def resume_all_penalty_timers(self):
+       self.penalty_timers_paused = False
+       for penalty in self.active_penalties:
+           if not penalty["is_rest_of_match"] and penalty["seconds_remaining"] > 0:
+               self.schedule_penalty_countdown(penalty)
+       self.update_penalty_display()
+   def show_cap_number_dialog(self, trigger_button=None):
+       """
+       Show a dialog to select a cap number (1-15) or Unknown.
+       Returns the selected cap number as a string, or None if canceled.
+       
+       Args:
+           trigger_button: Optional button widget that triggered this dialog.
+                         If provided, dialog will be positioned near the button.
+       """
+       cap_number_dialog = tk.Toplevel(self.master)
+       cap_number_dialog.title("Select Cap Number")
+       
+       # Position the dialog near the trigger button if provided
+       if trigger_button:
+           # Get button's screen coordinates
+           button_x = trigger_button.winfo_rootx()
+           button_y = trigger_button.winfo_rooty()
+           button_width = trigger_button.winfo_width()
+           button_height = trigger_button.winfo_height()
+           
+           # Set initial geometry to get accurate dialog dimensions
+           cap_number_dialog.geometry("400x300")
+           cap_number_dialog.update_idletasks()
+           
+           # Get screen and dialog dimensions
+           screen_width = cap_number_dialog.winfo_screenwidth()
+           screen_height = cap_number_dialog.winfo_screenheight()
+           dialog_width = cap_number_dialog.winfo_reqwidth()
+           dialog_height = cap_number_dialog.winfo_reqheight()
+           
+           # Define margins
+           top_margin = 20
+           bottom_margin = 20
+           left_margin = 20
+           right_margin = 20
+           gap = 10  # Gap between dialog bottom and button top
+           
+           # Position dialog so its bottom edge is above the button top edge
+           # dialog_y is the top of the dialog
+           # dialog_y + dialog_height is the bottom of the dialog
+           # We want: dialog_y + dialog_height <= button_y - gap
+           # Therefore: dialog_y <= button_y - gap - dialog_height
+           dialog_y = button_y - gap - dialog_height
+           dialog_x = button_x  # Align left edge with button
+           
+           # Ensure dialog is fully visible on screen
+           # Check if dialog would go above screen top
+           if dialog_y < top_margin:
+               dialog_y = top_margin
+           
+           # After adjusting for top margin, ensure bottom edge is still above button
+           # If dialog bottom would be at or below button top, we have a constraint violation
+           # In this case, keep dialog as high as possible while staying on screen
+           if dialog_y + dialog_height > button_y - gap:
+               # Dialog cannot fit above button with gap, position as high as possible
+               dialog_y = max(top_margin, button_y - gap - dialog_height)
+           
+           # Ensure dialog doesn't extend beyond screen bottom
+           if dialog_y + dialog_height > screen_height - bottom_margin:
+               dialog_y = screen_height - dialog_height - bottom_margin
+               if dialog_y < top_margin:
+                   dialog_y = top_margin
+           
+           # Ensure dialog doesn't extend beyond screen right edge
+           if dialog_x + dialog_width > screen_width - right_margin:
+               dialog_x = screen_width - dialog_width - right_margin
+           
+           # Ensure dialog doesn't go beyond screen left edge
+           if dialog_x < left_margin:
+               dialog_x = left_margin
+           
+           cap_number_dialog.geometry(f"400x300+{dialog_x}+{dialog_y}")
+       else:
+           cap_number_dialog.geometry("400x300")
+       
+       cap_number_dialog.transient(self.master)
+       cap_number_dialog.grab_set()
+       
+       selected_cap = {"value": None}
+       
+       # Title label
+       title_label = tk.Label(cap_number_dialog, text="Select Scorer's Cap Number:", 
+                              font=("Arial", 12, "bold"))
+       title_label.pack(pady=10)
+       
+       # Frame for the button matrix
+       matrix_frame = tk.Frame(cap_number_dialog)
+       matrix_frame.pack(pady=10)
+       
+       def select_cap(cap):
+           selected_cap["value"] = str(cap)
+           # Highlight the selected button and keep it highlighted
+           def apply_highlight():
+               for widget in matrix_frame.winfo_children():
+                   if hasattr(widget, 'cap_value') and widget.cap_value == cap:
+                       widget.config(relief=tk.SUNKEN, bg="lightblue")
+                   elif isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
+                       widget.config(relief=tk.RAISED, bg=widget.original_bg)
+               for widget in bottom_frame.winfo_children():
+                   if isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
+                       widget.config(relief=tk.RAISED, bg=widget.original_bg)
+           # Apply immediately and schedule again to override button's default behavior
+           apply_highlight()
+           cap_number_dialog.after(1, apply_highlight)
+       
+       def select_unknown():
+           selected_cap["value"] = "Unknown"
+           # Highlight Unknown button and keep it highlighted
+           def apply_highlight():
+               for widget in matrix_frame.winfo_children():
+                   if isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
+                       widget.config(relief=tk.RAISED, bg=widget.original_bg)
+               for widget in bottom_frame.winfo_children():
+                   if hasattr(widget, 'is_unknown'):
+                       widget.config(relief=tk.SUNKEN, bg="lightblue")
+                   elif isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
+                       widget.config(relief=tk.RAISED, bg=widget.original_bg)
+           # Apply immediately and schedule again to override button's default behavior
+           apply_highlight()
+           cap_number_dialog.after(1, apply_highlight)
+       
+       def select_penalty_goal():
+           selected_cap["value"] = "Penalty Goal"
+           # Highlight Penalty Goal button and keep it highlighted
+           def apply_highlight():
+               for widget in matrix_frame.winfo_children():
+                   if isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
+                       widget.config(relief=tk.RAISED, bg=widget.original_bg)
+               for widget in bottom_frame.winfo_children():
+                   if hasattr(widget, 'is_penalty_goal'):
+                       widget.config(relief=tk.SUNKEN, bg="lightblue")
+                   elif isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
+                       widget.config(relief=tk.RAISED, bg=widget.original_bg)
+           # Apply immediately and schedule again to override button's default behavior
+           apply_highlight()
+           cap_number_dialog.after(1, apply_highlight)
+       
+       def on_ok():
+           if selected_cap["value"] is not None:
+               cap_number_dialog.destroy()
+           else:
+               messagebox.showwarning("No Selection", "Please select a cap number or Unknown.")
+       
+       # Create 5x3 matrix of buttons (1-15)
+       button_width = 5
+       button_height = 2
+       for row in range(3):
+           for col in range(5):
+               cap_num = row * 5 + col + 1
+               btn = tk.Button(matrix_frame, text=str(cap_num), width=button_width, height=button_height,
+                              command=lambda c=cap_num: select_cap(c))
+               btn.cap_value = cap_num
+               btn.original_bg = btn.cget('bg')  # Store original background color
+               btn.grid(row=row, column=col, padx=2, pady=2)
+       
+       # Bottom frame for Unknown and OK buttons
+       bottom_frame = tk.Frame(cap_number_dialog)
+       bottom_frame.pack(pady=10)
+       
+       # Unknown button (columnspan 2, half the original width)
+       unknown_btn = tk.Button(bottom_frame, text="Unknown", width=button_width * 2 + 3, height=button_height,
+                              command=select_unknown)
+       unknown_btn.is_unknown = True
+       unknown_btn.original_bg = unknown_btn.cget('bg')  # Store original background color
+       unknown_btn.grid(row=0, column=0, columnspan=2, padx=2, pady=2)
+       
+       # Penalty Goal button (columnspan 2)
+       penalty_goal_btn = tk.Button(bottom_frame, text="Penalty Goal", width=button_width * 2 + 3, height=button_height,
+                                   command=select_penalty_goal)
+       penalty_goal_btn.is_penalty_goal = True
+       penalty_goal_btn.original_bg = penalty_goal_btn.cget('bg')  # Store original background color
+       penalty_goal_btn.grid(row=0, column=2, columnspan=2, padx=2, pady=2)
+       
+       # OK button (in column 4)
+       ok_btn = tk.Button(bottom_frame, text="OK", width=button_width, height=button_height,
+                         command=on_ok)
+       ok_btn.original_bg = ok_btn.cget('bg')  # Store original background color
+       ok_btn.grid(row=0, column=4, padx=2, pady=2)
+       
+       # Wait for the dialog to close
+       self.master.wait_window(cap_number_dialog)
+       
+       return selected_cap["value"]
+   def show_penalties(self, trigger_button=None):
+       """
+       Show the penalties dialog window.
+       
+       Args:
+           trigger_button: Optional button widget that triggered this dialog.
+                         If provided, dialog will be positioned near the button
+                         (only if no saved position exists).
+       """
+       penalty_window = tk.Toplevel(self.master)
+       penalty_window.title("Penalties")
+       
+       # Set initial geometry to get accurate dialog dimensions
+       penalty_window.geometry("250x450")
+       penalty_window.update_idletasks()
+       
+       # Position dialog relative to trigger button if provided
+       if trigger_button:
+           # Calculate position relative to trigger button
+           # Get button's screen coordinates
+           button_x = trigger_button.winfo_rootx()
+           button_y = trigger_button.winfo_rooty()
+           button_width = trigger_button.winfo_width()
+           button_height = trigger_button.winfo_height()
+           
+           # Get screen and dialog dimensions
+           screen_width = penalty_window.winfo_screenwidth()
+           screen_height = penalty_window.winfo_screenheight()
+           # Use winfo_width/height instead of winfo_reqwidth/reqheight to get actual geometry
+           dialog_width = penalty_window.winfo_width()
+           dialog_height = penalty_window.winfo_height()
+           
+           # Define margins
+           top_margin = 20
+           bottom_margin = 20
+           left_margin = 20
+           right_margin = 20
+           gap = 10  # Gap between dialog bottom and button top (exactly 10 pixels)
+           
+           # Position dialog so its bottom edge is exactly 10 pixels above the button top edge
+           # dialog_y is the top of the dialog
+           # dialog_y + dialog_height is the bottom of the dialog
+           # We want: dialog_y + dialog_height = button_y - gap
+           # Therefore: dialog_y = button_y - gap - dialog_height
+           # No height restriction - dialog can be positioned anywhere on screen
+           dialog_y = button_y - gap - dialog_height
+           dialog_x = button_x  # Align left edge with button
+           
+           # Ensure dialog doesn't extend beyond screen right edge
+           if dialog_x + dialog_width > screen_width - right_margin:
+               dialog_x = screen_width - dialog_width - right_margin
+           
+           # Ensure dialog doesn't go beyond screen left edge
+           if dialog_x < left_margin:
+               dialog_x = left_margin
+           
+           penalty_window.geometry(f"250x450+{dialog_x}+{dialog_y}")
+       elif self.penalty_dialog_last_position is not None:
+           # No trigger button, but we have a saved position - use that
+           dialog_x, dialog_y = self.penalty_dialog_last_position
+           penalty_window.geometry(f"250x450+{dialog_x}+{dialog_y}")
+       else:
+           # No trigger button and no saved position - use default centered position
+           penalty_window.geometry("250x450")
+       button_frame = ttk.Frame(penalty_window, padding="10")
+       button_frame.pack(side="top", fill="x")
+       selected_team = tk.StringVar()
+       button_white = tk.Button(button_frame, text="White", width=10, command=lambda: select_team("White"))
+       button_white.pack(side="left", padx=5, expand=True)
+       button_black = tk.Button(button_frame, text="Black", width=10, command=lambda: select_team("Black"))
+       button_black.pack(side="left", padx=5, expand=True)
+       def select_team(team):
+           selected_team.set(team)
+           button_white.config(relief=tk.SUNKEN if team == "White" else tk.RAISED)
+           button_black.config(relief=tk.SUNKEN if team == "Black" else tk.RAISED)
+       select_team(selected_team.get())
+       numbers = list(range(1, 16))
+       dropdown_options = ["Pick Cap Number"] + numbers
+       dropdown_variable = tk.StringVar(value=dropdown_options[0])
+       dropdown = ttk.Combobox(penalty_window, textvariable=dropdown_variable, values=dropdown_options, state="readonly", height=16)
+       dropdown.pack(pady=10)
+       radio_frame = ttk.Frame(penalty_window)
+       radio_frame.pack(side="top", anchor="w", pady=10, fill="both")
+       # Use ONE shared variable for all radio buttons and set to empty string
+       # This ensures no radio button is selected when the dialog opens
+       radio_variable = tk.StringVar(value="")
+       radio_button_1 = tk.Radiobutton(radio_frame, text="1 minute", variable=radio_variable, value="1 minute", indicatoron=True)
+       radio_button_2 = tk.Radiobutton(radio_frame, text="2 minutes", variable=radio_variable, value="2 minutes", indicatoron=True)
+       radio_button_3 = tk.Radiobutton(radio_frame, text="5 minutes", variable=radio_variable, value="5 minutes", indicatoron=True)
+       radio_button_4 = tk.Radiobutton(radio_frame, text="Rest of the match", variable=radio_variable, value="Rest of the match", indicatoron=True)
+       radio_button_1.pack(anchor="w")
+       radio_button_2.pack(anchor="w")
+       radio_button_3.pack(anchor="w")
+       radio_button_4.pack(anchor="w")
+       summary_frame = ttk.Frame(penalty_window)
+       summary_frame.pack(side="top", fill="both", expand=True)
+       summary_label = ttk.Label(summary_frame, text="Stored Penalties (max 6):")
+       summary_label.pack(anchor="w")
+       penalty_listbox = tk.Listbox(summary_frame, height=6, exportselection=0)
+       penalty_listbox.pack(fill="both", expand=True)
+       def refresh_penalty_listbox():
+           selection = penalty_listbox.curselection()
+           selected_index = selection[0] if selection else None
+           penalty_listbox.delete(0, tk.END)
+           for penalty in getattr(self, 'active_penalties', []):
+               if penalty["is_rest_of_match"]:
+                   time_str = "REST OF MATCH"
+               else:
+                   mins, secs = divmod(penalty["seconds_remaining"], 60)
+                   time_str = f"{int(mins):02d}:{int(secs):02d}"
+               penalty_listbox.insert(tk.END, f"{penalty['team']} #{penalty['cap']} {time_str}")
+           for p in getattr(self, 'stored_penalties', []):
+               if not any(ap["team"] == p["team"] and ap["cap"] == p["cap"] and ap["duration"] == p["duration"]
+                       for ap in getattr(self, 'active_penalties', [])):
+                   penalty_listbox.insert(tk.END, f"{p['team']} #{p['cap']} {p['duration']}")
+           if selected_index is not None and penalty_listbox.size() > selected_index:
+               penalty_listbox.selection_set(selected_index)
+               penalty_listbox.activate(selected_index)
+           elif penalty_listbox.size() > 0:
+              penalty_listbox.selection_clear(0, tk.END)
+       refresh_penalty_listbox()
+       def periodic_refresh():
+           if penalty_window.winfo_exists():
+               refresh_penalty_listbox()
+               penalty_window.after(1000, periodic_refresh)
+       penalty_window.after(1000, periodic_refresh)
+       def start_penalty():
+           team = selected_team.get()
+           cap = dropdown_variable.get()
+           duration = radio_variable.get()
+           if team not in ["White", "Black"]:
+               messagebox.showerror("Error", "Choose White or Black team.")
+               return
+           if cap == "Pick Cap Number":
+               messagebox.showerror("Error", "Choose a cap number.")
+               return
+           if duration == "":
+               messagebox.showerror("Error", "Choose a penalty duration.")
+               return
+           if len(self.stored_penalties) >= 6:
+               messagebox.showerror("Error", "Maximum 6 penalties can be stored.")
+               return
+           if self.start_penalty_timer(team, cap, duration):
+               refresh_penalty_listbox()
+               selected_team.set("")
+               select_team("")
+               dropdown_variable.set(dropdown_options[0])
+               radio_variable.set("")
+           else:
+               messagebox.showerror("Error", "Failed to start penalty timer.")
+       def remove_penalty():
+           selection = penalty_listbox.curselection()
+           if not selection:
+               messagebox.showerror("Error", "Please select a penalty to remove.")
+               return
+           idx = selection[0]
+           active_count = len(getattr(self, 'active_penalties', []))
+           if idx < active_count:
+               penalty_to_remove = self.active_penalties[idx]
+               self.remove_penalty(penalty_to_remove)
+               refresh_penalty_listbox()
+           else:
+               stored_idx = idx - active_count
+               if 0 <= stored_idx < len(self.stored_penalties):
+                   self.stored_penalties.pop(stored_idx)
+                   refresh_penalty_listbox()
+       start_button_frame = ttk.Frame(penalty_window)
+       start_button_frame.pack(side="bottom", fill="x", pady=10)
+       button_container = ttk.Frame(start_button_frame)
+       button_container.pack(expand=True, fill="x")
+   
+       start_button = ttk.Button(button_container, text="Start Penalty", command=start_penalty)
+       start_button.pack(side="left", expand=True, fill="x", padx=(0, 5))
+       remove_button = ttk.Button(button_container, text="Remove Selected", command=remove_penalty)
+       remove_button.pack(side="right", expand=True, fill="x", padx=(5, 0))
+       # --- PATCH: Close button directly under Start Penalty/Remove Selected buttons ---
+       close_button = ttk.Button(start_button_frame, text="Close", command=penalty_window.destroy)
+       close_button.pack(side="bottom", fill="x", padx=10, pady=(0,10))
+       # Function to save the dialog position when it's moved
+       def save_dialog_position(event=None):
+           # Only save position if the event is from the main window (not child widgets)
+           if event is None or event.widget == penalty_window:
+               try:
+                   # Use winfo methods to get actual screen position
+                   x_coord = penalty_window.winfo_x()
+                   y_coord = penalty_window.winfo_y()
+                   # Only save if we have valid coordinates
+                   if x_coord >= 0 and y_coord >= 0:
+                       self.penalty_dialog_last_position = (x_coord, y_coord)
+               except:
+                   pass
+       
+       # Bind the Configure event to save position when window is moved
+       penalty_window.bind('<Configure>', save_dialog_position)
+       
+       # Also save position when dialog is closed
+       def on_close():
+           save_dialog_position()
+           penalty_window.destroy()
+       
+       # Update the close button to use our custom close handler
+       close_button.config(command=on_close)
+       penalty_window.protocol("WM_DELETE_WINDOW", on_close)
+       penalty_window.transient(self.master)
+       penalty_window.grab_set()
+   def toggle_referee_timeout(self):
+       if not self.referee_timeout_active:
+           self.referee_timeout_active = True
+           self.referee_timeout_button.config(
+               bg=self.referee_timeout_active_bg,
+               fg=self.referee_timeout_active_fg,
+               activebackground=self.referee_timeout_active_bg,
+               activeforeground=self.referee_timeout_active_fg
+           )
+           self.saved_state = {
+               "timer_seconds": self.timer_seconds,
+               "timer_running": self.timer_running,
+               "timer_job": self.timer_job,
+               "current_index": self.current_index,
+               # Event-driven: Get text from StringVar instead of widget
+               "half_label_text": self.half_label_var.get(),
+               "half_label_bg": self.half_label.cget("bg"),
+               "court_time_paused": self.court_time_paused,
+               "court_time_job": self.court_time_job,
+           }
+           if self.timer_job:
+               self.master.after_cancel(self.timer_job)
+               self.timer_job = None
+           self.timer_running = False
+           if self.court_time_job:
+               self.master.after_cancel(self.court_time_job)
+               self.court_time_job = None
+           self.court_time_paused = True
+           self.pause_all_penalty_timers()
+           self.referee_timeout_elapsed = 0
+           # Event-driven: Update the StringVar instead of calling .config()
+           self.half_label_var.set("Ref Time-Out")
+           self.half_label.config(bg="red")
+           # Show the referee timeout timer label
+           self.referee_timeout_timer_label.grid()
+           if hasattr(self, "display_referee_timeout_timer_label"):
+               self.display_referee_timeout_timer_label.grid()
+           self.referee_timeout_countup()
+           # --- PATCH: Explicitly enable penalties button during referee timeout ---
+           if hasattr(self, "penalties_button"):
+               self.penalties_button.config(state=tk.NORMAL)
+       else:
+           self.referee_timeout_active = False
+           self.referee_timeout_button.config(
+               bg=self.referee_timeout_default_bg,
+               fg=self.referee_timeout_default_fg,
+               activebackground=self.referee_timeout_default_bg,
+               activeforeground=self.referee_timeout_default_fg
+           )
+           # Hide the referee timeout timer label
+           self.referee_timeout_timer_label.grid_remove()
+           if hasattr(self, "display_referee_timeout_timer_label"):
+               self.display_referee_timeout_timer_label.grid_remove()
+           self.timer_seconds = self.saved_state["timer_seconds"]
+           self.timer_running = self.saved_state["timer_running"]
+           self.current_index = self.saved_state["current_index"]
+           # Event-driven: Update the StringVar instead of calling .config()
+           self.half_label_var.set(self.saved_state["half_label_text"])
+           self.half_label.config(bg=self.saved_state["half_label_bg"])
+           self.court_time_paused = self.saved_state.get("court_time_paused", False)
+           # Only resume penalty timers if we're not in a break period
+           cur_period = self.full_sequence[self.current_index]
+           PAUSE_PERIODS = [
+               "First Game Starts In:",
+               "Between Game Break",
+               "Half Time",
+               "Overtime Game Break",
+               "Overtime Half Time",
+               "Sudden Death Game Break",
+               "White Team Time-Out",
+               "Black Team Time-Out",
+               "Referee Time-Out"
+           ]
+           if cur_period['name'] not in PAUSE_PERIODS:
+               self.resume_all_penalty_timers()
+           self.update_timer_display()
+           # --- PATCH: Resume Team Time-Out timer if it was interrupted ---
+           if self.in_timeout:
+               # Resume the timeout countdown
+               if self.timer_job:
+                   self.master.after_cancel(self.timer_job)
+                   self.timer_job = None
+               self.timer_job = self.master.after(1000, self.timeout_countdown)
+           elif self.timer_running:
+               self.timer_job = self.master.after(1000, self.countdown_timer)
+           if not self.court_time_paused:
+               self.court_time_job = self.master.after(1000, self.update_court_time)
+           # --- PATCH: Restore penalties button state after referee timeout ends ---
+           # (reusing cur_period from line 3773)
+           if cur_period['type'] == 'break':
+               self.penalties_button.config(state=tk.DISABLED)
+           else:
+               self.penalties_button.config(state=tk.NORMAL)
+   def referee_timeout_countup(self):
+       if not self.referee_timeout_active:
+           return
+       mins, secs = divmod(self.referee_timeout_elapsed, 60)
+       # Update the referee timeout timer label
+       self.referee_timeout_timer_var.set(f"Ref Time-Out: {int(mins):02d}:{int(secs):02d}")
+       self.referee_timeout_elapsed += 1
+       self.timer_job = self.master.after(1000, self.referee_timeout_countup)
+   def restore_sudden_death_after_goal_removal(self):
+       self.sudden_death_goal_scored = False
+       self.current_index = self.find_period_index('Sudden Death')
+       self.sudden_death_seconds = self.sudden_death_restore_time
+       self.sudden_death_restore_active = False
+       self.sudden_death_restore_time = None
+       self.start_current_period()
+   def adjust_score_with_confirm(self, score_var, team_name):
+       if score_var.get() == 0:
+           return
+       if not messagebox.askyesno(
+           "Subtract Goal",
+           f"Are you sure you want to remove goal from {team_name}?"
+       ):
+           return
+       cur_period = self.full_sequence[self.current_index]
+       is_team_timeout = getattr(self, 'in_timeout', False)
+       is_referee_timeout = getattr(self, 'referee_timeout_active', False)
+       is_break = cur_period['type'] == 'break'
+       if is_break or is_team_timeout or is_referee_timeout:
+           # Customize the warning message based on the situation
+           if is_team_timeout:
+               warning_msg = f"You are about to adjust a goal for {team_name} during a Team Time-Out. Are you sure?"
+           elif is_referee_timeout:
+               warning_msg = f"You are about to adjust a goal for {team_name} during a Referee Time-Out. Are you sure?"
+           else:
+               warning_msg = f"You are about to adjust a goal for {team_name} during a break or half time. Are you sure?"
+           
+           if not messagebox.askyesno(
+               "Adjust Goal During Break?",
+               warning_msg
+           ):
+               return
+       if score_var.get() > 0:
+           if (cur_period['name'] == 'Between Game Break'
+               and getattr(self, 'sudden_death_restore_active', False)
+               and self.sudden_death_restore_time is not None
+               and self.timer_seconds > 30):
+               score_var.set(score_var.get() - 1)
+               self.restore_sudden_death_after_goal_removal()
+               return
+           score_var.set(score_var.get() - 1)
+       if cur_period['name'] == 'Sudden Death':
+           return
+   def add_goal_with_confirmation(self, score_var, team_name, trigger_button=None):
+       cur_period = self.full_sequence[self.current_index]
+       is_team_timeout = getattr(self, 'in_timeout', False)
+       is_referee_timeout = getattr(self, 'referee_timeout_active', False)
+       is_break = cur_period['type'] == 'break'
+       
+       # Determine if we should show a warning and what message to use
+       show_warning = is_break or is_team_timeout or is_referee_timeout
+       
+       if show_warning:
+           # Customize the warning message based on the situation
+           if is_team_timeout:
+               warning_msg = f"You are about to add a goal for {team_name} during a Team Time-Out. Are you sure?"
+           elif is_referee_timeout:
+               warning_msg = f"You are about to add a goal for {team_name} during a Referee Time-Out. Are you sure?"
+           else:
+               warning_msg = f"You are about to add a goal for {team_name} during a break or half time. Are you sure?"
+           
+           if not messagebox.askyesno(
+               "Add Goal During Break?",
+               warning_msg
+           ):
+               return
+       
+       # Get cap number if recording is enabled
+       cap_number = None
+       if self.record_scorers_cap_number_var.get():
+           cap_number = self.show_cap_number_dialog(trigger_button)
+           if cap_number is None:
+               # User canceled the dialog, don't add the goal
+               return
+       
+       score_var.set(score_var.get() + 1)
+       
+       # Log the goal with cap number and break/timeout status
+       break_status = None
+       if is_team_timeout:
+           break_status = "Team Time-Out"
+       elif is_referee_timeout:
+           break_status = "Referee Time-Out"
+       elif is_break:
+           break_status = "Break"
+       
+       self.log_game_event("Goal", team=team_name, cap_number=cap_number, break_status=break_status)
 
 #Saves the current Sudden Death timer value (self.sudden_death_seconds) for possible restoration (for example, if the goal is later subtracted).
 #Flags that a goal has been scored in Sudden Death (prevents this block from running again).
