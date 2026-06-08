@@ -448,10 +448,10 @@ class GameManagementApp:
     def __init__(self, master):
         self.master = master
         raise Exception(
-            f"class_has_white={hasattr(GameManagementApp,'white_team_timeout')}\n"
-            f"class_has_countdown={hasattr(GameManagementApp,'countdown_timer')}\n"
-            f"class_has_reset={hasattr(GameManagementApp,'reset_timeouts_for_half')}\n"
-            f"class_has_black={hasattr(GameManagementApp,'black_team_timeout')}"
+            f"has_start_sd={hasattr(GameManagementApp, 'start_sudden_death_timer')}\n"
+            f"has_stop_sd={hasattr(GameManagementApp, 'stop_sudden_death_timer')}\n"
+            f"has_next_period={hasattr(GameManagementApp, 'next_period')}\n"
+            f"has_show_diag={hasattr(GameManagementApp, 'show_hardware_diagnostics')}"
         )
 
         self.master.title("Underwater Hockey Game Management App")
