@@ -448,9 +448,9 @@ class GameManagementApp:
     def __init__(self, master):
         self.master = master
         raise Exception(
-            f"sync_display_widgets={hasattr(GameManagementApp,'sync_display_widgets')}\n"
-            f"reset_timer={hasattr(GameManagementApp,'reset_timer')}\n"
-            f"update_court_time={hasattr(GameManagementApp,'update_court_time')}"
+            f"update_court_time={hasattr(GameManagementApp,'update_court_time')}\n"
+            f"update_timer_display={hasattr(GameManagementApp,'update_timer_display')}\n"
+            f"start_current_period={hasattr(GameManagementApp,'start_current_period')}"
         )
 
         self.master.title("Underwater Hockey Game Management App")
@@ -3482,27 +3482,27 @@ Sound file and volume settings are from the Sounds tab."""
         self.update_court_time()
         self.start_current_period()
             
-        def update_court_time(self):
-            if self.court_time_job is not None:
-                self.master.after_cancel(self.court_time_job)
-                self.court_time_job = None
-    
-            if self.court_time_seconds is None:
-                now = datetime.datetime.now()
-                self.court_time_seconds = now.hour * 3600 + now.minute * 60 + now.second
-    
-            if self.court_time_paused:
-                self.court_time_job = self.master.after(1000, self.update_court_time)
-                return
-    
-            self.court_time_seconds += 1
-    
-            hours, remainder = divmod(self.court_time_seconds, 3600)
-            minutes, seconds = divmod(remainder, 60)
-            time_string = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
-            # Event-driven: Update the StringVar instead of calling .config()
-            self.court_time_var.set(f"Court Time is {time_string}")
+    def update_court_time(self):
+        if self.court_time_job is not None:
+            self.master.after_cancel(self.court_time_job)
+            self.court_time_job = None
+
+        if self.court_time_seconds is None:
+            now = datetime.datetime.now()
+            self.court_time_seconds = now.hour * 3600 + now.minute * 60 + now.second
+
+        if self.court_time_paused:
             self.court_time_job = self.master.after(1000, self.update_court_time)
+            return
+
+        self.court_time_seconds += 1
+
+        hours, remainder = divmod(self.court_time_seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        time_string = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+        # Event-driven: Update the StringVar instead of calling .config()
+        self.court_time_var.set(f"Court Time is {time_string}")
+        self.court_time_job = self.master.after(1000, self.update_court_time)
 
     def update_timer_display(self):
         if self.referee_timeout_active:
