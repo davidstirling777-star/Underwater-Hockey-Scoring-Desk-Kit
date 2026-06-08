@@ -447,6 +447,13 @@ class GameManagementApp:
         
     def __init__(self, master):
         self.master = master
+        raise Exception(
+            f"class_has_white={hasattr(GameManagementApp,'white_team_timeout')}\n"
+            f"class_has_countdown={hasattr(GameManagementApp,'countdown_timer')}\n"
+            f"class_has_reset={hasattr(GameManagementApp,'reset_timeouts_for_half')}\n"
+            f"class_has_black={hasattr(GameManagementApp,'black_team_timeout')}"
+        )
+
         self.master.title("Underwater Hockey Game Management App")
         self.master.geometry('1200x800')
 
