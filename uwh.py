@@ -3453,35 +3453,36 @@ def sync_display_widgets(self):
     
     sync_backgrounds()
 
-    def reset_timer(self):
-        self.white_score_var.set(0)
-        self.black_score_var.set(0)
-        self.current_index = 0
-        self.timer_running = True
-        self.sudden_death_goal_scored = False
-        if self.timer_job:
-            self.master.after_cancel(self.timer_job)
-            self.timer_job = None
-        self.sudden_death_timer_job = None
-        self.sudden_death_seconds = 0
-        # Rebuild game sequence to reflect any settings changes (e.g., cleared "Time to Start First Game")
-        self.build_game_sequence()
-        if self.full_sequence:
-            self.timer_seconds = self.full_sequence[0]["duration"]
-            # Event-driven: Update the StringVar instead of calling .config()
-            self.half_label_var.set(self.full_sequence[0]["name"])
-            self.update_half_label_background(self.full_sequence[0]["name"])
-        else:
-            self.timer_seconds = 0
-            # Event-driven: Update the StringVar instead of calling .config()
-            self.half_label_var.set("")
-        self.update_timer_display()
+def reset_timer(self):
+    self.white_score_var.set(0)
+    self.black_score_var.set(0)
+    self.current_index = 0
+    self.timer_running = True
+    self.sudden_death_goal_scored = False
+    if self.timer_job:
+        self.master.after_cancel(self.timer_job)
+        self.timer_job = None
+    self.sudden_death_timer_job = None
+    self.sudden_death_seconds = 0
+    # Rebuild game sequence to reflect any settings changes (e.g., cleared "Time to Start First Game")
+    self.build_game_sequence()
+    if self.full_sequence:
+        self.timer_seconds = self.full_sequence[0]["duration"]
+        # Event-driven: Update the StringVar instead of calling .config()
+        self.half_label_var.set(self.full_sequence[0]["name"])
+        self.update_half_label_background(self.full_sequence[0]["name"])
+    else:
+        self.timer_seconds = 0
+        # Event-driven: Update the StringVar instead of calling .config()
+        self.half_label_var.set("")
+    self.update_timer_display()
 
-        now = datetime.datetime.now()
-        self.court_time_seconds = now.hour * 3600 + now.minute * 60 + now.second
-        self.court_time_paused = False
-        self.update_court_time()
-        self.start_current_period()
+    now = datetime.datetime.now()
+    self.court_time_seconds = now.hour * 3600 + now.minute * 60 + now.second
+    self.court_time_paused = False
+    self.update_court_time()
+    self.start_current_period()
+        
     def update_court_time(self):
         if self.court_time_job is not None:
             self.master.after_cancel(self.court_time_job)
