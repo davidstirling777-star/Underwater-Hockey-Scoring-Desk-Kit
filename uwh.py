@@ -894,7 +894,8 @@ class GameManagementApp:
         )
 
         raise Exception(
-            "LAST METHODS:\n" + "\n".join(methods[-30:])
+            f"BROKEN_HERE={hasattr(self, 'BROKEN_HERE')}\n"
+            f"countdown_timer={hasattr(self, 'countdown_timer')}"
         )
 
         self.white_timeout_button = tk.Button(
@@ -3733,6 +3734,9 @@ def sync_display_widgets(self):
         idx = self.find_period_index('Between Game Break')
         self.current_index = idx
         self.start_current_period()
+        
+# DEBUG MARKER
+BROKEN_HERE = True
 
     def countdown_timer(self):
         if self.timer_job:
