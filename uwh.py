@@ -722,7 +722,6 @@ class GameManagementApp:
 
         # 2. INITIALIZE ZIGBEE CONTROLLER NOW THAT STATUS VARS EXIST
         self.zigbee_controller = ZigbeeSirenController(
-            siren_callback=self.trigger_wireless_siren, 
             gui_log_callback=self.add_to_zigbee_log
         )
         self.zigbee_controller.set_connection_status_callback(self.update_zigbee_status)
