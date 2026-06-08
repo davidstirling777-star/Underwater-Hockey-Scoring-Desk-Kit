@@ -2665,334 +2665,331 @@ Sound file and volume settings are from the Sounds tab."""
         entries["crib_time"] = crib_time_entry_var
         row_num += 1
 
-        def save_and_close():
-            for v in entries:
-                # PATCH: Remove "time_to_start_first_game" and "start_first_game_in" from dialog value save
-                if v in ["time_to_start_first_game", "start_first_game_in"]:
-                    continue
-                try:
-                    val = entries[v].get().replace(',', '.')
-                    float(val)
-                    self.button_data[idx]["values"][v] = val
-                except ValueError:
-                    continue
-            for v in checks:
-                self.button_data[idx]["checkboxes"][v] = checks[v].get()
-            self.button_data[idx]["text"] = btn_text_var.get()[:max_btn_text_len]
-            self.set_widget2_button_text(idx, self.button_data[idx]["text"])
-            # Save presets to JSON file
-            save_preset_settings(self.button_data)
-            dlg.destroy()
-        save_btn = ttk.Button(dlg, text="Save", command=save_and_close)
-        save_btn.grid(row=row_num, column=0, columnspan=2, pady=16)
-        dlg.transient(self.master)
-        dlg.wait_visibility()
-        dlg.grab_set()
-
+    def save_and_close():
+        for v in entries:
+               # PATCH: Remove "time_to_start_first_game" and "start_first_game_in" from dialog value save
+               if v in ["time_to_start_first_game", "start_first_game_in"]:
+                   continue
+               try:
+                   val = entries[v].get().replace(',', '.')
+                   float(val)
+                   self.button_data[idx]["values"][v] = val
+               except ValueError:
+                   continue
+           for v in checks:
+               self.button_data[idx]["checkboxes"][v] = checks[v].get()
+           self.button_data[idx]["text"] = btn_text_var.get()[:max_btn_text_len]
+           self.set_widget2_button_text(idx, self.button_data[idx]["text"])
+           # Save presets to JSON file
+           save_preset_settings(self.button_data)
+           dlg.destroy()
+       save_btn = ttk.Button(dlg, text="Save", command=save_and_close)
+       save_btn.grid(row=row_num, column=0, columnspan=2, pady=16)
+       dlg.transient(self.master)
+       dlg.wait_visibility()
+       dlg.grab_set()
     def _on_settings_variable_change(self, *args):
-        self.load_settings()
-        self.build_game_sequence()
-        # Save game settings when variables change
-        self.save_game_settings()
-    
-    def _on_single_variable_change(self, var_name):
-        """Handle change to a single variable without updating all widgets."""
-        # Only update the specific variable in self.variables
-        for widget in self.widgets:
-            if widget["name"] == var_name:
-                entry = widget["entry"]
-                var_info = self.variables[var_name]
-                
-                # Update the specific variable
-                if entry is not None and widget["checkbox"] is not None:
-                    # Variable with both checkbox and entry
-                    value = entry.get().replace(',', '.')
-                    try:
-                        float(value)
-                        self.variables[var_name]["value"] = value
-                    except ValueError:
-                        self.variables[var_name]["value"] = str(var_info["default"])
-                    self.variables[var_name]["used"] = widget["checkbox"].get()
-                elif entry is not None:
-                    # Entry-only variable
-                    value = entry.get().replace(',', '.')
-                    self.variables[var_name]["value"] = value
-                    self.variables[var_name]["used"] = True
-                elif widget["checkbox"] is not None:
-                    # Checkbox-only variable
-                    self.variables[var_name]["used"] = widget["checkbox"].get()
-                break
-        
-        # Synchronize the two time fields unidirectionally
-        if var_name == "time_to_start_first_game":
-            # Update start_first_game_in when time_to_start_first_game changes
-            self._update_start_first_game_in()
-        elif var_name == "start_first_game_in":
-            # Clear time_to_start_first_game when start_first_game_in changes
-            # to ensure build_game_sequence uses start_first_game_in directly
-            self.variables["time_to_start_first_game"]["value"] = ""
-            for widget in self.widgets:
-                if widget["name"] == "time_to_start_first_game":
-                    widget["entry"].delete(0, tk.END)
-                    break
-        
-        # Only rebuild game sequence if the variable affects the sequence structure
-        # Variables that don't affect game sequence: record_scorers_cap_number, team_timeouts_allowed, crib_time
-        if var_name not in ["record_scorers_cap_number", "team_timeouts_allowed", "crib_time"]:
-            self.build_game_sequence()
-        
-        # Always save settings when a variable changes
-        self.save_game_settings()
-    
-    def _update_start_first_game_in(self):
-        """Update only the start_first_game_in calculated field."""
-        time_entry_val = None
-        start_first_game_in_widget = None
-        
-        for widget in self.widgets:
-            if widget["name"] == "time_to_start_first_game":
-                time_entry_val = widget["entry"].get().strip()
-            elif widget["name"] == "start_first_game_in":
-                start_first_game_in_widget = widget["entry"]
-        
-        # Calculate start_first_game_in value if time is valid
-        minutes_to_start = None
-        now = datetime.datetime.now()
-        if time_entry_val:
-            try:
-                time_match = re.match(r"^([01][0-9]|2[0-3]):[0-5][0-9]$", time_entry_val)
-                if time_match:
-                    hh, mm = map(int, time_entry_val.split(":"))
-                    target = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
-                    if target < now:
-                        target = target + datetime.timedelta(days=1)
-                    delta = target - now
-                    minutes_to_start = int(delta.total_seconds() // 60)
-            except Exception:
-                minutes_to_start = None
-        
-        if minutes_to_start is not None and start_first_game_in_widget is not None:
-            value = max(0, minutes_to_start)
-            start_first_game_in_widget.delete(0, tk.END)
-            start_first_game_in_widget.insert(0, str(value))
-            self.variables["start_first_game_in"]["value"] = str(value)
-    
-    def _update_time_to_start_first_game(self):
-        """Update time_to_start_first_game based on start_first_game_in."""
-        start_first_game_in_val = None
-        time_widget = None
-        
-        for widget in self.widgets:
-            if widget["name"] == "start_first_game_in":
-                start_first_game_in_val = widget["entry"].get().strip()
-            elif widget["name"] == "time_to_start_first_game":
-                time_widget = widget["entry"]
-        
-        # Calculate time_to_start_first_game if start_first_game_in is valid
-        if start_first_game_in_val and time_widget is not None:
-            try:
-                # Parse start_first_game_in as minutes
-                start_minutes = float(start_first_game_in_val.replace(",", "."))
-                
-                # Calculate target time
-                now = datetime.datetime.now()
-                target = now + datetime.timedelta(minutes=int(start_minutes))
-                
-                # Format as HH:MM
-                time_str = f"{target.hour:02d}:{target.minute:02d}"
-                
-                # Update the widget
-                time_widget.delete(0, tk.END)
-                time_widget.insert(0, time_str)
-                self.variables["time_to_start_first_game"]["value"] = time_str
-            except Exception:
-                pass  # If parsing fails, don't update
-
+       self.load_settings()
+       self.build_game_sequence()
+       # Save game settings when variables change
+       self.save_game_settings()
+   
+   def _on_single_variable_change(self, var_name):
+       """Handle change to a single variable without updating all widgets."""
+       # Only update the specific variable in self.variables
+       for widget in self.widgets:
+           if widget["name"] == var_name:
+               entry = widget["entry"]
+               var_info = self.variables[var_name]
+               
+               # Update the specific variable
+               if entry is not None and widget["checkbox"] is not None:
+                   # Variable with both checkbox and entry
+                   value = entry.get().replace(',', '.')
+                   try:
+                       float(value)
+                       self.variables[var_name]["value"] = value
+                   except ValueError:
+                       self.variables[var_name]["value"] = str(var_info["default"])
+                   self.variables[var_name]["used"] = widget["checkbox"].get()
+               elif entry is not None:
+                   # Entry-only variable
+                   value = entry.get().replace(',', '.')
+                   self.variables[var_name]["value"] = value
+                   self.variables[var_name]["used"] = True
+               elif widget["checkbox"] is not None:
+                   # Checkbox-only variable
+                   self.variables[var_name]["used"] = widget["checkbox"].get()
+               break
+       
+       # Synchronize the two time fields unidirectionally
+       if var_name == "time_to_start_first_game":
+           # Update start_first_game_in when time_to_start_first_game changes
+           self._update_start_first_game_in()
+       elif var_name == "start_first_game_in":
+           # Clear time_to_start_first_game when start_first_game_in changes
+           # to ensure build_game_sequence uses start_first_game_in directly
+           self.variables["time_to_start_first_game"]["value"] = ""
+           for widget in self.widgets:
+               if widget["name"] == "time_to_start_first_game":
+                   widget["entry"].delete(0, tk.END)
+                   break
+       
+       # Only rebuild game sequence if the variable affects the sequence structure
+       # Variables that don't affect game sequence: record_scorers_cap_number, team_timeouts_allowed, crib_time
+       if var_name not in ["record_scorers_cap_number", "team_timeouts_allowed", "crib_time"]:
+           self.build_game_sequence()
+       
+       # Always save settings when a variable changes
+       self.save_game_settings()
+   
+   def _update_start_first_game_in(self):
+       """Update only the start_first_game_in calculated field."""
+       time_entry_val = None
+       start_first_game_in_widget = None
+       
+       for widget in self.widgets:
+           if widget["name"] == "time_to_start_first_game":
+               time_entry_val = widget["entry"].get().strip()
+           elif widget["name"] == "start_first_game_in":
+               start_first_game_in_widget = widget["entry"]
+       
+       # Calculate start_first_game_in value if time is valid
+       minutes_to_start = None
+       now = datetime.datetime.now()
+       if time_entry_val:
+           try:
+               time_match = re.match(r"^([01][0-9]|2[0-3]):[0-5][0-9]$", time_entry_val)
+               if time_match:
+                   hh, mm = map(int, time_entry_val.split(":"))
+                   target = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
+                   if target < now:
+                       target = target + datetime.timedelta(days=1)
+                   delta = target - now
+                   minutes_to_start = int(delta.total_seconds() // 60)
+           except Exception:
+               minutes_to_start = None
+       
+       if minutes_to_start is not None and start_first_game_in_widget is not None:
+           value = max(0, minutes_to_start)
+           start_first_game_in_widget.delete(0, tk.END)
+           start_first_game_in_widget.insert(0, str(value))
+           self.variables["start_first_game_in"]["value"] = str(value)
+   
+   def _update_time_to_start_first_game(self):
+       """Update time_to_start_first_game based on start_first_game_in."""
+       start_first_game_in_val = None
+       time_widget = None
+       
+       for widget in self.widgets:
+           if widget["name"] == "start_first_game_in":
+               start_first_game_in_val = widget["entry"].get().strip()
+           elif widget["name"] == "time_to_start_first_game":
+               time_widget = widget["entry"]
+       
+       # Calculate time_to_start_first_game if start_first_game_in is valid
+       if start_first_game_in_val and time_widget is not None:
+           try:
+               # Parse start_first_game_in as minutes
+               start_minutes = float(start_first_game_in_val.replace(",", "."))
+               
+               # Calculate target time
+               now = datetime.datetime.now()
+               target = now + datetime.timedelta(minutes=int(start_minutes))
+               
+               # Format as HH:MM
+               time_str = f"{target.hour:02d}:{target.minute:02d}"
+               
+               # Update the widget
+               time_widget.delete(0, tk.END)
+               time_widget.insert(0, time_str)
+               self.variables["time_to_start_first_game"]["value"] = time_str
+           except Exception:
+               pass  # If parsing fails, don't update
     def load_settings(self):
-        # Calculate "Start First Game In" from "Time to Start First Game"
-        time_entry_val = None
-        start_first_game_in_widget = None
-        for widget in self.widgets:
-            if widget["name"] == "time_to_start_first_game":
-                time_entry_val = widget["entry"].get().strip()
-            elif widget["name"] == "start_first_game_in":
-                start_first_game_in_widget = widget["entry"]
-        # Calculate start_first_game_in value if time is valid
-        minutes_to_start = None
-        now = datetime.datetime.now()
-        if time_entry_val:
-            try:
-                # Allow single or double digit hour, always two digit minute
-                # Use strict 24-hour regex
-                time_match = re.match(r"^([01][0-9]|2[0-3]):[0-5][0-9]$", time_entry_val)
-                if time_match:
-                    hh, mm = map(int, time_entry_val.split(":"))
-                    target = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
-                    # If target time already passed today, assume it's tomorrow
-                    if target < now:
-                        target = target + datetime.timedelta(days=1)
-                    delta = target - now
-                    minutes_to_start = int(delta.total_seconds() // 60)
-            except Exception:
-                minutes_to_start = None
-        if minutes_to_start is not None and start_first_game_in_widget is not None:
-            value = max(0, minutes_to_start)
-            start_first_game_in_widget.delete(0, tk.END)
-            start_first_game_in_widget.insert(0, str(value))
-            self.variables["start_first_game_in"]["value"] = str(value)
-        # Set all other values normally
-        for widget in self.widgets:
-            entry = widget["entry"]
-            var_name = widget["name"]
-            var_info = self.variables[var_name]
-            
-            # PATCH: For variables with both checkbox and entry widgets
-            if entry is not None and widget["checkbox"] is not None:
-                # Entry always sets 'value' as float-convertible string
-                value = entry.get().replace(',', '.')
-                try:
-                    # Validate it's numeric
-                    float(value)
-                    self.variables[var_name]["value"] = value
-                except ValueError:
-                    # Fallback to default if invalid
-                    self.variables[var_name]["value"] = str(var_info["default"])
-                # Checkbox always sets 'used' as boolean
-                self.variables[var_name]["used"] = widget["checkbox"].get()
-            elif entry is not None:
-                # Entry-only variables (no checkbox)
-                value = entry.get().replace(',', '.')
-                self.variables[var_name]["value"] = value
-                self.variables[var_name]["used"] = True
+       # Calculate "Start First Game In" from "Time to Start First Game"
+       time_entry_val = None
+       start_first_game_in_widget = None
+       for widget in self.widgets:
+           if widget["name"] == "time_to_start_first_game":
+               time_entry_val = widget["entry"].get().strip()
+           elif widget["name"] == "start_first_game_in":
+               start_first_game_in_widget = widget["entry"]
+       # Calculate start_first_game_in value if time is valid
+       minutes_to_start = None
+       now = datetime.datetime.now()
+       if time_entry_val:
+           try:
+               # Allow single or double digit hour, always two digit minute
+               # Use strict 24-hour regex
+               time_match = re.match(r"^([01][0-9]|2[0-3]):[0-5][0-9]$", time_entry_val)
+               if time_match:
+                   hh, mm = map(int, time_entry_val.split(":"))
+                   target = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
+                   # If target time already passed today, assume it's tomorrow
+                   if target < now:
+                       target = target + datetime.timedelta(days=1)
+                   delta = target - now
+                   minutes_to_start = int(delta.total_seconds() // 60)
+           except Exception:
+               minutes_to_start = None
+       if minutes_to_start is not None and start_first_game_in_widget is not None:
+           value = max(0, minutes_to_start)
+           start_first_game_in_widget.delete(0, tk.END)
+           start_first_game_in_widget.insert(0, str(value))
+           self.variables["start_first_game_in"]["value"] = str(value)
+       # Set all other values normally
+       for widget in self.widgets:
+           entry = widget["entry"]
+           var_name = widget["name"]
+           var_info = self.variables[var_name]
+           
+           # PATCH: For variables with both checkbox and entry widgets
+           if entry is not None and widget["checkbox"] is not None:
+               # Entry always sets 'value' as float-convertible string
+               value = entry.get().replace(',', '.')
+               try:
+                   # Validate it's numeric
+                   float(value)
+                   self.variables[var_name]["value"] = value
+               except ValueError:
+                   # Fallback to default if invalid
+                   self.variables[var_name]["value"] = str(var_info["default"])
+               # Checkbox always sets 'used' as boolean
+               self.variables[var_name]["used"] = widget["checkbox"].get()
+           elif entry is not None:
+               # Entry-only variables (no checkbox)
+               value = entry.get().replace(',', '.')
+               self.variables[var_name]["value"] = value
+              self.variables[var_name]["used"] = True
             elif widget["checkbox"] is not None:
-                # Checkbox-only variables (no entry)
-                self.variables[var_name]["used"] = widget["checkbox"].get()
-            else:
-                # Neither entry nor checkbox (shouldn't happen)
-                self.variables[var_name]["used"] = True
-
+               # Checkbox-only variables (no entry)
+               self.variables[var_name]["used"] = widget["checkbox"].get()
+           else:
+               # Neither entry nor checkbox (shouldn't happen)
+               self.variables[var_name]["used"] = True
+               
     def save_sound_settings_method(self):
-        """Save current sound settings to JSON file."""
-        settings = {
-            "pips_sound": self.pips_var.get(),
-            "siren_sound": self.siren_var.get(),
-            "pips_volume": self.pips_volume.get(),
-            "siren_volume": self.siren_volume.get(),
-            "air_volume": self.air_volume.get(),
-            "water_volume": self.water_volume.get(),
-            "enable_sound": self.enable_sound.get(),
-            "siren_duration": self.siren_duration.get()
-        }
-        save_sound_settings(settings)
-        # Show a message to confirm settings were saved
-        messagebox.showinfo("Settings Saved", "Sound settings have been saved.")
+       """Save current sound settings to JSON file."""
+       settings = {
+           "pips_sound": self.pips_var.get(),
+           "siren_sound": self.siren_var.get(),
+           "pips_volume": self.pips_volume.get(),
+           "siren_volume": self.siren_volume.get(),
+           "air_volume": self.air_volume.get(),
+           "water_volume": self.water_volume.get(),
+           "enable_sound": self.enable_sound.get(),
+           "siren_duration": self.siren_duration.get()
+       }
+       save_sound_settings(settings)
+       # Show a message to confirm settings were saved
+       messagebox.showinfo("Settings Saved", "Sound settings have been saved.")
 
     def load_game_settings(self):
-        """Load game settings from unified JSON file."""
-        unified_settings = load_unified_settings()
-        game_settings = unified_settings.get("gameSettings", {})
-        
-        # Load settings into variables
-        for var_name, var_info in self.variables.items():
-            if var_name in game_settings:
-                value = game_settings[var_name]
-                
-                # Check if this variable has both checkbox and entry
-                has_checkbox = var_info.get("checkbox", False)
-                has_entry = False
-                for widget in self.widgets:
-                    if widget["name"] == var_name and widget["entry"] is not None:
-                        has_entry = True
-                        break
-                
-                if has_checkbox and has_entry:
-                    # For variables with both checkbox and entry (like sudden_death_game_break, crib_time)
-                    if isinstance(value, bool):
-                        # Legacy format - convert to numeric value and enable
-                        self.variables[var_name]["value"] = str(var_info["default"])
-                        self.variables[var_name]["used"] = value
-                    else:
-                        # New format - value is numeric, assume enabled
-                        self.variables[var_name]["value"] = str(value)
-                        self.variables[var_name]["used"] = True
-                elif has_checkbox:
-                    # Pure checkbox variables (like team_timeouts_allowed, overtime_allowed)
-                    self.variables[var_name]["used"] = value
-                else:
-                    # Entry-only variables
-                    self.variables[var_name]["value"] = str(value)
-                
-                # Update widgets if they exist
-                for widget in self.widgets:
-                    if widget["name"] == var_name:
-                        if widget["entry"] is not None:
-                            widget["entry"].delete(0, tk.END)
-                            if has_checkbox and has_entry:
-                                # Use the numeric value for mixed variables
-                                widget["entry"].insert(0, self.variables[var_name]["value"])
-                            else:
-                                widget["entry"].insert(0, str(value))
-                        if widget["checkbox"] is not None:
-                            if has_checkbox and has_entry:
-                                # Use the "used" flag for mixed variables
-                                widget["checkbox"].set(self.variables[var_name]["used"])
-                            else:
-                                widget["checkbox"].set(value if isinstance(value, bool) else True)
-                        break
+      """Load game settings from unified JSON file."""
+       unified_settings = load_unified_settings()
+       game_settings = unified_settings.get("gameSettings", {})
+       
+       # Load settings into variables
+       for var_name, var_info in self.variables.items():
+           if var_name in game_settings:
+               value = game_settings[var_name]
+               
+               # Check if this variable has both checkbox and entry
+               has_checkbox = var_info.get("checkbox", False)
+               has_entry = False
+               for widget in self.widgets:
+                   if widget["name"] == var_name and widget["entry"] is not None:
+                       has_entry = True
+                       break
+               
+               if has_checkbox and has_entry:
+                   # For variables with both checkbox and entry (like sudden_death_game_break, crib_time)
+                   if isinstance(value, bool):
+                       # Legacy format - convert to numeric value and enable
+                       self.variables[var_name]["value"] = str(var_info["default"])
+                       self.variables[var_name]["used"] = value
+                   else:
+                       # New format - value is numeric, assume enabled
+                       self.variables[var_name]["value"] = str(value)
+                       self.variables[var_name]["used"] = True
+               elif has_checkbox:
+                   # Pure checkbox variables (like team_timeouts_allowed, overtime_allowed)
+                   self.variables[var_name]["used"] = value
+               else:
+                   # Entry-only variables
+                   self.variables[var_name]["value"] = str(value)
+               
+               # Update widgets if they exist
+               for widget in self.widgets:
+                   if widget["name"] == var_name:
+                       if widget["entry"] is not None:
+                           widget["entry"].delete(0, tk.END)
+                           if has_checkbox and has_entry:
+                               # Use the numeric value for mixed variables
+                               widget["entry"].insert(0, self.variables[var_name]["value"])
+                           else:
+                               widget["entry"].insert(0, str(value))
+                       if widget["checkbox"] is not None:
+                           if has_checkbox and has_entry:
+                               # Use the "used" flag for mixed variables
+                               widget["checkbox"].set(self.variables[var_name]["used"])
+                           else:
+                               widget["checkbox"].set(value if isinstance(value, bool) else True)
+                       break
+def save_game_settings(self):
+      """Save current game settings to unified JSON file."""
+      unified_settings = load_unified_settings()
+      game_settings = {}
+      
+      # Collect current game settings from variables (updated by load_settings)
+      for var_name, var_info in self.variables.items():
+          if var_info.get("checkbox", False):
+              # Check if this is a pure checkbox variable or has both checkbox and entry
+              has_entry = False
+              for widget in self.widgets:
+                  if widget["name"] == var_name and widget["entry"] is not None:
+                      has_entry = True
+                      break
+              
+              if has_entry:
+                  # For variables with both checkbox and entry (like sudden_death_game_break, crib_time)
+                  # Save the numeric value from the entry, not the boolean
+                  value = var_info.get("value", var_info["default"])
+                  if var_name != "time_to_start_first_game":
+                      try:
+                          game_settings[var_name] = float(value) if '.' in str(value) else int(value)
+                      except (ValueError, TypeError):
+                          game_settings[var_name] = var_info["default"]
+                  else:
+                      game_settings[var_name] = value
+              else:
+                  # For pure checkbox variables (like team_timeouts_allowed, overtime_allowed)
+                  # Save the "used" boolean value
+                  game_settings[var_name] = var_info.get("used", var_info["default"])
+          else:
+              # For other variables, use the current value
+              value = var_info.get("value", var_info["default"])
+              if var_name != "time_to_start_first_game":
+                  try:
+                      game_settings[var_name] = float(value) if '.' in str(value) else int(value)
+                  except (ValueError, TypeError):
+                      game_settings[var_name] = value
+              else:
+                  game_settings[var_name] = value
+      
+      unified_settings["gameSettings"] = game_settings
+      save_unified_settings(unified_settings)
 
-    def save_game_settings(self):
-        """Save current game settings to unified JSON file."""
-        unified_settings = load_unified_settings()
-        game_settings = {}
-        
-        # Collect current game settings from variables (updated by load_settings)
-        for var_name, var_info in self.variables.items():
-            if var_info.get("checkbox", False):
-                # Check if this is a pure checkbox variable or has both checkbox and entry
-                has_entry = False
-                for widget in self.widgets:
-                    if widget["name"] == var_name and widget["entry"] is not None:
-                        has_entry = True
-                        break
-                
-                if has_entry:
-                    # For variables with both checkbox and entry (like sudden_death_game_break, crib_time)
-                    # Save the numeric value from the entry, not the boolean
-                    value = var_info.get("value", var_info["default"])
-                    if var_name != "time_to_start_first_game":
-                        try:
-                            game_settings[var_name] = float(value) if '.' in str(value) else int(value)
-                        except (ValueError, TypeError):
-                            game_settings[var_name] = var_info["default"]
-                    else:
-                        game_settings[var_name] = value
-                else:
-                    # For pure checkbox variables (like team_timeouts_allowed, overtime_allowed)
-                    # Save the "used" boolean value
-                    game_settings[var_name] = var_info.get("used", var_info["default"])
-            else:
-                # For other variables, use the current value
-                value = var_info.get("value", var_info["default"])
-                if var_name != "time_to_start_first_game":
-                    try:
-                        game_settings[var_name] = float(value) if '.' in str(value) else int(value)
-                    except (ValueError, TypeError):
-                        game_settings[var_name] = value
-                else:
-                    game_settings[var_name] = value
-        
-        unified_settings["gameSettings"] = game_settings
-        save_unified_settings(unified_settings)
+# Zigbee Siren Methods
+def toggle_zigbee_connection(self):
+       """Toggle Zigbee connection (connect if disconnected, disconnect if connected)."""
+       if self.zigbee_controller.connected:
+           self.stop_zigbee_connection()
+       else:
+           self.start_zigbee_connection()
 
-    # Zigbee Siren Methods
-    def toggle_zigbee_connection(self):
-        """Toggle Zigbee connection (connect if disconnected, disconnect if connected)."""
-        if self.zigbee_controller.connected:
-            self.stop_zigbee_connection()
-        else:
-            self.start_zigbee_connection()
-
-    def start_zigbee_connection(self):
+def start_zigbee_connection(self):
         """Start the Zigbee siren connection."""
         # Mark as user-initiated action to prevent watchdog interference
         self.user_initiated_action = True
