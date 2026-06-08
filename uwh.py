@@ -448,11 +448,11 @@ class GameManagementApp:
     def __init__(self, master):
         self.master = master
         raise Exception(
-            f"show_diag={hasattr(GameManagementApp,'show_hardware_diagnostics')}\n"
-            f"update_game_number_display={hasattr(GameManagementApp,'update_game_number_display')}\n"
             f"create_sounds_tab={hasattr(GameManagementApp,'create_sounds_tab')}\n"
-            f"start_current_period={hasattr(GameManagementApp,'start_current_period')}\n"
-            f"next_period={hasattr(GameManagementApp,'next_period')}"
+            f"create_zigbee_siren_tab={hasattr(GameManagementApp,'create_zigbee_siren_tab')}\n"
+            f"toggle_zigbee_connection={hasattr(GameManagementApp,'toggle_zigbee_connection')}\n"
+            f"start_zigbee_connection={hasattr(GameManagementApp,'start_zigbee_connection')}\n"
+            f"start_current_period={hasattr(GameManagementApp,'start_current_period')}"
         )
 
         self.master.title("Underwater Hockey Game Management App")
