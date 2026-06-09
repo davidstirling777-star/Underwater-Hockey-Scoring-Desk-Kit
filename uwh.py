@@ -3756,6 +3756,8 @@ Sound file and volume settings are from the Sounds tab."""
             
             if cur_period and cur_period['name'] == 'Between Game Break':
                 if self.timer_seconds == 30:
+                    # temporary degug line next
+                    print("DEBUG: 30-second game reset block executing")
                     # Write game results to CSV/TXT BEFORE resetting scores
                     current_game = self.get_current_game_number()
                     white_score = self.white_score_var.get()
@@ -3774,6 +3776,13 @@ Sound file and volume settings are from the Sounds tab."""
                     self.black_score_var.set(0)
                     self.stored_penalties.clear()
                     self.clear_all_penalties()
+                    #temp debug lines BELOW
+                    print(
+                        f"DEBUG AFTER CLEAR: "
+                        f"active={len(self.active_penalties)} "
+                        f"stored={len(self.stored_penalties)}"
+                    )
+                    #temp debug lines ABOVE
                     # Advance to next game in Tournament List
                     self.advance_to_next_game()
                     # Update team names in scoreboard tab for the next game
