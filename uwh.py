@@ -725,19 +725,20 @@ class GameManagementApp:
             gui_log_callback=self.add_to_zigbee_log
         )
         self.zigbee_controller.set_connection_status_callback(self.update_zigbee_status)
-     
-        print("STARTUP: Initializing Zigbee connection (MQTT stability verified)")
-        try:
-            self.zigbee_controller.start()
-            print("STARTUP: Zigbee controller started successfully")
-        except Exception as zigbee_init_err:
-            print(f"STARTUP: Zigbee controller start failed: {zigbee_init_err}")
         
         # 3. BUILD INTERFACE ARCHITECTURE
         self.create_scoreboard_tab()
         self.create_settings_tab()
         self.create_sounds_tab()
         self.create_zigbee_siren_tab()
+
+        # NOW start Zigbee AFTER all widgets exist
+        print("STARTUP: Initializing Zigbee connection (MQTT stability verified)")
+        try:
+            self.zigbee_controller.start()
+            print("STARTUP: Zigbee controller started successfully")
+        except Exception as zigbee_init_err:
+            print(f"STARTUP: Zigbee controller start failed: {zigbee_init_err}")
         
         self.notebook.select(1)
         self.update_usb_dongle_status()
@@ -763,16 +764,6 @@ class GameManagementApp:
 
         # 4. FINAL APPLICATION HARDWARE INITIALIZATION HOOK (SINGLE INSTANCE)
         # Kept at the absolute end so everything—including UI widgets—is 100% built.
-        try:
-            import serial_siren_listener
-            serial_siren_listener.start_serial_listener(self)
-            print("DEBUG: Serial hardware listener thread successfully active.")
-        except Exception as e:
-            print(f"DEBUG: Failed to initialize serial button module thread: {e}")
-        # ─────────────────────────────────────────────────────────────────────
-
-        # ─── FINAL APPLICATION HARDWARE INITIALIZATION HOOK ──────────────────
-        # Moved to the absolute end of __init__ to guarantee everything is ready!
         try:
             import serial_siren_listener
             serial_siren_listener.start_serial_listener(self)
