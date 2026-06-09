@@ -544,22 +544,9 @@ class ZigbeeSirenController:
         self.logger.info("Manual siren test triggered")
         self._trigger_siren()
     
-    def start_siren_continuous(self, sound_config: Dict[str, Any]) -> None:
-        """
-        Start continuous siren playback with looping sound.
-        Used for press-and-hold UI button functionality.
-        
-        Args:
-            sound_config: Dictionary with sound settings:
-                - 'file': siren sound file name
-                - 'enable': bool, whether sound is enabled
-                - 'pips_volume': volume 0-100
-                - 'siren_volume': volume 0-100
-                - 'air_volume': volume 0-100
-                - 'water_volume': volume 0-100
-                - 'duration': duration in seconds
-        """
-        self.logger.info(f"Starting continuous siren playback: {sound_config.get('file', 'unknown')}")
+    def start_siren_continuous(self, sound_config: Dict[str, Any] = None) -> None:
+        self.logger.info("Starting continuous siren playback")
+        self.start_siren()
         
         # Send MQTT ON command
         self.start_siren()
