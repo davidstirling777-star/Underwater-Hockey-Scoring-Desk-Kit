@@ -7,7 +7,6 @@
     "air_volume": 32.0,
     "water_volume": 50.0,
     "enable_sound": true
-    "siren_duration": 2.5,
   },
   "zigbeeSettings": {
     "mqtt_broker": "localhost",
