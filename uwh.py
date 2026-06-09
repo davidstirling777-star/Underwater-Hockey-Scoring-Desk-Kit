@@ -964,7 +964,11 @@ class GameManagementApp:
         # Display window: same logic
         display_has_penalties = bool(self.active_penalties or self.stored_penalties)
         if display_has_penalties:
-            if self.display_game_label.winfo_ismapped():
+            try:
+                if self.display_game_label.winfo_exists() and self.display_game_label.winfo_ismapped():
+                    ...
+            except tk.TclError:
+                return
                 self.display_game_label.grid_remove()
             if not self.display_penalty_grid_frame.winfo_ismapped():
                 self.display_penalty_grid_frame.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
@@ -974,7 +978,11 @@ class GameManagementApp:
                 self.display_penalty_grid_frame.grid_remove()
             except Exception:
                 pass
-            if not self.display_game_label.winfo_ismapped():
+            try:
+                if self.display_game_label.winfo_exists() and not self.display_game_label.winfo_ismapped():
+                    ...
+            except tk.TclError:
+                return
                 self.display_game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
             # Event-driven: Update the StringVar with current game number
             self.update_game_number_display()
