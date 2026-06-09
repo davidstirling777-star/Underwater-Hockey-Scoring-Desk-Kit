@@ -546,7 +546,6 @@ class ZigbeeSirenController:
     
     def start_siren_continuous(self, sound_config: Dict[str, Any] = None) -> None:
         self.logger.info("Starting continuous siren playback")
-        self.start_siren()
         
         # Send MQTT ON command
         self.start_siren()
