@@ -825,180 +825,180 @@ class GameManagementApp:
             
 
     def write_game_results_to_csv(self, game_number, white_score, black_score, penalties):
-    """
-    Updates the tournament CSV with final game results.
-    
-    Updates:
-        WScore
-        BScore
-        Penalties
-        Comments
-    
-    Does NOT modify:
-        Date
-        Game Number
-        White Team
-        Black Team
-        Referees
-    """
-    
-    import csv
-    
-    try:
-    
-        # Determine currently selected tournament file
-        csv_file = self.csv_var.get()
-        print(f"CSV UPDATE: csv_file={csv_file}")
-    
-        if not csv_file:
-            print("CSV UPDATE: No tournament CSV selected")
-            return False
-    
-        if not os.path.isabs(csv_file):
-            csv_file = os.path.join(BASE_DIR, csv_file)
-    
-        if not os.path.exists(csv_file):
-            print(f"CSV UPDATE: File not found: {csv_file}")
-            return False
-    
-        # ------------------------------------
-        # Build Penalties column text
-        # ------------------------------------
-    
-        penalty_entries = []
-    
-        for p in penalties:
-    
-            team_prefix = "W" if p["team"] == "White" else "B"
-    
-            penalty_entries.append(
-                f"{team_prefix}#{p['cap']}({p['duration']})"
-            )
-    
-        penalties_text = ", ".join(penalty_entries)
-    
-        # ------------------------------------
-        # Build Comments column text
-        # ------------------------------------
-    
-        comments_text = ""
-    
+        """
+        Updates the tournament CSV with final game results.
+        
+        Updates:
+            WScore
+            BScore
+            Penalties
+            Comments
+        
+        Does NOT modify:
+            Date
+            Game Number
+            White Team
+            Black Team
+            Referees
+        """
+        
+        import csv
+        
         try:
-    
-            if hasattr(self, "record_scorers_cap_number_var") and \
-               self.record_scorers_cap_number_var.get():
-    
-                scorer_entries = []
-    
-                if hasattr(self, "white_goal_scorers"):
-    
-                    for cap, goals in sorted(
-                        self.white_goal_scorers.items(),
-                        key=lambda x: self._sort_cap_key(x[0])
-                    ):
-                        scorer_entries.append(f"W#{cap}({goals})")
-    
-                if hasattr(self, "black_goal_scorers"):
-    
-                    for cap, goals in sorted(
-                        self.black_goal_scorers.items(),
-                        key=lambda x: self._sort_cap_key(x[0])
-                    ):
-                        scorer_entries.append(f"B#{cap}({goals})")
-    
-                comments_text = ", ".join(scorer_entries)
-    
-        except Exception as scorer_error:
-            print(f"CSV UPDATE: scorer export failed: {scorer_error}")
-    
-        # ------------------------------------
-        # Read entire CSV
-        # ------------------------------------
-    
-        rows = []
-    
-        with open(csv_file, "r", newline="", encoding="utf-8-sig") as f:
-            reader = csv.reader(f)
-    
-            for row in reader:
-                rows.append(row)
-    
-        if not rows:
-            print("CSV UPDATE: CSV file is empty")
-            return False
-    
-        # ------------------------------------
-        # Find column positions from header
-        # ------------------------------------
-    
-        header = [str(h).strip() for h in rows[0]]
-    
-        try:
-            wscore_col = header.index("WScore")
-            bscore_col = header.index("BScore")
-            penalties_col = header.index("Penalties")
-            comments_col = header.index("Comments")
-    
-            print(
-                f"CSV COLUMNS: "
-                f"WScore={wscore_col} "
-                f"BScore={bscore_col} "
-                f"Penalties={penalties_col} "
-                f"Comments={comments_col}"
-            )
-    
-        except ValueError as e:
-            print(f"CSV UPDATE: Missing required column: {e}")
-            return False
-    
-        # ------------------------------------
-        # Find game row
-        # ------------------------------------
-    
-        game_found = False
-    
-        for row in rows[1:]:
-    
-            if len(row) < len(header):
-                row.extend([""] * (len(header) - len(row)))
-    
-            game_col = row[1].strip()
-    
-            if game_col == str(game_number):
-    
-                row[wscore_col] = str(white_score)
-                row[bscore_col] = str(black_score)
-                row[penalties_col] = penalties_text
-                row[comments_col] = comments_text
-    
-                game_found = True
-    
-                print(
-                    f"CSV UPDATE: Game {game_number} "
-                    f"W:{white_score} B:{black_score}"
+        
+            # Determine currently selected tournament file
+            csv_file = self.csv_var.get()
+            print(f"CSV UPDATE: csv_file={csv_file}")
+        
+            if not csv_file:
+                print("CSV UPDATE: No tournament CSV selected")
+                return False
+        
+            if not os.path.isabs(csv_file):
+                csv_file = os.path.join(BASE_DIR, csv_file)
+        
+            if not os.path.exists(csv_file):
+                print(f"CSV UPDATE: File not found: {csv_file}")
+                return False
+        
+            # ------------------------------------
+            # Build Penalties column text
+            # ------------------------------------
+        
+            penalty_entries = []
+        
+            for p in penalties:
+        
+                team_prefix = "W" if p["team"] == "White" else "B"
+        
+                penalty_entries.append(
+                    f"{team_prefix}#{p['cap']}({p['duration']})"
                 )
-    
-                break
-    
-        if not game_found:
-            print(f"CSV UPDATE: Game {game_number} not found")
+        
+            penalties_text = ", ".join(penalty_entries)
+        
+            # ------------------------------------
+            # Build Comments column text
+            # ------------------------------------
+        
+            comments_text = ""
+        
+            try:
+        
+                if hasattr(self, "record_scorers_cap_number_var") and \
+                   self.record_scorers_cap_number_var.get():
+        
+                    scorer_entries = []
+        
+                    if hasattr(self, "white_goal_scorers"):
+        
+                        for cap, goals in sorted(
+                            self.white_goal_scorers.items(),
+                            key=lambda x: self._sort_cap_key(x[0])
+                        ):
+                            scorer_entries.append(f"W#{cap}({goals})")
+        
+                    if hasattr(self, "black_goal_scorers"):
+        
+                        for cap, goals in sorted(
+                            self.black_goal_scorers.items(),
+                            key=lambda x: self._sort_cap_key(x[0])
+                        ):
+                            scorer_entries.append(f"B#{cap}({goals})")
+        
+                    comments_text = ", ".join(scorer_entries)
+        
+            except Exception as scorer_error:
+                print(f"CSV UPDATE: scorer export failed: {scorer_error}")
+        
+            # ------------------------------------
+            # Read entire CSV
+            # ------------------------------------
+        
+            rows = []
+        
+            with open(csv_file, "r", newline="", encoding="utf-8-sig") as f:
+                reader = csv.reader(f)
+        
+                for row in reader:
+                    rows.append(row)
+        
+            if not rows:
+                print("CSV UPDATE: CSV file is empty")
+                return False
+        
+            # ------------------------------------
+            # Find column positions from header
+            # ------------------------------------
+        
+            header = [str(h).strip() for h in rows[0]]
+        
+            try:
+                wscore_col = header.index("WScore")
+                bscore_col = header.index("BScore")
+                penalties_col = header.index("Penalties")
+                comments_col = header.index("Comments")
+        
+                print(
+                    f"CSV COLUMNS: "
+                    f"WScore={wscore_col} "
+                    f"BScore={bscore_col} "
+                    f"Penalties={penalties_col} "
+                    f"Comments={comments_col}"
+                )
+        
+            except ValueError as e:
+                print(f"CSV UPDATE: Missing required column: {e}")
+                return False
+        
+            # ------------------------------------
+            # Find game row
+            # ------------------------------------
+        
+            game_found = False
+        
+            for row in rows[1:]:
+        
+                if len(row) < len(header):
+                    row.extend([""] * (len(header) - len(row)))
+        
+                game_col = row[1].strip()
+        
+                if game_col == str(game_number):
+        
+                    row[wscore_col] = str(white_score)
+                    row[bscore_col] = str(black_score)
+                    row[penalties_col] = penalties_text
+                    row[comments_col] = comments_text
+        
+                    game_found = True
+        
+                    print(
+                        f"CSV UPDATE: Game {game_number} "
+                        f"W:{white_score} B:{black_score}"
+                    )
+        
+                    break
+        
+            if not game_found:
+                print(f"CSV UPDATE: Game {game_number} not found")
+                return False
+        
+            # ------------------------------------
+            # Rewrite CSV
+            # ------------------------------------
+        
+            with open(csv_file, "w", newline="", encoding="utf-8-sig") as f:
+                writer = csv.writer(f)
+                writer.writerows(rows)
+        
+            print("CSV UPDATE: Success")
+        
+            return True
+        
+        except Exception as e:
+            print(f"CSV UPDATE ERROR: {e}")
             return False
-    
-        # ------------------------------------
-        # Rewrite CSV
-        # ------------------------------------
-    
-        with open(csv_file, "w", newline="", encoding="utf-8-sig") as f:
-            writer = csv.writer(f)
-            writer.writerows(rows)
-    
-        print("CSV UPDATE: Success")
-    
-        return True
-    
-    except Exception as e:
-        print(f"CSV UPDATE ERROR: {e}")
-        return False
     
     def create_scoreboard_tab(self):
         tab = ttk.Frame(self.notebook)
