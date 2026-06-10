@@ -655,6 +655,10 @@ class GameManagementApp:
                     
                     # Perform actual connectivity test
                     import paho.mqtt.client as mqtt_test
+                    print("PAHO MQTT VERSION:", mqtt_test.__version__)
+                    test_client = mqtt_test.Client(
+                        callback_api_version=mqtt_test.CallbackAPIVersion.VERSION2
+                    )
                     test_client = mqtt_test.Client()
                     
                     try:
