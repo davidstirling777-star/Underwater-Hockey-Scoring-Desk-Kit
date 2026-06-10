@@ -3917,15 +3917,13 @@ Sound file and volume settings are from the Sounds tab."""
                     # Log game end event to TXT file
                     self.log_game_event("Game End")
                     
-                    # Write results to CSV file ***Temporariliy removed
-                    #self.write_game_results_to_csv(
-                        #current_game,
-                        #white_score,
-                        #black_score,
-                        #penalties_to_write
-                    #)
-                    #____________________________________________________
-                    print("DEBUG: CSV write would happen here")
+                    # Write results to CSV file
+                    self.write_game_results_to_csv(
+                        current_game,
+                        white_score,
+                        black_score,
+                        penalties_to_write
+                    )
                     # Now reset game state
                     self.white_score_var.set(0)
                     self.black_score_var.set(0)
