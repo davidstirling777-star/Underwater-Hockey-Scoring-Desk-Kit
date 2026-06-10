@@ -3926,12 +3926,13 @@ Sound file and volume settings are from the Sounds tab."""
                     current_game = self.get_current_game_number()
                     white_score = self.white_score_var.get()
                     black_score = self.black_score_var.get()
+            
                     # Copy stored_penalties before clearing
                     penalties_to_write = list(self.stored_penalties)
-                    
+            
                     # Log game end event to TXT file
                     self.log_game_event("Game End")
-                    
+            
                     # Write results to CSV file
                     self.write_game_results_to_csv(
                         current_game,
@@ -3939,14 +3940,28 @@ Sound file and volume settings are from the Sounds tab."""
                         black_score,
                         penalties_to_write
                     )
-                    # Now reset game state
+            
+                    # -----------------------------
+                    # Reset game state for next game
+                    # -----------------------------
+            
                     self.white_score_var.set(0)
                     self.black_score_var.set(0)
+            
                     self.stored_penalties.clear()
                     self.clear_all_penalties()
-                    # Advance to next game in Tournament List
+            
+                    # Clear stored goal-scorer data
+                    if hasattr(self, "white_goal_scorers"):
+                        self.white_goal_scorers.clear()
+            
+                    if hasattr(self, "black_goal_scorers"):
+                        self.black_goal_scorers.clear()
+            
+                    # Advance to next game
                     self.advance_to_next_game()
-                    # Update team names in scoreboard tab for the next game
+            
+                    # Update team names
                     self.update_team_names_display()
                 if self.timer_seconds <= 30:
                     self.sudden_death_restore_active = False
@@ -4892,6 +4907,25 @@ Sound file and volume settings are from the Sounds tab."""
                 return
         
         score_var.set(score_var.get() + 1)
+        
+        # Store goal scorers for CSV export
+        if not hasattr(self, "white_goal_scorers"):
+            self.white_goal_scorers = {}
+        
+        if not hasattr(self, "black_goal_scorers"):
+            self.black_goal_scorers = {}
+        
+        if cap_number is not None:
+        
+            if team_name == "White":
+                self.white_goal_scorers[cap_number] = (
+                    self.white_goal_scorers.get(cap_number, 0) + 1
+                )
+        
+            elif team_name == "Black":
+                self.black_goal_scorers[cap_number] = (
+                    self.black_goal_scorers.get(cap_number, 0) + 1
+                )
         
         # Log the goal with cap number and break/timeout status
         break_status = None
