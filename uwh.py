@@ -822,8 +822,150 @@ class GameManagementApp:
                 f.write(event_line + "\n")
         except Exception as e:
             print(f"Error logging game event: {e}")
-
-
+            
+    def write_game_results_to_csv(self, game_number, white_score, black_score, penalties):
+        """
+        Updates the tournament CSV with final game results.
+    
+        Updates:
+            White score
+            Black score
+            Penalties column
+            Comments column (goal scorers if enabled)
+    
+        Does NOT modify:
+            Date
+            Game Number
+            White Team
+            Black Team
+            Referees
+        """
+    
+        import csv
+    
+        try:
+    
+            # Determine currently selected tournament file
+            csv_file = self.csv_file_var.get()
+    
+            if not csv_file:
+                print("CSV UPDATE: No tournament CSV selected")
+                return False
+    
+            if not os.path.isabs(csv_file):
+                csv_file = os.path.join(BASE_DIR, csv_file)
+    
+            if not os.path.exists(csv_file):
+                print(f"CSV UPDATE: File not found: {csv_file}")
+                return False
+    
+            # ------------------------------------
+            # Build Penalties column text
+            # ------------------------------------
+    
+            penalty_entries = []
+    
+            for p in penalties:
+    
+                team_prefix = "W" if p["team"] == "White" else "B"
+    
+                penalty_entries.append(
+                    f"{team_prefix}#{p['cap']}({p['duration']})"
+                )
+    
+            penalties_text = ", ".join(penalty_entries)
+    
+            # ------------------------------------
+            # Build Comments column text
+            # ------------------------------------
+    
+            comments_text = ""
+    
+            try:
+    
+                if self.record_scorers_cap_number.get():
+    
+                    scorer_entries = []
+    
+                    if hasattr(self, "white_goal_scorers"):
+    
+                        for cap, goals in sorted(self.white_goal_scorers.items()):
+                            scorer_entries.append(f"W#{cap}({goals})")
+    
+                    if hasattr(self, "black_goal_scorers"):
+    
+                        for cap, goals in sorted(self.black_goal_scorers.items()):
+                            scorer_entries.append(f"B#{cap}({goals})")
+    
+                    comments_text = ", ".join(scorer_entries)
+    
+            except Exception as scorer_error:
+                print(f"CSV UPDATE: scorer export failed: {scorer_error}")
+    
+            # ------------------------------------
+            # Read entire CSV
+            # ------------------------------------
+    
+            rows = []
+    
+            with open(csv_file, "r", newline="", encoding="utf-8-sig") as f:
+                reader = csv.reader(f)
+    
+                for row in reader:
+                    rows.append(row)
+    
+            # ------------------------------------
+            # Find game row
+            # ------------------------------------
+    
+            game_found = False
+    
+            for row in rows:
+    
+                if len(row) < 9:
+                    continue
+    
+                game_col = row[1].strip()
+    
+                if game_col == str(game_number):
+    
+                    # Expected format:
+                    # Date,#,White,Score,Black,Score,Referees,Penalties,Comments
+    
+                    row[3] = str(white_score)
+                    row[5] = str(black_score)
+                    row[7] = penalties_text
+                    row[8] = comments_text
+    
+                    game_found = True
+    
+                    print(
+                        f"CSV UPDATE: Game {game_number} "
+                        f"W:{white_score} B:{black_score}"
+                    )
+    
+                    break
+    
+            if not game_found:
+                print(f"CSV UPDATE: Game {game_number} not found")
+                return False
+    
+            # ------------------------------------
+            # Rewrite CSV
+            # ------------------------------------
+    
+            with open(csv_file, "w", newline="", encoding="utf-8-sig") as f:
+                writer = csv.writer(f)
+                writer.writerows(rows)
+    
+            print("CSV UPDATE: Success")
+    
+            return True
+    
+        except Exception as e:
+            print(f"CSV UPDATE ERROR: {e}")
+            return False
+    
     def create_scoreboard_tab(self):
         tab = ttk.Frame(self.notebook)
         self.notebook.add(tab, text="Scoreboard")
@@ -1793,7 +1935,6 @@ class GameManagementApp:
             except ValueError:
                 return (2, 0)
 
-    
     def on_csv_file_changed(self, event=None):
         """Handle CSV file selection change - update game numbers dropdown."""
         csv_file = self.csv_var.get()
@@ -3776,9 +3917,15 @@ Sound file and volume settings are from the Sounds tab."""
                     # Log game end event to TXT file
                     self.log_game_event("Game End")
                     
-                    # Write results to CSV file
-                    self.write_game_results_to_csv(current_game, white_score, black_score, penalties_to_write)
-                    
+                    # Write results to CSV file ***Temporariliy removed
+                    #self.write_game_results_to_csv(
+                        #current_game,
+                        #white_score,
+                        #black_score,
+                        #penalties_to_write
+                    #)
+                    #____________________________________________________
+                    print("DEBUG: CSV write would happen here")
                     # Now reset game state
                     self.white_score_var.set(0)
                     self.black_score_var.set(0)
