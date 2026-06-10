@@ -846,7 +846,8 @@ class GameManagementApp:
         try:
     
             # Determine currently selected tournament file
-            csv_file = self.csv_file_var.get()
+            csv_file = self.csv_var.get()
+            print(f"CSV UPDATE: csv_file={csv_file}")
     
             if not csv_file:
                 print("CSV UPDATE: No tournament CSV selected")
