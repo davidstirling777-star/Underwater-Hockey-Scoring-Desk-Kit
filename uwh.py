@@ -4733,8 +4733,14 @@ Sound file and volume settings are from the Sounds tab."""
             self.half_label.config(bg="red")
             # Show the referee timeout timer label
             self.referee_timeout_timer_label.grid()
-            if hasattr(self, "display_referee_timeout_timer_label"):
-                self.display_referee_timeout_timer_label.grid()
+            try:
+                if (
+                    hasattr(self, "display_referee_timeout_timer_label")
+                    and self.display_referee_timeout_timer_label.winfo_exists()
+                ):
+                    self.display_referee_timeout_timer_label.grid()
+            except tk.TclError:
+                pass
             self.referee_timeout_countup()
             # --- PATCH: Explicitly enable penalties button during referee timeout ---
             if hasattr(self, "penalties_button"):
@@ -4749,8 +4755,14 @@ Sound file and volume settings are from the Sounds tab."""
             )
             # Hide the referee timeout timer label
             self.referee_timeout_timer_label.grid_remove()
-            if hasattr(self, "display_referee_timeout_timer_label"):
-                self.display_referee_timeout_timer_label.grid_remove()
+            try:
+                if (
+                    hasattr(self, "display_referee_timeout_timer_label")
+                    and self.display_referee_timeout_timer_label.winfo_exists()
+                ):
+                    self.display_referee_timeout_timer_label.grid_remove()
+            except tk.TclError:
+                pass
             self.timer_seconds = self.saved_state["timer_seconds"]
             self.timer_running = self.saved_state["timer_running"]
             self.current_index = self.saved_state["current_index"]
