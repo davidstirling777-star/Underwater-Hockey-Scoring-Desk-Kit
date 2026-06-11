@@ -539,12 +539,8 @@ class GameManagementApp:
         self.reset_timer_button = None
         self.in_timeout = False
         self.pending_timeout = None
-        self.white_timeouts_this_half = 0
-        self.black_timeouts_this_half = 0
-        self.active_timeout_team = None
         self.sudden_death_timer_job = None
         self.sudden_death_seconds = 0
-        self.sudden_death_goal_scored = False
         self.full_sequence = []
         self.current_index = 0
         self.widgets = []
@@ -761,10 +757,6 @@ class GameManagementApp:
         self.initial_width = self.master.winfo_width()
         self.master.update_idletasks()
         self.scale_fonts(None)
-
-        # Sudden Death restoration variables
-        self.sudden_death_restore_time = None
-        self.sudden_death_restore_active = False
 
         # Display window configurations
         self.create_display_window()
@@ -3652,7 +3644,7 @@ Sound file and volume settings are from the Sounds tab."""
         self.black_score_var.set(0)
         self.current_index = 0
         self.timer_running = True
-        self.sudden_death_goal_scored = False
+        self.engine.sudden_death_goal_scored = False
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
@@ -3761,8 +3753,8 @@ Sound file and volume settings are from the Sounds tab."""
                     cur_period['duration'] = max(32, new_duration)
 
         if cur_period['name'] in ['First Half', 'Second Half', 'Between Game Break']:
-            self.white_timeouts_this_half = 0
-            self.black_timeouts_this_half = 0
+            self.engine.white_timeouts_this_half = 0
+            self.engine.black_timeouts_this_half = 0
 
         # Event-driven: Update the StringVar instead of calling .config()
         self.half_label_var.set(cur_period['name'])
@@ -3892,7 +3884,7 @@ Sound file and volume settings are from the Sounds tab."""
                 self.current_index = self.find_period_index('Between Game Break')
                 self.start_current_period()
                 return
-        if period_name == 'Sudden Death' and self.sudden_death_goal_scored:
+        if period_name == 'Sudden Death' and self.engine.sudden_death_goal_scored:
             self.current_index = self.find_period_index('Between Game Break')
             self.start_current_period()
             return
@@ -4039,11 +4031,11 @@ Sound file and volume settings are from the Sounds tab."""
     def reset_timeouts_for_half(self):
         period = self.full_sequence[self.current_index]
         if period['type'] in ['regular']:
-            if self.white_timeouts_this_half < 1:
+            if self.engine.white_timeouts_this_half < 1:
                 self.white_timeout_button.config(state=tk.NORMAL)
             else:
                 self.white_timeout_button.config(state=tk.DISABLED)
-            if self.black_timeouts_this_half < 1:
+            if self.engine.black_timeouts_this_half < 1:
                 self.black_timeout_button.config(state=tk.NORMAL)
             else:
                 self.black_timeout_button.config(state=tk.DISABLED)
@@ -4058,18 +4050,18 @@ Sound file and volume settings are from the Sounds tab."""
         if period['type'] != 'regular' or not self.team_timeouts_allowed_var.get():
             return
         if self.in_timeout:
-            if self.pending_timeout is None and self.active_timeout_team != "white":
+            if self.pending_timeout is None and self.engine.active_timeout_team != "white":
                 self.pending_timeout = "white"
-                status = f"{self.active_timeout_team.capitalize()} Team Time-Out (White Pending)"
+                status = f"{self.engine.active_timeout_team.capitalize()} Team Time-Out (White Pending)"
                 # Event-driven: Update the StringVar instead of calling .config()
                 self.half_label_var.set(status)
             return
-        if self.white_timeouts_this_half >= 1:
+        if self.engine.white_timeouts_this_half >= 1:
             self.show_timeout_popup("White")
             return
-        self.white_timeouts_this_half += 1
+        
         self.in_timeout = True
-        self.active_timeout_team = "white"
+        self.engine.start_timeout("White")
         self.court_time_paused = True
         self.save_timer_state()
         self.pause_all_penalty_timers()
@@ -4092,18 +4084,18 @@ Sound file and volume settings are from the Sounds tab."""
         if period['type'] != 'regular' or not self.team_timeouts_allowed_var.get():
             return
         if self.in_timeout:
-            if self.pending_timeout is None and self.active_timeout_team != "black":
+            if self.pending_timeout is None and self.engine.active_timeout_team != "black":
                 self.pending_timeout = "black"
-                status = f"{self.active_timeout_team.capitalize()} Team Time-Out (Black Pending)"
+                status = f"{self.engine.active_timeout_team.capitalize()} Team Time-Out (Black Pending)"
                 # Event-driven: Update the StringVar instead of calling .config()
                 self.half_label_var.set(status)
             return
-        if self.black_timeouts_this_half >= 1:
+        if self.engine.black_timeouts_this_half >= 1:
             self.show_timeout_popup("Black")
             return
-        self.black_timeouts_this_half += 1
+        
         self.in_timeout = True
-        self.active_timeout_team = "black"
+        self.engine.start_timeout("Black")
         self.court_time_paused = True
         self.save_timer_state()
         self.pause_all_penalty_timers()
@@ -4149,8 +4141,8 @@ Sound file and volume settings are from the Sounds tab."""
 
     def end_timeout(self):
         self.in_timeout = False
-        prev_active_team = self.active_timeout_team  # Store who just finished
-        self.active_timeout_team = None
+        prev_active_team = self.engine.active_timeout_team  # Store who just finished
+        self.engine.active_timeout_team = None
         self.court_time_paused = False
         self.resume_all_penalty_timers()
         self.timer_running = self.saved_timer_running
@@ -4174,10 +4166,10 @@ Sound file and volume settings are from the Sounds tab."""
                 print(f"Error playing siren at end of timeout: {e}")
         # If a pending timeout exists, start it now
         if self.pending_timeout is not None:
-            if self.pending_timeout == "white" and self.white_timeouts_this_half < 1:
+            if self.pending_timeout == "white" and self.engine.white_timeouts_this_half < 1:
                 self.pending_timeout = None
                 self.white_team_timeout()
-            elif self.pending_timeout == "black" and self.black_timeouts_this_half < 1:
+            elif self.pending_timeout == "black" and self.engine.black_timeouts_this_half < 1:
                 self.pending_timeout = None
                 self.black_team_timeout()
             else:
@@ -4192,7 +4184,6 @@ Sound file and volume settings are from the Sounds tab."""
         # Event-driven: Get text from StringVar instead of widget
         self.saved_half_label = self.half_label_var.get()
         self.saved_half_label_bg = self.half_label.cget("bg")
-        self.saved_sudden_death_goal_scored = getattr(self, "sudden_death_goal_scored", False)
 
     def show_timeout_popup(self, team):
         popup = tk.Toplevel(self.master)
@@ -4865,11 +4856,11 @@ Sound file and volume settings are from the Sounds tab."""
         self.timer_job = self.master.after(1000, self.referee_timeout_countup)
 
     def restore_sudden_death_after_goal_removal(self):
-        self.sudden_death_goal_scored = False
+        self.engine.sudden_death_goal_scored = False
         self.current_index = self.find_period_index('Sudden Death')
-        self.sudden_death_seconds = self.sudden_death_restore_time
-        self.sudden_death_restore_active = False
-        self.sudden_death_restore_time = None
+        self.sudden_death_seconds = self.engine.sudden_death_restore_time
+        self.engine.sudden_death_restore_active = False
+        self.engine.sudden_death_restore_time = None
         self.start_current_period()
 
     def adjust_score_with_confirm(self, score_var, team_name):
@@ -4901,7 +4892,7 @@ Sound file and volume settings are from the Sounds tab."""
         if score_var.get() > 0:
             if (cur_period['name'] == 'Between Game Break'
                 and getattr(self, 'sudden_death_restore_active', False)
-                and self.sudden_death_restore_time is not None
+                and self.engine.sudden_death_restore_time is not None
                 and self.timer_seconds > 30):
                 score_var.set(score_var.get() - 1)
                 self.restore_sudden_death_after_goal_removal()
@@ -4963,10 +4954,12 @@ Sound file and volume settings are from the Sounds tab."""
 #Saves the current Sudden Death timer value (self.sudden_death_seconds) for possible restoration (for example, if the goal is later subtracted).
 #Flags that a goal has been scored in Sudden Death (prevents this block from running again).
 #Progresses the game to the next period (typically Between Game Break or End of Game).
-        if cur_period['name'] == 'Sudden Death' and not getattr(self, 'sudden_death_goal_scored', False):
-            self.sudden_death_restore_time = self.sudden_death_seconds
-            self.sudden_death_restore_active = True
-            self.sudden_death_goal_scored = True
+        if cur_period['name'] == 'Sudden Death' and not self.engine.sudden_death_goal_scored:
+        
+            self.engine.mark_sudden_death_goal(
+                self.sudden_death_seconds
+            )
+        
             self.timer_running = False
             self.stop_sudden_death_timer()
             self.next_period()
