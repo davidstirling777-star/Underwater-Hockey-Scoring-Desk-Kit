@@ -559,10 +559,8 @@ class GameManagementApp:
         self.referee_timeout_active_bg = "black"
         self.referee_timeout_active_fg = "red"
         self.saved_state = {}
-        self.stored_penalties = []
         
         # Penalty timer system
-        self.active_penalties = []
         self.penalty_timers_paused = False
         self.penalty_timer_jobs = []
         
@@ -1131,7 +1129,7 @@ class GameManagementApp:
         and that 'Game 1' label is shown otherwise.
         Applies to both main and display windows.
         """
-        main_has_penalties = bool(self.active_penalties or self.stored_penalties)
+        main_has_penalties = bool(self.engine.active_penalties or self.engine.stored_penalties)
         # Main window: show penalty grid if any penalties; otherwise show 'Game 1'
         if main_has_penalties:
             if self.game_label.winfo_ismapped():
@@ -1153,7 +1151,7 @@ class GameManagementApp:
 
         # Display window: same logic
         try:
-            display_has_penalties = bool(self.active_penalties or self.stored_penalties)
+            display_has_penalties = bool(self.engine.active_penalties or self.engine.stored_penalties)
         
             if display_has_penalties:
         
@@ -1198,11 +1196,11 @@ class GameManagementApp:
 
     def update_penalty_grid(self):
         white_penalties = sorted(
-            [p for p in self.active_penalties if p["team"] == "White"],
+            [p for p in self.engine.active_penalties if p["team"] == "White"],
             key=self._penalty_sort_key
         )[:3]
         black_penalties = sorted(
-            [p for p in self.active_penalties if p["team"] == "Black"],
+            [p for p in self.engine.active_penalties if p["team"] == "Black"],
             key=self._penalty_sort_key
         )[:3]
         for i in range(3):
@@ -1235,11 +1233,11 @@ class GameManagementApp:
 
     def update_display_penalty_grid(self):
         white_penalties = sorted(
-            [p for p in self.active_penalties if p["team"] == "White"],
+            [p for p in self.engine.active_penalties if p["team"] == "White"],
             key=self._penalty_sort_key
         )[:3]
         black_penalties = sorted(
-            [p for p in self.active_penalties if p["team"] == "Black"],
+            [p for p in self.engine.active_penalties if p["team"] == "Black"],
             key=self._penalty_sort_key
         )[:3]
         for i in range(3):
@@ -3974,7 +3972,7 @@ Sound file and volume settings are from the Sounds tab."""
                     black_score = self.black_score_var.get()
             
                     # Copy stored_penalties before clearing
-                    penalties_to_write = list(self.stored_penalties)
+                    penalties_to_write = list(self.engine.stored_penalties)
             
                     # Log game end event to TXT file
                     self.log_game_event("Game End")
@@ -3994,7 +3992,7 @@ Sound file and volume settings are from the Sounds tab."""
                     self.white_score_var.set(0)
                     self.black_score_var.set(0)
                     
-                    self.stored_penalties.clear()
+                    self.engine.stored_penalties.clear()
                     self.clear_all_penalties()
 
                     self.engine.clear_goal_scorers()
@@ -4257,8 +4255,8 @@ Sound file and volume settings are from the Sounds tab."""
             "timer_job": None,
             "is_rest_of_match": seconds == -1
         }
-        self.active_penalties.append(penalty)
-        self.stored_penalties.append({"team": team, "cap": cap, "duration": duration})
+        self.engine.active_penalties.append(penalty)
+        self.engine.stored_penalties.append({"team": team, "cap": cap, "duration": duration})
         
         # Log the penalty start
         self.log_game_event("Penalty Start", team=team, cap_number=str(cap), duration=duration)
@@ -4277,7 +4275,7 @@ Sound file and volume settings are from the Sounds tab."""
         Handles countdown for an individual penalty. When the timer runs down to zero,
         removes the penalty and updates the penalty display robustly.
         """
-        if penalty not in self.active_penalties:
+        if penalty not in self.engine.active_penalties:
             # Don't need to call update_penalty_display here, remove_penalty does it
             return
         if penalty.get("timer_job"):
@@ -4303,28 +4301,28 @@ Sound file and volume settings are from the Sounds tab."""
             self.remove_penalty(penalty)  # This will update the display
 
     def remove_penalty(self, penalty):
-        if penalty in self.active_penalties:
+        if penalty in self.engine.active_penalties:
             if penalty["timer_job"]:
                 self.master.after_cancel(penalty["timer_job"])
                 penalty["timer_job"] = None
-            self.active_penalties.remove(penalty)
-            for stored in self.stored_penalties[:]:
+            self.engine.active_penalties.remove(penalty)
+            for stored in self.engine.stored_penalties[:]:
                 if (stored["team"] == penalty["team"] and 
                     stored["cap"] == penalty["cap"] and 
                     stored["duration"] == penalty["duration"]):
-                    self.stored_penalties.remove(stored)
+                    self.engine.stored_penalties.remove(stored)
                     break
             # Ensure widget display updates after ALL removals
             self.update_penalty_display()
 
     def clear_all_penalties(self):
-        for penalty in self.active_penalties[:]:
+        for penalty in self.engine.active_penalties[:]:
             self.remove_penalty(penalty)
         self.update_penalty_display()
 
     def pause_all_penalty_timers(self):
         self.penalty_timers_paused = True
-        for penalty in self.active_penalties:
+        for penalty in self.engine.active_penalties:
             if penalty["timer_job"]:
                 self.master.after_cancel(penalty["timer_job"])
                 penalty["timer_job"] = None
@@ -4332,7 +4330,7 @@ Sound file and volume settings are from the Sounds tab."""
 
     def resume_all_penalty_timers(self):
         self.penalty_timers_paused = False
-        for penalty in self.active_penalties:
+        for penalty in self.engine.active_penalties:
             if not penalty["is_rest_of_match"] and penalty["seconds_remaining"] > 0:
                 self.schedule_penalty_countdown(penalty)
         self.update_penalty_display()
@@ -4674,7 +4672,7 @@ Sound file and volume settings are from the Sounds tab."""
             if duration == "":
                 messagebox.showerror("Error", "Choose a penalty duration.")
                 return
-            if len(self.stored_penalties) >= 6:
+            if len(self.engine.stored_penalties) >= 6:
                 messagebox.showerror("Error", "Maximum 6 penalties can be stored.")
                 return
 
@@ -4697,13 +4695,13 @@ Sound file and volume settings are from the Sounds tab."""
             active_count = len(getattr(self, 'active_penalties', []))
 
             if idx < active_count:
-                penalty_to_remove = self.active_penalties[idx]
+                penalty_to_remove = self.engine.active_penalties[idx]
                 self.remove_penalty(penalty_to_remove)
                 refresh_penalty_listbox()
             else:
                 stored_idx = idx - active_count
-                if 0 <= stored_idx < len(self.stored_penalties):
-                    self.stored_penalties.pop(stored_idx)
+                if 0 <= stored_idx < len(self.engine.stored_penalties):
+                    self.engine.stored_penalties.pop(stored_idx)
                     refresh_penalty_listbox()
 
         start_button_frame = ttk.Frame(penalty_window)
