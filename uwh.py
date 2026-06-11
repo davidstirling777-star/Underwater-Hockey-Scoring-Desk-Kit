@@ -981,6 +981,9 @@ class GameManagementApp:
                     row[wscore_col] = str(white_score)
                     row[bscore_col] = str(black_score)
                     row[penalties_col] = penalties_text
+                    print(f"CSV DEBUG: comments_text='{comments_text}'")
+                    print(f"CSV DEBUG: white_goal_scorers={self.engine.white_goal_scorers}")
+                    print(f"CSV DEBUG: black_goal_scorers={self.engine.black_goal_scorers}")
                     row[comments_col] = comments_text
         
                     game_found = True
