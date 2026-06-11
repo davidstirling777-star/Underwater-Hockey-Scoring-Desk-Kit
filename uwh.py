@@ -4948,13 +4948,6 @@ Sound file and volume settings are from the Sounds tab."""
         
         score_var.set(score_var.get() + 1)
         
-        # Store goal scorers for CSV export
-        if not hasattr(self, "white_goal_scorers"):
-            self.engine.white_goal_scorers = {}
-        
-        if not hasattr(self, "black_goal_scorers"):
-            self.engine.black_goal_scorers = {}
-        
         if cap_number is not None:
         
             if team_name == "White":
