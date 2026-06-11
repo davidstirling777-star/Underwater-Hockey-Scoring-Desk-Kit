@@ -3997,10 +3997,6 @@ Sound file and volume settings are from the Sounds tab."""
                     self.stored_penalties.clear()
                     self.clear_all_penalties()
                     
-                    # Clear stored goal-scorer data
-                    self.engine.white_goal_scorers.clear()
-                    self.engine.black_goal_scorers.clear()
-                    
                     # Advance to next game
                     self.advance_to_next_game()
                     
@@ -4948,17 +4944,10 @@ Sound file and volume settings are from the Sounds tab."""
         
         score_var.set(score_var.get() + 1)
         
-        if cap_number is not None:
-        
-            if team_name == "White":
-                self.engine.white_goal_scorers[cap_number] = (
-                    self.engine.white_goal_scorers.get(cap_number, 0) + 1
-                )
-        
-            elif team_name == "Black":
-                self.engine.black_goal_scorers[cap_number] = (
-                    self.engine.black_goal_scorers.get(cap_number, 0) + 1
-                )
+        self.engine.record_goal_scorer(
+            team_name,
+            cap_number
+        )
         
         # Log the goal with cap number and break/timeout status
         break_status = None
