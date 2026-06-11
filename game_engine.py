@@ -44,12 +44,13 @@ class GameEngine:
         self.black_timeouts_this_half = 0
 
     def start_timeout(self, team):
-        self.active_timeout_team = team
-
+    
         if team == "White":
+            self.active_timeout_team = "white"
             self.white_timeouts_this_half += 1
-
+    
         elif team == "Black":
+            self.active_timeout_team = "black"
             self.black_timeouts_this_half += 1
 
     def end_timeout(self):
