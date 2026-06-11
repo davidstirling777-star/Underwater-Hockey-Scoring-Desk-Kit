@@ -912,7 +912,8 @@ class GameManagementApp:
                         key=lambda x: self._sort_cap_key(x[0])
                     ):
                         scorer_entries.append(f"B#{cap}({goals})")
-            
+                    print("CSV DEBUG WHITE:", self.engine.white_goal_scorers)
+                    print("CSV DEBUG BLACK:", self.engine.black_goal_scorers)
                     comments_text = ", ".join(scorer_entries)
             
                     print(f"CSV COMMENTS: {comments_text}")
