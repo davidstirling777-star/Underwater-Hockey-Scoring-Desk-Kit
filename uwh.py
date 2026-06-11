@@ -3996,6 +3996,8 @@ Sound file and volume settings are from the Sounds tab."""
                     
                     self.stored_penalties.clear()
                     self.clear_all_penalties()
+
+                    self.engine.clear_goal_scorers()
                     
                     # Advance to next game
                     self.advance_to_next_game()
