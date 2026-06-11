@@ -655,18 +655,23 @@ class GameManagementApp:
                     
                     # Perform actual connectivity test
                     import paho.mqtt.client as mqtt_test
-                    print("PAHO MQTT VERSION:", mqtt_test.__version__)
-                    test_client = mqtt_test.Client(
-                        callback_api_version=mqtt_test.CallbackAPIVersion.VERSION2
-                    )
-                    test_client = mqtt_test.Client()
+                    
+                    try:
+                        test_client = mqtt_test.Client(
+                            callback_api_version=mqtt_test.CallbackAPIVersion.VERSION2
+                        )
+                    except AttributeError:
+                        test_client = mqtt_test.Client()
                     
                     try:
                         test_client.connect("localhost", 1883, keepalive=5)
                         test_client.disconnect()
-                        
+                    
                         mqtt_stable_count += 1
-                        print(f"STARTUP: MQTT connection check {mqtt_stable_count}/{mqtt_stable_threshold} passed")
+                        print(
+                            f"STARTUP: MQTT connection check "
+                            f"{mqtt_stable_count}/{mqtt_stable_threshold} passed"
+                        )
                         
                         if mqtt_stable_count >= mqtt_stable_threshold:
                             mqtt_connection_stable = True
