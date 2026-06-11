@@ -892,37 +892,33 @@ class GameManagementApp:
             # ------------------------------------
             # Build Comments column text
             # ------------------------------------
-        
+            
             comments_text = ""
-        
+            
             try:
-        
-                if hasattr(self, "record_scorers_cap_number_var") and \
-                   self.record_scorers_cap_number_var.get():
-        
+            
+                if self.record_scorers_cap_number_var.get():
+            
                     scorer_entries = []
-        
-                    if hasattr(self, "white_goal_scorers"):
-        
-                        for cap, goals in sorted(
-                            self.engine.white_goal_scorers.items(),
-                            key=lambda x: self._sort_cap_key(x[0])
-                        ):
-                            scorer_entries.append(f"W#{cap}({goals})")
-        
-                    if hasattr(self, "black_goal_scorers"):
-        
-                        for cap, goals in sorted(
-                            self.engine.black_goal_scorers.items(),
-                            key=lambda x: self._sort_cap_key(x[0])
-                        ):
-                            scorer_entries.append(f"B#{cap}({goals})")
-        
+            
+                    for cap, goals in sorted(
+                        self.engine.white_goal_scorers.items(),
+                        key=lambda x: self._sort_cap_key(x[0])
+                    ):
+                        scorer_entries.append(f"W#{cap}({goals})")
+            
+                    for cap, goals in sorted(
+                        self.engine.black_goal_scorers.items(),
+                        key=lambda x: self._sort_cap_key(x[0])
+                    ):
+                        scorer_entries.append(f"B#{cap}({goals})")
+            
                     comments_text = ", ".join(scorer_entries)
-        
+            
+                    print(f"CSV COMMENTS: {comments_text}")
+            
             except Exception as scorer_error:
-                print(f"CSV UPDATE: scorer export failed: {scorer_error}")
-        
+                print(f"CSV UPDATE: scorer export failed: {scorer_error}")        
             # ------------------------------------
             # Read entire CSV
             # ------------------------------------
