@@ -11,6 +11,10 @@ class GameEngine:
         self.black_timeouts_this_half = 0
         self.active_timeout_team = None
 
+        self.sudden_death_goal_scored = False
+        self.sudden_death_restore_time = None
+        self.sudden_death_restore_active = False
+
     def record_goal_scorer(self, team, cap_number):
 
         if cap_number is None:
@@ -55,3 +59,13 @@ class GameEngine:
 
     def end_timeout(self):
         self.active_timeout_team = None
+
+    def mark_sudden_death_goal(self, remaining_time):
+        self.sudden_death_restore_time = remaining_time
+        self.sudden_death_restore_active = True
+        self.sudden_death_goal_scored = True
+
+    def clear_sudden_death_goal(self):
+        self.sudden_death_restore_time = None
+        self.sudden_death_restore_active = False
+        self.sudden_death_goal_scored = False
