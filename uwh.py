@@ -981,7 +981,9 @@ class GameManagementApp:
                     print(f"CSV DEBUG: comments_text='{comments_text}'")
                     print(f"CSV DEBUG: white_goal_scorers={self.engine.white_goal_scorers}")
                     print(f"CSV DEBUG: black_goal_scorers={self.engine.black_goal_scorers}")
+                    print("ROW BEFORE:", row)
                     row[comments_col] = comments_text
+                    print("ROW AFTER:", row)
         
                     game_found = True
         
