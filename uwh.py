@@ -3987,28 +3987,22 @@ Sound file and volume settings are from the Sounds tab."""
                     # -----------------------------
                     # Reset game state for next game
                     # -----------------------------
-            
+                    
                     self.white_score_var.set(0)
                     self.black_score_var.set(0)
-            
+                    
                     self.stored_penalties.clear()
                     self.clear_all_penalties()
-            
+                    
                     # Clear stored goal-scorer data
-                    if hasattr(self, "white_goal_scorers"):
-                        self.engine.white_goal_scorers.clear()
-            
-                    if hasattr(self, "black_goal_scorers"):
-                        self.engine.black_goal_scorers.clear()
-            
+                    self.engine.white_goal_scorers.clear()
+                    self.engine.black_goal_scorers.clear()
+                    
                     # Advance to next game
                     self.advance_to_next_game()
-            
+                    
                     # Update team names
                     self.update_team_names_display()
-                if self.timer_seconds <= 30:
-                    self.sudden_death_restore_active = False
-                    self.sudden_death_restore_time = None
             
             # Sound logic for break periods - play BEFORE decrementing timer
             if cur_period and cur_period['type'] == 'break':
