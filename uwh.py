@@ -76,6 +76,7 @@ import webbrowser
 from zigbee_siren import ZigbeeSirenController, is_mqtt_available
 from sound import (check_audio_device_available, handle_no_audio_device_warning, 
                    get_sound_files, play_sound, play_sound_with_volume, preload_sounds)
+from game_engine import GameEngine
 
 SETTINGS_FILE = "settings.json"
 
@@ -510,6 +511,8 @@ class GameManagementApp:
             "referee_timeout_timer": font.Font(family="Arial", size=24),
         }
 
+        self.engine = GameEngine()
+        
         # Event-driven Tkinter variables for all display widgets
         self.white_score_var = tk.IntVar(value=0)
         self.black_score_var = tk.IntVar(value=0)
@@ -902,7 +905,7 @@ class GameManagementApp:
                     if hasattr(self, "white_goal_scorers"):
         
                         for cap, goals in sorted(
-                            self.white_goal_scorers.items(),
+                            self.engine.white_goal_scorers.items(),
                             key=lambda x: self._sort_cap_key(x[0])
                         ):
                             scorer_entries.append(f"W#{cap}({goals})")
@@ -910,7 +913,7 @@ class GameManagementApp:
                     if hasattr(self, "black_goal_scorers"):
         
                         for cap, goals in sorted(
-                            self.black_goal_scorers.items(),
+                            self.engine.black_goal_scorers.items(),
                             key=lambda x: self._sort_cap_key(x[0])
                         ):
                             scorer_entries.append(f"B#{cap}({goals})")
@@ -3994,10 +3997,10 @@ Sound file and volume settings are from the Sounds tab."""
             
                     # Clear stored goal-scorer data
                     if hasattr(self, "white_goal_scorers"):
-                        self.white_goal_scorers.clear()
+                        self.engine.white_goal_scorers.clear()
             
                     if hasattr(self, "black_goal_scorers"):
-                        self.black_goal_scorers.clear()
+                        self.engine.black_goal_scorers.clear()
             
                     # Advance to next game
                     self.advance_to_next_game()
@@ -4951,21 +4954,21 @@ Sound file and volume settings are from the Sounds tab."""
         
         # Store goal scorers for CSV export
         if not hasattr(self, "white_goal_scorers"):
-            self.white_goal_scorers = {}
+            self.engine.white_goal_scorers = {}
         
         if not hasattr(self, "black_goal_scorers"):
-            self.black_goal_scorers = {}
+            self.engine.black_goal_scorers = {}
         
         if cap_number is not None:
         
             if team_name == "White":
-                self.white_goal_scorers[cap_number] = (
-                    self.white_goal_scorers.get(cap_number, 0) + 1
+                self.engine.white_goal_scorers[cap_number] = (
+                    self.engine.white_goal_scorers.get(cap_number, 0) + 1
                 )
         
             elif team_name == "Black":
-                self.black_goal_scorers[cap_number] = (
-                    self.black_goal_scorers.get(cap_number, 0) + 1
+                self.engine.black_goal_scorers[cap_number] = (
+                    self.engine.black_goal_scorers.get(cap_number, 0) + 1
                 )
         
         # Log the goal with cap number and break/timeout status
