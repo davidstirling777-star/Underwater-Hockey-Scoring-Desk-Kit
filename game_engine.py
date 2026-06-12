@@ -17,6 +17,7 @@ class GameEngine:
 
         self.saved_state = {}
         
+        self.full_sequence = []
         self.current_index = 0
 
     def record_goal_scorer(self, team, cap_number):
