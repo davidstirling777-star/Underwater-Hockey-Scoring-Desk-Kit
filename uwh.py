@@ -540,7 +540,7 @@ class GameManagementApp:
         self.in_timeout = False
         self.pending_timeout = None
         self.sudden_death_timer_job = None
-        self.sudden_death_seconds = 0
+        self.engine.sudden_death_seconds = 0
         self.widgets = []
         self.last_valid_values = {}
         self.team_timeouts_allowed_var = tk.BooleanVar(value=self.variables["team_timeouts_allowed"]["default"])
@@ -3642,7 +3642,7 @@ Sound file and volume settings are from the Sounds tab."""
             self.timer_job = None
     
         self.sudden_death_timer_job = None
-        self.sudden_death_seconds = 0
+        self.engine.sudden_death_seconds = 0
     
         # Rebuild game sequence to reflect any settings changes
         self.build_game_sequence()
@@ -3707,7 +3707,7 @@ Sound file and volume settings are from the Sounds tab."""
         cur_period = self.engine.get_current_period()
     
         if cur_period and cur_period['name'] == 'Sudden Death':
-            mins, secs = divmod(self.sudden_death_seconds, 60)
+            mins, secs = divmod(self.engine.sudden_death_seconds, 60)
             self.timer_var.set(f"{int(mins):02d}:{int(secs):02d}")
         else:
             mins, secs = divmod(self.engine.timer_seconds, 60)
@@ -3832,7 +3832,7 @@ Sound file and volume settings are from the Sounds tab."""
             self.court_time_paused = False
         if cur_period['name'] == 'Sudden Death':
             self.engine.timer_running = True
-            self.sudden_death_seconds = -1
+            self.engine.sudden_death_seconds = -1
             self.update_timer_display()
             self.start_sudden_death_timer()
             # Log Sudden Death start
@@ -3893,10 +3893,10 @@ Sound file and volume settings are from the Sounds tab."""
             return
         # Update display BEFORE incrementing for consistency
         self.update_timer_display()
-        if self.sudden_death_seconds < 0:
-            self.sudden_death_seconds = 0
+        if self.engine.sudden_death_seconds < 0:
+            self.engine.sudden_death_seconds = 0
         else:
-            self.sudden_death_seconds += 1
+            self.engine.sudden_death_seconds += 1
         self.sudden_death_timer_job = self.master.after(1000, self.start_sudden_death_timer)
 
     def stop_sudden_death_timer(self):
@@ -4851,7 +4851,7 @@ Sound file and volume settings are from the Sounds tab."""
     def restore_sudden_death_after_goal_removal(self):
         self.engine.sudden_death_goal_scored = False
         self.engine.go_to_period('Sudden Death')
-        self.sudden_death_seconds = self.engine.sudden_death_restore_time
+        self.engine.sudden_death_seconds = self.engine.sudden_death_restore_time
         self.engine.sudden_death_restore_active = False
         self.engine.sudden_death_restore_time = None
         self.start_current_period()
@@ -4944,13 +4944,13 @@ Sound file and volume settings are from the Sounds tab."""
         
         self.log_game_event("Goal", team=team_name, cap_number=cap_number, break_status=break_status)
 
-#Saves the current Sudden Death timer value (self.sudden_death_seconds) for possible restoration (for example, if the goal is later subtracted).
+#Saves the current Sudden Death timer value (self.engine.sudden_death_seconds) for possible restoration (for example, if the goal is later subtracted).
 #Flags that a goal has been scored in Sudden Death (prevents this block from running again).
 #Progresses the game to the next period (typically Between Game Break or End of Game).
         if cur_period['name'] == 'Sudden Death' and not self.engine.sudden_death_goal_scored:
         
             self.engine.mark_sudden_death_goal(
-                self.sudden_death_seconds
+                self.engine.sudden_death_seconds
             )
         
             self.engine.timer_running = False
