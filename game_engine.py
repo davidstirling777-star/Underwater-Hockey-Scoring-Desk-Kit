@@ -75,4 +75,56 @@ class GameEngine:
         self.sudden_death_restore_active = False
         self.sudden_death_goal_scored = False
 
+    def find_period_index(self, name):
+    
+        for idx, period in enumerate(self.full_sequence):
+    
+            if period["name"] == name:
+                return idx
+    
+        return len(self.full_sequence) - 1
+
+    def advance_period(self, white_score, black_score):
+    
+        if self.current_index >= len(self.full_sequence):
+            self.current_index = self.find_period_index(
+                "Between Game Break"
+            )
+            return True
+    
+        cur_period = self.full_sequence[self.current_index]
+        period_name = cur_period["name"]
+    
+        if period_name == "Second Half":
+            if white_score != black_score:
+                self.current_index = self.find_period_index(
+                    "Between Game Break"
+                )
+                return True
+    
+        if period_name == "Overtime Second Half":
+            if white_score != black_score:
+                self.current_index = self.find_period_index(
+                    "Between Game Break"
+                )
+                return True
+    
+        if (
+            period_name == "Sudden Death"
+            and self.sudden_death_goal_scored
+        ):
+            self.current_index = self.find_period_index(
+                "Between Game Break"
+            )
+            return True
+    
+        self.current_index += 1
+    
+        if self.current_index >= len(self.full_sequence):
+            self.current_index = self.find_period_index(
+                "First Half"
+            )
+    
+        return True
+
 
