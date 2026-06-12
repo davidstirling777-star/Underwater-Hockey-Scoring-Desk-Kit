@@ -181,3 +181,7 @@ class GameEngine:
 
     def go_to_period(self, period_name):
         self.current_index = self.find_period_index(period_name)
+
+    def set_sequence(self, sequence):
+        self.full_sequence = sequence
+        self.current_index = 0
