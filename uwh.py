@@ -541,7 +541,6 @@ class GameManagementApp:
         self.pending_timeout = None
         self.sudden_death_timer_job = None
         self.sudden_death_seconds = 0
-        self.engine.current_index = 0
         self.widgets = []
         self.last_valid_values = {}
         self.team_timeouts_allowed_var = tk.BooleanVar(value=self.variables["team_timeouts_allowed"]["default"])
@@ -3744,8 +3743,7 @@ Sound file and volume settings are from the Sounds tab."""
                     cur_period['duration'] = max(32, new_duration)
 
         if cur_period['name'] in ['First Half', 'Second Half', 'Between Game Break']:
-            self.engine.white_timeouts_this_half = 0
-            self.engine.black_timeouts_this_half = 0
+            self.engine.reset_half_timeouts()
 
         # Event-driven: Update the StringVar instead of calling .config()
         self.half_label_var.set(cur_period['name'])
@@ -4605,7 +4603,7 @@ Sound file and volume settings are from the Sounds tab."""
             selected_index = selection[0] if selection else None
 
             penalty_listbox.delete(0, tk.END)
-            for penalty in getattr(self, 'active_penalties', []):
+            for penalty in self.engine.active_penalties:
                 if penalty["is_rest_of_match"]:
                     time_str = "REST OF MATCH"
                 else:
@@ -4613,7 +4611,7 @@ Sound file and volume settings are from the Sounds tab."""
                     time_str = f"{int(mins):02d}:{int(secs):02d}"
                 penalty_listbox.insert(tk.END, f"{penalty['team']} #{penalty['cap']} {time_str}")
 
-            for p in getattr(self, 'stored_penalties', []):
+            for p in self.engine.stored_penalties:
                 if not any(ap["team"] == p["team"] and ap["cap"] == p["cap"] and ap["duration"] == p["duration"]
                         for ap in getattr(self, 'active_penalties', [])):
                     penalty_listbox.insert(tk.END, f"{p['team']} #{p['cap']} {p['duration']}")
@@ -4665,7 +4663,7 @@ Sound file and volume settings are from the Sounds tab."""
                 return
 
             idx = selection[0]
-            active_count = len(getattr(self, 'active_penalties', []))
+            active_count = len(self.engine.active_penalties)
 
             if idx < active_count:
                 penalty_to_remove = self.engine.active_penalties[idx]
