@@ -15,6 +15,8 @@ class GameEngine:
         self.sudden_death_restore_time = None
         self.sudden_death_restore_active = False
 
+        self.saved_state = {}
+
     def record_goal_scorer(self, team, cap_number):
 
         if cap_number is None:
@@ -69,3 +71,5 @@ class GameEngine:
         self.sudden_death_restore_time = None
         self.sudden_death_restore_active = False
         self.sudden_death_goal_scored = False
+
+
