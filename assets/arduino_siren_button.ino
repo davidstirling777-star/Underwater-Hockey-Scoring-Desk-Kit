@@ -1,11 +1,13 @@
-// Arduino Uno, Every or Nano ESP32 Siren Button Sketch
-// Pin D3 monitoring: LOW = SIREN_ON (repeat every 0.5s), HIGH = SIREN_OFF
-// Solder a pull-up resister between D3 and +5V (or 3V3 for the nano) 
+// Arduino Every or Nano Siren Button Sketch
+// Using Arduino Screw Terminal Connector
+// Pin A4 (Pin 18) monitoring: LOW = SIREN_ON (repeat every 0.5s), HIGH = SIREN_OFF
+// Connect a pull-up resister between A4 (Pin 18) and +5V (or 3V3 for the nano)
+// Connect Normally Open (NO) momentary swtich between Pin A4 (Pin 18) and Ground (GND)
 // The Arduino Nano ESP32 GPIO pins operate strictly at 3.3V.
 // Applying voltages higher than 3.3V to any digital or analog pin will 
-// likely damage the Nano ESP32 microcontroller. The Nano ESP32 pins are not 5V tolerant.
+// likely damage the Nano microcontroller. The pins are not 5V tolerant.
 
-const int signalPin = 3; // signalPin - monitor for LOW (grounded) or HIGH
+const int signalPin = 18; // signalPin - monitor for LOW (grounded) or HIGH
 bool lastSignalState = HIGH; // Assume starting HIGH (not grounded)
 unsigned long lastSirenTime = 0; // Track time of last SIREN_ON output
 const unsigned long SIREN_INTERVAL = 500; // 500ms = 0.5 seconds
