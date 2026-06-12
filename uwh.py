@@ -3845,9 +3845,7 @@ Sound file and volume settings are from the Sounds tab."""
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
     
-        cur_period = self.engine.full_sequence[
-            self.engine.current_index
-        ]
+        cur_period = self.engine.get_current_period()
     
         period_name = cur_period["name"]
     
@@ -4003,7 +4001,7 @@ Sound file and volume settings are from the Sounds tab."""
             self.next_period()
 
     def reset_timeouts_for_half(self):
-        period = self.engine.full_sequence[self.engine.current_index]
+        period = self.engine.get_current_period()
         if period['type'] in ['regular']:
             if self.engine.white_timeouts_this_half < 1:
                 self.white_timeout_button.config(state=tk.NORMAL)
@@ -4018,7 +4016,7 @@ Sound file and volume settings are from the Sounds tab."""
             self.black_timeout_button.config(state=tk.DISABLED)
 
     def white_team_timeout(self):
-        period = self.engine.full_sequence[self.engine.current_index]
+        period = self.engine.get_current_period()
         # Immediately grey out (disable) the button when pressed
         self.white_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
         if period['type'] != 'regular' or not self.team_timeouts_allowed_var.get():
@@ -4052,7 +4050,7 @@ Sound file and volume settings are from the Sounds tab."""
         self.timer_job = self.master.after(1000, self.timeout_countdown)
 
     def black_team_timeout(self):
-        period = self.engine.full_sequence[self.engine.current_index]
+        period = self.engine.get_current_period()
         # Immediately grey out (disable) the button when pressed
         self.black_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
         if period['type'] != 'regular' or not self.team_timeouts_allowed_var.get():
