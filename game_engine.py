@@ -208,3 +208,19 @@ class GameEngine:
             return None
     
         return self.full_sequence[0]
+    def start_timer(self):
+        self.timer_running = True
+    
+    
+    def stop_timer(self):
+        self.timer_running = False
+    
+    
+    def set_timer_seconds(self, seconds):
+        self.timer_seconds = seconds
+    
+    
+    def decrement_timer(self):
+        if self.timer_seconds > 0:
+        self.timer_seconds -= 1
+
