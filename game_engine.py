@@ -20,6 +20,12 @@ class GameEngine:
         self.full_sequence = []
         self.current_index = 0
 
+        self.timer_running = True
+        self.timer_seconds = 0
+
+        self.saved_timer_running = False
+        self.saved_timer_seconds = 0
+
     def record_goal_scorer(self, team, cap_number):
 
         if cap_number is None:
@@ -134,6 +140,19 @@ class GameEngine:
     
         if self.current_index >= len(self.full_sequence):
             return None
+
+        def save_timer_state(self, timer_running, timer_seconds):
+
+    self.saved_timer_running = timer_running
+    self.saved_timer_seconds = timer_seconds
+
+
+    def restore_timer_state(self):
+    
+        return (
+            self.saved_timer_running,
+            self.saved_timer_seconds
+        )
     
         return self.full_sequence[self.current_index]
 
