@@ -4134,7 +4134,7 @@ Sound file and volume settings are from the Sounds tab."""
     def end_timeout(self):
         self.in_timeout = False
         prev_active_team = self.engine.active_timeout_team  # Store who just finished
-        self.engine.active_timeout_team = None
+        self.engine.end_timeout()
         self.court_time_paused = False
         self.resume_all_penalty_timers()
         state = self.engine.saved_state
