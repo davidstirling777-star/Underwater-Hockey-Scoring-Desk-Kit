@@ -140,20 +140,44 @@ class GameEngine:
     
         if self.current_index >= len(self.full_sequence):
             return None
-
-        def save_timer_state(self, timer_running, timer_seconds):
-
-    self.saved_timer_running = timer_running
-    self.saved_timer_seconds = timer_seconds
-
-
+    
+        return self.full_sequence[self.current_index]
+    
+    
+    def save_timer_state(self, timer_running, timer_seconds):
+    
+        self.saved_timer_running = timer_running
+        self.saved_timer_seconds = timer_seconds
+    
+    
     def restore_timer_state(self):
     
         return (
             self.saved_timer_running,
             self.saved_timer_seconds
         )
+
+    def clear_timer_state(self):
     
-        return self.full_sequence[self.current_index]
+        self.saved_timer_running = False
+        self.saved_timer_seconds = 0
 
+    def set_current_period(self, index):
+        self.current_index = index
+    
+    def next_period_index(self):
+        self.current_index += 1
+    
+    def reset_to_first_half(self):
+        self.current_index = self.find_period_index("First Half")
+    
+    def reset_to_between_game_break(self):
+        self.current_index = self.find_period_index(
+            "Between Game Break"
+        )
 
+    def reset_to_first_period(self):
+        self.current_index = 0
+
+    def go_to_period(self, period_name):
+        self.current_index = self.find_period_index(period_name)
