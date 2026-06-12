@@ -16,6 +16,8 @@ class GameEngine:
         self.sudden_death_restore_active = False
 
         self.saved_state = {}
+        
+        self.current_index = 0
 
     def record_goal_scorer(self, team, cap_number):
 
