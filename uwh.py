@@ -1396,12 +1396,6 @@ class GameManagementApp:
         seq.append({'name': 'Between Game Break', 'type': 'break', 'duration': self.get_minutes('between_game_break')})
         self.engine.full_sequence = seq
         self.engine.current_index = 0
-
-    def find_period_index(self, name):
-        for idx, period in enumerate(self.engine.full_sequence):
-            if period['name'] == name:
-                return idx
-        return len(self.engine.full_sequence) - 1
         
     def create_settings_tab(self):
         tab = ttk.Frame(self.notebook)
@@ -3695,7 +3689,7 @@ Sound file and volume settings are from the Sounds tab."""
             # Event-driven: Update the StringVar instead of calling .config()
             self.timer_var.set(f"{int(mins):02d}:{int(secs):02d}")
             return
-        cur_period = self.engine.full_sequence[self.engine.current_index] if self.engine.full_sequence and self.engine.current_index < len(self.engine.full_sequence) else None
+        cur_period = self.engine.get_current_period( if self.engine.full_sequence and self.engine.current_index < len(self.engine.full_sequence) else None
         if cur_period and cur_period['name'] == 'Sudden Death':
             mins, secs = divmod(self.sudden_death_seconds, 60)
             # Event-driven: Update the StringVar instead of calling .config()
@@ -3724,8 +3718,8 @@ Sound file and volume settings are from the Sounds tab."""
 
     def start_current_period(self):
         if self.engine.current_index >= len(self.engine.full_sequence):
-            self.engine.current_index = self.find_period_index('Between Game Break')
-        cur_period = self.engine.full_sequence[self.engine.current_index]
+            self.engine.current_index = self.engine.find_period_index('Between Game Break')
+        cur_period = self.engine.get_current_period(
 
         # Shorten Between Game Break if court time is behind local time (paused for ref timeout etc)
         if cur_period['name'] == "Between Game Break":
@@ -3850,50 +3844,37 @@ Sound file and volume settings are from the Sounds tab."""
                 self.log_game_event("Overtime Second Half Start")
 
     def next_period(self):
+    
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
-        if self.engine.current_index >= len(self.engine.full_sequence):
-            self.engine.current_index = self.find_period_index('Between Game Break')
-            self.start_current_period()
-            return
-        cur_period = self.engine.full_sequence[self.engine.current_index]
-        period_name = cur_period['name']
-        
-        # Log period end events before transitioning
-        if period_name == 'First Half':
+    
+        cur_period = self.engine.full_sequence[
+            self.engine.current_index
+        ]
+    
+        period_name = cur_period["name"]
+    
+        if period_name == "First Half":
             self.log_game_event("First Half End")
-        elif period_name == 'Second Half':
+    
+        elif period_name == "Second Half":
             self.log_game_event("Second Half End")
-        elif period_name == 'Overtime First Half':
+    
+        elif period_name == "Overtime First Half":
             self.log_game_event("Overtime First Half End")
-        elif period_name == 'Overtime Second Half':
+    
+        elif period_name == "Overtime Second Half":
             self.log_game_event("Overtime Second Half End")
-        elif period_name == 'Sudden Death':
+    
+        elif period_name == "Sudden Death":
             self.log_game_event("Sudden Death End")
-        
-        if period_name == 'Second Half':
-            if self.white_score_var.get() != self.black_score_var.get():
-                self.engine.current_index = self.find_period_index('Between Game Break')
-                self.start_current_period()
-                return
-        if period_name == 'Overtime Second Half':
-            if self.white_score_var.get() != self.black_score_var.get():
-                self.engine.current_index = self.find_period_index('Between Game Break')
-                self.start_current_period()
-                return
-        if period_name == 'Sudden Death' and self.engine.sudden_death_goal_scored:
-            self.engine.current_index = self.find_period_index('Between Game Break')
-            self.start_current_period()
-            return
-        self.engine.current_index += 1
-        # After Between Game Break at the end of sequence, loop back to First Half
-        if self.engine.current_index >= len(self.engine.full_sequence):
-            # Find First Half to loop back to regular game
-            first_half_idx = self.find_period_index('First Half')
-            self.engine.current_index = first_half_idx
-            self.start_current_period()
-            return
+    
+        self.engine.advance_period(
+            self.white_score_var.get(),
+            self.black_score_var.get()
+        )
+    
         self.start_current_period()
 
     def start_sudden_death_timer(self):
@@ -3913,7 +3894,7 @@ Sound file and volume settings are from the Sounds tab."""
             self.sudden_death_timer_job = None
 
     def goto_between_game_break(self):
-        idx = self.find_period_index('Between Game Break')
+        idx = self.engine.find_period_index('Between Game Break')
         self.engine.current_index = idx
         self.start_current_period()
 
@@ -3925,7 +3906,7 @@ Sound file and volume settings are from the Sounds tab."""
             self.update_timer_display()
             return
         if self.timer_seconds > 0:
-            cur_period = self.engine.full_sequence[self.engine.current_index] if self.engine.full_sequence and self.engine.current_index < len(self.engine.full_sequence) else None
+            cur_period = self.engine.get_current_period( if self.engine.full_sequence and self.engine.current_index < len(self.engine.full_sequence) else None
             
             # Play siren at 1s for break periods (plays 1s earlier than old 0s trigger)
             if cur_period and cur_period['type'] == 'break':
@@ -4815,7 +4796,7 @@ Sound file and volume settings are from the Sounds tab."""
             self.half_label.config(bg=self.saved_state["half_label_bg"])
             self.court_time_paused = self.saved_state.get("court_time_paused", False)
             # Only resume penalty timers if we're not in a break period
-            cur_period = self.engine.full_sequence[self.engine.current_index]
+            cur_period = self.engine.get_current_period(
             PAUSE_PERIODS = [
                 "First Game Starts In:",
                 "Between Game Break",
@@ -4859,7 +4840,7 @@ Sound file and volume settings are from the Sounds tab."""
 
     def restore_sudden_death_after_goal_removal(self):
         self.engine.sudden_death_goal_scored = False
-        self.engine.current_index = self.find_period_index('Sudden Death')
+        self.engine.current_index = self.engine.find_period_index('Sudden Death')
         self.sudden_death_seconds = self.engine.sudden_death_restore_time
         self.engine.sudden_death_restore_active = False
         self.engine.sudden_death_restore_time = None
@@ -4873,7 +4854,7 @@ Sound file and volume settings are from the Sounds tab."""
             f"Are you sure you want to remove goal from {team_name}?"
         ):
             return
-        cur_period = self.engine.full_sequence[self.engine.current_index]
+        cur_period = self.engine.get_current_period(
         is_team_timeout = getattr(self, 'in_timeout', False)
         is_referee_timeout = getattr(self, 'referee_timeout_active', False)
         is_break = cur_period['type'] == 'break'
@@ -4904,7 +4885,7 @@ Sound file and volume settings are from the Sounds tab."""
             return
 
     def add_goal_with_confirmation(self, score_var, team_name, trigger_button=None):
-        cur_period = self.engine.full_sequence[self.engine.current_index]
+        cur_period = self.engine.get_current_period(
         is_team_timeout = getattr(self, 'in_timeout', False)
         is_referee_timeout = getattr(self, 'referee_timeout_active', False)
         is_break = cur_period['type'] == 'break'
@@ -4971,11 +4952,11 @@ Sound file and volume settings are from the Sounds tab."""
         if cur_period['name'] == 'Between Game Break':
             if self.white_score_var.get() == self.black_score_var.get():
                 if self.is_overtime_enabled():
-                    self.engine.current_index = self.find_period_index('Overtime Game Break')
+                    self.engine.current_index = self.engine.find_period_index('Overtime Game Break')
                     self.start_current_period()
                     return
                 elif self.is_sudden_death_enabled():
-                    self.engine.current_index = self.find_period_index('Sudden Death Game Break')
+                    self.engine.current_index = self.engine.find_period_index('Sudden Death Game Break')
                     self.start_current_period()
                     return
 
@@ -4983,7 +4964,7 @@ Sound file and volume settings are from the Sounds tab."""
         if cur_period['name'] == 'Overtime Game Break':
             if self.white_score_var.get() != self.black_score_var.get():
                 # Skip Overtime, go straight to Between Game Break
-                self.engine.current_index = self.find_period_index('Between Game Break')
+                self.engine.current_index = self.engine.find_period_index('Between Game Break')
                 self.start_current_period()
                 return
 
@@ -4992,7 +4973,7 @@ Sound file and volume settings are from the Sounds tab."""
             prev_period = self.engine.full_sequence[self.engine.current_index - 1] if self.engine.current_index > 0 else None
             # If scores are now unequal, progress to Between Game Break
             if self.white_score_var.get() != self.black_score_var.get():
-                self.engine.current_index = self.find_period_index('Between Game Break')
+                self.engine.current_index = self.engine.find_period_index('Between Game Break')
                 self.start_current_period()
                 return
 
