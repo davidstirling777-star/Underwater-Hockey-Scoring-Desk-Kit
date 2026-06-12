@@ -3650,7 +3650,7 @@ Sound file and volume settings are from the Sounds tab."""
         first_period = self.engine.get_first_period()
     
         if first_period:
-            self.engine.timer_seconds = first_period["duration"]
+            self.engine.set_timer_seconds(first_period["duration"])
     
             # Event-driven: Update the StringVar instead of calling .config()
             self.half_label_var.set(first_period["name"])
@@ -3835,15 +3835,18 @@ Sound file and volume settings are from the Sounds tab."""
             self.engine.sudden_death_seconds = -1
             self.update_timer_display()
             self.start_sudden_death_timer()
-            # Log Sudden Death start
             self.log_game_event("Sudden Death Start")
         else:
-            self.engine.timer_seconds = cur_period['duration'] if cur_period['duration'] is not None else 0
+            self.engine.set_timer_seconds(
+                cur_period['duration'] if cur_period['duration'] is not None else 0
+            )
             self.update_timer_display()
             self.engine.start_timer()
+        
             if self.timer_job:
                 self.master.after_cancel(self.timer_job)
                 self.timer_job = None
+        
             self.timer_job = self.master.after(1000, self.countdown_timer)
             
             # Log period start events for halves and overtime halves
