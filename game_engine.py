@@ -127,4 +127,14 @@ class GameEngine:
     
         return True
 
+    def get_current_period(self):
+    
+        if not self.full_sequence:
+            return None
+    
+        if self.current_index >= len(self.full_sequence):
+            return None
+    
+        return self.full_sequence[self.current_index]
+
 
