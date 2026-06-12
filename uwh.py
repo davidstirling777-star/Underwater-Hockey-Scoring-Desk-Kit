@@ -527,8 +527,8 @@ class GameManagementApp:
         # Tournament List tracking
         self.current_game_index = 0  # Index in self.game_numbers list
         
-        self.timer_running = True
-        self.timer_seconds = 0
+        self.engine.timer_running = True
+        self.engine.timer_seconds = 0
 
         # Court time system
         self.court_time_seconds = None  # Will be synchronized to local time at startup/reset
@@ -3634,7 +3634,7 @@ Sound file and volume settings are from the Sounds tab."""
         self.white_score_var.set(0)
         self.black_score_var.set(0)
         self.engine.current_index = 0
-        self.timer_running = True
+        self.engine.timer_running = True
         self.engine.sudden_death_goal_scored = False
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
@@ -3644,12 +3644,12 @@ Sound file and volume settings are from the Sounds tab."""
         # Rebuild game sequence to reflect any settings changes (e.g., cleared "Time to Start First Game")
         self.build_game_sequence()
         if self.engine.full_sequence:
-            self.timer_seconds = self.engine.full_sequence[0]["duration"]
+            self.engine.timer_seconds = self.engine.full_sequence[0]["duration"]
             # Event-driven: Update the StringVar instead of calling .config()
             self.half_label_var.set(self.engine.full_sequence[0]["name"])
             self.update_half_label_background(self.engine.full_sequence[0]["name"])
         else:
-            self.timer_seconds = 0
+            self.engine.timer_seconds = 0
             # Event-driven: Update the StringVar instead of calling .config()
             self.half_label_var.set("")
         self.update_timer_display()
@@ -3694,7 +3694,7 @@ Sound file and volume settings are from the Sounds tab."""
             mins, secs = divmod(self.sudden_death_seconds, 60)
             self.timer_var.set(f"{int(mins):02d}:{int(secs):02d}")
         else:
-            mins, secs = divmod(self.timer_seconds, 60)
+            mins, secs = divmod(self.engine.timer_seconds, 60)
             self.timer_var.set(f"{int(mins):02d}:{int(secs):02d}")
 
     def adjust_between_game_break_for_crib_time(self):
@@ -3815,16 +3815,16 @@ Sound file and volume settings are from the Sounds tab."""
         else:
             self.court_time_paused = False
         if cur_period['name'] == 'Sudden Death':
-            self.timer_running = True
+            self.engine.timer_running = True
             self.sudden_death_seconds = -1
             self.update_timer_display()
             self.start_sudden_death_timer()
             # Log Sudden Death start
             self.log_game_event("Sudden Death Start")
         else:
-            self.timer_seconds = cur_period['duration'] if cur_period['duration'] is not None else 0
+            self.engine.timer_seconds = cur_period['duration'] if cur_period['duration'] is not None else 0
             self.update_timer_display()
-            self.timer_running = True
+            self.engine.timer_running = True
             if self.timer_job:
                 self.master.after_cancel(self.timer_job)
                 self.timer_job = None
@@ -3875,7 +3875,7 @@ Sound file and volume settings are from the Sounds tab."""
         self.start_current_period()
 
     def start_sudden_death_timer(self):
-        if not self.timer_running:
+        if not self.engine.timer_running:
             return
         # Update display BEFORE incrementing for consistency
         self.update_timer_display()
@@ -3899,17 +3899,17 @@ Sound file and volume settings are from the Sounds tab."""
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
-        if not self.timer_running:
+        if not self.engine.timer_running:
             self.update_timer_display()
             return
-        if self.timer_seconds > 0:
+        if self.engine.timer_seconds > 0:
             cur_period = self.engine.get_current_period() if self.engine.full_sequence and self.engine.current_index < len(self.engine.full_sequence) else None
             
             # Play siren at 1s for break periods (plays 1s earlier than old 0s trigger)
             if cur_period and cur_period['type'] == 'break':
                 break_periods = ['First Game Starts In:', 'Between Game Break', 'Half Time', 'Sudden Death Game Break', 
                                'Overtime Game Break', 'Overtime Half Time']
-                if cur_period['name'] in break_periods and self.timer_seconds == 1:
+                if cur_period['name'] in break_periods and self.engine.timer_seconds == 1:
                     # Play siren at 1s (displays as 00:01, plays 1s earlier than old 0s trigger)
                     try:
                         play_sound_with_volume(self.siren_var.get(), "siren", self.enable_sound,
@@ -3922,7 +3922,7 @@ Sound file and volume settings are from the Sounds tab."""
             # Play siren at 1s for regular/overtime periods (plays 1s earlier than old 0s trigger)
             if cur_period and cur_period['type'] in ['regular', 'overtime']:
                 half_periods = ['First Half', 'Second Half', 'Overtime First Half', 'Overtime Second Half']
-                if cur_period['name'] in half_periods and self.timer_seconds == 1:
+                if cur_period['name'] in half_periods and self.engine.timer_seconds == 1:
                     # Play siren at 1s (displays as 00:01, plays 1s earlier than old 0s trigger)
                     try:
                         play_sound_with_volume(self.siren_var.get(), "siren", self.enable_sound,
@@ -3933,7 +3933,7 @@ Sound file and volume settings are from the Sounds tab."""
                         print(f"Error playing siren at 1s for half period: {e}")
             
             if cur_period and cur_period['name'] == 'Between Game Break':
-                if self.timer_seconds == 30:
+                if self.engine.timer_seconds == 30:
                     # Write game results to CSV/TXT BEFORE resetting scores
                     current_game = self.get_current_game_number()
                     white_score = self.white_score_var.get()
@@ -3976,7 +3976,7 @@ Sound file and volume settings are from the Sounds tab."""
                 break_periods = ['First Game Starts In:', 'Between Game Break', 'Half Time', 'Sudden Death Game Break', 
                                'Overtime Game Break', 'Overtime Half Time']
                 if cur_period['name'] in break_periods:
-                    if self.timer_seconds == 31:
+                    if self.engine.timer_seconds == 31:
                         # Play one pip at 31s (displays as 00:31, plays 1s earlier than old 30s trigger)
                         try:
                             play_sound_with_volume(self.pips_var.get(), "pips", self.enable_sound, 
@@ -3985,7 +3985,7 @@ Sound file and volume settings are from the Sounds tab."""
                                                    self.siren_duration)
                         except Exception as e:
                             print(f"Error playing pip sound at 31s: {e}")
-                    elif 2 <= self.timer_seconds <= 11:
+                    elif 2 <= self.engine.timer_seconds <= 11:
                         # Play one pip per second from 11s to 2s (displays 00:11 to 00:02, plays 1s earlier than old 10-1s trigger)
                         try:
                             play_sound_with_volume(self.pips_var.get(), "pips", self.enable_sound,
@@ -3993,10 +3993,10 @@ Sound file and volume settings are from the Sounds tab."""
                                                    self.air_volume, self.water_volume,
                                                    self.siren_duration)
                         except Exception as e:
-                            print(f"Error playing pip sound at {self.timer_seconds}s: {e}")
+                            print(f"Error playing pip sound at {self.engine.timer_seconds}s: {e}")
             
             # Decrement timer AFTER playing sounds
-            self.timer_seconds -= 1
+            self.engine.timer_seconds -= 1
             self.update_timer_display()
             
             self.timer_job = self.master.after(1000, self.countdown_timer)
@@ -4044,9 +4044,9 @@ Sound file and volume settings are from the Sounds tab."""
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
-        self.timer_running = False
+        self.engine.timer_running = False
         timeout_seconds = self.get_minutes('team_timeout_period')
-        self.timer_seconds = timeout_seconds
+        self.engine.timer_seconds = timeout_seconds
         # Event-driven: Update the StringVar instead of calling .config()
         self.half_label_var.set("White Team Time-Out")
         self.update_half_label_background("White Team Time-Out")
@@ -4078,9 +4078,9 @@ Sound file and volume settings are from the Sounds tab."""
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
-        self.timer_running = False
+        self.engine.timer_running = False
         timeout_seconds = self.get_minutes('team_timeout_period')
-        self.timer_seconds = timeout_seconds
+        self.engine.timer_seconds = timeout_seconds
         # Event-driven: Update the StringVar instead of calling .config()
         self.half_label_var.set("Black Team Time-Out")
         self.update_half_label_background("Black Team Time-Out")
@@ -4094,11 +4094,11 @@ Sound file and volume settings are from the Sounds tab."""
         if not self.in_timeout:
             self.update_timer_display()
             return
-        if self.timer_seconds > 0:
+        if self.engine.timer_seconds > 0:
             # Enhancement: Play pip sound at 16 seconds (displays as 00:16, plays 1s earlier than old 15s trigger)
             # Only play if no pending timeout exists
             # Play sound BEFORE decrementing timer
-            if self.timer_seconds == 16 and self.pending_timeout is None:
+            if self.engine.timer_seconds == 16 and self.pending_timeout is None:
                 try:
                     play_sound_with_volume(self.pips_var.get(), "pips", self.enable_sound,
                                            self.pips_volume, self.siren_volume,
@@ -4108,7 +4108,7 @@ Sound file and volume settings are from the Sounds tab."""
                     print(f"Error playing pip sound at 16s timeout: {e}")
             
             # Decrement timer AFTER playing sound
-            self.timer_seconds -= 1
+            self.engine.timer_seconds -= 1
             self.update_timer_display()
             
             self.timer_job = self.master.after(1000, self.timeout_countdown)
@@ -4123,8 +4123,8 @@ Sound file and volume settings are from the Sounds tab."""
         self.resume_all_penalty_timers()
         state = self.engine.saved_state
         
-        self.timer_running = state["timer_running"]
-        self.timer_seconds = state["timer_seconds"]
+        self.engine.timer_running = state["timer_running"]
+        self.engine.timer_seconds = state["timer_seconds"]
         self.engine.current_index = state["current_index"]
         
         self.half_label_var.set(state["half_label"])
@@ -4152,14 +4152,14 @@ Sound file and volume settings are from the Sounds tab."""
                 self.black_team_timeout()
             else:
                 self.pending_timeout = None
-        elif self.timer_running:
+        elif self.engine.timer_running:
             self.timer_job = self.master.after(1000, self.countdown_timer)
 
     def save_timer_state(self):
     
         self.engine.saved_state = {
-            "timer_running": self.timer_running,
-            "timer_seconds": self.timer_seconds,
+            "timer_running": self.engine.timer_running,
+            "timer_seconds": self.engine.timer_seconds,
             "current_index": self.engine.current_index,
             "half_label": self.half_label_var.get(),
             "half_label_bg": self.half_label.cget("bg"),
@@ -4730,8 +4730,8 @@ Sound file and volume settings are from the Sounds tab."""
                 activeforeground=self.referee_timeout_active_fg
             )
             self.saved_state = {
-                "timer_seconds": self.timer_seconds,
-                "timer_running": self.timer_running,
+                "timer_seconds": self.engine.timer_seconds,
+                "timer_running": self.engine.timer_running,
                 "timer_job": self.timer_job,
                 "current_index": self.engine.current_index,
                 # Event-driven: Get text from StringVar instead of widget
@@ -4743,7 +4743,7 @@ Sound file and volume settings are from the Sounds tab."""
             if self.timer_job:
                 self.master.after_cancel(self.timer_job)
                 self.timer_job = None
-            self.timer_running = False
+            self.engine.timer_running = False
             if self.court_time_job:
                 self.master.after_cancel(self.court_time_job)
                 self.court_time_job = None
@@ -4785,8 +4785,8 @@ Sound file and volume settings are from the Sounds tab."""
                     self.display_referee_timeout_timer_label.grid_remove()
             except tk.TclError:
                 pass
-            self.timer_seconds = self.saved_state["timer_seconds"]
-            self.timer_running = self.saved_state["timer_running"]
+            self.engine.timer_seconds = self.saved_state["timer_seconds"]
+            self.engine.timer_running = self.saved_state["timer_running"]
             self.engine.current_index = self.saved_state["current_index"]
             # Event-driven: Update the StringVar instead of calling .config()
             self.half_label_var.set(self.saved_state["half_label_text"])
@@ -4815,7 +4815,7 @@ Sound file and volume settings are from the Sounds tab."""
                     self.master.after_cancel(self.timer_job)
                     self.timer_job = None
                 self.timer_job = self.master.after(1000, self.timeout_countdown)
-            elif self.timer_running:
+            elif self.engine.timer_running:
                 self.timer_job = self.master.after(1000, self.countdown_timer)
             if not self.court_time_paused:
                 self.court_time_job = self.master.after(1000, self.update_court_time)
@@ -4873,7 +4873,7 @@ Sound file and volume settings are from the Sounds tab."""
             if (cur_period['name'] == 'Between Game Break'
                 and getattr(self, 'sudden_death_restore_active', False)
                 and self.engine.sudden_death_restore_time is not None
-                and self.timer_seconds > 30):
+                and self.engine.timer_seconds > 30):
                 score_var.set(score_var.get() - 1)
                 self.restore_sudden_death_after_goal_removal()
                 return
@@ -4940,7 +4940,7 @@ Sound file and volume settings are from the Sounds tab."""
                 self.sudden_death_seconds
             )
         
-            self.timer_running = False
+            self.engine.timer_running = False
             self.stop_sudden_death_timer()
             self.next_period()
             return
