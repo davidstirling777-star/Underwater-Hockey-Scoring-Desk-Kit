@@ -4,7 +4,7 @@ Example hardware:
 Inital setup uses a MINIX Fanless MiniPC Z150-0dB Intel N150 8G/256GB.  Why? Because it runs on 12 V and runs Windows 11.
 MSI Pro MP273A 27" FHD 100Hz Business Monitor.  Why? Because it runs on 12 V.
 
-Siren is triggered manually using an Arduino Nano Every (with headers) plugged into an Arduino Nano Screw Terminal Adapter, Solder a pull-up resister between D3 and +5V (or 3V3 for the nano).
+Siren is triggered manually using an Arduino Nano Every (with headers) plugged into an Arduino Nano Screw Terminal Adapter.  Connect a pull-up resister between Pin A4 (Pin 18) and +5V (or 3V3 for the nano).  Connect a Normally Open (NO) momentary switch between Ground (GND) and Pin A4 (Pin 18).
 
 <img width="1200" height="1600" alt="WhatsApp Image 2026-06-12 at 4 07 02 PM" src="https://github.com/user-attachments/assets/cc0db17d-c047-429d-967f-7ca70b6f3b27" />
 
