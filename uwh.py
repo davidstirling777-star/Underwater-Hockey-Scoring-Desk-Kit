@@ -541,7 +541,6 @@ class GameManagementApp:
         self.pending_timeout = None
         self.sudden_death_timer_job = None
         self.sudden_death_seconds = 0
-        self.full_sequence = []
         self.engine.current_index = 0
         self.widgets = []
         self.last_valid_values = {}
@@ -1395,14 +1394,14 @@ class GameManagementApp:
             seq.append({'name': 'Sudden Death', 'type': 'sudden_death', 'duration': None})
         # Add Between Game Break at the end for looping back to next game
         seq.append({'name': 'Between Game Break', 'type': 'break', 'duration': self.get_minutes('between_game_break')})
-        self.full_sequence = seq
+        self.engine.full_seqif self.engine.full_sequenceuence = seq
         self.engine.current_index = 0
 
     def find_period_index(self, name):
-        for idx, period in enumerate(self.full_sequence):
+        for idx, period in enumerate(self.engine.full_sequence):
             if period['name'] == name:
                 return idx
-        return len(self.full_sequence) - 1
+        return len(self.engine.full_sequence) - 1
         
     def create_settings_tab(self):
         tab = ttk.Frame(self.notebook)
@@ -3651,11 +3650,11 @@ Sound file and volume settings are from the Sounds tab."""
         self.sudden_death_seconds = 0
         # Rebuild game sequence to reflect any settings changes (e.g., cleared "Time to Start First Game")
         self.build_game_sequence()
-        if self.full_sequence:
-            self.timer_seconds = self.full_sequence[0]["duration"]
+        if self.engine.full_sequence:
+            self.timer_seconds = self.engine.full_sequence[0]["duration"]
             # Event-driven: Update the StringVar instead of calling .config()
-            self.half_label_var.set(self.full_sequence[0]["name"])
-            self.update_half_label_background(self.full_sequence[0]["name"])
+            self.half_label_var.set(self.engine.full_sequence[0]["name"])
+            self.update_half_label_background(self.engine.full_sequence[0]["name"])
         else:
             self.timer_seconds = 0
             # Event-driven: Update the StringVar instead of calling .config()
@@ -3696,7 +3695,7 @@ Sound file and volume settings are from the Sounds tab."""
             # Event-driven: Update the StringVar instead of calling .config()
             self.timer_var.set(f"{int(mins):02d}:{int(secs):02d}")
             return
-        cur_period = self.full_sequence[self.engine.current_index] if self.full_sequence and self.engine.current_index < len(self.full_sequence) else None
+        cur_period = self.engine.full_sequence[self.engine.current_index] if self.engine.full_sequence and self.engine.current_index < len(self.engine.full_sequence) else None
         if cur_period and cur_period['name'] == 'Sudden Death':
             mins, secs = divmod(self.sudden_death_seconds, 60)
             # Event-driven: Update the StringVar instead of calling .config()
@@ -3714,8 +3713,8 @@ Sound file and volume settings are from the Sounds tab."""
             return
         crib_time_var = self.variables['crib_time']
         crib_time = int(float(crib_time_var.get("value", crib_time_var["default"])))
-        for idx in range(self.engine.current_index, len(self.full_sequence)):
-            period = self.full_sequence[idx]
+        for idx in range(self.engine.current_index, len(self.engine.full_sequence)):
+            period = self.engine.full_sequence[idx]
             if period['name'] == 'Between Game Break' and seconds_behind > 0:
                 reduce_by = min(crib_time, seconds_behind, period['duration'])
                 period['duration'] = max(0, period['duration'] - reduce_by)
@@ -3724,9 +3723,9 @@ Sound file and volume settings are from the Sounds tab."""
                     break
 
     def start_current_period(self):
-        if self.engine.current_index >= len(self.full_sequence):
+        if self.engine.current_index >= len(self.engine.full_sequence):
             self.engine.current_index = self.find_period_index('Between Game Break')
-        cur_period = self.full_sequence[self.engine.current_index]
+        cur_period = self.engine.full_sequence[self.engine.current_index]
 
         # Shorten Between Game Break if court time is behind local time (paused for ref timeout etc)
         if cur_period['name'] == "Between Game Break":
@@ -3854,11 +3853,11 @@ Sound file and volume settings are from the Sounds tab."""
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
-        if self.engine.current_index >= len(self.full_sequence):
+        if self.engine.current_index >= len(self.engine.full_sequence):
             self.engine.current_index = self.find_period_index('Between Game Break')
             self.start_current_period()
             return
-        cur_period = self.full_sequence[self.engine.current_index]
+        cur_period = self.engine.full_sequence[self.engine.current_index]
         period_name = cur_period['name']
         
         # Log period end events before transitioning
@@ -3889,7 +3888,7 @@ Sound file and volume settings are from the Sounds tab."""
             return
         self.engine.current_index += 1
         # After Between Game Break at the end of sequence, loop back to First Half
-        if self.engine.current_index >= len(self.full_sequence):
+        if self.engine.current_index >= len(self.engine.full_sequence):
             # Find First Half to loop back to regular game
             first_half_idx = self.find_period_index('First Half')
             self.engine.current_index = first_half_idx
@@ -3926,7 +3925,7 @@ Sound file and volume settings are from the Sounds tab."""
             self.update_timer_display()
             return
         if self.timer_seconds > 0:
-            cur_period = self.full_sequence[self.engine.current_index] if self.full_sequence and self.engine.current_index < len(self.full_sequence) else None
+            cur_period = self.engine.full_sequence[self.engine.current_index] if self.engine.full_sequence and self.engine.current_index < len(self.engine.full_sequence) else None
             
             # Play siren at 1s for break periods (plays 1s earlier than old 0s trigger)
             if cur_period and cur_period['type'] == 'break':
@@ -4028,7 +4027,7 @@ Sound file and volume settings are from the Sounds tab."""
             self.next_period()
 
     def reset_timeouts_for_half(self):
-        period = self.full_sequence[self.engine.current_index]
+        period = self.engine.full_sequence[self.engine.current_index]
         if period['type'] in ['regular']:
             if self.engine.white_timeouts_this_half < 1:
                 self.white_timeout_button.config(state=tk.NORMAL)
@@ -4043,7 +4042,7 @@ Sound file and volume settings are from the Sounds tab."""
             self.black_timeout_button.config(state=tk.DISABLED)
 
     def white_team_timeout(self):
-        period = self.full_sequence[self.engine.current_index]
+        period = self.engine.full_sequence[self.engine.current_index]
         # Immediately grey out (disable) the button when pressed
         self.white_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
         if period['type'] != 'regular' or not self.team_timeouts_allowed_var.get():
@@ -4077,7 +4076,7 @@ Sound file and volume settings are from the Sounds tab."""
         self.timer_job = self.master.after(1000, self.timeout_countdown)
 
     def black_team_timeout(self):
-        period = self.full_sequence[self.engine.current_index]
+        period = self.engine.full_sequence[self.engine.current_index]
         # Immediately grey out (disable) the button when pressed
         self.black_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
         if period['type'] != 'regular' or not self.team_timeouts_allowed_var.get():
@@ -4816,7 +4815,7 @@ Sound file and volume settings are from the Sounds tab."""
             self.half_label.config(bg=self.saved_state["half_label_bg"])
             self.court_time_paused = self.saved_state.get("court_time_paused", False)
             # Only resume penalty timers if we're not in a break period
-            cur_period = self.full_sequence[self.engine.current_index]
+            cur_period = self.engine.full_sequence[self.engine.current_index]
             PAUSE_PERIODS = [
                 "First Game Starts In:",
                 "Between Game Break",
@@ -4874,7 +4873,7 @@ Sound file and volume settings are from the Sounds tab."""
             f"Are you sure you want to remove goal from {team_name}?"
         ):
             return
-        cur_period = self.full_sequence[self.engine.current_index]
+        cur_period = self.engine.full_sequence[self.engine.current_index]
         is_team_timeout = getattr(self, 'in_timeout', False)
         is_referee_timeout = getattr(self, 'referee_timeout_active', False)
         is_break = cur_period['type'] == 'break'
@@ -4905,7 +4904,7 @@ Sound file and volume settings are from the Sounds tab."""
             return
 
     def add_goal_with_confirmation(self, score_var, team_name, trigger_button=None):
-        cur_period = self.full_sequence[self.engine.current_index]
+        cur_period = self.engine.full_sequence[self.engine.current_index]
         is_team_timeout = getattr(self, 'in_timeout', False)
         is_referee_timeout = getattr(self, 'referee_timeout_active', False)
         is_break = cur_period['type'] == 'break'
@@ -4990,7 +4989,7 @@ Sound file and volume settings are from the Sounds tab."""
 
         # Logic for Sudden Death Game Break after Overtime
         if cur_period['name'] == 'Sudden Death Game Break':
-            prev_period = self.full_sequence[self.engine.current_index - 1] if self.engine.current_index > 0 else None
+            prev_period = self.engine.full_sequence[self.engine.current_index - 1] if self.engine.current_index > 0 else None
             # If scores are now unequal, progress to Between Game Break
             if self.white_score_var.get() != self.black_score_var.get():
                 self.engine.current_index = self.find_period_index('Between Game Break')
