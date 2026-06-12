@@ -3891,8 +3891,7 @@ Sound file and volume settings are from the Sounds tab."""
             self.sudden_death_timer_job = None
 
     def goto_between_game_break(self):
-        idx = self.engine.find_period_index('Between Game Break')
-        self.engine.current_index = idx
+        self.engine.go_to_period('Between Game Break')
         self.start_current_period()
 
     def countdown_timer(self):
