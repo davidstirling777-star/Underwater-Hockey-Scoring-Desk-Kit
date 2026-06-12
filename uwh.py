@@ -3718,7 +3718,7 @@ Sound file and volume settings are from the Sounds tab."""
     def start_current_period(self):
         if self.engine.current_index >= len(self.engine.full_sequence):
             self.engine.current_index = self.engine.find_period_index('Between Game Break')
-        cur_period = self.engine.get_current_period(
+        cur_period = self.engine.get_current_period()
 
         # Shorten Between Game Break if court time is behind local time (paused for ref timeout etc)
         if cur_period['name'] == "Between Game Break":
@@ -3905,7 +3905,7 @@ Sound file and volume settings are from the Sounds tab."""
             self.update_timer_display()
             return
         if self.timer_seconds > 0:
-            cur_period = self.engine.get_current_period( if self.engine.full_sequence and self.engine.current_index < len(self.engine.full_sequence) else None
+            cur_period = self.engine.get_current_period() if self.engine.full_sequence and self.engine.current_index < len(self.engine.full_sequence) else None
             
             # Play siren at 1s for break periods (plays 1s earlier than old 0s trigger)
             if cur_period and cur_period['type'] == 'break':
@@ -4795,7 +4795,7 @@ Sound file and volume settings are from the Sounds tab."""
             self.half_label.config(bg=self.saved_state["half_label_bg"])
             self.court_time_paused = self.saved_state.get("court_time_paused", False)
             # Only resume penalty timers if we're not in a break period
-            cur_period = self.engine.get_current_period(
+            cur_period = self.engine.get_current_period()
             PAUSE_PERIODS = [
                 "First Game Starts In:",
                 "Between Game Break",
@@ -4853,7 +4853,7 @@ Sound file and volume settings are from the Sounds tab."""
             f"Are you sure you want to remove goal from {team_name}?"
         ):
             return
-        cur_period = self.engine.get_current_period(
+        cur_period = self.engine.get_current_period()
         is_team_timeout = getattr(self, 'in_timeout', False)
         is_referee_timeout = getattr(self, 'referee_timeout_active', False)
         is_break = cur_period['type'] == 'break'
@@ -4884,7 +4884,7 @@ Sound file and volume settings are from the Sounds tab."""
             return
 
     def add_goal_with_confirmation(self, score_var, team_name, trigger_button=None):
-        cur_period = self.engine.get_current_period(
+        cur_period = self.engine.get_current_period()
         is_team_timeout = getattr(self, 'in_timeout', False)
         is_referee_timeout = getattr(self, 'referee_timeout_active', False)
         is_break = cur_period['type'] == 'break'
