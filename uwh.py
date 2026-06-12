@@ -1394,7 +1394,7 @@ class GameManagementApp:
         # Add Between Game Break at the end for looping back to next game
         seq.append({'name': 'Between Game Break', 'type': 'break', 'duration': self.get_minutes('between_game_break')})
         self.engine.full_sequence = seq
-        self.engine.current_index = 0
+        self.engine.reset_to_first_period()
         
     def create_settings_tab(self):
         tab = ttk.Frame(self.notebook)
@@ -3633,7 +3633,7 @@ Sound file and volume settings are from the Sounds tab."""
     def reset_timer(self):
         self.white_score_var.set(0)
         self.black_score_var.set(0)
-        self.engine.current_index = 0
+        self.engine.reset_to_first_period()
         self.engine.timer_running = True
         self.engine.sudden_death_goal_scored = False
         if self.timer_job:
@@ -3716,7 +3716,7 @@ Sound file and volume settings are from the Sounds tab."""
 
     def start_current_period(self):
         if self.engine.current_index >= len(self.engine.full_sequence):
-            self.engine.current_index = self.engine.find_period_index('Between Game Break')
+            self.engine.reset_to_between_game_break()
         cur_period = self.engine.get_current_period()
 
         # Shorten Between Game Break if court time is behind local time (paused for ref timeout etc)
@@ -4837,7 +4837,7 @@ Sound file and volume settings are from the Sounds tab."""
 
     def restore_sudden_death_after_goal_removal(self):
         self.engine.sudden_death_goal_scored = False
-        self.engine.current_index = self.engine.find_period_index('Sudden Death')
+        self.engine.go_to_period('Sudden Death')
         self.sudden_death_seconds = self.engine.sudden_death_restore_time
         self.engine.sudden_death_restore_active = False
         self.engine.sudden_death_restore_time = None
@@ -4949,11 +4949,11 @@ Sound file and volume settings are from the Sounds tab."""
         if cur_period['name'] == 'Between Game Break':
             if self.white_score_var.get() == self.black_score_var.get():
                 if self.is_overtime_enabled():
-                    self.engine.current_index = self.engine.find_period_index('Overtime Game Break')
+                    self.engine.go_to_period('Overtime Game Break')
                     self.start_current_period()
                     return
                 elif self.is_sudden_death_enabled():
-                    self.engine.current_index = self.engine.find_period_index('Sudden Death Game Break')
+                    self.engine.go_to_period('Sudden Death Game Break')
                     self.start_current_period()
                     return
 
@@ -4961,7 +4961,7 @@ Sound file and volume settings are from the Sounds tab."""
         if cur_period['name'] == 'Overtime Game Break':
             if self.white_score_var.get() != self.black_score_var.get():
                 # Skip Overtime, go straight to Between Game Break
-                self.engine.current_index = self.engine.find_period_index('Between Game Break')
+                self.engine.go_to_period('Between Game Break')
                 self.start_current_period()
                 return
 
@@ -4970,7 +4970,7 @@ Sound file and volume settings are from the Sounds tab."""
             prev_period = self.engine.full_sequence[self.engine.current_index - 1] if self.engine.current_index > 0 else None
             # If scores are now unequal, progress to Between Game Break
             if self.white_score_var.get() != self.black_score_var.get():
-                self.engine.current_index = self.engine.find_period_index('Between Game Break')
+                self.engine.go_to_period('Between Game Break')
                 self.start_current_period()
                 return
 
