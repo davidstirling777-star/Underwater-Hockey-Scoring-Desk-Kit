@@ -527,8 +527,8 @@ class GameManagementApp:
         # Tournament List tracking
         self.current_game_index = 0  # Index in self.game_numbers list
         
-        self.engine.timer_running = True
-        self.engine.timer_seconds = 0
+        self.engine.start_timer()
+        self.engine.set_timer_seconds(0)
 
         # Court time system
         self.court_time_seconds = None  # Will be synchronized to local time at startup/reset
@@ -3634,7 +3634,7 @@ Sound file and volume settings are from the Sounds tab."""
         self.black_score_var.set(0)
     
         self.engine.reset_to_first_period()
-        self.engine.timer_running = True
+        self.engine.start_timer()
         self.engine.sudden_death_goal_scored = False
     
         if self.timer_job:
@@ -3657,7 +3657,7 @@ Sound file and volume settings are from the Sounds tab."""
             self.update_half_label_background(first_period["name"])
     
         else:
-            self.engine.timer_seconds = 0
+            self.engine.set_timer_seconds(0)
     
             # Event-driven: Update the StringVar instead of calling .config()
             self.half_label_var.set("")
@@ -3831,7 +3831,7 @@ Sound file and volume settings are from the Sounds tab."""
         else:
             self.court_time_paused = False
         if cur_period['name'] == 'Sudden Death':
-            self.engine.timer_running = True
+            self.engine.start_timer()
             self.engine.sudden_death_seconds = -1
             self.update_timer_display()
             self.start_sudden_death_timer()
@@ -3840,7 +3840,7 @@ Sound file and volume settings are from the Sounds tab."""
         else:
             self.engine.timer_seconds = cur_period['duration'] if cur_period['duration'] is not None else 0
             self.update_timer_display()
-            self.engine.timer_running = True
+            self.engine.start_timer()
             if self.timer_job:
                 self.master.after_cancel(self.timer_job)
                 self.timer_job = None
@@ -4009,7 +4009,7 @@ Sound file and volume settings are from the Sounds tab."""
                             print(f"Error playing pip sound at {self.engine.timer_seconds}s: {e}")
             
             # Decrement timer AFTER playing sounds
-            self.engine.timer_seconds -= 1
+            self.engine.decrement_timer()
             self.update_timer_display()
             
             self.timer_job = self.master.after(1000, self.countdown_timer)
@@ -4057,9 +4057,9 @@ Sound file and volume settings are from the Sounds tab."""
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
-        self.engine.timer_running = False
+        self.engine.stop_timer()
         timeout_seconds = self.get_minutes('team_timeout_period')
-        self.engine.timer_seconds = timeout_seconds
+        self.engine.set_timer_seconds(timeout_seconds)
         # Event-driven: Update the StringVar instead of calling .config()
         self.half_label_var.set("White Team Time-Out")
         self.update_half_label_background("White Team Time-Out")
@@ -4091,9 +4091,9 @@ Sound file and volume settings are from the Sounds tab."""
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
-        self.engine.timer_running = False
+        self.engine.stop_timer()
         timeout_seconds = self.get_minutes('team_timeout_period')
-        self.engine.timer_seconds = timeout_seconds
+        self.engine.set_timer_seconds(timeout_seconds)
         # Event-driven: Update the StringVar instead of calling .config()
         self.half_label_var.set("Black Team Time-Out")
         self.update_half_label_background("Black Team Time-Out")
@@ -4121,7 +4121,7 @@ Sound file and volume settings are from the Sounds tab."""
                     print(f"Error playing pip sound at 16s timeout: {e}")
             
             # Decrement timer AFTER playing sound
-            self.engine.timer_seconds -= 1
+            self.engine.decrement_timer()
             self.update_timer_display()
             
             self.timer_job = self.master.after(1000, self.timeout_countdown)
@@ -4756,7 +4756,7 @@ Sound file and volume settings are from the Sounds tab."""
             if self.timer_job:
                 self.master.after_cancel(self.timer_job)
                 self.timer_job = None
-            self.engine.timer_running = False
+            self.engine.stop_timer()
             if self.court_time_job:
                 self.master.after_cancel(self.court_time_job)
                 self.court_time_job = None
@@ -4953,7 +4953,7 @@ Sound file and volume settings are from the Sounds tab."""
                 self.engine.sudden_death_seconds
             )
         
-            self.engine.timer_running = False
+            self.engine.stop_timer()
             self.stop_sudden_death_timer()
             self.next_period()
             return
