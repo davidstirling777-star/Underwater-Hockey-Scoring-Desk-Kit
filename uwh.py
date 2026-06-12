@@ -3632,31 +3632,48 @@ Sound file and volume settings are from the Sounds tab."""
     def reset_timer(self):
         self.white_score_var.set(0)
         self.black_score_var.set(0)
+    
         self.engine.reset_to_first_period()
         self.engine.timer_running = True
         self.engine.sudden_death_goal_scored = False
+    
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
+    
         self.sudden_death_timer_job = None
         self.sudden_death_seconds = 0
-        # Rebuild game sequence to reflect any settings changes (e.g., cleared "Time to Start First Game")
+    
+        # Rebuild game sequence to reflect any settings changes
         self.build_game_sequence()
-        if self.engine.full_sequence:
-            self.engine.timer_seconds = self.engine.full_sequence[0]["duration"]
+    
+        first_period = self.engine.get_first_period()
+    
+        if first_period:
+            self.engine.timer_seconds = first_period["duration"]
+    
             # Event-driven: Update the StringVar instead of calling .config()
-            self.half_label_var.set(self.engine.full_sequence[0]["name"])
-            self.update_half_label_background(self.engine.full_sequence[0]["name"])
+            self.half_label_var.set(first_period["name"])
+            self.update_half_label_background(first_period["name"])
+    
         else:
             self.engine.timer_seconds = 0
+    
             # Event-driven: Update the StringVar instead of calling .config()
             self.half_label_var.set("")
+    
         self.update_timer_display()
     
         now = datetime.datetime.now()
-        self.court_time_seconds = now.hour * 3600 + now.minute * 60 + now.second
+        self.court_time_seconds = (
+            now.hour * 3600 +
+            now.minute * 60 +
+            now.second
+        )
+    
         self.court_time_paused = False
         self.update_court_time()
+    
         self.start_current_period()
             
     def update_court_time(self):
@@ -4963,7 +4980,6 @@ Sound file and volume settings are from the Sounds tab."""
 
         # Logic for Sudden Death Game Break after Overtime
         if cur_period['name'] == 'Sudden Death Game Break':
-            prev_period = self.engine.full_sequence[self.engine.current_index - 1] if self.engine.current_index > 0 else None
             # If scores are now unequal, progress to Between Game Break
             if self.white_score_var.get() != self.black_score_var.get():
                 self.engine.go_to_period('Between Game Break')
