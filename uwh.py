@@ -1393,8 +1393,7 @@ class GameManagementApp:
             seq.append({'name': 'Sudden Death', 'type': 'sudden_death', 'duration': None})
         # Add Between Game Break at the end for looping back to next game
         seq.append({'name': 'Between Game Break', 'type': 'break', 'duration': self.get_minutes('between_game_break')})
-        self.engine.full_sequence = seq
-        self.engine.reset_to_first_period()
+        self.engine.set_sequence(seq)
         
     def create_settings_tab(self):
         tab = ttk.Frame(self.notebook)
@@ -4728,7 +4727,7 @@ Sound file and volume settings are from the Sounds tab."""
                 activebackground=self.referee_timeout_active_bg,
                 activeforeground=self.referee_timeout_active_fg
             )
-            self.saved_state = {
+            self.engine.saved_state = {
                 "timer_seconds": self.engine.timer_seconds,
                 "timer_running": self.engine.timer_running,
                 "timer_job": self.timer_job,
@@ -4784,13 +4783,13 @@ Sound file and volume settings are from the Sounds tab."""
                     self.display_referee_timeout_timer_label.grid_remove()
             except tk.TclError:
                 pass
-            self.engine.timer_seconds = self.saved_state["timer_seconds"]
-            self.engine.timer_running = self.saved_state["timer_running"]
-            self.engine.current_index = self.saved_state["current_index"]
+            self.engine.timer_seconds = self.engine.saved_state["timer_seconds"]
+            self.engine.timer_running = self.engine.saved_state["timer_running"]
+            self.engine.current_index = self.engine.saved_state["current_index"]
             # Event-driven: Update the StringVar instead of calling .config()
-            self.half_label_var.set(self.saved_state["half_label_text"])
-            self.half_label.config(bg=self.saved_state["half_label_bg"])
-            self.court_time_paused = self.saved_state.get("court_time_paused", False)
+            self.half_label_var.set(self.engine.saved_state["half_label_text"])
+            self.half_label.config(bg=self.engine.saved_state["half_label_bg"])
+            self.court_time_paused = self.engine.saved_state.get("court_time_paused", False)
             # Only resume penalty timers if we're not in a break period
             cur_period = self.engine.get_current_period()
             PAUSE_PERIODS = [
