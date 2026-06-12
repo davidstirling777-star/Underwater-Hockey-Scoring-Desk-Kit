@@ -1394,7 +1394,7 @@ class GameManagementApp:
             seq.append({'name': 'Sudden Death', 'type': 'sudden_death', 'duration': None})
         # Add Between Game Break at the end for looping back to next game
         seq.append({'name': 'Between Game Break', 'type': 'break', 'duration': self.get_minutes('between_game_break')})
-        self.engine.full_seqif self.engine.full_sequenceuence = seq
+        self.engine.full_sequence = seq
         self.engine.current_index = 0
 
     def find_period_index(self, name):
