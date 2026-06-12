@@ -185,3 +185,24 @@ class GameEngine:
     def set_sequence(self, sequence):
         self.full_sequence = sequence
         self.current_index = 0
+
+    def get_previous_period(self):
+    
+        if self.current_index <= 0:
+            return None
+    
+        return self.full_sequence[self.current_index - 1]
+
+    def get_previous_period(self):
+    
+        if self.current_index <= 0:
+            return None
+    
+        return self.full_sequence[self.current_index - 1]
+
+    def get_first_period(self):
+    
+        if not self.full_sequence:
+            return None
+    
+        return self.full_sequence[0]
