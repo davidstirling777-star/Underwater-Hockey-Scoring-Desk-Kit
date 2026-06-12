@@ -26,6 +26,8 @@ class GameEngine:
         self.saved_timer_running = False
         self.saved_timer_seconds = 0
 
+        self.sudden_death_seconds = 0
+
     def record_goal_scorer(self, team, cap_number):
 
         if cap_number is None:
