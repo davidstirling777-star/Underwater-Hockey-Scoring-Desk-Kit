@@ -3686,17 +3686,16 @@ Sound file and volume settings are from the Sounds tab."""
     def update_timer_display(self):
         if self.referee_timeout_active:
             mins, secs = divmod(self.referee_timeout_elapsed, 60)
-            # Event-driven: Update the StringVar instead of calling .config()
             self.timer_var.set(f"{int(mins):02d}:{int(secs):02d}")
             return
-        cur_period = self.engine.get_current_period( if self.engine.full_sequence and self.engine.current_index < len(self.engine.full_sequence) else None
+    
+        cur_period = self.engine.get_current_period()
+    
         if cur_period and cur_period['name'] == 'Sudden Death':
             mins, secs = divmod(self.sudden_death_seconds, 60)
-            # Event-driven: Update the StringVar instead of calling .config()
             self.timer_var.set(f"{int(mins):02d}:{int(secs):02d}")
         else:
             mins, secs = divmod(self.timer_seconds, 60)
-            # Event-driven: Update the StringVar instead of calling .config()
             self.timer_var.set(f"{int(mins):02d}:{int(secs):02d}")
 
     def adjust_between_game_break_for_crib_time(self):
