@@ -2611,7 +2611,7 @@ class GameManagementApp:
             main_frame,
             text="Test App Siren",
             font=("Arial", 11),
-            command=self.test_siren_via_mqtt
+            command=self.test_app_siren
         )
         test_siren_btn.grid(row=3, column=3, columnspan=1, pady=5, padx=5)
         
