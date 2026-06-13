@@ -140,13 +140,21 @@ def is_usb_dongle_connected():
 
     # Windows-specific checks
     elif system == 'Windows':
-
         try:
             import serial.tools.list_ports
-
-            ports = list(
-                serial.tools.list_ports.comports()
-            )
+    
+            ports = list(serial.tools.list_ports.comports())
+    
+            print("=== USB PORT DEBUG ===")
+    
+            for port in ports:
+                print(
+                    f"PORT={port.device} "
+                    f"DESC={port.description} "
+                    f"HWID={port.hwid}"
+                )
+    
+            print("======================")
 
             zigbee_keywords = [
                 'itead',
