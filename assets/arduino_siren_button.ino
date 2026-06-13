@@ -9,13 +9,13 @@
 // Battery monitoring:
 // Use voltage divider:
 // For Arduino Nana Every:
-//   R1 = 27 kΩ from Battery Positive (+) to A3
-//   R2 = 10 kΩ from A3 to Ground
+//   R1 = 10 kΩ from Battery Positive (+) to A3
+//   R2 = 3.3 kΩ from A3 to Ground
 // Battery negative, Arduino GND, and voltage divider ground must all be common.
 // To prevent battery monitoring, add 10 kΩ resistor between 5V and A3
 // Important: only fit this bypass resistor when the battery divider is disconnected
 //
-// With R1 = 27k and R2 = 10k:
+// With R1 = 10k and R2 = 3.3k:
 //   15V battery/charger voltage becomes about 4.05V at A3,
 //   which is safe for a 5V Arduino Nano Every BUT NOT AN ARDUINO NANO ESP32.
 //
@@ -68,8 +68,8 @@ const int RELEASE_DEBOUNCE_THRESHOLD = 3;
 // Battery voltage divider setup
 // -------------------------
 
-const float R1 = 27000.0;
-const float R2 = 10000.0;
+const float R1 = 10000.0; //Ohms
+const float R2 = 3300.0; //Ohms
 const float ADC_REF_VOLTAGE = 5.0;
 
 // -------------------------
