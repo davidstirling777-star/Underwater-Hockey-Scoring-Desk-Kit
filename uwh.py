@@ -4089,7 +4089,7 @@ Sound file and volume settings are from the Sounds tab."""
             self.white_timeout_button.config(state=tk.DISABLED)
             self.black_timeout_button.config(state=tk.DISABLED)
 
-    def white_team_timeout(self):
+    def white_team_timeout(self, preserve_saved_state=False):
         period = self.engine.get_current_period()
         # Immediately grey out (disable) the button when pressed
         self.white_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
@@ -4109,7 +4109,8 @@ Sound file and volume settings are from the Sounds tab."""
         self.in_timeout = True
         self.engine.start_timeout("White")
         self.court_time_paused = True
-        self.save_timer_state()
+        if not preserve_saved_state:
+            self.save_timer_state()
         self.pause_all_penalty_timers()
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
@@ -4123,7 +4124,7 @@ Sound file and volume settings are from the Sounds tab."""
         self.update_timer_display()
         self.timer_job = self.master.after(1000, self.timeout_countdown)
 
-    def black_team_timeout(self):
+    def black_team_timeout(self, preserve_saved_state=False):
         period = self.engine.get_current_period()
         # Immediately grey out (disable) the button when pressed
         self.black_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
@@ -4143,7 +4144,8 @@ Sound file and volume settings are from the Sounds tab."""
         self.in_timeout = True
         self.engine.start_timeout("Black")
         self.court_time_paused = True
-        self.save_timer_state()
+        if not preserve_saved_state:
+            self.save_timer_state()
         self.pause_all_penalty_timers()
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
@@ -4216,10 +4218,10 @@ Sound file and volume settings are from the Sounds tab."""
         if self.pending_timeout is not None:
             if self.pending_timeout == "white" and self.engine.white_timeouts_this_half < 1:
                 self.pending_timeout = None
-                self.white_team_timeout()
+                self.white_team_timeout(preserve_saved_state=True)
             elif self.pending_timeout == "black" and self.engine.black_timeouts_this_half < 1:
                 self.pending_timeout = None
-                self.black_team_timeout()
+                self.black_team_timeout(preserve_saved_state=True)
             else:
                 self.pending_timeout = None
         elif self.engine.timer_running:
