@@ -481,146 +481,181 @@ class ZigbeeSirenController:
     def _process_button_event(self, device_name: str, data: Dict[str, Any]) -> None:
         """Process button events from Zigbee device."""
         try:
-            # Look for button press events
-            # Common Zigbee button event formats:
             if "action" in data:
                 action = data["action"]
                 self.logger.info(f"Button action from {device_name}: {action}")
-                
-                # Log to GUI if callback is available
+    
                 if self.gui_log_callback:
-                    self.gui_log_callback(f"Button '{device_name}' action '{action}' received via Zigbee/MQTT.")
-                
-                # Trigger siren on button press (various action types)
+                    self.gui_log_callback(
+                        f"Button '{device_name}' action '{action}' received via Zigbee/MQTT."
+                    )
+    
                 if action in ["single", "press", "click", "on", "1"]:
                     self._trigger_siren()
-                    
+    
             elif "click" in data:
                 click_type = data["click"]
                 self.logger.info(f"Button click from {device_name}: {click_type}")
-                
-                # Log to GUI if callback is available
+    
                 if self.gui_log_callback:
-                    self.gui_log_callback(f"Button '{device_name}' action '{click_type}' received via Zigbee/MQTT.")
-                
-                # Trigger on single click
+                    self.gui_log_callback(
+                        f"Button '{device_name}' action '{click_type}' received via Zigbee/MQTT."
+                    )
+    
                 if click_type == "single":
                     self._trigger_siren()
-                    
+    
             elif "state" in data:
                 state = data["state"]
                 self.logger.info(f"Button state from {device_name}: {state}")
-                
-                # Log to GUI if callback is available
+    
                 if self.gui_log_callback:
-                    self.gui_log_callback(f"Button '{device_name}' action '{state}' received via Zigbee/MQTT.")
-                
-                # Trigger on ON state
+                    self.gui_log_callback(
+                        f"Button '{device_name}' action '{state}' received via Zigbee/MQTT."
+                    )
+    
                 if state == "ON":
                     self._trigger_siren()
-                    
+    
         except Exception as e:
             self.logger.error(f"Error processing button event: {e}")
+    
     
     def _trigger_siren(self) -> None:
         """Trigger the siren through the callback."""
         self.logger.info("Triggering wireless siren")
-        
+    
         if self.siren_callback:
             try:
-                # Call the siren callback in a separate thread to avoid blocking MQTT
-                threading.Thread(target=self.siren_callback, daemon=True).start()
+                threading.Thread(
+                    target=self.siren_callback,
+                    daemon=True
+                ).start()
+    
             except Exception as e:
                 self.logger.error(f"Error calling siren callback: {e}")
+    
         else:
             self.logger.warning("No siren callback set")
     
+    
     def test_siren(self) -> None:
         """
-        Test the siren by triggering it immediately.
-        Used for manual testing via UI button.
-        Calls the siren callback which plays the configured sound.
+        Test the Zigbee siren by using the same MQTT control path
+        as the Arduino serial button.
         """
-        self.logger.info("Manual siren test triggered")
-        self._trigger_siren()
+        self.logger.info("Manual MQTT siren test triggered")
+    
+        if self.gui_log_callback:
+            self.gui_log_callback("Manual MQTT siren test triggered")
+    
+        self.start_siren_continuous()
+    
+    
+    def stop_test_siren(self) -> None:
+        """
+        Stop the manual Zigbee siren test.
+        Intended to be called by the UI after a short delay.
+        """
+        self.logger.info("Manual MQTT siren test stopping")
+    
+        if self.gui_log_callback:
+            self.gui_log_callback("Manual MQTT siren test stopping")
+    
+        self.stop_siren_continuous()
+    
     
     def start_siren_continuous(self, sound_config: Dict[str, Any] = None) -> None:
+        """Start continuous Zigbee siren playback."""
         self.logger.info("Starting continuous siren playback")
-        
+    
         # Send MQTT ON command
         self.start_siren()
-        
-        # Note: Sound playback is handled by the callback mechanism
-        # The UI should implement looping at the application level if needed
-        # by repeatedly calling the siren_callback or setting a flag
+    
     
     def stop_siren_continuous(self) -> None:
-        """
-        Stop continuous siren playback.
-        Used for releasing a press-and-hold UI button.
-        Sends MQTT OFF command to stop the device.
-        """
+        """Stop continuous Zigbee siren playback."""
         self.logger.info("Stopping continuous siren playback")
-        
+    
         # Send MQTT OFF command
         self.stop_siren()
-        
-        # Note: The callback will stop being called by the UI
-        # Sound playback cessation is handled by the application level
+    
     
     def start_siren(self) -> bool:
         """
         Start the siren by sending MQTT ON command to the siren device.
-        
+    
         Returns:
             bool: True if command sent successfully, False otherwise
         """
         if not MQTT_AVAILABLE:
             self.logger.warning("MQTT not available - cannot control siren")
             return False
-        
+    
         if not self.connected or not self.mqtt_client:
             self.logger.warning("MQTT not connected - cannot start siren")
             return False
-        
+    
         try:
             siren_device = self.config.get("siren_device_name", "zigbee_siren")
             topic = f"zigbee2mqtt/{siren_device}/set"
             payload = json.dumps({"state": "ON"})
-            
-            self.logger.info(f"Starting siren: Publishing to {topic} with payload {payload}")
-            self.mqtt_client.publish(topic, payload)
+    
+            self.logger.info(
+                f"Starting siren: Publishing to {topic} with payload {payload}"
+            )
+    
+            result = self.mqtt_client.publish(topic, payload)
+    
+            try:
+                result.wait_for_publish(timeout=2)
+            except TypeError:
+                result.wait_for_publish()
+    
             return True
+    
         except Exception as e:
             self.logger.error(f"Error starting siren: {e}")
             return False
     
+    
     def stop_siren(self) -> bool:
         """
         Stop the siren by sending MQTT OFF command to the siren device.
-        
+    
         Returns:
             bool: True if command sent successfully, False otherwise
         """
         if not MQTT_AVAILABLE:
             self.logger.warning("MQTT not available - cannot control siren")
             return False
-        
+    
         if not self.connected or not self.mqtt_client:
             self.logger.warning("MQTT not connected - cannot stop siren")
             return False
-        
+    
         try:
             siren_device = self.config.get("siren_device_name", "zigbee_siren")
             topic = f"zigbee2mqtt/{siren_device}/set"
             payload = json.dumps({"state": "OFF"})
-            
-            self.logger.info(f"Stopping siren: Publishing to {topic} with payload {payload}")
-            self.mqtt_client.publish(topic, payload)
+    
+            self.logger.info(
+                f"Stopping siren: Publishing to {topic} with payload {payload}"
+            )
+    
+            result = self.mqtt_client.publish(topic, payload)
+    
+            try:
+                result.wait_for_publish(timeout=2)
+            except TypeError:
+                result.wait_for_publish()
+    
             return True
+    
         except Exception as e:
             self.logger.error(f"Error stopping siren: {e}")
             return False
+    
     
     def _notify_status(self, connected: bool, message: str) -> None:
         """Notify connection status change."""
@@ -629,7 +664,6 @@ class ZigbeeSirenController:
                 self.connection_status_callback(connected, message)
             except Exception as e:
                 self.logger.error(f"Error calling status callback: {e}")
-    
     def get_status(self) -> Dict[str, Any]:
         """Get current status information."""
         devices = self.config.get("siren_button_devices", [])
