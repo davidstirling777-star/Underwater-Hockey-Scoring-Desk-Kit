@@ -2607,12 +2607,13 @@ class GameManagementApp:
         open_frontend_btn.grid(row=3, column=1, columnspan=2, pady=5, padx=5)
         
         # Manual Siren Test Button
-        test_siren_btn = tk.Button(main_frame, text="Test Siren via MQTT", font=("Arial", 11))
+        test_siren_btn = tk.Button(
+            main_frame,
+            text="Test Siren via MQTT",
+            font=("Arial", 11),
+            command=self.test_siren_via_mqtt
+        )
         test_siren_btn.grid(row=3, column=3, columnspan=1, pady=5, padx=5)
-        
-        # Bind mouse down and mouse up events for press/release functionality
-        test_siren_btn.bind("<ButtonPress-1>", lambda event: self.zigbee_controller.start_siren_continuous())
-        test_siren_btn.bind("<ButtonRelease-1>", lambda event: self.zigbee_controller.stop_siren_continuous())
         
         # Information Section
         info_frame = tk.LabelFrame(main_frame, text="Setup Information", 
@@ -5041,6 +5042,42 @@ Sound file and volume settings are from the Sounds tab."""
                 self.engine.go_to_period('Between Game Break')
                 self.start_current_period()
                 return
+
+    def test_siren_via_mqtt(self):
+        """Send a short MQTT siren test from the app."""
+    
+        self.add_to_zigbee_log("Testing siren via MQTT...")
+    
+        try:
+            self.zigbee_controller.start_siren_continuous()
+            self.add_to_zigbee_log("MQTT siren ON command sent")
+    
+            self.master.after(
+                1000,
+                self._stop_test_siren_via_mqtt
+            )
+    
+        except Exception as e:
+            self.add_to_zigbee_log(
+                f"MQTT siren test failed: {e}"
+            )
+            messagebox.showerror(
+                "MQTT Siren Test",
+                f"MQTT siren test failed:\n{e}"
+            )
+    
+    
+    def _stop_test_siren_via_mqtt(self):
+        """Stop the short MQTT siren test."""
+    
+        try:
+            self.zigbee_controller.stop_siren_continuous()
+            self.add_to_zigbee_log("MQTT siren OFF command sent")
+    
+        except Exception as e:
+            self.add_to_zigbee_log(
+                f"MQTT siren stop failed: {e}"
+            )
 
 def is_zigbee2mqtt_running():
     """
