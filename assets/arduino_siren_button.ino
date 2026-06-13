@@ -86,8 +86,8 @@ const unsigned long BATTERY_CHECK_INTERVAL = 100;
 const unsigned long BATTERY_FLASH_INTERVAL = 167;
 
 const int NO_VOLTAGE_FADE_TIME = 2000;
-const int NO_VOLTAGE_MIN_RED = 4;
-const int NO_VOLTAGE_MAX_RED = 24;
+const int NO_VOLTAGE_MIN_RED = 1;
+const int NO_VOLTAGE_MAX_RED = 32;
 
 const int BATTERY_ADC_SAMPLES = 8;
 
