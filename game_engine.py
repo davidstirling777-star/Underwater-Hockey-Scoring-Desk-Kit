@@ -222,5 +222,5 @@ class GameEngine:
     
     def decrement_timer(self):
         if self.timer_seconds > 0:
-        self.timer_seconds -= 1
+            self.timer_seconds -= 1
 
