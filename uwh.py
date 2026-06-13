@@ -2857,63 +2857,63 @@ Configure Zigbee2MQTT:
             wraplength=0
         )
         info_label_left_part3.grid(row=4, column=0, sticky="nw")
-
+        
         # Right column: Usage information
         info_text_right = """Usage
-
-Arduino Siren Button
---------------------
-Press and hold:
-    Siren continues sounding.
-
-Release:
-    Siren stops immediately.
-
-Test App Siren
---------------
-Tests the local siren sound using
-the same playback path used by
-timers and the Arduino button.
-
-Timer Sirens
-------------
-Period-end sirens use the same
-sound file and volume settings.
-
-Zigbee Devices
---------------
-When Zigbee2MQTT is installed and
-running, paired Zigbee buttons and
-sirens can be controlled through
-the MQTT broker.
-
-Mosquitto MQTT Broker
----------------------
-https://mosquitto.org
-
-Zigbee2MQTT Frontend
---------------------
-Linux:
-    Linux Open Zigbee2MQTT Frontend
-
-Windows:
-    Windows Open Zigbee2MQTT Frontend
-
-Default frontend URL:
-    http://localhost:8080
-
-Hardware Detection
-------------------
-Arduino Port:
-    Automatically detected
-
-Zigbee Port:
-    Automatically detected
-
-Current detected ports are shown
-in the Activity Log during startup.
-"""
-
+        
+        Arduino Siren Button
+        --------------------
+        Press and hold:
+            Siren continues sounding.
+        
+        Release:
+            Siren stops immediately.
+        
+        Test App Siren
+        --------------
+        Tests the local siren sound using
+        the same playback path used by
+        timers and the Arduino button.
+        
+        Timer Sirens
+        ------------
+        Period-end sirens use the same
+        sound file and volume settings.
+        
+        Zigbee Devices
+        --------------
+        When Zigbee2MQTT is installed and
+        running, paired Zigbee buttons and
+        sirens can be controlled through
+        the MQTT broker.
+        
+        Mosquitto MQTT Broker
+        ---------------------
+        https://mosquitto.org
+        
+        Zigbee2MQTT Frontend
+        --------------------
+        Linux:
+            Linux Open Zigbee2MQTT Frontend
+        
+        Windows:
+            Windows Open Zigbee2MQTT Frontend
+        
+        Default frontend URL:
+            http://localhost:8080
+        
+        Hardware Detection
+        ------------------
+        Arduino Port:
+            Automatically detected
+        
+        Zigbee Port:
+            Automatically detected
+        
+        Current detected ports are shown
+        in the Activity Log during startup.
+        """
+        
         info_label_right = tk.Label(
             info_frame,
             text=info_text_right,
@@ -2922,6 +2922,7 @@ in the Activity Log during startup.
             anchor="nw",
             wraplength=0
         )
+        
         info_label_right.grid(
             row=0,
             column=1,
@@ -2929,7 +2930,7 @@ in the Activity Log during startup.
             padx=5,
             pady=5
         )
-
+        
         # Log Section
         log_frame = tk.LabelFrame(
             main_frame,
@@ -2937,6 +2938,7 @@ in the Activity Log during startup.
             borderwidth=1,
             relief="solid"
         )
+        
         log_frame.grid(
             row=5,
             column=0,
@@ -2945,9 +2947,10 @@ in the Activity Log during startup.
             padx=5,
             pady=5
         )
-
+        
         # Create scrollable log area
         log_scroll_frame = tk.Frame(log_frame)
+        
         log_scroll_frame.grid(
             row=0,
             column=0,
@@ -2955,8 +2958,9 @@ in the Activity Log during startup.
             padx=5,
             pady=5
         )
+        
         log_scroll_frame.grid_columnconfigure(0, weight=1)
-
+        
         self.log_text = tk.Text(
             log_scroll_frame,
             height=6,
@@ -2964,29 +2968,29 @@ in the Activity Log during startup.
             wrap=tk.WORD,
             state=tk.DISABLED
         )
-
+        
         log_scrollbar = tk.Scrollbar(
             log_scroll_frame,
             orient="vertical",
             command=self.log_text.yview
         )
-
+        
         self.log_text.config(
             yscrollcommand=log_scrollbar.set
         )
-
+        
         self.log_text.grid(
             row=0,
             column=0,
             sticky="ew"
         )
-
+        
         log_scrollbar.grid(
             row=0,
             column=1,
             sticky="ns"
         )
-
+        
         # Clear log button
         clear_log_btn = tk.Button(
             log_frame,
@@ -2994,20 +2998,21 @@ in the Activity Log during startup.
             font=("Arial", 9),
             command=self.clear_zigbee_log
         )
-
+        
         clear_log_btn.grid(
             row=1,
             column=0,
             pady=2
         )
-
+        
         # Add initial log entry
         self.add_to_zigbee_log("Zigbee Siren tab initialized")
-
+        
         if not is_mqtt_available():
             self.add_to_zigbee_log(
                 "WARNING: paho-mqtt library not installed. Install with: pip install paho-mqtt"
             )
+            
     def test_app_siren(self):
         """Test the app siren sound using the same path as timer sirens."""
     
