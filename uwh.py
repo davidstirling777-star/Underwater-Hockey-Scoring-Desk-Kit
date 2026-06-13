@@ -731,6 +731,21 @@ class GameManagementApp:
 
         splash_report("Game engine loaded", True)
         splash_report("Settings system available", True)
+        mosquitto_installed = shutil.which("mosquitto") is not None
+        splash_report(
+            "Mosquitto MQTT Broker installed"
+            if mosquitto_installed
+            else "Mosquitto MQTT Broker not found - install from https://mosquitto.org/download/",
+            mosquitto_installed
+        )
+
+        zigbee2mqtt_installed = shutil.which("zigbee2mqtt") is not None
+        splash_report(
+            "Zigbee2MQTT installed"
+            if zigbee2mqtt_installed
+            else "Zigbee2MQTT not found - install from https://www.zigbee2mqtt.io/guide/installation/05_windows.html",
+            zigbee2mqtt_installed
+        )
 
         # Perform MQTT stability check
         mqtt_connection_stable = False
@@ -2781,7 +2796,10 @@ WINDOWS 11
 1. Install Mosquitto MQTT Broker:
    https://mosquitto.org/download/
 
-2. Install Zigbee2MQTT.
+2. Install Zigbee2MQTT for Windows:
+   https://www.zigbee2mqtt.io/guide/installation/05_windows.html
+
+   This requires Node.js and a Zigbee2MQTT data/config folder.
 
 3. Configure Zigbee2MQTT to use the detected Zigbee COM port.
 
