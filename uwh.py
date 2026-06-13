@@ -265,9 +265,9 @@ def auto_detect_com_ports():
     if not zigbee_port:
         print("Warning: Zigbee not detected automatically. Defaulting to COM6.")
         zigbee_port = "COM6"
- 
-        # Save detection results for future use
-        save_hardware_detection_cache(arduino_port, zigbee_port)
+    
+    # Save detection results for future use
+    save_hardware_detection_cache(arduino_port, zigbee_port)
     
     return arduino_port, zigbee_port
 
