@@ -566,12 +566,14 @@ class ZigbeeSirenController:
     
     
     def start_siren_continuous(self, sound_config: Dict[str, Any] = None) -> None:
-        """Start continuous Zigbee siren playback."""
+        self.logger.info("=== START_SIREN_CONTINUOUS CALLED ===")
+    
+        if self.gui_log_callback:
+            self.gui_log_callback("=== START_SIREN_CONTINUOUS CALLED ===")
+    
         self.logger.info("Starting continuous siren playback")
     
-        # Send MQTT ON command
         self.start_siren()
-    
     
     def stop_siren_continuous(self) -> None:
         """Stop continuous Zigbee siren playback."""
@@ -617,7 +619,6 @@ class ZigbeeSirenController:
         except Exception as e:
             self.logger.error(f"Error starting siren: {e}")
             return False
-    
     
     def stop_siren(self) -> bool:
         """
