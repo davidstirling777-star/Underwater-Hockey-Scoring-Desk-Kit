@@ -5046,12 +5046,10 @@ Sound file and volume settings are from the Sounds tab."""
                 return
 
     def test_siren_via_mqtt(self):
-        """Send a short MQTT siren test from the app."""
-    
         self.add_to_zigbee_log("Testing siren via MQTT...")
     
         try:
-            self.zigbee_controller.start_siren_continuous()
+            self.zigbee_controller.test_siren()
             self.add_to_zigbee_log("MQTT siren ON command sent")
     
             self.master.after(
@@ -5060,26 +5058,16 @@ Sound file and volume settings are from the Sounds tab."""
             )
     
         except Exception as e:
-            self.add_to_zigbee_log(
-                f"MQTT siren test failed: {e}"
-            )
-            messagebox.showerror(
-                "MQTT Siren Test",
-                f"MQTT siren test failed:\n{e}"
-            )
+            self.add_to_zigbee_log(f"MQTT siren test failed: {e}")
     
     
     def _stop_test_siren_via_mqtt(self):
-        """Stop the short MQTT siren test."""
-    
         try:
-            self.zigbee_controller.stop_siren_continuous()
+            self.zigbee_controller.stop_test_siren()
             self.add_to_zigbee_log("MQTT siren OFF command sent")
     
         except Exception as e:
-            self.add_to_zigbee_log(
-                f"MQTT siren stop failed: {e}"
-            )
+            self.add_to_zigbee_log(f"MQTT siren stop failed: {e}")
 
 def is_zigbee2mqtt_running():
     """
