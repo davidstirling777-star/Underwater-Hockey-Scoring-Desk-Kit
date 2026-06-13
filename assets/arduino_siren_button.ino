@@ -8,15 +8,15 @@
 //
 // Battery monitoring:
 // Use voltage divider:
-// For Arduino Nana Every:
+// For Arduino Nano Every:
 //   R1 = 10 kΩ from Battery Positive (+) to A3
 //   R2 = 3.3 kΩ from A3 to Ground
 // Battery negative, Arduino GND, and voltage divider ground must all be common.
-// To prevent battery monitoring, add 10 kΩ resistor between 5V and A3
-// Important: only fit this bypass resistor when the battery divider is disconnected
+// To prevent battery monitoring, add 10 kΩ resistor between 5V and A3.
+// Important: only fit this bypass resistor when the battery divider is disconnected.
 //
 // With R1 = 10k and R2 = 3.3k:
-//   15V battery/charger voltage becomes about 4.05V at A3,
+//   15V battery/charger voltage becomes about 3.72V at A3,
 //   which is safe for a 5V Arduino Nano Every BUT NOT AN ARDUINO NANO ESP32.
 //
 // NeoPixel functions:
@@ -25,7 +25,7 @@
 //   NeoPixels 5-8: battery warning indicators
 //
 // Battery warning behaviour:
-//   If A3 has no voltage: LEDs 5-8 slowly fade red together.
+//   If A3 has no voltage: LEDs 5-8 slowly fade red together between brightness 4 and 24.
 //   If voltage suddenly drops by more than 0.5V: start 10 second pending timer.
 //   If voltage drops below 12.0V: start 10 second pending timer.
 //   If voltage returns to 14.5V within 10 seconds: cancel warning.
@@ -54,7 +54,7 @@ Adafruit_NeoPixel pixels(numPixels, neoPixelPin, NEO_GRB + NEO_KHZ800);
 // -------------------------
 
 unsigned long lastSirenTime = 0;
-const unsigned long SIREN_INTERVAL = 500; // repeat SIREN_ON every 0.5 seconds
+const unsigned long SIREN_INTERVAL = 500;
 
 bool sirenActive = false;
 
@@ -68,8 +68,8 @@ const int RELEASE_DEBOUNCE_THRESHOLD = 3;
 // Battery voltage divider setup
 // -------------------------
 
-const float R1 = 10000.0; //Ohms
-const float R2 = 3300.0; //Ohms
+const float R1 = 10000.0; // ohms
+const float R2 = 3300.0;  // ohms
 const float ADC_REF_VOLTAGE = 5.0;
 
 // -------------------------
@@ -81,12 +81,13 @@ const float NOT_HAPPY_VOLTAGE = 12.0;
 const float DROP_THRESHOLD = 0.5;
 const float NO_VOLTAGE_THRESHOLD = 1.0;
 
-const unsigned long LOW_VOLTAGE_DELAY = 10000;     // 10 seconds
-const unsigned long BATTERY_CHECK_INTERVAL = 100;  // check every 100ms
-const unsigned long BATTERY_FLASH_INTERVAL = 167;  // about 3Hz alternating pairs
+const unsigned long LOW_VOLTAGE_DELAY = 10000;
+const unsigned long BATTERY_CHECK_INTERVAL = 100;
+const unsigned long BATTERY_FLASH_INTERVAL = 167;
 
-const int NO_VOLTAGE_FADE_TIME = 2000; // 2 seconds up, 2 seconds down
-const int NO_VOLTAGE_MAX_RED = 16;
+const int NO_VOLTAGE_FADE_TIME = 2000;
+const int NO_VOLTAGE_MIN_RED = 4;
+const int NO_VOLTAGE_MAX_RED = 24;
 
 const int BATTERY_ADC_SAMPLES = 8;
 
@@ -127,7 +128,6 @@ void setup() {
   pixels.setPixelColor(1, pixels.Color(0, 0, 0));
 
   clearBatteryWarningPixels();
-
   pixels.show();
 
   lastVoltage = readBatteryVoltage();
@@ -141,10 +141,7 @@ void loop() {
   bool signalState = digitalRead(signalPin);
   unsigned long currentTime = millis();
 
-  // -------------------------
   // Siren button debounce
-  // -------------------------
-
   if (signalState == LOW) {
     debounceCounter++;
     releaseDebounceCounter = 0;
@@ -192,10 +189,6 @@ void loop() {
     sirenActive = false;
   }
 
-  // -------------------------
-  // Battery monitor
-  // -------------------------
-
   checkBatteryVoltage();
 
   if (noVoltageWarning) {
@@ -220,7 +213,6 @@ float readBatteryVoltage() {
   }
 
   float adcAverage = adcTotal / (float)BATTERY_ADC_SAMPLES;
-
   float pinVoltage = adcAverage * (ADC_REF_VOLTAGE / 1023.0);
   float actualBatteryV = pinVoltage * ((R1 + R2) / R2);
 
@@ -249,14 +241,14 @@ void checkBatteryVoltage() {
     lowVoltagePending = false;
     lastVoltage = actualBatteryV;
     return;
-  } else {
-    if (noVoltageWarning) {
-      clearBatteryWarningPixels();
-      pixels.show();
-    }
-
-    noVoltageWarning = false;
   }
+
+  if (noVoltageWarning) {
+    clearBatteryWarningPixels();
+    pixels.show();
+  }
+
+  noVoltageWarning = false;
 
   // Sudden voltage drop detected
   if (lastVoltage > 0 && (lastVoltage - actualBatteryV) > DROP_THRESHOLD) {
@@ -287,7 +279,7 @@ void checkBatteryVoltage() {
 }
 
 // -------------------------
-// Alternating pair warning
+// Alternating pair battery warning
 // -------------------------
 
 void updateBatteryDropWarning() {
@@ -346,9 +338,9 @@ void updateNoVoltageWarning() {
   int redBrightness;
 
   if (position < NO_VOLTAGE_FADE_TIME) {
-    redBrightness = map(position, 0, NO_VOLTAGE_FADE_TIME, 0, NO_VOLTAGE_MAX_RED);
+    redBrightness = map(position, 0, NO_VOLTAGE_FADE_TIME, NO_VOLTAGE_MIN_RED, NO_VOLTAGE_MAX_RED);
   } else {
-    redBrightness = map(position - NO_VOLTAGE_FADE_TIME, 0, NO_VOLTAGE_FADE_TIME, NO_VOLTAGE_MAX_RED, 0);
+    redBrightness = map(position - NO_VOLTAGE_FADE_TIME, 0, NO_VOLTAGE_FADE_TIME, NO_VOLTAGE_MAX_RED, NO_VOLTAGE_MIN_RED);
   }
 
   pixels.setPixelColor(4, pixels.Color(redBrightness, 0, 0)); // NeoPixel 5
