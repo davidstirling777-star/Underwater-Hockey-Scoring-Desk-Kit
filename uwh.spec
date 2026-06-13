@@ -38,7 +38,12 @@ a = Analysis(
     ],
 
 
-    hiddenimports=['pygame', 'paho.mqtt.client', 'serial'],
+    hiddenimports=[
+    'pygame',
+    'paho.mqtt.client',
+    'serial',
+    'game_engine'
+]
     hookspath=[],
     runtime_hooks=[],
     excludes=[],
