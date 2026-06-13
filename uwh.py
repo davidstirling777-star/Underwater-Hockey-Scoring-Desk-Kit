@@ -740,10 +740,11 @@ class GameManagementApp:
         )
 
         zigbee2mqtt_installed = shutil.which("zigbee2mqtt") is not None
+
         splash_report(
-            "Zigbee2MQTT installed"
+            "Zigbee2MQTT executable found"
             if zigbee2mqtt_installed
-            else "Zigbee2MQTT not found - install from https://www.zigbee2mqtt.io/guide/installation/05_windows.html",
+            else "Zigbee2MQTT executable not found on PATH",
             zigbee2mqtt_installed
         )
 
