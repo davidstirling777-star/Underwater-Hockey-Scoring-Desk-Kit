@@ -654,6 +654,7 @@ class GameManagementApp:
         print("\nSTARTUP: Waiting for MQTT network stability check...")
         
         # Create a splash screen to show initialization progress
+        splash = tk.Toplevel(master)
         splash.transient(master)
         splash.attributes("-topmost", True)
         splash.lift()
