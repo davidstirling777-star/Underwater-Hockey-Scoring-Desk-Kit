@@ -656,118 +656,177 @@ class GameManagementApp:
         # Create a splash screen to show initialization progress
         splash = tk.Toplevel(master)
         splash.title("Initializing UWH Scoring Desk")
-        splash.geometry("400x150")
+        splash.geometry("520x360")
         splash.resizable(False, False)
-        
+
         # Center splash screen
         splash.update_idletasks()
         x = (splash.winfo_screenwidth() // 2) - (splash.winfo_width() // 2)
         y = (splash.winfo_screenheight() // 2) - (splash.winfo_height() // 2)
         splash.geometry(f"+{x}+{y}")
-        
-        # Splash content
-        splash_title = tk.Label(splash, text="Underwater Hockey Scoring Desk", 
-                               font=("Arial", 12, "bold"))
-        splash_title.pack(pady=10)
-        
-        splash_status = tk.Label(splash, text="Initializing system...", 
-                                font=("Arial", 10))
-        splash_status.pack(pady=5)
-        
-        splash_detail = tk.Label(splash, text="", font=("Arial", 9), fg="blue")
-        splash_detail.pack(pady=5)
-        
+
+        splash_title = tk.Label(
+            splash,
+            text="Underwater Hockey Scoring Desk",
+            font=("Arial", 13, "bold")
+        )
+        splash_title.pack(pady=(12, 6))
+
+        splash_status = tk.Label(
+            splash,
+            text="Startup self-test",
+            font=("Arial", 10, "bold")
+        )
+        splash_status.pack(pady=(0, 6))
+
+        splash_log_frame = tk.Frame(splash)
+        splash_log_frame.pack(fill="both", expand=True, padx=18, pady=8)
+
+        splash_log = tk.Text(
+            splash_log_frame,
+            height=13,
+            width=62,
+            font=("Consolas", 9),
+            state="disabled",
+            wrap="word"
+        )
+        splash_log.pack(fill="both", expand=True)
+
+        def splash_report(message, ok=True):
+            prefix = "✓" if ok else "!"
+            line = f"{prefix} {message}\n"
+
+            try:
+                splash_log.config(state="normal")
+                splash_log.insert("end", line)
+                splash_log.see("end")
+                splash_log.config(state="disabled")
+                splash.update_idletasks()
+                splash.update()
+            except tk.TclError:
+                pass
+
+            print(f"STARTUP SELF-TEST: {message}")
+
+        def close_splash_after_final_check():
+            try:
+                splash_status.config(text="Startup complete")
+                splash_report("Startup complete - opening application", True)
+                splash.after(2000, splash.destroy)
+                splash.update()
+            except tk.TclError:
+                pass
+
+        splash_report("Game engine loaded", True)
+        splash_report("Settings system available", True)
+
         # Perform MQTT stability check
         mqtt_connection_stable = False
-        mqtt_check_timeout = 30  # Maximum 30 seconds to wait
+        mqtt_check_timeout = 30
         mqtt_check_start = time.time()
         mqtt_connection_attempts = 0
         mqtt_stable_count = 0
-        mqtt_stable_threshold = 3  # Need 3 consecutive stable checks
-        
+        mqtt_stable_threshold = 3
+
+        splash_report("Beginning MQTT stability verification", True)
         print("STARTUP: Beginning MQTT stability verification...")
-        
+
         while time.time() - mqtt_check_start < mqtt_check_timeout:
             mqtt_connection_attempts += 1
-            splash_detail.config(text=f"Checking MQTT broker... (Attempt {mqtt_connection_attempts})")
-            splash.update()
-            
+            splash_report(
+                f"Checking MQTT broker attempt {mqtt_connection_attempts}",
+                True
+            )
+
             try:
-                # Test MQTT connectivity
                 from zigbee_siren import is_mqtt_available
-                
+
                 if is_mqtt_available():
-                    splash_detail.config(text="MQTT available, testing connection...")
-                    splash.update()
-                    
-                    # Perform actual connectivity test
                     import paho.mqtt.client as mqtt_test
-                    
+
                     try:
                         test_client = mqtt_test.Client(
                             callback_api_version=mqtt_test.CallbackAPIVersion.VERSION2
                         )
                     except AttributeError:
                         test_client = mqtt_test.Client()
-                    
+
                     try:
                         test_client.connect("localhost", 1883, keepalive=5)
                         test_client.disconnect()
-                    
+
                         mqtt_stable_count += 1
+
+                        splash_report(
+                            f"MQTT check {mqtt_stable_count}/{mqtt_stable_threshold} passed",
+                            True
+                        )
+
                         print(
                             f"STARTUP: MQTT connection check "
                             f"{mqtt_stable_count}/{mqtt_stable_threshold} passed"
                         )
-                        
+
                         if mqtt_stable_count >= mqtt_stable_threshold:
                             mqtt_connection_stable = True
-                            splash_detail.config(text="MQTT connection stable!")
-                            splash.update()
+                            splash_report("MQTT connection stable", True)
                             break
+
                     except Exception as mqtt_err:
-                        mqtt_stable_count = 0  # Reset count on connection failure
+                        mqtt_stable_count = 0
+                        splash_report(
+                            f"MQTT connection test failed: {mqtt_err}",
+                            False
+                        )
                         print(f"STARTUP: MQTT connection test failed: {mqtt_err}")
-                        
+
                 else:
-                    splash_detail.config(text="MQTT library not available, continuing...")
+                    splash_report("MQTT library not available - continuing", False)
                     print("STARTUP: MQTT not available, continuing without Zigbee support")
-                    mqtt_connection_stable = True  # Allow startup without MQTT
+                    mqtt_connection_stable = True
                     break
-                    
+
             except Exception as init_err:
-                print(f"STARTUP: MQTT check error: {init_err}")
                 mqtt_stable_count = 0
-            
-            time.sleep(2)  # Wait 2 seconds between checks
-        
-        # Log final MQTT status
+                splash_report(f"MQTT check error: {init_err}", False)
+                print(f"STARTUP: MQTT check error: {init_err}")
+
+            time.sleep(2)
+
         if mqtt_connection_stable:
             print("STARTUP: MQTT network connection is STABLE - proceeding with initialization")
-            splash_detail.config(text="MQTT stable - starting application")
+            splash_report("MQTT ready", True)
         else:
             print(f"STARTUP: MQTT timeout after {mqtt_check_timeout}s - continuing without Zigbee")
-            splash_detail.config(text="MQTT unavailable - continuing without Zigbee")
-        
-        # Destroy splash screen
-        splash.after(1000, splash.destroy)
-        splash.update()
-        # ========== END MQTT STABILITY CHECK ==========
-        
+            splash_report("MQTT unavailable - continuing without Zigbee", False)
+
         # AUTO-DETECT ARDUINO AND ZIGBEE PORTS
         try:
+            splash_report("Starting hardware auto-detection", True)
             print("Starting hardware auto-detection...")
-            arduino_com, zigbee_com = auto_detect_com_ports()
+
+            try:
+                import serial_siren_listener
+                ports = serial_siren_listener.get_detected_ports()
+                arduino_com = ports.get("arduino_port")
+                zigbee_com = ports.get("zigbee_port")
+            except Exception:
+                arduino_com, zigbee_com = auto_detect_com_ports()
+
+            splash_report(f"Arduino detected: {arduino_com}", bool(arduino_com))
+            splash_report(f"Zigbee reserved: {zigbee_com}", bool(zigbee_com))
             print(f"Assignment Complete -> Arduino: {arduino_com} | Zigbee: {zigbee_com}")
+
         except Exception as e:
+            splash_report(f"Hardware auto-detection failed: {e}", False)
             print(f"Error during port auto-detection: {e}")
             arduino_com, zigbee_com = "COM5", "COM6"
-            
+
         self.arduino_port = arduino_com
         self.zigbee_port = zigbee_com
         self.last_hardware_detection = load_hardware_detection_cache()
 
-        # 1. INSTANTIATE ALL GUI TRACKING VARIABLES FIRST (Prevents Callback Crashing)
+        # 1. INSTANTIATE ALL GUI TRACKING VARIABLES FIRST
         self.zigbee_status_var = tk.StringVar(value="Disconnected")
         self.siren_loop_active = False
         self.connection_watchdog_active = False
@@ -775,55 +834,81 @@ class GameManagementApp:
         self.connection_watchdog_max_attempts = 3
         self.connection_watchdog_job = None
         self.user_initiated_action = False
+        splash_report("GUI tracking variables initialized", True)
 
         # 2. INITIALIZE ZIGBEE CONTROLLER NOW THAT STATUS VARS EXIST
         self.zigbee_controller = ZigbeeSirenController(
             gui_log_callback=self.add_to_zigbee_log
         )
         self.zigbee_controller.set_connection_status_callback(self.update_zigbee_status)
-        
+        splash_report("Zigbee controller initialized", True)
+
         # 3. BUILD INTERFACE ARCHITECTURE
         self.create_scoreboard_tab()
+        splash_report("Scoreboard tab created", True)
+
         self.create_settings_tab()
+        splash_report("Settings tab created", True)
+
         self.create_sounds_tab()
+        splash_report("Sounds tab created", True)
+
         self.create_zigbee_siren_tab()
+        splash_report("Siren control tab created", True)
 
         # NOW start Zigbee AFTER all widgets exist
         print("STARTUP: Initializing Zigbee connection (MQTT stability verified)")
         try:
             self.zigbee_controller.start()
+            splash_report("Zigbee controller started", True)
             print("STARTUP: Zigbee controller started successfully")
         except Exception as zigbee_init_err:
+            splash_report(f"Zigbee controller start failed: {zigbee_init_err}", False)
             print(f"STARTUP: Zigbee controller start failed: {zigbee_init_err}")
-        
+
         self.notebook.select(1)
         self.update_usb_dongle_status()
         self.start_connection_watchdog()
-        
+        splash_report("Connection watchdog started", True)
+
         self.load_game_settings()
+        splash_report("Game settings loaded", True)
+
         self.load_settings()
+        splash_report("General settings loaded", True)
+
         self.build_game_sequence()
+        splash_report("Game sequence built", True)
+
         self.master.bind('<Configure>', self.scale_fonts)
         self.initial_width = self.master.winfo_width()
         self.master.update_idletasks()
         self.scale_fonts(None)
+        splash_report("Display scaling initialized", True)
 
         # Display window configurations
         self.create_display_window()
+        splash_report("External display window created", True)
+
         self.start_penalty_display_updates()
         self.sync_penalty_display_to_external()
-        self.reset_timer()
+        splash_report("Penalty display synchronization started", True)
 
-        # 4. FINAL APPLICATION HARDWARE INITIALIZATION HOOK (SINGLE INSTANCE)
-        # Kept at the absolute end so everything—including UI widgets—is 100% built.
+        self.reset_timer()
+        splash_report("Timer initialized", True)
+
+        # 4. FINAL APPLICATION HARDWARE INITIALIZATION HOOK
         try:
             import serial_siren_listener
             serial_siren_listener.start_serial_listener(self)
+            splash_report("Serial siren listener started", True)
             print("DEBUG: Serial hardware listener thread successfully active.")
         except Exception as e:
+            splash_report(f"Serial siren listener failed: {e}", False)
             print(f"DEBUG: Failed to initialize serial button module thread: {e}")
-        # ─────────────────────────────────────────────────────────────────────
 
+        close_splash_after_final_check()
+        # ─────────────────────────────────────────────────────────────────────
     def log_game_event(self, event_type, team=None, cap_number=None, duration=None, break_status=None):
         """
         Log a game event to UWH_Game_Data.txt.
