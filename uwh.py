@@ -2791,6 +2791,20 @@ LINUX / RASPBERRY PI
 
 Recommended PM2 commands:
 """
+        info_label_left_part1 = tk.Label(
+            left_column_frame,
+            text=info_text_left_part1,
+            font=("Arial", 9),
+            justify="left",
+            anchor="nw",
+            wraplength=0
+        )
+
+        info_label_left_part1.grid(
+            row=0,
+            column=0,
+            sticky="nw"
+        )
         
         info_text_left_part2 = """
 
@@ -2824,6 +2838,11 @@ Configure Zigbee2MQTT:
    - USB Dongle Connected
    - Status Connected
 """
+                # PM2 commands for Raspberry Pi / Linux
+        pm2_commands = """sudo npm install -g pm2
+pm2 start zigbee2mqtt --name zigbee2mqtt
+pm2 save
+pm2 startup"""
         
         pm2_text_widget = tk.Text(left_column_frame, height=4, width=50, font=("Arial", 9),
                                   wrap=tk.NONE, relief="flat", bg=info_frame.cget("bg"))
