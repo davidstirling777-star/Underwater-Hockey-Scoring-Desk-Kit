@@ -606,7 +606,10 @@ class ZigbeeSirenController:
             self.logger.info(
                 f"Starting siren: Publishing to {topic} with payload {payload}"
             )
-    
+            if self.gui_log_callback:
+                self.gui_log_callback(f"MQTT publish topic: {topic}")
+                self.gui_log_callback(f"MQTT publish payload: {payload}")
+                self.gui_log_callback(f"MQTT connected: {self.connected}")
             result = self.mqtt_client.publish(topic, payload)
     
             try:
@@ -643,7 +646,10 @@ class ZigbeeSirenController:
             self.logger.info(
                 f"Stopping siren: Publishing to {topic} with payload {payload}"
             )
-    
+            if self.gui_log_callback:
+                self.gui_log_callback(f"MQTT publish topic: {topic}")
+                self.gui_log_callback(f"MQTT publish payload: {payload}")
+                self.gui_log_callback(f"MQTT connected: {self.connected}")
             result = self.mqtt_client.publish(topic, payload)
     
             try:
