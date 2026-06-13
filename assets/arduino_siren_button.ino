@@ -16,7 +16,7 @@
 // NeoPixel functions:
 //   NeoPixel 1: dim green power indicator
 //   NeoPixel 2: yellow when siren is active
-//   NeoPixel 5: green above 14.5V, yellow from 12.0V to 14.5V
+//   NeoPixel 5: green above 13.2V, yellow from 11.9V to 13.2V
 //   NeoPixels 5-8: warning indicators
 //
 // Battery warning behaviour:
@@ -25,7 +25,7 @@
 //   Battery 12.0V to 14.5V: NeoPixel 5 yellow.
 //   Battery < 12.0V: 10 second delay, then red alternating warning.
 //   Sudden voltage drop > 0.5V: 10 second delay, then red alternating warning.
-//   Warning stops once voltage returns to 14.5V or higher.
+//   Warning stops once voltage returns to 13.2V or higher.
 
 #include <Adafruit_NeoPixel.h>
 
