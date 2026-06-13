@@ -716,8 +716,15 @@ class GameManagementApp:
             try:
                 splash_status.config(text="Startup complete")
                 splash_report("Startup complete - opening application", True)
-                splash.after(2000, splash.destroy)
-                splash.update()
+        
+                def finish_startup():
+                    splash.destroy()
+        
+                    self.master.lift()
+                    self.master.focus_force()
+        
+                splash.after(2000, finish_startup)
+        
             except tk.TclError:
                 pass
 
@@ -913,6 +920,7 @@ class GameManagementApp:
 
         close_splash_after_final_check()
         # ─────────────────────────────────────────────────────────────────────
+    
     def log_game_event(self, event_type, team=None, cap_number=None, duration=None, break_status=None):
         """
         Log a game event to UWH_Game_Data.txt.
