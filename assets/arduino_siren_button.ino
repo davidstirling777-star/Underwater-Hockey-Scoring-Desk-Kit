@@ -1,68 +1,371 @@
-// Arduino Every or Nano Siren Button Sketch
-// Using Arduino Screw Terminal Connector
+// Arduino Every or Nano Siren Button Sketch, using Arduino Screw Terminal Connector
+// Add the Adafruit NeoPixel library
 // Pin A4 (Pin 18) monitoring: LOW = SIREN_ON (repeat every 0.5s), HIGH = SIREN_OFF
-// Connect a pull-up resister between A4 (Pin 18) and +5V (or 3V3 for the nano)
-// Connect Normally Open (NO) momentary swtich between Pin A4 (Pin 18) and Ground (GND)
-// The Arduino Nano ESP32 GPIO pins operate strictly at 3.3V.
-// Applying voltages higher than 3.3V to any digital or analog pin will 
-// likely damage the Nano microcontroller. The pins are not 5V tolerant.
+// Connect a pull-up resistor between A4 (Pin 18) and +5V.
+// Connect momentary Normally Open (NO) switch between Pin A4 (Pin 18) and Ground (GND).
+//
+// NeoPixel Stick: 8 LEDs, DIN on D2
+//
+// Battery monitoring:
+// Use voltage divider:
+// For Arduino Nana Every:
+//   R1 = 27 kΩ from Battery Positive (+) to A3
+//   R2 = 10 kΩ from A3 to Ground
+// Battery negative, Arduino GND, and voltage divider ground must all be common.
+// To prevent battery monitoring, add 10 kΩ resistor between 5V and A3
+// Important: only fit this bypass resistor when the battery divider is disconnected
+//
+// With R1 = 27k and R2 = 10k:
+//   15V battery/charger voltage becomes about 4.05V at A3,
+//   which is safe for a 5V Arduino Nano Every BUT NOT AN ARDUINO NANO ESP32.
+//
+// NeoPixel functions:
+//   NeoPixel 1: dim green power indicator
+//   NeoPixel 2: yellow when siren is active
+//   NeoPixels 5-8: battery warning indicators
+//
+// Battery warning behaviour:
+//   If A3 has no voltage: LEDs 5-8 slowly fade red together.
+//   If voltage suddenly drops by more than 0.5V: start 10 second pending timer.
+//   If voltage drops below 12.0V: start 10 second pending timer.
+//   If voltage returns to 14.5V within 10 seconds: cancel warning.
+//   If voltage stays unhappy for 10 seconds: LEDs 5-8 flash red in alternating pairs at about 3Hz.
+//   Flashing stops once voltage returns to 14.5V or higher.
 
-const int signalPin = 18; // signalPin - monitor for LOW (grounded) or HIGH
-bool lastSignalState = HIGH; // Assume starting HIGH (not grounded)
-unsigned long lastSirenTime = 0; // Track time of last SIREN_ON output
-const unsigned long SIREN_INTERVAL = 500; // 500ms = 0.5 seconds
-bool sirenActive = false; // Track if siren is currently active
-int debounceCounter = 0; // Track consecutive LOW reads
-int releaseDebounceCounter = 0; // Track consecutive HIGH reads
-const int DEBOUNCE_THRESHOLD = 3; // Require 3 consecutive LOW reads (~30ms hold time)
-const int RELEASE_DEBOUNCE_THRESHOLD = 3; // Require 3 consecutive HIGH reads (~30ms release confirmation)
+#include <Adafruit_NeoPixel.h>
+
+// -------------------------
+// Pin setup
+// -------------------------
+
+const int signalPin = 18;       // A4 / Pin 18
+const int neoPixelPin = 2;      // D2
+const int numPixels = 8;
+const int batterySensePin = A3;
+
+// -------------------------
+// NeoPixel setup
+// -------------------------
+
+Adafruit_NeoPixel pixels(numPixels, neoPixelPin, NEO_GRB + NEO_KHZ800);
+
+// -------------------------
+// Siren button setup
+// -------------------------
+
+unsigned long lastSirenTime = 0;
+const unsigned long SIREN_INTERVAL = 500; // repeat SIREN_ON every 0.5 seconds
+
+bool sirenActive = false;
+
+int debounceCounter = 0;
+int releaseDebounceCounter = 0;
+
+const int DEBOUNCE_THRESHOLD = 3;
+const int RELEASE_DEBOUNCE_THRESHOLD = 3;
+
+// -------------------------
+// Battery voltage divider setup
+// -------------------------
+
+const float R1 = 27000.0;
+const float R2 = 10000.0;
+const float ADC_REF_VOLTAGE = 5.0;
+
+// -------------------------
+// Battery warning values
+// -------------------------
+
+const float HAPPY_VOLTAGE = 14.5;
+const float NOT_HAPPY_VOLTAGE = 12.0;
+const float DROP_THRESHOLD = 0.5;
+const float NO_VOLTAGE_THRESHOLD = 1.0;
+
+const unsigned long LOW_VOLTAGE_DELAY = 10000;     // 10 seconds
+const unsigned long BATTERY_CHECK_INTERVAL = 100;  // check every 100ms
+const unsigned long BATTERY_FLASH_INTERVAL = 167;  // about 3Hz alternating pairs
+
+const int NO_VOLTAGE_FADE_TIME = 2000; // 2 seconds up, 2 seconds down
+const int NO_VOLTAGE_MAX_RED = 16;
+
+const int BATTERY_ADC_SAMPLES = 8;
+
+// -------------------------
+// Battery warning state
+// -------------------------
+
+float lastVoltage = 0.0;
+
+bool lowVoltagePending = false;
+unsigned long lowVoltageStartTime = 0;
+
+bool batteryDropWarning = false;
+unsigned long lastBatteryCheckTime = 0;
+unsigned long lastBatteryFlashTime = 0;
+bool batteryFlashState = false;
+
+bool noVoltageWarning = false;
+
+// -------------------------
+// Setup
+// -------------------------
 
 void setup() {
-  pinMode(signalPin, INPUT);        // signalPin as input (monitors external signal)
-  pinMode(LED_BUILTIN, OUTPUT);     // Set the built-in LED as an output
-  Serial.begin(9600);               // Nano and ESP32 can easily use 115200 baud, UNO used 9600
-  delay(500);                       // Wait for serial to stabilize
+  pinMode(signalPin, INPUT);
+  pinMode(LED_BUILTIN, OUTPUT);
+
+  Serial.begin(9600);
+  delay(500);
+
+  pixels.begin();
+  pixels.clear();
+
+  // NeoPixel 1: dim green power-on indicator
+  pixels.setPixelColor(0, pixels.Color(0, 16, 0));
+
+  // NeoPixel 2: off until siren is active
+  pixels.setPixelColor(1, pixels.Color(0, 0, 0));
+
+  clearBatteryWarningPixels();
+
+  pixels.show();
+
+  lastVoltage = readBatteryVoltage();
 }
+
+// -------------------------
+// Main loop
+// -------------------------
 
 void loop() {
   bool signalState = digitalRead(signalPin);
   unsigned long currentTime = millis();
 
-  // Track debounce counter for LOW state
+  // -------------------------
+  // Siren button debounce
+  // -------------------------
+
   if (signalState == LOW) {
     debounceCounter++;
-    releaseDebounceCounter = 0; // Reset release counter
+    releaseDebounceCounter = 0;
   } else {
-    debounceCounter = 0; // Reset press counter
+    debounceCounter = 0;
     releaseDebounceCounter++;
   }
 
-  // signalPin held LOW long enough - start siren sequence
+  // Button held LOW long enough: start siren
   if (debounceCounter == DEBOUNCE_THRESHOLD && !sirenActive) {
     Serial.println("SIREN_ON");
-    digitalWrite(LED_BUILTIN, HIGH);  // Turn LED on
+
+    digitalWrite(LED_BUILTIN, HIGH);
+
+    // NeoPixel 2 yellow when built-in LED is ON
+    pixels.setPixelColor(1, pixels.Color(204, 204, 0));
+    pixels.show();
+
     lastSirenTime = currentTime;
     sirenActive = true;
   }
-  
-  // signalPin is still LOW - repeat SIREN_ON every 0.5 seconds
+
+  // Button still LOW: repeat SIREN_ON every 0.5 seconds
   if (signalState == LOW && sirenActive && (currentTime - lastSirenTime >= SIREN_INTERVAL)) {
     Serial.println("SIREN_ON");
     lastSirenTime = currentTime;
-    
-    // Momentarily pull pin HIGH to verify it's still grounded
+
+    // Momentarily pull pin HIGH to verify it is still grounded
     pinMode(signalPin, OUTPUT);
     digitalWrite(signalPin, HIGH);
-    delayMicroseconds(100); // 100 microsecond pulse
-    pinMode(signalPin, INPUT); // Switch back to input mode
+    delayMicroseconds(100);
+    pinMode(signalPin, INPUT);
   }
-  
-  // signalPin held HIGH long enough - stop siren
+
+  // Button released HIGH long enough: stop siren
   if (releaseDebounceCounter == RELEASE_DEBOUNCE_THRESHOLD && sirenActive) {
     Serial.println("SIREN_OFF");
-    digitalWrite(LED_BUILTIN, LOW); // Turn LED off
+
+    digitalWrite(LED_BUILTIN, LOW);
+
+    // NeoPixel 2 off when built-in LED is OFF
+    pixels.setPixelColor(1, pixels.Color(0, 0, 0));
+    pixels.show();
+
     sirenActive = false;
   }
-  
-  delay(10); // 10ms poll for debouncing
+
+  // -------------------------
+  // Battery monitor
+  // -------------------------
+
+  checkBatteryVoltage();
+
+  if (noVoltageWarning) {
+    updateNoVoltageWarning();
+  } else {
+    updateBatteryDropWarning();
+  }
+
+  delay(10);
+}
+
+// -------------------------
+// Battery voltage reading
+// -------------------------
+
+float readBatteryVoltage() {
+  long adcTotal = 0;
+
+  for (int i = 0; i < BATTERY_ADC_SAMPLES; i++) {
+    adcTotal += analogRead(batterySensePin);
+    delayMicroseconds(300);
+  }
+
+  float adcAverage = adcTotal / (float)BATTERY_ADC_SAMPLES;
+
+  float pinVoltage = adcAverage * (ADC_REF_VOLTAGE / 1023.0);
+  float actualBatteryV = pinVoltage * ((R1 + R2) / R2);
+
+  return actualBatteryV;
+}
+
+// -------------------------
+// Battery voltage logic
+// -------------------------
+
+void checkBatteryVoltage() {
+  unsigned long currentTime = millis();
+
+  if (currentTime - lastBatteryCheckTime < BATTERY_CHECK_INTERVAL) {
+    return;
+  }
+
+  lastBatteryCheckTime = currentTime;
+
+  float actualBatteryV = readBatteryVoltage();
+
+  // No voltage on A3: use slow fading warning on LEDs 5-8
+  if (actualBatteryV < NO_VOLTAGE_THRESHOLD) {
+    noVoltageWarning = true;
+    batteryDropWarning = false;
+    lowVoltagePending = false;
+    lastVoltage = actualBatteryV;
+    return;
+  } else {
+    if (noVoltageWarning) {
+      clearBatteryWarningPixels();
+      pixels.show();
+    }
+
+    noVoltageWarning = false;
+  }
+
+  // Sudden voltage drop detected
+  if (lastVoltage > 0 && (lastVoltage - actualBatteryV) > DROP_THRESHOLD) {
+    lowVoltagePending = true;
+    lowVoltageStartTime = currentTime;
+  }
+
+  // Battery below not-happy voltage
+  if (actualBatteryV < NOT_HAPPY_VOLTAGE && !lowVoltagePending) {
+    lowVoltagePending = true;
+    lowVoltageStartTime = currentTime;
+  }
+
+  // If voltage recovers before 10 seconds, cancel pending warning
+  if (lowVoltagePending && actualBatteryV >= HAPPY_VOLTAGE) {
+    lowVoltagePending = false;
+  }
+
+  // If voltage stays unhappy for 10 seconds, start flashing
+  if (lowVoltagePending && (currentTime - lowVoltageStartTime >= LOW_VOLTAGE_DELAY)) {
+    batteryDropWarning = true;
+    lowVoltagePending = false;
+    lastBatteryFlashTime = 0;
+    batteryFlashState = false;
+  }
+
+  lastVoltage = actualBatteryV;
+}
+
+// -------------------------
+// Alternating pair warning
+// -------------------------
+
+void updateBatteryDropWarning() {
+  unsigned long currentTime = millis();
+
+  if (!batteryDropWarning) {
+    return;
+  }
+
+  float actualBatteryV = readBatteryVoltage();
+
+  // Stop flashing once battery voltage has recovered
+  if (actualBatteryV >= HAPPY_VOLTAGE) {
+    batteryDropWarning = false;
+    clearBatteryWarningPixels();
+    pixels.show();
+    return;
+  }
+
+  if (currentTime - lastBatteryFlashTime >= BATTERY_FLASH_INTERVAL) {
+    lastBatteryFlashTime = currentTime;
+    batteryFlashState = !batteryFlashState;
+
+    if (batteryFlashState) {
+      // NeoPixels 7 and 8 red
+      pixels.setPixelColor(6, pixels.Color(255, 0, 0));
+      pixels.setPixelColor(7, pixels.Color(255, 0, 0));
+
+      // NeoPixels 5 and 6 off
+      pixels.setPixelColor(4, pixels.Color(0, 0, 0));
+      pixels.setPixelColor(5, pixels.Color(0, 0, 0));
+    } else {
+      // NeoPixels 5 and 6 red
+      pixels.setPixelColor(4, pixels.Color(255, 0, 0));
+      pixels.setPixelColor(5, pixels.Color(255, 0, 0));
+
+      // NeoPixels 7 and 8 off
+      pixels.setPixelColor(6, pixels.Color(0, 0, 0));
+      pixels.setPixelColor(7, pixels.Color(0, 0, 0));
+    }
+
+    pixels.show();
+  }
+}
+
+// -------------------------
+// No-voltage slow fade warning
+// -------------------------
+
+void updateNoVoltageWarning() {
+  unsigned long currentTime = millis();
+
+  unsigned long cycleTime = NO_VOLTAGE_FADE_TIME * 2UL;
+  unsigned long position = currentTime % cycleTime;
+
+  int redBrightness;
+
+  if (position < NO_VOLTAGE_FADE_TIME) {
+    redBrightness = map(position, 0, NO_VOLTAGE_FADE_TIME, 0, NO_VOLTAGE_MAX_RED);
+  } else {
+    redBrightness = map(position - NO_VOLTAGE_FADE_TIME, 0, NO_VOLTAGE_FADE_TIME, NO_VOLTAGE_MAX_RED, 0);
+  }
+
+  pixels.setPixelColor(4, pixels.Color(redBrightness, 0, 0)); // NeoPixel 5
+  pixels.setPixelColor(5, pixels.Color(redBrightness, 0, 0)); // NeoPixel 6
+  pixels.setPixelColor(6, pixels.Color(redBrightness, 0, 0)); // NeoPixel 7
+  pixels.setPixelColor(7, pixels.Color(redBrightness, 0, 0)); // NeoPixel 8
+
+  pixels.show();
+}
+
+// -------------------------
+// Utility
+// -------------------------
+
+void clearBatteryWarningPixels() {
+  pixels.setPixelColor(4, pixels.Color(0, 0, 0)); // NeoPixel 5
+  pixels.setPixelColor(5, pixels.Color(0, 0, 0)); // NeoPixel 6
+  pixels.setPixelColor(6, pixels.Color(0, 0, 0)); // NeoPixel 7
+  pixels.setPixelColor(7, pixels.Color(0, 0, 0)); // NeoPixel 8
 }
