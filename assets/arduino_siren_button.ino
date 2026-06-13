@@ -59,8 +59,8 @@ const float ADC_REF_VOLTAGE = 5.0;
 const float BATTERY_CALIBRATION = 0.956;
 
 // Battery warning values
-const float HAPPY_VOLTAGE = 14.5;
-const float NOT_HAPPY_VOLTAGE = 12.0;
+const float HAPPY_VOLTAGE = 13.2;  // pick a voltage just above your battery voltage
+const float NOT_HAPPY_VOLTAGE = 11.9;
 const float DROP_THRESHOLD = 0.5;
 const float NO_VOLTAGE_THRESHOLD = 1.0;
 
