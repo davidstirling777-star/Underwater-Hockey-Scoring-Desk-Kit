@@ -658,7 +658,7 @@ class GameManagementApp:
         splash.attributes("-topmost", True)
         splash.lift()
         splash.focus_force()
-        splash.grab_set() //grab_set() makes the splash modal
+        splash.grab_set()
         splash.title("Initializing UWH Scoring Desk")
         splash.geometry("520x360")
         splash.resizable(False, False)
