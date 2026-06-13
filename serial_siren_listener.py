@@ -1,3 +1,5 @@
+import os
+import json
 import time
 import serial
 import serial.tools.list_ports
@@ -5,63 +7,245 @@ import threading
 import pygame
 import sound
 
-# Global flag to track if the serial listener thread is already active
+SETTINGS_FILE = "settings.json"
+
 _serial_listener_started = False
 _serial_listener_lock = threading.Lock()
 
+_detected_ports = {
+    "arduino_port": None,
+    "zigbee_port": None,
+}
 
-def find_arduino_port():
-    """Searches for an attached Arduino or active USB Serial COM port on Windows."""
-    ports = serial.tools.list_ports.comports()
+
+def _settings_path():
+    return os.path.join(os.getcwd(), SETTINGS_FILE)
+
+
+def load_hardware_ports_from_json():
+    try:
+        path = _settings_path()
+
+        if not os.path.exists(path):
+            return None, None
+
+        with open(path, "r", encoding="utf-8") as f:
+            settings = json.load(f)
+
+        hardware = settings.get("hardwareDetection", {})
+
+        return (
+            hardware.get("arduino_port"),
+            hardware.get("zigbee_port")
+        )
+
+    except Exception as e:
+        print(f"Hardware port load failed: {e}")
+        return None, None
+
+
+def save_hardware_ports_to_json(arduino_port, zigbee_port):
+    try:
+        path = _settings_path()
+
+        settings = {}
+
+        if os.path.exists(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    settings = json.load(f)
+            except Exception:
+                settings = {}
+
+        settings["hardwareDetection"] = {
+            "arduino_port": arduino_port,
+            "zigbee_port": zigbee_port,
+            "last_detected": time.strftime("%Y-%m-%d %H:%M:%S")
+        }
+
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(settings, f, indent=2)
+
+        print(
+            f"Saved hardware detection cache: "
+            f"Arduino={arduino_port}, Zigbee={zigbee_port}"
+        )
+
+    except Exception as e:
+        print(f"Hardware port save failed: {e}")
+
+
+def _port_exists(port_name):
+    if not port_name:
+        return False
+
+    ports = list(serial.tools.list_ports.comports())
+
+    return any(
+        p.device.upper() == port_name.upper()
+        for p in ports
+    )
+
+
+def _is_arduino_port(port):
+    description = (port.description or "").lower()
+    hwid = (port.hwid or "").lower()
+
+    return (
+        "arduino" in description
+        or "nano" in description
+        or "ch340" in description
+        or "usb-serial" in description
+        or "vid:pid=2341:0058" in hwid
+        or "vid:pid=2341:0042" in hwid
+        or "1a86:7523" in hwid
+    )
+
+
+def _is_zigbee_port(port):
+    description = (port.description or "").lower()
+    hwid = (port.hwid or "").lower()
+
+    return (
+        "zigbee" in description
+        or "sonoff" in description
+        or "itead" in description
+        or "silicon labs" in description
+        or "cp210" in description
+        or "cc2531" in description
+        or "cc2652" in description
+        or "10c4:ea60" in hwid
+    )
+
+
+def detect_hardware_ports(force_scan=False):
+    """
+    Lead hardware detector.
+
+    First uses fixed/cached ports from settings.json.
+    If those ports are missing or invalid, falls back to scanning.
+    Other modules should reference this result instead of scanning again.
+    """
+
+    global _detected_ports
+
+    if (
+        not force_scan
+        and _detected_ports["arduino_port"]
+        and _detected_ports["zigbee_port"]
+    ):
+        return (
+            _detected_ports["arduino_port"],
+            _detected_ports["zigbee_port"]
+        )
+
+    cached_arduino, cached_zigbee = load_hardware_ports_from_json()
+
+    if (
+        not force_scan
+        and _port_exists(cached_arduino)
+        and _port_exists(cached_zigbee)
+        and cached_arduino != cached_zigbee
+    ):
+        print(
+            f"Using cached hardware ports: "
+            f"Arduino={cached_arduino}, Zigbee={cached_zigbee}"
+        )
+
+        _detected_ports["arduino_port"] = cached_arduino
+        _detected_ports["zigbee_port"] = cached_zigbee
+
+        return cached_arduino, cached_zigbee
+
+    print("Cached hardware ports missing or invalid. Scanning COM ports...")
+
+    arduino_port = None
+    zigbee_port = None
+
+    ports = list(serial.tools.list_ports.comports())
+    assigned_ports = set()
+
+    print(f"Scanning system... Found {len(ports)} available COM ports.")
 
     for port in ports:
-        description = port.description or ""
-        hwid = port.hwid or ""
-        device = port.device or ""
-
-        if (
-            "Arduino" in description or
-            "Nano" in description or
-            "VID:PID=2341:0058" in hwid or
-            "VID:PID=2341:0042" in hwid or
-            "1A86:7523" in hwid
-        ):
-            return device
+        if _is_arduino_port(port):
+            arduino_port = port.device
+            assigned_ports.add(port.device)
+            print(f"Found Arduino candidate on {port.device}")
+            break
 
     for port in ports:
-        description = port.description or ""
-        device = port.device or ""
+        if port.device in assigned_ports:
+            continue
 
-        if "USB Serial" in description or "COM" in device:
-            return device
+        if _is_zigbee_port(port):
+            zigbee_port = port.device
+            assigned_ports.add(port.device)
+            print(f"Found Zigbee Dongle on {port.device}")
+            break
 
-    return None
+    if not arduino_port:
+        arduino_port = cached_arduino if _port_exists(cached_arduino) else "COM5"
+        print(f"Warning: Arduino fallback set to {arduino_port}")
+
+    if not zigbee_port:
+        zigbee_port = cached_zigbee if _port_exists(cached_zigbee) else "COM6"
+        print(f"Warning: Zigbee fallback set to {zigbee_port}")
+
+    _detected_ports["arduino_port"] = arduino_port
+    _detected_ports["zigbee_port"] = zigbee_port
+
+    save_hardware_ports_to_json(arduino_port, zigbee_port)
+
+    return arduino_port, zigbee_port
+
+
+def get_arduino_port():
+    arduino_port, _ = detect_hardware_ports()
+    return arduino_port
+
+
+def get_zigbee_port():
+    _, zigbee_port = detect_hardware_ports()
+    return zigbee_port
+
+
+def get_detected_ports():
+    arduino_port, zigbee_port = detect_hardware_ports()
+
+    return {
+        "arduino_port": arduino_port,
+        "zigbee_port": zigbee_port,
+    }
 
 
 def serial_listener_thread(uwh_app):
-    """Background loop that monitors the serial port for button presses."""
+    """Background loop that monitors the Arduino serial port for siren button presses."""
 
     button_held_down = False
 
     while True:
-        port = find_arduino_port()
+        arduino_port, zigbee_port = detect_hardware_ports()
 
-        if not port:
+        if not arduino_port:
             print("No Arduino serial port found for siren button. Retrying in 5s...")
             time.sleep(5)
             continue
 
-        print(f"Attempting to connect to siren button on {port}...")
+        print(
+            f"Attempting to connect to siren button on {arduino_port} "
+            f"(Zigbee reserved on {zigbee_port})..."
+        )
 
         try:
-            with serial.Serial(port, 9600, timeout=0.1) as ser:
+            with serial.Serial(arduino_port, 9600, timeout=0.1) as ser:
                 ser.dtr = True
                 ser.rts = True
 
                 time.sleep(1.5)
                 ser.reset_input_buffer()
 
-                print(f"Successfully connected to siren button on {port}!")
+                print(f"Successfully connected to siren button on {arduino_port}!")
 
                 while True:
                     try:
@@ -80,13 +264,11 @@ def serial_listener_thread(uwh_app):
                                 print("Button Triggered: SIREN_ON")
                                 button_held_down = True
 
-                                # 1. Fire the wireless hardware siren
                                 try:
                                     uwh_app.zigbee_controller.start_siren_continuous()
                                 except Exception as net_err:
                                     print(f"Wireless Trigger Note: {net_err}")
 
-                                # 2. Fire local speaker audio using same path as app timer sirens
                                 try:
                                     track = (
                                         uwh_app.siren_var.get()
@@ -125,13 +307,11 @@ def serial_listener_thread(uwh_app):
                                 print("Button Released: SIREN_OFF matched.")
                                 button_held_down = False
 
-                                # 1. Terminate remote wireless broadcast
                                 try:
                                     uwh_app.zigbee_controller.stop_siren_continuous()
                                 except Exception:
                                     pass
 
-                                # 2. Stop local pygame audio immediately
                                 try:
                                     pygame.mixer.stop()
                                     print("Local Speaker Audio Stopped.")
@@ -143,9 +323,11 @@ def serial_listener_thread(uwh_app):
 
         except Exception as e:
             print(
-                f"Serial listener encountered an error on {port}: {e}. "
-                "Retrying in 3s..."
+                f"Serial listener encountered an error on {arduino_port}: {e}. "
+                "Forcing hardware rescan and retrying in 3s..."
             )
+
+            detect_hardware_ports(force_scan=True)
             time.sleep(3)
 
 
@@ -161,6 +343,8 @@ def start_serial_listener(uwh_app):
                 "Skipping duplicate initialization."
             )
             return
+
+        detect_hardware_ports()
 
         _serial_listener_started = True
 
