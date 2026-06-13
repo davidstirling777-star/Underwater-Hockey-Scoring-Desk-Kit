@@ -5053,7 +5053,7 @@ Sound file and volume settings are from the Sounds tab."""
             self.add_to_zigbee_log("MQTT siren ON command sent")
     
             self.master.after(
-                1000,
+                3000,
                 self._stop_test_siren_via_mqtt
             )
     
