@@ -2750,28 +2750,38 @@ class GameManagementApp:
         test_siren_btn.grid(row=3, column=3, pady=5, padx=5)
         
         # Information Section
-        info_frame = tk.LabelFrame(main_frame, text="Setup Information", 
-                                 borderwidth=1, relief="solid")
+        info_frame = tk.LabelFrame(
+            main_frame,
+            text="Setup Information",
+            borderwidth=1,
+            relief="solid"
+        )
         info_frame.grid(row=4, column=0, columnspan=4, sticky="ew", padx=5, pady=5)
         
-        # Configure grid for two columns
-        info_frame.grid_columnconfigure(0, weight=1)
-        info_frame.grid_columnconfigure(1, weight=1)
+        info_scroll_frame = tk.Frame(info_frame)
+        info_scroll_frame.pack(fill="both", expand=True, padx=5, pady=5)
         
-        # Left column: Main setup instructions
-        # Create a frame to hold the left column content
-        left_column_frame = tk.Frame(info_frame)
-        left_column_frame.grid(row=0, column=0, sticky="nw", padx=5, pady=5)
+        info_scrollbar = tk.Scrollbar(info_scroll_frame)
+        info_scrollbar.pack(side="right", fill="y")
         
-        info_text_left_part1 = """Zigbee Siren Setup
+        info_text_widget = tk.Text(
+            info_scroll_frame,
+            height=8,
+            font=("Arial", 9),
+            wrap=tk.WORD,
+            yscrollcommand=info_scrollbar.set
+        )
+        info_text_widget.pack(side="left", fill="both", expand=True)
+        
+        info_scrollbar.config(command=info_text_widget.yview)
+        
+        info_text_widget.insert("1.0", """Zigbee Siren Setup
 
 WINDOWS 11
-
-1. Install Mosquitto MQTT Broker
-   Download from:
+1. Install Mosquitto MQTT Broker:
    https://mosquitto.org/download/
 
-2. Install Zigbee2MQTT
+2. Install Zigbee2MQTT.
 
 3. Configure Zigbee2MQTT to use the detected Zigbee COM port.
 
@@ -2779,176 +2789,33 @@ WINDOWS 11
 
 5. Start Zigbee2MQTT.
 
-6. Use 'Windows Open Zigbee2MQTT Frontend'
-   to open:
+6. Use 'Windows Open Zigbee2MQTT Frontend' to open:
    http://localhost:8080
 
 LINUX / RASPBERRY PI
-
 1. Install Zigbee2MQTT as a service.
 2. Install Mosquitto MQTT Broker.
 3. Use 'Linux Open Zigbee2MQTT Frontend'.
 
 Recommended PM2 commands:
-"""
-        info_label_left_part1 = tk.Label(
-            left_column_frame,
-            text=info_text_left_part1,
-            font=("Arial", 9),
-            justify="left",
-            anchor="nw",
-            wraplength=0
-        )
-
-        info_label_left_part1.grid(
-            row=0,
-            column=0,
-            sticky="nw"
-        )
-        
-        info_text_left_part2 = """
-
-Windows MQTT Broker:
-Download and install Mosquitto from:
-
-https://mosquitto.org/download/
-
-Python MQTT Library:
-"""
-        
-        info_text_left_part3 = """
-
-Configure Zigbee2MQTT:
-
-1. Pair your Zigbee button device.
-
-2. Pair your Zigbee siren device.
-
-3. Set the button device names above
-   (comma separated).
-
-4. Set the siren device name.
-
-5. Configure MQTT broker details.
-
-6. Click Connect.
-
-7. Verify:
-   - MQTT Library Available
-   - USB Dongle Connected
-   - Status Connected
-"""
-                # PM2 commands for Raspberry Pi / Linux
-        pm2_commands = """sudo npm install -g pm2
+sudo npm install -g pm2
 pm2 start zigbee2mqtt --name zigbee2mqtt
 pm2 save
-pm2 startup"""
-        
-        pm2_text_widget = tk.Text(left_column_frame, height=4, width=50, font=("Arial", 9),
-                                  wrap=tk.NONE, relief="flat", bg=info_frame.cget("bg"))
-        pm2_text_widget.insert("1.0", pm2_commands)
-        pm2_text_widget.config(state="disabled")
-        pm2_text_widget.grid(row=1, column=0, sticky="nw")
-        
-        # Second part of instructions (after PM2 commands, before MQTT commands)
-        info_label_left_part2 = tk.Label(left_column_frame, text=info_text_left_part2, 
-                                         font=("Arial", 9), justify="left", anchor="nw", wraplength=0)
-        info_label_left_part2.grid(row=2, column=0, sticky="nw")
-        
-        # MQTT commands in a selectable Text widget
-        mqtt_commands = """   python3 -m venv ~/myenv
-   source ~/myenv/bin/activate
-   pip install paho-mqtt"""
-        
-        mqtt_text_widget = tk.Text(left_column_frame, height=3, width=50, font=("Arial", 9),
-                                   wrap=tk.NONE, relief="flat", bg=info_frame.cget("bg"))
-        mqtt_text_widget.insert("1.0", mqtt_commands)
-        mqtt_text_widget.config(state="disabled")
-        mqtt_text_widget.grid(row=3, column=0, sticky="nw")
-        
-        # Third part of instructions (after MQTT commands)
-        info_label_left_part3 = tk.Label(
-            left_column_frame,
-            text=info_text_left_part3,
-            font=("Arial", 9),
-            justify="left",
-            anchor="nw",
-            wraplength=0
-        )
-        info_label_left_part3.grid(row=4, column=0, sticky="nw")
-        
-        # Right column: Usage information
-        info_text_right = """Usage
-        
-        Arduino Siren Button
-        --------------------
-        Press and hold:
-            Siren continues sounding.
-        
-        Release:
-            Siren stops immediately.
-        
-        Test App Siren
-        --------------
-        Tests the local siren sound using
-        the same playback path used by
-        timers and the Arduino button.
-        
-        Timer Sirens
-        ------------
-        Period-end sirens use the same
-        sound file and volume settings.
-        
-        Zigbee Devices
-        --------------
-        When Zigbee2MQTT is installed and
-        running, paired Zigbee buttons and
-        sirens can be controlled through
-        the MQTT broker.
-        
-        Mosquitto MQTT Broker
-        ---------------------
-        https://mosquitto.org
-        
-        Zigbee2MQTT Frontend
-        --------------------
-        Linux:
-            Linux Open Zigbee2MQTT Frontend
-        
-        Windows:
-            Windows Open Zigbee2MQTT Frontend
-        
-        Default frontend URL:
-            http://localhost:8080
-        
-        Hardware Detection
-        ------------------
-        Arduino Port:
-            Automatically detected
-        
-        Zigbee Port:
-            Automatically detected
-        
-        Current detected ports are shown
-        in the Activity Log during startup.
-        """
-        
-        info_label_right = tk.Label(
-            info_frame,
-            text=info_text_right,
-            font=("Arial", 9),
-            justify="left",
-            anchor="nw",
-            wraplength=0
-        )
-        
-        info_label_right.grid(
-            row=0,
-            column=1,
-            sticky="nw",
-            padx=5,
-            pady=5
-        )
+pm2 startup
+
+Python MQTT Library:
+python3 -m venv ~/myenv
+source ~/myenv/bin/activate
+pip install paho-mqtt
+
+Usage:
+- Arduino Siren Button: press and hold to sound, release to stop.
+- Test App Siren: tests local siren sound.
+- Timer sirens use the same sound file and volume settings.
+- Hardware ports are automatically detected and shown above.
+""")
+
+        info_text_widget.config(state="disabled")
         
         # Log Section
         log_frame = tk.LabelFrame(
