@@ -17,10 +17,8 @@ _detected_ports = {
     "zigbee_port": None,
 }
 
-
 def _settings_path():
     return os.path.join(os.getcwd(), SETTINGS_FILE)
-
 
 def load_hardware_ports_from_json():
     try:
@@ -42,7 +40,6 @@ def load_hardware_ports_from_json():
     except Exception as e:
         print(f"Hardware port load failed: {e}")
         return None, None
-
 
 def save_hardware_ports_to_json(arduino_port, zigbee_port):
     try:
@@ -223,6 +220,7 @@ def serial_listener_thread(uwh_app):
     """Background loop that monitors the Arduino serial port for siren button presses."""
 
     button_held_down = False
+    last_local_siren_refresh = 0
 
     while True:
         arduino_port, zigbee_port = detect_hardware_ports()
@@ -260,34 +258,37 @@ def serial_listener_thread(uwh_app):
                         ).strip()
 
                         if line == "SIREN_ON":
+                            now = time.monotonic()
+                        
                             if not button_held_down:
                                 print("Button Triggered: SIREN_ON")
                                 button_held_down = True
-
+                        
                                 try:
                                     uwh_app.zigbee_controller.start_siren_continuous()
                                 except Exception as net_err:
                                     print(f"Wireless Trigger Note: {net_err}")
-
-                                try:
+                        
+                            try:
+                                duration = (
+                                    float(uwh_app.siren_duration.get())
+                                    if hasattr(uwh_app, "siren_duration")
+                                    else 1.5
+                                )
+                        
+                                # Refresh local audio shortly before the previous play finishes.
+                                if now - last_local_siren_refresh >= max(0.5, duration - 0.25):
                                     track = (
                                         uwh_app.siren_var.get()
                                         if hasattr(uwh_app, "siren_var")
                                         else "siren-police.mp3"
                                     )
-
-                                    duration = (
-                                        uwh_app.siren_duration.get()
-                                        if hasattr(uwh_app, "siren_duration")
-                                        else 1.5
-                                    )
-
+                        
                                     print(
-                                        "Local Speaker Audio Started via "
-                                        f"play_sound_with_volume: '{track}' "
-                                        f"for {duration}s"
+                                        "Local Speaker Audio refreshed via "
+                                        f"play_sound_with_volume: '{track}' for {duration}s"
                                     )
-
+                        
                                     sound.play_sound_with_volume(
                                         track,
                                         "siren",
@@ -298,9 +299,11 @@ def serial_listener_thread(uwh_app):
                                         uwh_app.water_volume,
                                         uwh_app.siren_duration
                                     )
-
-                                except Exception as audio_err:
-                                    print(f"Local Speaker Playback Error: {audio_err}")
+                        
+                                    last_local_siren_refresh = now
+                        
+                            except Exception as audio_err:
+                                print(f"Local Speaker Playback Error: {audio_err}")
 
                         elif line == "SIREN_OFF":
                             if button_held_down:
