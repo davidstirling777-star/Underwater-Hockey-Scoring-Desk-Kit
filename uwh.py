@@ -2605,11 +2605,34 @@ class GameManagementApp:
         self.usb_dongle_status_label = tk.Label(status_frame, text="Checking...", 
                                               font=("Arial", 11), fg="orange")
         self.usb_dongle_status_label.grid(row=2, column=1, sticky="w", padx=5, pady=2)
+
+        # Hardware port assignment display
+        self.hardware_ports_label = tk.Label(
+            status_frame,
+            text=f"Hardware Ports: Arduino={self.arduino_port}  Zigbee={self.zigbee_port}",
+            font=("Arial", 9),
+            fg="blue"
+        )
+        
+        self.hardware_ports_label.grid(
+            row=3,
+            column=0,
+            columnspan=2,
+            sticky="w",
+            padx=5,
+            pady=2
+        )
         
         # Retest USB Dongle button
         self.retest_usb_btn = tk.Button(status_frame, text="Retest USB Dongle", 
                                       font=("Arial", 9), command=self.update_usb_dongle_status)
-        self.retest_usb_btn.grid(row=2, column=2, sticky="w", padx=5, pady=2)
+        self.retest_usb_btn.grid(
+            row=3,
+            column=2,
+            sticky="w",
+            padx=5,
+            pady=2
+        )
         
         # Connection Control Buttons
         control_frame = tk.Frame(main_frame)
@@ -2700,9 +2723,22 @@ class GameManagementApp:
         save_config_btn.grid(row=3, column=0, columnspan=1, pady=5, padx=5)
         
         # Open Zigbee2MQTT Frontend Button
-        open_frontend_btn = tk.Button(main_frame, text="Open Zigbee2MQTT Frontend", font=("Arial", 11),
-                                     command=lambda: webbrowser.open("http://localhost:8080"))
-        open_frontend_btn.grid(row=3, column=1, columnspan=2, pady=5, padx=5)
+        open_frontend_btn = tk.Button(
+            main_frame,
+            text="Linux Open Zigbee2MQTT Frontend",
+            font=("Arial", 11),
+            command=lambda: webbrowser.open("http://localhost:8080")
+        )
+        open_frontend_btn.grid(row=3, column=1, pady=5, padx=5)
+        
+        # Windows Frontend Button
+        windows_frontend_btn = tk.Button(
+            main_frame,
+            text="Windows Open Zigbee2MQTT Frontend",
+            font=("Arial", 11),
+            command=lambda: webbrowser.open("http://localhost:8080")
+        )
+        windows_frontend_btn.grid(row=3, column=2, pady=5, padx=5)
         
         # Manual Siren Test Button
         test_siren_btn = tk.Button(
@@ -2711,7 +2747,7 @@ class GameManagementApp:
             font=("Arial", 11),
             command=self.test_app_siren
         )
-        test_siren_btn.grid(row=3, column=3, columnspan=1, pady=5, padx=5)
+        test_siren_btn.grid(row=3, column=3, pady=5, padx=5)
         
         # Information Section
         info_frame = tk.LabelFrame(main_frame, text="Setup Information", 
@@ -2727,31 +2763,67 @@ class GameManagementApp:
         left_column_frame = tk.Frame(info_frame)
         left_column_frame.grid(row=0, column=0, sticky="nw", padx=5, pady=5)
         
-        info_text_left_part1 = """Zigbee2MQTT Wireless Siren Setup:
+        info_text_left_part1 = """Zigbee Siren Setup
 
-1. For Linux, install Zigbee2MQTT as a service on your system
-   Recommended pm2 commands:"""
+WINDOWS 11
+
+1. Install Mosquitto MQTT Broker
+   Download from:
+   https://mosquitto.org/download/
+
+2. Install Zigbee2MQTT
+
+3. Configure Zigbee2MQTT to use the detected Zigbee COM port.
+
+4. Start Mosquitto MQTT Broker.
+
+5. Start Zigbee2MQTT.
+
+6. Use 'Windows Open Zigbee2MQTT Frontend'
+   to open:
+   http://localhost:8080
+
+LINUX / RASPBERRY PI
+
+1. Install Zigbee2MQTT as a service.
+2. Install Mosquitto MQTT Broker.
+3. Use 'Linux Open Zigbee2MQTT Frontend'.
+
+Recommended PM2 commands:
+"""
         
         info_text_left_part2 = """
-2. Install MQTT library:"""
+
+Windows MQTT Broker:
+Download and install Mosquitto from:
+
+https://mosquitto.org/download/
+
+Python MQTT Library:
+"""
         
         info_text_left_part3 = """
-3. Configure your Zigbee button devices in Zigbee2MQTT
-4. Set the button device names above (comma-separated for multiple buttons)
-5. Set the siren device name (the Zigbee siren device to control)
-6. Configure MQTT broker connection details
-7. Click Connect (if not already connected) to start wireless siren connection"""
-        
-        # First part of instructions (before PM2 commands)
-        info_label_left_part1 = tk.Label(left_column_frame, text=info_text_left_part1, 
-                                         font=("Arial", 9), justify="left", anchor="nw", wraplength=0)
-        info_label_left_part1.grid(row=0, column=0, sticky="nw")
-        
-        # PM2 commands in a selectable Text widget
-        pm2_commands = """      sudo npm install -g pm2
-      pm2 start zigbee2mqtt --name zigbee2mqtt
-      pm2 save
-      pm2 startup"""
+
+Configure Zigbee2MQTT:
+
+1. Pair your Zigbee button device.
+
+2. Pair your Zigbee siren device.
+
+3. Set the button device names above
+   (comma separated).
+
+4. Set the siren device name.
+
+5. Configure MQTT broker details.
+
+6. Click Connect.
+
+7. Verify:
+   - MQTT Library Available
+   - USB Dongle Connected
+   - Status Connected
+"""
         
         pm2_text_widget = tk.Text(left_column_frame, height=4, width=50, font=("Arial", 9),
                                   wrap=tk.NONE, relief="flat", bg=info_frame.cget("bg"))
@@ -2776,53 +2848,166 @@ class GameManagementApp:
         mqtt_text_widget.grid(row=3, column=0, sticky="nw")
         
         # Third part of instructions (after MQTT commands)
-        info_label_left_part3 = tk.Label(left_column_frame, text=info_text_left_part3, 
-                                         font=("Arial", 9), justify="left", anchor="nw", wraplength=0)
+        info_label_left_part3 = tk.Label(
+            left_column_frame,
+            text=info_text_left_part3,
+            font=("Arial", 9),
+            justify="left",
+            anchor="nw",
+            wraplength=0
+        )
         info_label_left_part3.grid(row=4, column=0, sticky="nw")
-        
+
         # Right column: Usage information
-        info_text_right = """Usage:
+        info_text_right = """Usage
 
-Physical Zigbee button presses trigger siren for the duration set in Sounds tab.
+Arduino Siren Button
+--------------------
+Press and hold:
+    Siren continues sounding.
 
-The 'Test Siren via MQTT' UI button works with press/release:
-- Press and hold: Starts siren sound and sends MQTT ON command
-- Release: Sends MQTT OFF command to stop the siren
+Release:
+    Siren stops immediately.
 
-Sound file and volume settings are from the Sounds tab."""
-        
-        info_label_right = tk.Label(info_frame, text=info_text_right, font=("Arial", 9), 
-                                   justify="left", anchor="nw", wraplength=0)
-        info_label_right.grid(row=0, column=1, sticky="nw", padx=5, pady=5)
-        
+Test App Siren
+--------------
+Tests the local siren sound using
+the same playback path used by
+timers and the Arduino button.
+
+Timer Sirens
+------------
+Period-end sirens use the same
+sound file and volume settings.
+
+Zigbee Devices
+--------------
+When Zigbee2MQTT is installed and
+running, paired Zigbee buttons and
+sirens can be controlled through
+the MQTT broker.
+
+Mosquitto MQTT Broker
+---------------------
+https://mosquitto.org
+
+Zigbee2MQTT Frontend
+--------------------
+Linux:
+    Linux Open Zigbee2MQTT Frontend
+
+Windows:
+    Windows Open Zigbee2MQTT Frontend
+
+Default frontend URL:
+    http://localhost:8080
+
+Hardware Detection
+------------------
+Arduino Port:
+    Automatically detected
+
+Zigbee Port:
+    Automatically detected
+
+Current detected ports are shown
+in the Activity Log during startup.
+"""
+
+        info_label_right = tk.Label(
+            info_frame,
+            text=info_text_right,
+            font=("Arial", 9),
+            justify="left",
+            anchor="nw",
+            wraplength=0
+        )
+        info_label_right.grid(
+            row=0,
+            column=1,
+            sticky="nw",
+            padx=5,
+            pady=5
+        )
+
         # Log Section
-        log_frame = tk.LabelFrame(main_frame, text="Activity Log", 
-                                borderwidth=1, relief="solid")
-        log_frame.grid(row=5, column=0, columnspan=4, sticky="ew", padx=5, pady=5)
-        
+        log_frame = tk.LabelFrame(
+            main_frame,
+            text="Activity Log",
+            borderwidth=1,
+            relief="solid"
+        )
+        log_frame.grid(
+            row=5,
+            column=0,
+            columnspan=4,
+            sticky="ew",
+            padx=5,
+            pady=5
+        )
+
         # Create scrollable log area
         log_scroll_frame = tk.Frame(log_frame)
-        log_scroll_frame.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
+        log_scroll_frame.grid(
+            row=0,
+            column=0,
+            sticky="ew",
+            padx=5,
+            pady=5
+        )
         log_scroll_frame.grid_columnconfigure(0, weight=1)
-        
-        self.log_text = tk.Text(log_scroll_frame, height=6, font=("Courier", 9), 
-                              wrap=tk.WORD, state=tk.DISABLED)
-        log_scrollbar = tk.Scrollbar(log_scroll_frame, orient="vertical", command=self.log_text.yview)
-        self.log_text.config(yscrollcommand=log_scrollbar.set)
-        
-        self.log_text.grid(row=0, column=0, sticky="ew")
-        log_scrollbar.grid(row=0, column=1, sticky="ns")
-        
+
+        self.log_text = tk.Text(
+            log_scroll_frame,
+            height=6,
+            font=("Courier", 9),
+            wrap=tk.WORD,
+            state=tk.DISABLED
+        )
+
+        log_scrollbar = tk.Scrollbar(
+            log_scroll_frame,
+            orient="vertical",
+            command=self.log_text.yview
+        )
+
+        self.log_text.config(
+            yscrollcommand=log_scrollbar.set
+        )
+
+        self.log_text.grid(
+            row=0,
+            column=0,
+            sticky="ew"
+        )
+
+        log_scrollbar.grid(
+            row=0,
+            column=1,
+            sticky="ns"
+        )
+
         # Clear log button
-        clear_log_btn = tk.Button(log_frame, text="Clear Log", font=("Arial", 9),
-                                command=self.clear_zigbee_log)
-        clear_log_btn.grid(row=1, column=0, pady=2)
-        
+        clear_log_btn = tk.Button(
+            log_frame,
+            text="Clear Log",
+            font=("Arial", 9),
+            command=self.clear_zigbee_log
+        )
+
+        clear_log_btn.grid(
+            row=1,
+            column=0,
+            pady=2
+        )
+
         # Add initial log entry
         self.add_to_zigbee_log("Zigbee Siren tab initialized")
-        if not is_mqtt_available():
-            self.add_to_zigbee_log("WARNING: paho-mqtt library not installed. Install with: pip install paho-mqtt")
 
+        if not is_mqtt_available():
+            self.add_to_zigbee_log(
+                "WARNING: paho-mqtt library not installed. Install with: pip install paho-mqtt"
+            )
     def test_app_siren(self):
         """Test the app siren sound using the same path as timer sirens."""
     
