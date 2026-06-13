@@ -7,7 +7,7 @@ The assumption is that both the computer and screens are powered from a battery 
 
 Siren is triggered manually using an Arduino Nano Every (with headers) plugged into an Arduino Nano Screw Terminal Adapter.  Connect a pull-up resister between Pin A4 (Pin 18) and +5V (or 3V3 for the nano).  Connect a Normally Open (NO) momentary switch between Ground (GND) and Pin A4 (Pin 18).
 
-For battery voltage monitoring, create a voltage divider using suitable resistors and put the junction to Pin A3.  This will detect when some clutz trips over the power cord or disconnects the battery charger.
+For battery voltage monitoring, create a voltage divider using suitable resistors and put the junction to Pin A3.  This will detect when some clutz trips over the power cord or disconnects the battery charger.  Battery Monitoring can be ignored by adding a 10 kΩ resistor between 5V and A3
 
 <img width="1200" height="1600" alt="WhatsApp Image 2026-06-12 at 4 07 02 PM" src="https://github.com/user-attachments/assets/cc0db17d-c047-429d-967f-7ca70b6f3b27" />
 
