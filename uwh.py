@@ -2609,7 +2609,7 @@ class GameManagementApp:
         # Manual Siren Test Button
         test_siren_btn = tk.Button(
             main_frame,
-            text="Test Siren via MQTT",
+            text="Test App Siren",
             font=("Arial", 11),
             command=self.test_siren_via_mqtt
         )
@@ -2724,6 +2724,28 @@ Sound file and volume settings are from the Sounds tab."""
         self.add_to_zigbee_log("Zigbee Siren tab initialized")
         if not is_mqtt_available():
             self.add_to_zigbee_log("WARNING: paho-mqtt library not installed. Install with: pip install paho-mqtt")
+
+    def test_app_siren(self):
+        """Test the app siren sound using the same path as timer sirens."""
+    
+        self.add_to_zigbee_log("Testing app siren sound...")
+    
+        try:
+            play_sound_with_volume(
+                self.siren_var.get(),
+                "siren",
+                self.enable_sound,
+                self.pips_volume,
+                self.siren_volume,
+                self.air_volume,
+                self.water_volume,
+                self.siren_duration
+            )
+    
+            self.add_to_zigbee_log("App siren sound started")
+    
+        except Exception as e:
+            self.add_to_zigbee_log(f"App siren test failed: {e}")
 
     def _make_press_handler(self, idx):
         return lambda e: self._start_button_hold(e, idx)
