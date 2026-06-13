@@ -84,15 +84,15 @@ def is_usb_dongle_connected():
     """
     Check if a Sonoff USB Zigbee dongle is connected.
     Returns True if a USB Zigbee dongle is detected, False otherwise.
-    
+
     Cross-platform support:
     - Linux: Checks /dev/ttyUSB* devices and lsusb output
-    - Windows: Checks COM ports via registry or device manager (if available)
+    - Windows: Checks COM ports for common Zigbee dongle chipsets
     """
     import platform
-    
+
     system = platform.system()
-    
+
     # Linux-specific checks
     if system == 'Linux':
         try:
@@ -104,26 +104,82 @@ def is_usb_dongle_connected():
                     return True
         except (OSError, PermissionError):
             pass
-        
+
         try:
             # Check using lsusb for Zigbee dongles
-            result = subprocess.run(['lsusb'], capture_output=True, text=True, timeout=5)
+            result = subprocess.run(
+                ['lsusb'],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+
             if result.returncode == 0:
-                # Look for common Zigbee dongle identifiers
                 usb_output = result.stdout.lower()
-                # Check for common Zigbee dongle manufacturers/chips
-                zigbee_keywords = ['itead', 'sonoff', 'cc2531', 'cc2652', 'silicon labs', 'cp210']
-                return any(keyword in usb_output for keyword in zigbee_keywords)
-        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+
+                zigbee_keywords = [
+                    'itead',
+                    'sonoff',
+                    'cc2531',
+                    'cc2652',
+                    'silicon labs',
+                    'cp210'
+                ]
+
+                return any(
+                    keyword in usb_output
+                    for keyword in zigbee_keywords
+                )
+
+        except (
+            subprocess.CalledProcessError,
+            subprocess.TimeoutExpired,
+            FileNotFoundError
+        ):
             pass
-    
-    # Windows-specific checks (placeholder for future implementation)
+
+    # Windows-specific checks
     elif system == 'Windows':
-        # On Windows, COM ports can be checked via serial.tools.list_ports
-        # This is handled in zigbee_siren.py WindowsZigbeeSirenController
-        # For now, return False to avoid false positives
-        pass
-    
+
+        try:
+            import serial.tools.list_ports
+
+            ports = list(
+                serial.tools.list_ports.comports()
+            )
+
+            zigbee_keywords = [
+                'itead',
+                'sonoff',
+                'zigbee',
+                'cc2531',
+                'cc2652',
+                'silicon labs',
+                'cp210'
+            ]
+
+            for port in ports:
+
+                description = (
+                    port.description or ''
+                ).lower()
+
+                hwid = (
+                    port.hwid or ''
+                ).lower()
+
+                if any(
+                    keyword in description
+                    or keyword in hwid
+                    for keyword in zigbee_keywords
+                ):
+                    return True
+
+        except Exception as e:
+            print(
+                f"USB dongle Windows check failed: {e}"
+            )
+
     return False
 
 def open_folder_in_file_manager(folder_path):
