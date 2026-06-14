@@ -1018,30 +1018,17 @@ class GameManagementApp:
     def log_game_event(self, event_type, team=None, cap_number=None, duration=None, break_status=None):
         """
         Log a game event to UWH_Game_Data.txt.
-        Creates the file if it doesn't exist, otherwise appends.
-        Each event is written as a pipe-separated line with fields:
-        local_datetime|court_time|event_type|team|cap_number|duration|break_status
-        
-        Args:
-            event_type: Type of event (e.g., "First Half Start", "Goal", "Penalty Start")
-            team: Team name for goals and penalties (White/Black)
-            cap_number: Cap number for penalties
-            duration: Duration for penalties (e.g., "2 minutes")
-            break_status: Break/timeout status (e.g., "Team Time-Out", "Referee Time-Out", "Break")
         """
-        # Get current date/time
         now = datetime.datetime.now()
         local_time = now.strftime("%Y-%m-%d %H:%M:%S")
-        
-        # Get court time (hh:mm:ss format)
+
         if self.court_time_seconds is not None:
             hours, remainder = divmod(self.court_time_seconds, 3600)
             minutes, seconds = divmod(remainder, 60)
             court_time = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
         else:
             court_time = "00:00:00"
-        
-        # Build the event data fields in order
+
         fields = [
             local_time,
             court_time,
@@ -1051,122 +1038,161 @@ class GameManagementApp:
             duration if duration else "",
             break_status if break_status else ""
         ]
-        
-if DEBUG_MODE:           
+
+        event_line = "|".join(str(field) for field in fields)
+        txt_file = os.path.join(BASE_DIR, "UWH_Game_Data.txt")
+
+        try:
+            with open(txt_file, "a", encoding="utf-8") as f:
+                f.write(event_line + "\n")
+        except Exception as e:
+            if DEBUG_MODE:
+                print(f"Error logging game event: {e}")
+
+
+    def write_game_results_to_csv(self, game_number, white_score, black_score, penalties):
+        """
+        Updates the tournament CSV with final game results.
+        """
+        import csv
+
+        try:
+            csv_file = self.csv_var.get()
+
+            if DEBUG_MODE:
+                print(f"CSV UPDATE: csv_file={csv_file}")
+
+            if not csv_file:
+                if DEBUG_MODE:
+                    print("CSV UPDATE: No tournament CSV selected")
+                return False
+
+            if not os.path.isabs(csv_file):
+                csv_file = os.path.join(BASE_DIR, csv_file)
+
+            if not os.path.exists(csv_file):
+                if DEBUG_MODE:
+                    print(f"CSV UPDATE: File not found: {csv_file}")
+                return False
+
+            penalty_entries = []
+
+            for p in penalties:
+                team_prefix = "W" if p["team"] == "White" else "B"
+                penalty_entries.append(
+                    f"{team_prefix}#{p['cap']}({p['duration']})"
+                )
+
+            penalties_text = ", ".join(penalty_entries)
+
+            comments_text = ""
+
+            try:
+                if self.record_scorers_cap_number_var.get():
+                    scorer_entries = []
+
+                    for cap, goals in sorted(
+                        self.engine.white_goal_scorers.items(),
+                        key=lambda x: self._sort_cap_key(x[0])
+                    ):
+                        scorer_entries.append(f"W#{cap}({goals})")
+
                     for cap, goals in sorted(
                         self.engine.black_goal_scorers.items(),
                         key=lambda x: self._sort_cap_key(x[0])
                     ):
                         scorer_entries.append(f"B#{cap}({goals})")
+
+                    comments_text = ", ".join(scorer_entries)
+
                     if DEBUG_MODE:
                         print("CSV DEBUG WHITE:", self.engine.white_goal_scorers)
                         print("CSV DEBUG BLACK:", self.engine.black_goal_scorers)
-                    comments_text = ", ".join(scorer_entries)
-            
-                    if DEBUG_MODE:
                         print(f"CSV COMMENTS: {comments_text}")
-            
+
             except Exception as scorer_error:
                 if DEBUG_MODE:
-                    print(f"CSV UPDATE: scorer export failed: {scorer_error}")        
-            # ------------------------------------
-            # Read entire CSV
-            # ------------------------------------
-        
+                    print(f"CSV UPDATE: scorer export failed: {scorer_error}")
+
             rows = []
-        
+
             with open(csv_file, "r", newline="", encoding="utf-8-sig") as f:
                 reader = csv.reader(f)
-        
                 for row in reader:
                     rows.append(row)
-        
+
             if not rows:
                 if DEBUG_MODE:
                     print("CSV UPDATE: CSV file is empty")
                 return False
-        
-            # ------------------------------------
-            # Find column positions from header
-            # ------------------------------------
-        
+
             header = [str(h).strip() for h in rows[0]]
-        
+
             try:
                 wscore_col = header.index("WScore")
                 bscore_col = header.index("BScore")
                 penalties_col = header.index("Penalties")
                 comments_col = header.index("Comments")
-        
-                print(
-                    if DEBUG_MODE:
+
+                if DEBUG_MODE:
+                    print(
                         f"CSV COLUMNS: "
                         f"WScore={wscore_col} "
                         f"BScore={bscore_col} "
                         f"Penalties={penalties_col} "
                         f"Comments={comments_col}"
-                )
-        
+                    )
+
             except ValueError as e:
                 if DEBUG_MODE:
                     print(f"CSV UPDATE: Missing required column: {e}")
                 return False
-        
-            # ------------------------------------
-            # Find game row
-            # ------------------------------------
-        
+
             game_found = False
-        
+
             for row in rows[1:]:
-        
                 if len(row) < len(header):
                     row.extend([""] * (len(header) - len(row)))
-        
+
                 game_col = row[1].strip()
-        
+
                 if game_col == str(game_number):
-        
                     row[wscore_col] = str(white_score)
                     row[bscore_col] = str(black_score)
                     row[penalties_col] = penalties_text
+
                     if DEBUG_MODE:
                         print(f"comments_text='{comments_text}'")
                         print(f"white_goal_scorers={self.engine.white_goal_scorers}")
                         print(f"black_goal_scorers={self.engine.black_goal_scorers}")
                         print("ROW BEFORE:", row)
+
                     row[comments_col] = comments_text
+
                     if DEBUG_MODE:
                         print("ROW AFTER:", row)
-        
-                    game_found = True
-        
-                    if DEBUG_MODE:
                         print(
                             f"CSV UPDATE: Game {game_number} "
                             f"W:{white_score} B:{black_score}"
-                    )
-        
+                        )
+
+                    game_found = True
                     break
-        
+
             if not game_found:
                 if DEBUG_MODE:
                     print(f"CSV UPDATE: Game {game_number} not found")
                 return False
-        
-            # ------------------------------------
-            # Rewrite CSV
-            # ------------------------------------
-        
+
             with open(csv_file, "w", newline="", encoding="utf-8-sig") as f:
                 writer = csv.writer(f)
                 writer.writerows(rows)
-        
+
             if DEBUG_MODE:
                 print("CSV UPDATE: Success")
-        
+
             return True
-        
+
         except Exception as e:
             if DEBUG_MODE:
                 print(f"CSV UPDATE ERROR: {e}")
