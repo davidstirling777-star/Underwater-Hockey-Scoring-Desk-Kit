@@ -307,10 +307,9 @@ def serial_listener_thread(uwh_app):
                                     pass
 
                                 try:
-                                    pygame.mixer.stop()
-                                    _debug("Local Speaker Audio Stopped.")
+                                    uwh_app.handle_hardware_siren_event("OFF")
                                 except Exception as stop_err:
-                                    print(f"Error stopping local audio: {stop_err}")
+                                    print(f"Local siren stop callback error: {stop_err}")
 
                     except serial.SerialException:
                         raise
@@ -331,7 +330,6 @@ def serial_listener_thread(uwh_app):
 
             detect_hardware_ports(force_scan=True)
             time.sleep(3)
-
 
 def start_serial_listener(uwh_app):
     global _serial_listener_started
