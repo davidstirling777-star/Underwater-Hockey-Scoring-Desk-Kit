@@ -547,31 +547,31 @@ class GameManagementApp:
             pass  # Already destroyed
 
     def handle_hardware_siren_event(self, event_name="ON"):
-    """Handle siren events from the hardware communication layer."""
-
-    if event_name == "OFF":
+        """Handle siren events from the hardware communication layer."""
+    
+        if event_name == "OFF":
+            try:
+                import pygame
+                pygame.mixer.stop()
+            except Exception:
+                pass
+            return
+    
         try:
-            import pygame
-            pygame.mixer.stop()
-        except Exception:
-            pass
-        return
-
-    try:
-        play_sound_with_volume(
-            self.siren_var.get(),
-            "siren",
-            self.enable_sound,
-            self.pips_volume,
-            self.siren_volume,
-            self.air_volume,
-            self.water_volume,
-            self.siren_duration
-        )
-
-    except Exception as e:
-        if DEBUG_MODE:
-            print(f"Hardware siren event failed: {e}")
+            play_sound_with_volume(
+                self.siren_var.get(),
+                "siren",
+                self.enable_sound,
+                self.pips_volume,
+                self.siren_volume,
+                self.air_volume,
+                self.water_volume,
+                self.siren_duration
+            )
+    
+        except Exception as e:
+            if DEBUG_MODE:
+                print(f"Hardware siren event failed: {e}")
         
     def __init__(self, master):
         self.master = master
