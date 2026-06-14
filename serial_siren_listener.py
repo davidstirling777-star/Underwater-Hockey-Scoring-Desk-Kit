@@ -249,31 +249,13 @@ def serial_listener_thread(uwh_app):
                             "utf-8",
                             errors="replace"
                         ).strip()
-
                         if line == "SIREN_ON":
-                            now = time.monotonic()
-
                             if not button_held_down:
                                 _debug("Button Triggered: SIREN_ON")
                                 button_held_down = True
+                                last_local_siren_refresh = 0
 
-                                try:
-                                    _send_app_siren_event(uwh_app, "ON")
-                                except Exception as net_err:
-                                    print(f"Wireless Trigger Note: {net_err}")
-
-                            try:
-                                duration = (
-                                    float(uwh_app.siren_duration.get())
-                                    if hasattr(uwh_app, "siren_duration")
-                                    else 1.5
-                                )
-
-                                refresh_interval = max(0.5, duration - 0.25)
-
-                                if now - last_local_siren_refresh >= refresh_interval:
-                                    _send_app_siren_event(uwh_app, "ON")
-                                    last_local_siren_refresh = now
+                                _send_app_siren_event(uwh_app, "ON")
 
                             except Exception as audio_err:
                                 print(f"Local siren callback error: {audio_err}")
