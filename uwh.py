@@ -1052,95 +1052,7 @@ class GameManagementApp:
             break_status if break_status else ""
         ]
         
-        # Create pipe-separated line
-        event_line = "|".join(str(field) for field in fields)
-        
-        # CHANGED: Use BASE_DIR instead of os.getcwd() to guarantee it saves next to the .exe
-        txt_file = os.path.join(BASE_DIR, "UWH_Game_Data.txt")
-        
-        try:
-            # Open in append mode, create if doesn't exist
-            # Pro-tip: Explicitly setting encoding='utf-8' prevents rare Windows crashes if player names have special characters
-            with open(txt_file, 'a', encoding='utf-8') as f:
-                f.write(event_line + "\n")
-        except Exception as e:
-            print(f"Error logging game event: {e}")
-            
-
-    def write_game_results_to_csv(self, game_number, white_score, black_score, penalties):
-        """
-        Updates the tournament CSV with final game results.
-        
-        Updates:
-            WScore
-            BScore
-            Penalties
-            Comments
-        
-        Does NOT modify:
-            Date
-            Game Number
-            White Team
-            Black Team
-            Referees
-        """
-        
-        import csv
-        
-        try:
-        
-            # Determine currently selected tournament file
-            csv_file = self.csv_var.get()
-                if DEBUG_MODE:
-                    print(f"CSV UPDATE: csv_file={csv_file}")
-        
-            if not csv_file:
-                if DEBUG_MODE:
-                    print("CSV UPDATE: No tournament CSV selected")
-                return False
-        
-            if not os.path.isabs(csv_file):
-                csv_file = os.path.join(BASE_DIR, csv_file)
-        
-            if not os.path.exists(csv_file):
-                if DEBUG_MODE:
-                    print(f"CSV UPDATE: File not found: {csv_file}")
-                return False
-        
-            # ------------------------------------
-            # Build Penalties column text
-            # ------------------------------------
-        
-            penalty_entries = []
-        
-            for p in penalties:
-        
-                team_prefix = "W" if p["team"] == "White" else "B"
-        
-                penalty_entries.append(
-                    f"{team_prefix}#{p['cap']}({p['duration']})"
-                )
-        
-            penalties_text = ", ".join(penalty_entries)
-        
-            # ------------------------------------
-            # Build Comments column text
-            # ------------------------------------
-            
-            comments_text = ""
-            
-            try:
-            
-                if self.record_scorers_cap_number_var.get():
-            
-                    scorer_entries = []
-            
-                    for cap, goals in sorted(
-                        self.engine.white_goal_scorers.items(),
-                        key=lambda x: self._sort_cap_key(x[0])
-                    ):
-                        scorer_entries.append(f"W#{cap}({goals})")
-            
+if DEBUG_MODE:           
                     for cap, goals in sorted(
                         self.engine.black_goal_scorers.items(),
                         key=lambda x: self._sort_cap_key(x[0])
@@ -1229,8 +1141,8 @@ class GameManagementApp:
         
                     game_found = True
         
-                    print(
-                        if DEBUG_MODE:
+                    if DEBUG_MODE:
+                        print(
                             f"CSV UPDATE: Game {game_number} "
                             f"W:{white_score} B:{black_score}"
                     )
