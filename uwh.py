@@ -5340,7 +5340,7 @@ Usage:
             self.add_to_zigbee_log("MQTT siren ON command sent")
     
             self.master.after(
-                3000,
+                1000,
                 self._stop_test_siren_via_mqtt
             )
     
