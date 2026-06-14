@@ -547,17 +547,15 @@ class GameManagementApp:
             pass  # Already destroyed
 
     def handle_hardware_siren_event(self, event_name="ON"):
-        """Handle siren events from the hardware communication layer."""
     
+        # Local sound
         if event_name == "OFF":
             try:
                 import pygame
                 pygame.mixer.stop()
             except Exception:
                 pass
-            return
-    
-        try:
+        else:
             play_sound_with_volume(
                 self.siren_var.get(),
                 "siren",
@@ -569,9 +567,11 @@ class GameManagementApp:
                 self.siren_duration
             )
     
-        except Exception as e:
-            if DEBUG_MODE:
-                print(f"Hardware siren event failed: {e}")
+        # Hardware siren
+        try:
+            self.zigbee_controller.handle_hardware_siren_event(event_name)
+        except Exception:
+            pass
         
     def __init__(self, master):
         self.master = master
