@@ -9,7 +9,8 @@ Siren is triggered manually using an Arduino Nano Every (with headers) plugged i
 
 For battery voltage monitoring, create a voltage divider using suitable resistors and put the junction to Pin A3.  This will detect when some clutz trips over the power cord or disconnects the battery charger.  Battery Monitoring can be ignored by adding a 10 kΩ resistor between 5V and A3
 
-<img width="1200" height="1600" alt="WhatsApp Image 2026-06-12 at 4 07 02 PM" src="https://github.com/user-attachments/assets/cc0db17d-c047-429d-967f-7ca70b6f3b27" />
+<img width="1200" height="1600" alt="WhatsApp Image 2026-06-15 at 10 30 19 AM" src="https://github.com/user-attachments/assets/32d2619e-6fe7-435d-90ee-5eb09509d113" />
+
 
 
 
