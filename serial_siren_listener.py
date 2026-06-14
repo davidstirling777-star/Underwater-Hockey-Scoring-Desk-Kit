@@ -7,6 +7,7 @@ import threading
 import pygame
 import sound
 
+DEBUG_MODE = False
 SETTINGS_FILE = "settings.json"
 
 _serial_listener_started = False
@@ -18,6 +19,11 @@ _detected_ports = {
 }
 
 
+def _debug(message):
+    if DEBUG_MODE:
+        print(message)
+
+
 def _settings_path():
     return os.path.join(os.getcwd(), SETTINGS_FILE)
 
@@ -25,7 +31,6 @@ def _settings_path():
 def load_hardware_ports_from_json():
     try:
         path = _settings_path()
-
         if not os.path.exists(path):
             return None, None
 
@@ -33,14 +38,10 @@ def load_hardware_ports_from_json():
             settings = json.load(f)
 
         hardware = settings.get("hardwareDetection", {})
-
-        return (
-            hardware.get("arduino_port"),
-            hardware.get("zigbee_port")
-        )
+        return hardware.get("arduino_port"), hardware.get("zigbee_port")
 
     except Exception as e:
-        print(f"Hardware port load failed: {e}")
+        _debug(f"Hardware port load failed: {e}")
         return None, None
 
 
@@ -59,13 +60,13 @@ def save_hardware_ports_to_json(arduino_port, zigbee_port):
         settings["hardwareDetection"] = {
             "arduino_port": arduino_port,
             "zigbee_port": zigbee_port,
-            "last_detected": time.strftime("%Y-%m-%d %H:%M:%S")
+            "last_detected": time.strftime("%Y-%m-%d %H:%M:%S"),
         }
 
         with open(path, "w", encoding="utf-8") as f:
             json.dump(settings, f, indent=2)
 
-        print(
+        _debug(
             f"Saved hardware detection cache: "
             f"Arduino={arduino_port}, Zigbee={zigbee_port}"
         )
@@ -79,11 +80,7 @@ def _port_exists(port_name):
         return False
 
     ports = list(serial.tools.list_ports.comports())
-
-    return any(
-        p.device.upper() == port_name.upper()
-        for p in ports
-    )
+    return any(p.device.upper() == port_name.upper() for p in ports)
 
 
 def _is_arduino_port(port):
@@ -118,14 +115,6 @@ def _is_zigbee_port(port):
 
 
 def detect_hardware_ports(force_scan=False):
-    """
-    Lead hardware detector.
-
-    First uses fixed/cached ports from settings.json.
-    If those ports are missing or invalid, falls back to scanning.
-    Other modules should reference this result instead of scanning again.
-    """
-
     global _detected_ports
 
     if (
@@ -133,10 +122,7 @@ def detect_hardware_ports(force_scan=False):
         and _detected_ports["arduino_port"]
         and _detected_ports["zigbee_port"]
     ):
-        return (
-            _detected_ports["arduino_port"],
-            _detected_ports["zigbee_port"]
-        )
+        return _detected_ports["arduino_port"], _detected_ports["zigbee_port"]
 
     cached_arduino, cached_zigbee = load_hardware_ports_from_json()
 
@@ -146,7 +132,7 @@ def detect_hardware_ports(force_scan=False):
         and _port_exists(cached_zigbee)
         and cached_arduino != cached_zigbee
     ):
-        print(
+        _debug(
             f"Using cached hardware ports: "
             f"Arduino={cached_arduino}, Zigbee={cached_zigbee}"
         )
@@ -156,7 +142,7 @@ def detect_hardware_ports(force_scan=False):
 
         return cached_arduino, cached_zigbee
 
-    print("Cached hardware ports missing or invalid. Scanning COM ports...")
+    _debug("Cached hardware ports missing or invalid. Scanning COM ports...")
 
     arduino_port = None
     zigbee_port = None
@@ -164,13 +150,13 @@ def detect_hardware_ports(force_scan=False):
     ports = list(serial.tools.list_ports.comports())
     assigned_ports = set()
 
-    print(f"Scanning system... Found {len(ports)} available COM ports.")
+    _debug(f"Scanning system... Found {len(ports)} available COM ports.")
 
     for port in ports:
         if _is_arduino_port(port):
             arduino_port = port.device
             assigned_ports.add(port.device)
-            print(f"Found Arduino candidate on {port.device}")
+            _debug(f"Found Arduino candidate on {port.device}")
             break
 
     for port in ports:
@@ -180,7 +166,7 @@ def detect_hardware_ports(force_scan=False):
         if _is_zigbee_port(port):
             zigbee_port = port.device
             assigned_ports.add(port.device)
-            print(f"Found Zigbee Dongle on {port.device}")
+            _debug(f"Found Zigbee Dongle on {port.device}")
             break
 
     if not arduino_port:
@@ -211,7 +197,6 @@ def get_zigbee_port():
 
 def get_detected_ports():
     arduino_port, zigbee_port = detect_hardware_ports()
-
     return {
         "arduino_port": arduino_port,
         "zigbee_port": zigbee_port,
@@ -219,8 +204,6 @@ def get_detected_ports():
 
 
 def serial_listener_thread(uwh_app):
-    """Background loop that monitors the Arduino serial port for siren button presses."""
-
     button_held_down = False
     last_local_siren_refresh = 0
 
@@ -232,7 +215,7 @@ def serial_listener_thread(uwh_app):
             time.sleep(5)
             continue
 
-        print(
+        _debug(
             f"Attempting to connect to siren button on {arduino_port} "
             f"(Zigbee reserved on {zigbee_port})..."
         )
@@ -245,14 +228,10 @@ def serial_listener_thread(uwh_app):
                 time.sleep(1.5)
                 ser.reset_input_buffer()
 
-                # IMPORTANT:
-                # Reset state every time the serial port is freshly opened.
-                # This prevents a missed SIREN_OFF from leaving the app thinking
-                # the button is still held.
                 button_held_down = False
                 last_local_siren_refresh = 0
 
-                print(f"Successfully connected to siren button on {arduino_port}!")
+                _debug(f"Successfully connected to siren button on {arduino_port}!")
 
                 while True:
                     try:
@@ -270,7 +249,7 @@ def serial_listener_thread(uwh_app):
                             now = time.monotonic()
 
                             if not button_held_down:
-                                print("Button Triggered: SIREN_ON")
+                                _debug("Button Triggered: SIREN_ON")
                                 button_held_down = True
 
                                 try:
@@ -285,22 +264,16 @@ def serial_listener_thread(uwh_app):
                                     else 1.5
                                 )
 
-                                refresh_interval = max(
-                                    0.5,
-                                    duration - 0.25
-                                )
+                                refresh_interval = max(0.5, duration - 0.25)
 
-                                if (
-                                    now - last_local_siren_refresh
-                                    >= refresh_interval
-                                ):
+                                if now - last_local_siren_refresh >= refresh_interval:
                                     track = (
                                         uwh_app.siren_var.get()
                                         if hasattr(uwh_app, "siren_var")
                                         else "siren-police.mp3"
                                     )
 
-                                    print(
+                                    _debug(
                                         "Local Speaker Audio refreshed via "
                                         f"play_sound_with_volume: '{track}' "
                                         f"for {duration}s"
@@ -314,7 +287,7 @@ def serial_listener_thread(uwh_app):
                                         uwh_app.siren_volume,
                                         uwh_app.air_volume,
                                         uwh_app.water_volume,
-                                        uwh_app.siren_duration
+                                        uwh_app.siren_duration,
                                     )
 
                                     last_local_siren_refresh = now
@@ -324,7 +297,7 @@ def serial_listener_thread(uwh_app):
 
                         elif line == "SIREN_OFF":
                             if button_held_down:
-                                print("Button Released: SIREN_OFF matched.")
+                                _debug("Button Released: SIREN_OFF matched.")
                                 button_held_down = False
                                 last_local_siren_refresh = 0
 
@@ -335,7 +308,7 @@ def serial_listener_thread(uwh_app):
 
                                 try:
                                     pygame.mixer.stop()
-                                    print("Local Speaker Audio Stopped.")
+                                    _debug("Local Speaker Audio Stopped.")
                                 except Exception as stop_err:
                                     print(f"Error stopping local audio: {stop_err}")
 
@@ -343,9 +316,6 @@ def serial_listener_thread(uwh_app):
                         raise
 
         except Exception as e:
-            # Reset button/audio state on any serial restart.
-            # This avoids needing an app restart after a missed release,
-            # disconnected Arduino, or port error.
             button_held_down = False
             last_local_siren_refresh = 0
 
@@ -364,16 +334,11 @@ def serial_listener_thread(uwh_app):
 
 
 def start_serial_listener(uwh_app):
-    """Spawns the background daemon thread with thread-safety protection."""
-
     global _serial_listener_started
 
     with _serial_listener_lock:
         if _serial_listener_started:
-            print(
-                "DEBUG: Serial listener thread already active. "
-                "Skipping duplicate initialization."
-            )
+            _debug("Serial listener thread already active. Skipping duplicate initialization.")
             return
 
         detect_hardware_ports()
@@ -383,8 +348,8 @@ def start_serial_listener(uwh_app):
         t = threading.Thread(
             target=serial_listener_thread,
             args=(uwh_app,),
-            daemon=True
+            daemon=True,
         )
         t.start()
 
-        print("DEBUG: Serial listener thread spawned successfully (first and only time).")
+        _debug("Serial listener thread spawned successfully.")
