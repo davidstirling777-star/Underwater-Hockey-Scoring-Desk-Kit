@@ -48,6 +48,11 @@ from typing import Optional, Callable, Dict, Any
 #
 # =============================================================================
 
+# Hardware event names sent back to uwh.py
+SIREN_EVENT_ON = "ON"
+SIREN_EVENT_OFF = "OFF"
+SIREN_EVENT_TEST = "TEST"
+
 try:
     import paho.mqtt.client as mqtt
     MQTT_AVAILABLE = True
