@@ -98,6 +98,12 @@ DEFAULT_CONFIG = {
     "prefer_mqtt": True,
 }
 
+def handle_hardware_siren_event(self, event_name):
+    if event_name == "ON":
+        self.start_siren_continuous()
+
+    elif event_name == "OFF":
+        self.stop_siren_continuous()
 
 def get_zigbee_port_from_lead_detector():
     """Get Zigbee COM port from serial_siren_listener, if available."""
