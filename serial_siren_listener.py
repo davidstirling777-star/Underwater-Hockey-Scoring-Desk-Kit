@@ -258,7 +258,7 @@ def serial_listener_thread(uwh_app):
                                 button_held_down = True
 
                                 try:
-                                    uwh_app.zigbee_controller.start_siren_continuous()
+                                    uwh_app.zigbee_controller.handle_hardware_siren_event("ON")
                                 except Exception as net_err:
                                     print(f"Wireless Trigger Note: {net_err}")
 
@@ -285,7 +285,7 @@ def serial_listener_thread(uwh_app):
                                 last_local_siren_refresh = 0
 
                                 try:
-                                    uwh_app.zigbee_controller.stop_siren_continuous()
+                                    uwh_app.zigbee_controller.handle_hardware_siren_event("OFF")
                                 except Exception:
                                     pass
 
