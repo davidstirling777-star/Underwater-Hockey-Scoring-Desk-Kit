@@ -14,6 +14,40 @@ import os
 import platform
 from typing import Optional, Callable, Dict, Any
 
+# =============================================================================
+# HARDWARE COMMUNICATION LAYER
+# =============================================================================
+#
+# This module owns low-level siren hardware communication.
+#
+# Responsibilities:
+# - Detect and remember Arduino and Zigbee COM ports
+# - Listen for Arduino serial SIREN_ON / SIREN_OFF events
+# - Manage MQTT connection to Zigbee2MQTT
+# - Subscribe to Zigbee button events
+# - Publish Zigbee siren ON / OFF payloads
+# - Report status changes via callbacks
+#
+# This module must NOT:
+# - Modify Tkinter widgets directly
+# - Call pygame directly
+# - Play local app audio directly
+# - Update scoreboard/game state directly
+#
+# Instead, it should notify uwh.py through callbacks:
+# - siren_callback("ON")
+# - siren_callback("OFF")
+# - gui_log_callback(message)
+# - connection_status_callback(connected, message)
+#
+# uwh.py remains responsible for:
+# - Tkinter UI updates
+# - Local sound playback
+# - Game timer/display updates
+# - CSV export
+#
+# =============================================================================
+
 try:
     import paho.mqtt.client as mqtt
     MQTT_AVAILABLE = True
