@@ -73,6 +73,13 @@ import os
 import subprocess
 import json
 import webbrowser
+
+# ------------------------------------------------------------------
+# Global settings
+# ------------------------------------------------------------------
+
+DEBUG_MODE = False
+
 from zigbee_siren import ZigbeeSirenController, is_mqtt_available
 from sound import (check_audio_device_available, handle_no_audio_device_warning, 
                    get_sound_files, play_sound, play_sound_with_volume, preload_sounds)
@@ -930,10 +937,12 @@ class GameManagementApp:
             import serial_siren_listener
             serial_siren_listener.start_serial_listener(self)
             splash_report("Serial siren listener started", True)
-            print("DEBUG: Serial hardware listener thread successfully active.")
+            if DEBUG_MODE:
+                print("Serial hardware listener thread successfully active.")
         except Exception as e:
             splash_report(f"Serial siren listener failed: {e}", False)
-            print(f"DEBUG: Failed to initialize serial button module thread: {e}")
+            if DEBUG_MODE:
+                print(f"Failed to initialize serial button module thread: {e}")
 
         close_splash_after_final_check()
         # ─────────────────────────────────────────────────────────────────────
@@ -1066,8 +1075,9 @@ class GameManagementApp:
                         key=lambda x: self._sort_cap_key(x[0])
                     ):
                         scorer_entries.append(f"B#{cap}({goals})")
-                    print("CSV DEBUG WHITE:", self.engine.white_goal_scorers)
-                    print("CSV DEBUG BLACK:", self.engine.black_goal_scorers)
+                    if DEBUG_MODE:
+                        print("CSV DEBUG WHITE:", self.engine.white_goal_scorers)
+                        print("CSV DEBUG BLACK:", self.engine.black_goal_scorers)
                     comments_text = ", ".join(scorer_entries)
             
                     print(f"CSV COMMENTS: {comments_text}")
@@ -1132,10 +1142,11 @@ class GameManagementApp:
                     row[wscore_col] = str(white_score)
                     row[bscore_col] = str(black_score)
                     row[penalties_col] = penalties_text
-                    print(f"CSV DEBUG: comments_text='{comments_text}'")
-                    print(f"CSV DEBUG: white_goal_scorers={self.engine.white_goal_scorers}")
-                    print(f"CSV DEBUG: black_goal_scorers={self.engine.black_goal_scorers}")
-                    print("ROW BEFORE:", row)
+                    if DEBUG_MODE:
+                        print(f"comments_text='{comments_text}'")
+                        print(f"white_goal_scorers={self.engine.white_goal_scorers}")
+                        print(f"black_goal_scorers={self.engine.black_goal_scorers}")
+                        print("ROW BEFORE:", row)
                     row[comments_col] = comments_text
                     print("ROW AFTER:", row)
         
