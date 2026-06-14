@@ -130,14 +130,8 @@ def detect_hardware_ports(force_scan=False):
         and _port_exists(cached_zigbee)
         and cached_arduino != cached_zigbee
     ):
-        _debug(
-            f"Using cached hardware ports: "
-            f"Arduino={cached_arduino}, Zigbee={cached_zigbee}"
-        )
-
         _detected_ports["arduino_port"] = cached_arduino
         _detected_ports["zigbee_port"] = cached_zigbee
-
         return cached_arduino, cached_zigbee
 
     _debug("Cached hardware ports missing or invalid. Scanning COM ports...")
@@ -147,8 +141,6 @@ def detect_hardware_ports(force_scan=False):
 
     ports = list(serial.tools.list_ports.comports())
     assigned_ports = set()
-
-    _debug(f"Scanning system... Found {len(ports)} available COM ports.")
 
     for port in ports:
         if _is_arduino_port(port):
@@ -210,7 +202,6 @@ def _send_app_siren_event(uwh_app, event_name):
 
 def serial_listener_thread(uwh_app):
     button_held_down = False
-    last_local_siren_refresh = 0
 
     while True:
         arduino_port, zigbee_port = detect_hardware_ports()
@@ -234,7 +225,6 @@ def serial_listener_thread(uwh_app):
                 ser.reset_input_buffer()
 
                 button_held_down = False
-                last_local_siren_refresh = 0
 
                 _debug(f"Successfully connected to siren button on {arduino_port}!")
 
@@ -249,28 +239,17 @@ def serial_listener_thread(uwh_app):
                             "utf-8",
                             errors="replace"
                         ).strip()
+
                         if line == "SIREN_ON":
                             if not button_held_down:
                                 _debug("Button Triggered: SIREN_ON")
                                 button_held_down = True
-                                last_local_siren_refresh = 0
-
                                 _send_app_siren_event(uwh_app, "ON")
-
-                            except Exception as audio_err:
-                                print(f"Local siren callback error: {audio_err}")
 
                         elif line == "SIREN_OFF":
                             if button_held_down:
                                 _debug("Button Released: SIREN_OFF matched.")
                                 button_held_down = False
-                                last_local_siren_refresh = 0
-
-                                try:
-                                    _send_app_siren_event(uwh_app, "OFF")
-                                except Exception:
-                                    pass
-
                                 _send_app_siren_event(uwh_app, "OFF")
 
                     except serial.SerialException:
@@ -278,8 +257,6 @@ def serial_listener_thread(uwh_app):
 
         except Exception as e:
             button_held_down = False
-            last_local_siren_refresh = 0
-
             _send_app_siren_event(uwh_app, "OFF")
 
             print(
