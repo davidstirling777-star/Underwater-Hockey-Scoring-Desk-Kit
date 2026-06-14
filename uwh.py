@@ -1187,11 +1187,12 @@ class GameManagementApp:
                 comments_col = header.index("Comments")
         
                 print(
-                    f"CSV COLUMNS: "
-                    f"WScore={wscore_col} "
-                    f"BScore={bscore_col} "
-                    f"Penalties={penalties_col} "
-                    f"Comments={comments_col}"
+                    if DEBUG_MODE:
+                        f"CSV COLUMNS: "
+                        f"WScore={wscore_col} "
+                        f"BScore={bscore_col} "
+                        f"Penalties={penalties_col} "
+                        f"Comments={comments_col}"
                 )
         
             except ValueError as e:
@@ -1229,8 +1230,9 @@ class GameManagementApp:
                     game_found = True
         
                     print(
-                        f"CSV UPDATE: Game {game_number} "
-                        f"W:{white_score} B:{black_score}"
+                        if DEBUG_MODE:
+                            f"CSV UPDATE: Game {game_number} "
+                            f"W:{white_score} B:{black_score}"
                     )
         
                     break
