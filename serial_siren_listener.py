@@ -4,8 +4,6 @@ import time
 import serial
 import serial.tools.list_ports
 import threading
-import pygame
-import sound
 
 DEBUG_MODE = False
 SETTINGS_FILE = "settings.json"
@@ -203,6 +201,13 @@ def get_detected_ports():
     }
 
 
+def _send_app_siren_event(uwh_app, event_name):
+    try:
+        uwh_app.handle_hardware_siren_event(event_name)
+    except Exception as event_err:
+        print(f"Local siren callback error ({event_name}): {event_err}")
+
+
 def serial_listener_thread(uwh_app):
     button_held_down = False
     last_local_siren_refresh = 0
@@ -267,33 +272,11 @@ def serial_listener_thread(uwh_app):
                                 refresh_interval = max(0.5, duration - 0.25)
 
                                 if now - last_local_siren_refresh >= refresh_interval:
-                                    track = (
-                                        uwh_app.siren_var.get()
-                                        if hasattr(uwh_app, "siren_var")
-                                        else "siren-police.mp3"
-                                    )
-
-                                    _debug(
-                                        "Local Speaker Audio refreshed via "
-                                        f"play_sound_with_volume: '{track}' "
-                                        f"for {duration}s"
-                                    )
-
-                                    sound.play_sound_with_volume(
-                                        track,
-                                        "siren",
-                                        uwh_app.enable_sound,
-                                        uwh_app.pips_volume,
-                                        uwh_app.siren_volume,
-                                        uwh_app.air_volume,
-                                        uwh_app.water_volume,
-                                        uwh_app.siren_duration,
-                                    )
-
+                                    _send_app_siren_event(uwh_app, "ON")
                                     last_local_siren_refresh = now
 
                             except Exception as audio_err:
-                                print(f"Local Speaker Playback Error: {audio_err}")
+                                print(f"Local siren callback error: {audio_err}")
 
                         elif line == "SIREN_OFF":
                             if button_held_down:
@@ -306,10 +289,7 @@ def serial_listener_thread(uwh_app):
                                 except Exception:
                                     pass
 
-                                try:
-                                    uwh_app.handle_hardware_siren_event("OFF")
-                                except Exception as stop_err:
-                                    print(f"Local siren stop callback error: {stop_err}")
+                                _send_app_siren_event(uwh_app, "OFF")
 
                     except serial.SerialException:
                         raise
@@ -318,10 +298,7 @@ def serial_listener_thread(uwh_app):
             button_held_down = False
             last_local_siren_refresh = 0
 
-            try:
-                pygame.mixer.stop()
-            except Exception:
-                pass
+            _send_app_siren_event(uwh_app, "OFF")
 
             print(
                 f"Serial listener encountered an error on {arduino_port}: {e}. "
@@ -330,6 +307,7 @@ def serial_listener_thread(uwh_app):
 
             detect_hardware_ports(force_scan=True)
             time.sleep(3)
+
 
 def start_serial_listener(uwh_app):
     global _serial_listener_started
