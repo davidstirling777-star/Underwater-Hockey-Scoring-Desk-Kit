@@ -148,41 +148,19 @@ def is_usb_dongle_connected():
     # Windows-specific checks
     elif system == 'Windows':
         try:
-            import serial.tools.list_ports
-    
-            ports = list(serial.tools.list_ports.comports())
+            detection = load_hardware_detection_cache()
 
-            zigbee_keywords = [
-                'itead',
-                'sonoff',
-                'zigbee',
-                'cc2531',
-                'cc2652',
-                'silicon labs',
-                'cp210'
-            ]
+            if detection:
+                zigbee_port = detection.get("zigbee_port")
 
-            for port in ports:
-
-                description = (
-                    port.description or ''
-                ).lower()
-
-                hwid = (
-                    port.hwid or ''
-                ).lower()
-
-                if any(
-                    keyword in description
-                    or keyword in hwid
-                    for keyword in zigbee_keywords
-                ):
+                if zigbee_port:
                     return True
 
         except Exception as e:
-            print(
-                f"USB dongle Windows check failed: {e}"
-            )
+            if DEBUG_MODE:
+                print(
+                    f"USB dongle Windows check failed: {e}"
+                )
 
     return False
 
@@ -240,95 +218,157 @@ def save_hardware_detection_cache(arduino_port, zigbee_port):
             "last_detected": datetime.datetime.now().isoformat()
         }
         save_unified_settings(unified_settings)
-        print(f"Saved hardware detection cache: Arduino={arduino_port}, Zigbee={zigbee_port}")
+        if DEBUG_MODE:
+            print(
+                f"Saved hardware detection cache: "
+                f"Arduino={arduino_port}, Zigbee={zigbee_port}"
+            )
     except Exception as e:
-        print(f"Warning: Could not save hardware detection cache: {e}")
+        if DEBUG_MODE:
+            print(
+                f"Warning: Could not save hardware detection cache: {e}"
+            )
 
 def auto_detect_com_ports():
     """
     Auto-detect COM ports for Arduino and Zigbee dongle.
-    
+
     Returns a tuple (arduino_port, zigbee_port) with detected ports.
     Falls back to default ports if auto-detection fails.
-    
+
     Returns:
-        tuple: (arduino_port, zigbee_port) - strings with COM port names
+        tuple: (arduino_port, zigbee_port)
     """
     try:
         import serial
         import serial.tools.list_ports
     except ImportError:
-        print("WARNING: pyserial not available. Using default port assignments.")
+        print(
+            "WARNING: pyserial not available. "
+            "Using default port assignments."
+        )
         return "COM5", "COM6"
-    
+
     arduino_port = None
     zigbee_port = None
-    
+
     # 1. Get a list of all physically connected COM ports
     ports = list(serial.tools.list_ports.comports())
     assigned_ports = set()
-    
-    print(f"Scanning system... Found {len(ports)} available COM ports.")
-    
+
+    if DEBUG_MODE:
+        print(
+            f"Scanning system... "
+            f"Found {len(ports)} available COM ports."
+        )
+
     # 2. First Pass: Look for Arduino by its hardware description
     for p in ports:
         desc = (p.description or "").lower()
         hwid = (p.hwid or "").lower()
         device = p.device or ""
-        
-        if ("arduino" in desc or "ch340" in desc or "usb-serial" in desc or
-            "vid:pid=2341" in hwid or "1a86:7523" in hwid):
-            print(f"Found Arduino candidate via hardware profile on {device}")
+
+        if (
+            "arduino" in desc
+            or "ch340" in desc
+            or "usb-serial" in desc
+            or "vid:pid=2341" in hwid
+            or "1a86:7523" in hwid
+        ):
+            if DEBUG_MODE:
+                print(
+                    f"Found Arduino candidate via "
+                    f"hardware profile on {device}"
+                )
+
             arduino_port = device
             assigned_ports.add(device)
-            break  # Stop looking for Arduino once found
-    
-    # 3. Second Pass: Scan remaining ports to identify Zigbee devices dynamically
+            break
+
+    # 3. Second Pass: Scan remaining ports for Zigbee devices
     for p in ports:
+
         if p.device in assigned_ports:
-            continue  # Skip the port already assigned to the Arduino
-        
+            continue
+
         desc = (p.description or "").lower()
         device = p.device or ""
-        
-        print(f"Testing port {device} for Zigbee or missing devices...")
-        
-        # Check hardware description for known Zigbee dongle identifiers
-        if ("ti cc2531" in desc or "silicon labs" in desc or 
-            "cp210" in desc or "sonoff" in desc or "zigbee" in desc):
+
+        if DEBUG_MODE:
+            print(
+                f"Testing port {device} "
+                f"for Zigbee or missing devices..."
+            )
+
+        # Check hardware description first
+        if (
+            "ti cc2531" in desc
+            or "silicon labs" in desc
+            or "cp210" in desc
+            or "sonoff" in desc
+            or "zigbee" in desc
+        ):
             zigbee_port = device
             assigned_ports.add(device)
-            print(f"Found Zigbee Dongle on {device}")
+
+            if DEBUG_MODE:
+                print(f"Found Zigbee Dongle on {device}")
+
             break
-        
-        # Optional: Try to open port briefly and check for device response
+
+        # Optional fallback probe
         try:
-            with serial.Serial(device, 9600, timeout=1) as ser:
-                time.sleep(0.5)  # Allow device initialization
-                # Port is accessible and responding
-                # If we haven't found a Zigbee port yet, use this one
+            with serial.Serial(
+                device,
+                9600,
+                timeout=1
+            ) as ser:
+
+                time.sleep(0.5)
+
                 if not zigbee_port:
                     zigbee_port = device
                     assigned_ports.add(device)
-                    print(f"Found alternative device on {device}")
-                    
-        except (serial.SerialException, PermissionError):
-            # Port is busy or locked by another system process (skip safely)
-            print(f"Port {device} is locked or unavailable. Skipping.")
+
+                    if DEBUG_MODE:
+                        print(
+                            f"Found alternative device on "
+                            f"{device}"
+                        )
+
+        except (
+            serial.SerialException,
+            PermissionError
+        ):
+            if DEBUG_MODE:
+                print(
+                    f"Port {device} is locked or "
+                    f"unavailable. Skipping."
+                )
+
             continue
-    
-    # 4. Fallback default assignments if autodetect fails
+
+    # 4. Fallback default assignments
     if not arduino_port:
-        print("Warning: Arduino not detected automatically. Defaulting to COM5.")
+        print(
+            "Warning: Arduino not detected "
+            "automatically. Defaulting to COM5."
+        )
         arduino_port = "COM5"
-    
+
     if not zigbee_port:
-        print("Warning: Zigbee not detected automatically. Defaulting to COM6.")
+        print(
+            "Warning: Zigbee not detected "
+            "automatically. Defaulting to COM6."
+        )
         zigbee_port = "COM6"
-    
+
     # Save detection results for future use
-    save_hardware_detection_cache(arduino_port, zigbee_port)
-    
+    save_hardware_detection_cache(
+        arduino_port,
+        zigbee_port
+    )
+
     return arduino_port, zigbee_port
 
 def migrate_legacy_settings():
@@ -3635,17 +3675,38 @@ Usage:
 
     def update_usb_dongle_status(self):
         """Update USB dongle connection status in UI."""
+    
         try:
-            if is_usb_dongle_connected():
-                self.usb_dongle_status_label.config(text="Connected", fg="green")
-                self.add_to_zigbee_log("USB Dongle: Connected")
+            zigbee_port = getattr(self, "zigbee_port", None)
+    
+            if zigbee_port:
+                self.usb_dongle_status_label.config(
+                    text="Connected",
+                    fg="green"
+                )
+                self.add_to_zigbee_log(
+                    f"USB Dongle: Connected ({zigbee_port})"
+                )
             else:
-                self.usb_dongle_status_label.config(text="Disconnected", fg="red")
-                self.add_to_zigbee_log("USB Dongle: Disconnected")
+                self.usb_dongle_status_label.config(
+                    text="Disconnected",
+                    fg="red"
+                )
+                self.add_to_zigbee_log(
+                    "USB Dongle: Disconnected"
+                )
+    
         except Exception as e:
-            self.usb_dongle_status_label.config(text="Error", fg="red")
-            self.add_to_zigbee_log(f"USB Dongle check error: {e}")
-            print(f"Error updating USB dongle status: {e}")
+            self.usb_dongle_status_label.config(
+                text="Error",
+                fg="red"
+            )
+            self.add_to_zigbee_log(
+                f"USB Dongle check error: {e}"
+            )
+    
+            if DEBUG_MODE:
+                print(f"Error updating USB dongle status: {e}")
 
     def add_to_zigbee_log(self, message: str):
         """Add a message to the Zigbee log."""
