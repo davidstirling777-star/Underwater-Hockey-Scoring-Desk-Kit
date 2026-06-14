@@ -5,7 +5,7 @@ Inital setup uses a MINIX Fanless MiniPC Z150-0dB Intel N150 8G/256GB.  Why? Bec
 Two MSI Pro MP273A 27" FHD 100Hz Business Monitors or similar.  Why? Because a lot of MSI monitors runs on 12 V.
 The assumption is that both the computer and screens are powered from a battery that is being contantly charged.
 
-Siren is triggered manually using an Arduino Nano Every (with headers) plugged into an Arduino Nano Screw Terminal Adapter.  Connect a pull-up resister between Pin A4 (Pin 18) and +5V (or 3V3 for the nano).  Connect a Normally Open (NO) momentary switch between Ground (GND) and Pin A4 (Pin 18). I have attached an Adafruit NeoPixel stick to D2, 5V and GND (two wires).
+Siren is triggered manually using an Arduino Nano Every (with headers) plugged into an Arduino Nano Screw Terminal Adapter.  Connect a pull-up resistor between Pin A4 (Pin 18) and +5V (or 3V3 for the nano).  Connect a Normally Open (NO) momentary switch between Ground (GND) and Pin A4 (Pin 18). I have attached an Adafruit NeoPixel stick to D2, 5V and GND (two wires).
 
 For battery voltage monitoring, create a voltage divider using suitable resistors and put the junction to Pin A3 (white wire in the photo).  This will detect when some clutz trips over the power cord or disconnects the battery charger.  Battery Monitoring can be ignored by adding a 10 kΩ resistor between 5V and A3.
 
