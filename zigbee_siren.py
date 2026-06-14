@@ -415,13 +415,15 @@ class ZigbeeSirenController:
         except Exception as e:
             self.logger.error(f"Error processing button event: {e}")
 
-    def _trigger_siren(self) -> None:
-        self.logger.info("Triggering wireless siren")
-
+    def _trigger_siren(self, event_name="ON") -> None:
+        """Trigger a siren event through the callback."""
+        self.logger.info(f"Triggering wireless siren event: {event_name}")
+    
         if self.siren_callback:
             try:
                 threading.Thread(
                     target=self.siren_callback,
+                    args=(event_name,),
                     daemon=True
                 ).start()
             except Exception as e:
