@@ -545,6 +545,33 @@ class GameManagementApp:
             self.display_window.destroy()
         except tk.TclError:
             pass  # Already destroyed
+
+        def handle_hardware_siren_event(self, event_name="ON"):
+        """Handle siren events from the hardware communication layer."""
+
+        if event_name == "OFF":
+            try:
+                import pygame
+                pygame.mixer.stop()
+            except Exception:
+                pass
+            return
+
+        try:
+            play_sound_with_volume(
+                self.siren_var.get(),
+                "siren",
+                self.enable_sound,
+                self.pips_volume,
+                self.siren_volume,
+                self.air_volume,
+                self.water_volume,
+                self.siren_duration
+            )
+
+        except Exception as e:
+            if DEBUG_MODE:
+                print(f"Hardware siren event failed: {e}")
         
     def __init__(self, master):
         self.master = master
@@ -913,6 +940,7 @@ class GameManagementApp:
 
         # 2. INITIALIZE ZIGBEE CONTROLLER NOW THAT STATUS VARS EXIST
         self.zigbee_controller = ZigbeeSirenController(
+            siren_callback=self.handle_hardware_siren_event,
             gui_log_callback=self.add_to_zigbee_log
         )
         self.zigbee_controller.set_connection_status_callback(self.update_zigbee_status)
