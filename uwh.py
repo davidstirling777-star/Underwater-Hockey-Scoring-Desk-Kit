@@ -1091,17 +1091,20 @@ class GameManagementApp:
         
             # Determine currently selected tournament file
             csv_file = self.csv_var.get()
-            print(f"CSV UPDATE: csv_file={csv_file}")
+            if DEBUG_MODE:
+                print(f"CSV UPDATE: csv_file={csv_file}")
         
             if not csv_file:
-                print("CSV UPDATE: No tournament CSV selected")
+                if DEBUG_MODE:
+                    print("CSV UPDATE: No tournament CSV selected")
                 return False
         
             if not os.path.isabs(csv_file):
                 csv_file = os.path.join(BASE_DIR, csv_file)
         
             if not os.path.exists(csv_file):
-                print(f"CSV UPDATE: File not found: {csv_file}")
+                if DEBUG_MODE:
+                    print(f"CSV UPDATE: File not found: {csv_file}")
                 return False
         
             # ------------------------------------
@@ -1148,10 +1151,12 @@ class GameManagementApp:
                         print("CSV DEBUG BLACK:", self.engine.black_goal_scorers)
                     comments_text = ", ".join(scorer_entries)
             
-                    print(f"CSV COMMENTS: {comments_text}")
+                    if DEBUG_MODE:
+                        print(f"CSV COMMENTS: {comments_text}")
             
             except Exception as scorer_error:
-                print(f"CSV UPDATE: scorer export failed: {scorer_error}")        
+                if DEBUG_MODE:
+                    print(f"CSV UPDATE: scorer export failed: {scorer_error}")        
             # ------------------------------------
             # Read entire CSV
             # ------------------------------------
@@ -1165,7 +1170,8 @@ class GameManagementApp:
                     rows.append(row)
         
             if not rows:
-                print("CSV UPDATE: CSV file is empty")
+                if DEBUG_MODE:
+                    print("CSV UPDATE: CSV file is empty")
                 return False
         
             # ------------------------------------
@@ -1189,7 +1195,8 @@ class GameManagementApp:
                 )
         
             except ValueError as e:
-                print(f"CSV UPDATE: Missing required column: {e}")
+                if DEBUG_MODE:
+                    print(f"CSV UPDATE: Missing required column: {e}")
                 return False
         
             # ------------------------------------
@@ -1216,7 +1223,8 @@ class GameManagementApp:
                         print(f"black_goal_scorers={self.engine.black_goal_scorers}")
                         print("ROW BEFORE:", row)
                     row[comments_col] = comments_text
-                    print("ROW AFTER:", row)
+                    if DEBUG_MODE:
+                        print("ROW AFTER:", row)
         
                     game_found = True
         
@@ -1228,7 +1236,8 @@ class GameManagementApp:
                     break
         
             if not game_found:
-                print(f"CSV UPDATE: Game {game_number} not found")
+                if DEBUG_MODE:
+                    print(f"CSV UPDATE: Game {game_number} not found")
                 return False
         
             # ------------------------------------
@@ -1239,12 +1248,14 @@ class GameManagementApp:
                 writer = csv.writer(f)
                 writer.writerows(rows)
         
-            print("CSV UPDATE: Success")
+            if DEBUG_MODE:
+                print("CSV UPDATE: Success")
         
             return True
         
         except Exception as e:
-            print(f"CSV UPDATE ERROR: {e}")
+            if DEBUG_MODE:
+                print(f"CSV UPDATE ERROR: {e}")
             return False
     
     def create_scoreboard_tab(self):
