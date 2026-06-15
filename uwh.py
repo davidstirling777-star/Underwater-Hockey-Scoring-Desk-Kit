@@ -567,13 +567,19 @@ class GameManagementApp:
             import sound
 
             track = self.siren_var.get()
-            volume = self.siren_volume.get() / 100.0
+            volume = float(self.siren_volume.get()) / 100.0
 
             if hasattr(sound, "_preloaded_sounds") and track in sound._preloaded_sounds:
                 siren_channel = pygame.mixer.Channel(7)
+
+                siren_channel.stop()
                 siren_channel.set_volume(volume)
+
+                sound_obj = sound._preloaded_sounds[track]
+                sound_obj.set_volume(volume)
+
                 siren_channel.play(
-                    sound._preloaded_sounds[track],
+                    sound_obj,
                     loops=-1
                 )
 
