@@ -3628,7 +3628,7 @@ Usage:
         )
         
         # Always enable penalties during Referee Time-Out, even if entered from First Game Starts In:
-        if cur_period['name'] == "Referee Time-Out":
+        if self.engine.is_referee_timeout(cur_period["name"]):
             self.penalties_button.config(state=tk.NORMAL)
             self.white_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
             self.black_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
