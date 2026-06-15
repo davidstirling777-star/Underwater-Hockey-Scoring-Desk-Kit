@@ -953,26 +953,14 @@ class GameManagementApp:
         for i in range(3):
             if i < len(white_penalties):
                 p = white_penalties[i]
-                cap_str = f"#{p['cap']}"
-                if p["is_rest_of_match"]:
-                    time_str = "rest"
-                else:
-                    mins, secs = divmod(p["seconds_remaining"], 60)
-                    time_str = f"{mins}:{secs:02d}"
-                label_text = f"{cap_str}  {time_str}"
+                label_text = display_manager.format_penalty_label(p)
             else:
                 label_text = ""
             if self.penalty_labels[i][0].cget('text') != label_text:
                 self.penalty_labels[i][0].config(text=label_text)
             if i < len(black_penalties):
                 p = black_penalties[i]
-                cap_str = f"#{p['cap']}"
-                if p["is_rest_of_match"]:
-                    time_str = "rest"
-                else:
-                    mins, secs = divmod(p["seconds_remaining"], 60)
-                    time_str = f"{mins}:{secs:02d}"
-                label_text = f"{cap_str}  {time_str}"
+                label_text = display_manager.format_penalty_label(p)
             else:
                 label_text = ""
             if self.penalty_labels[i][1].cget('text') != label_text:
@@ -990,26 +978,14 @@ class GameManagementApp:
         for i in range(3):
             if i < len(white_penalties):
                 p = white_penalties[i]
-                cap_str = f"#{p['cap']}"
-                if p["is_rest_of_match"]:
-                    time_str = "rest"
-                else:
-                    mins, secs = divmod(p["seconds_remaining"], 60)
-                    time_str = f"{mins}:{secs:02d}"
-                label_text = f"{cap_str}  {time_str}"
+                label_text = display_manager.format_penalty_label(p)
             else:
                 label_text = ""
             if self.display_penalty_labels[i][0].cget('text') != label_text:
                 self.display_penalty_labels[i][0].config(text=label_text)
             if i < len(black_penalties):
                 p = black_penalties[i]
-                cap_str = f"#{p['cap']}"
-                if p["is_rest_of_match"]:
-                    time_str = "rest"
-                else:
-                    mins, secs = divmod(p["seconds_remaining"], 60)
-                    time_str = f"{mins}:{secs:02d}"
-                label_text = f"{cap_str}  {time_str}"
+                label_text = display_manager.format_penalty_label(p)
             else:
                 label_text = ""
             if self.display_penalty_labels[i][1].cget('text') != label_text:
