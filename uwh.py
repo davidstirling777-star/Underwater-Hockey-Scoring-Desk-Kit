@@ -939,8 +939,7 @@ class GameManagementApp:
             pass
 
     def _penalty_sort_key(self, p):
-        """Helper method to sort penalties by time remaining."""
-        return p["seconds_remaining"] if not p["is_rest_of_match"] else 999999
+        return display_manager.penalty_sort_key(p)
 
     def update_penalty_grid(self):
         white_penalties = sorted(
