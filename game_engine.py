@@ -311,3 +311,10 @@ class GameEngine:
     
     def is_court_time_paused_period(self, period_name):
         return period_name in self.court_time_paused_periods()
+
+    def is_regular_timeout_reset_period(self, period_name):
+        return period_name in [
+            "First Half",
+            "Second Half",
+            "Between Game Break"
+        ]
