@@ -4366,99 +4366,91 @@ Usage:
     def show_penalties(self, trigger_button=None):
         """
         Show the penalties dialog window.
-        
+
         Args:
             trigger_button: Optional button widget that triggered this dialog.
-                          If provided, dialog will be positioned near the button
-                          (only if no saved position exists).
         """
         penalty_window = tk.Toplevel(self.master)
         penalty_window.title("Penalties")
-        
-        # Set initial geometry to get accurate dialog dimensions
         penalty_window.geometry("250x450")
-        penalty_window.update_idletasks()
-        
-        # Position dialog relative to trigger button if provided
-        if trigger_button:
-            # Calculate position relative to trigger button
-            # Get button's screen coordinates
-            button_x = trigger_button.winfo_rootx()
-            button_y = trigger_button.winfo_rooty()
-            button_width = trigger_button.winfo_width()
-            button_height = trigger_button.winfo_height()
-            
-            # Get screen and dialog dimensions
-            screen_width = penalty_window.winfo_screenwidth()
-            screen_height = penalty_window.winfo_screenheight()
-            # Use winfo_width/height instead of winfo_reqwidth/reqheight to get actual geometry
-            dialog_width = penalty_window.winfo_width()
-            dialog_height = penalty_window.winfo_height()
-            
-            # Define margins
-            top_margin = 20
-            bottom_margin = 20
-            left_margin = 20
-            right_margin = 20
-            gap = 10  # Gap between dialog bottom and button top (exactly 10 pixels)
-            
-            # Position dialog so its bottom edge is exactly 10 pixels above the button top edge
-            # dialog_y is the top of the dialog
-            # dialog_y + dialog_height is the bottom of the dialog
-            # We want: dialog_y + dialog_height = button_y - gap
-            # Therefore: dialog_y = button_y - gap - dialog_height
-            # No height restriction - dialog can be positioned anywhere on screen
-            dialog_y = button_y - gap - dialog_height
-            dialog_x = button_x  # Align left edge with button
-            
-            # Ensure dialog doesn't extend beyond screen right edge
-            if dialog_x + dialog_width > screen_width - right_margin:
-                dialog_x = screen_width - dialog_width - right_margin
-            
-            # Ensure dialog doesn't go beyond screen left edge
-            if dialog_x < left_margin:
-                dialog_x = left_margin
-            
-            penalty_window.geometry(f"250x450+{dialog_x}+{dialog_y}")
-        elif self.penalty_dialog_last_position is not None:
-            # No trigger button, but we have a saved position - use that
-            dialog_x, dialog_y = self.penalty_dialog_last_position
-            penalty_window.geometry(f"250x450+{dialog_x}+{dialog_y}")
-        else:
-            # No trigger button and no saved position - use default centered position
-            penalty_window.geometry("250x450")
 
         button_frame = ttk.Frame(penalty_window, padding="10")
         button_frame.pack(side="top", fill="x")
-        selected_team = tk.StringVar()
 
-        button_white = tk.Button(button_frame, text="White", width=10, command=lambda: select_team("White"))
+        selected_team = tk.StringVar(value="")
+
+        button_white = tk.Button(
+            button_frame,
+            text="White",
+            width=10,
+            command=lambda: select_team("White")
+        )
         button_white.pack(side="left", padx=5, expand=True)
-        button_black = tk.Button(button_frame, text="Black", width=10, command=lambda: select_team("Black"))
+
+        button_black = tk.Button(
+            button_frame,
+            text="Black",
+            width=10,
+            command=lambda: select_team("Black")
+        )
         button_black.pack(side="left", padx=5, expand=True)
 
         def select_team(team):
             selected_team.set(team)
-            button_white.config(relief=tk.SUNKEN if team == "White" else tk.RAISED)
-            button_black.config(relief=tk.SUNKEN if team == "Black" else tk.RAISED)
-
-        select_team(selected_team.get())
+            button_white.config(
+                relief=tk.SUNKEN if team == "White" else tk.RAISED
+            )
+            button_black.config(
+                relief=tk.SUNKEN if team == "Black" else tk.RAISED
+            )
 
         numbers = list(range(1, 16))
         dropdown_options = ["Pick Cap Number"] + numbers
         dropdown_variable = tk.StringVar(value=dropdown_options[0])
-        dropdown = ttk.Combobox(penalty_window, textvariable=dropdown_variable, values=dropdown_options, state="readonly", height=16)
+
+        dropdown = ttk.Combobox(
+            penalty_window,
+            textvariable=dropdown_variable,
+            values=dropdown_options,
+            state="readonly",
+            height=16
+        )
         dropdown.pack(pady=10)
 
         radio_frame = ttk.Frame(penalty_window)
         radio_frame.pack(side="top", anchor="w", pady=10, fill="both")
-        # Use ONE shared variable for all radio buttons and set to empty string
-        # This ensures no radio button is selected when the dialog opens
+
         radio_variable = tk.StringVar(value="")
-        radio_button_1 = tk.Radiobutton(radio_frame, text="1 minute", variable=radio_variable, value="1 minute", indicatoron=True)
-        radio_button_2 = tk.Radiobutton(radio_frame, text="2 minutes", variable=radio_variable, value="2 minutes", indicatoron=True)
-        radio_button_3 = tk.Radiobutton(radio_frame, text="5 minutes", variable=radio_variable, value="5 minutes", indicatoron=True)
-        radio_button_4 = tk.Radiobutton(radio_frame, text="Rest of the match", variable=radio_variable, value="Rest of the match", indicatoron=True)
+
+        radio_button_1 = tk.Radiobutton(
+            radio_frame,
+            text="1 minute",
+            variable=radio_variable,
+            value="1 minute",
+            indicatoron=True
+        )
+        radio_button_2 = tk.Radiobutton(
+            radio_frame,
+            text="2 minutes",
+            variable=radio_variable,
+            value="2 minutes",
+            indicatoron=True
+        )
+        radio_button_3 = tk.Radiobutton(
+            radio_frame,
+            text="5 minutes",
+            variable=radio_variable,
+            value="5 minutes",
+            indicatoron=True
+        )
+        radio_button_4 = tk.Radiobutton(
+            radio_frame,
+            text="Rest of the match",
+            variable=radio_variable,
+            value="Rest of the match",
+            indicatoron=True
+        )
+
         radio_button_1.pack(anchor="w")
         radio_button_2.pack(anchor="w")
         radio_button_3.pack(anchor="w")
@@ -4466,9 +4458,18 @@ Usage:
 
         summary_frame = ttk.Frame(penalty_window)
         summary_frame.pack(side="top", fill="both", expand=True)
-        summary_label = ttk.Label(summary_frame, text="Stored Penalties (max 6):")
+
+        summary_label = ttk.Label(
+            summary_frame,
+            text="Stored Penalties (max 6):"
+        )
         summary_label.pack(anchor="w")
-        penalty_listbox = tk.Listbox(summary_frame, height=6, exportselection=0)
+
+        penalty_listbox = tk.Listbox(
+            summary_frame,
+            height=6,
+            exportselection=0
+        )
         penalty_listbox.pack(fill="both", expand=True)
 
         def refresh_penalty_listbox():
@@ -4476,48 +4477,73 @@ Usage:
             selected_index = selection[0] if selection else None
 
             penalty_listbox.delete(0, tk.END)
+
             for penalty in self.engine.active_penalties:
                 if penalty["is_rest_of_match"]:
                     time_str = "REST OF MATCH"
                 else:
                     mins, secs = divmod(penalty["seconds_remaining"], 60)
                     time_str = f"{int(mins):02d}:{int(secs):02d}"
-                penalty_listbox.insert(tk.END, f"{penalty['team']} #{penalty['cap']} {time_str}")
+
+                penalty_listbox.insert(
+                    tk.END,
+                    f"{penalty['team']} #{penalty['cap']} {time_str}"
+                )
 
             for p in self.engine.stored_penalties:
-                if not any(ap["team"] == p["team"] and ap["cap"] == p["cap"] and ap["duration"] == p["duration"]
-                        for ap in getattr(self, 'active_penalties', [])):
-                    penalty_listbox.insert(tk.END, f"{p['team']} #{p['cap']} {p['duration']}")
+                already_active = any(
+                    ap["team"] == p["team"]
+                    and ap["cap"] == p["cap"]
+                    and ap["duration"] == p["duration"]
+                    for ap in self.engine.active_penalties
+                )
+
+                if not already_active:
+                    penalty_listbox.insert(
+                        tk.END,
+                        f"{p['team']} #{p['cap']} {p['duration']}"
+                    )
 
             if selected_index is not None and penalty_listbox.size() > selected_index:
                 penalty_listbox.selection_set(selected_index)
                 penalty_listbox.activate(selected_index)
-            elif penalty_listbox.size() > 0:
+            else:
                 penalty_listbox.selection_clear(0, tk.END)
 
         refresh_penalty_listbox()
 
         def periodic_refresh():
-            if penalty_window.winfo_exists():
-                refresh_penalty_listbox()
-                penalty_window.after(1000, periodic_refresh)
+            try:
+                if penalty_window.winfo_exists():
+                    refresh_penalty_listbox()
+                    penalty_window.after(1000, periodic_refresh)
+            except tk.TclError:
+                pass
+
         penalty_window.after(1000, periodic_refresh)
 
         def start_penalty():
             team = selected_team.get()
             cap = dropdown_variable.get()
             duration = radio_variable.get()
+
             if team not in ["White", "Black"]:
                 messagebox.showerror("Error", "Choose White or Black team.")
                 return
+
             if cap == "Pick Cap Number":
                 messagebox.showerror("Error", "Choose a cap number.")
                 return
+
             if duration == "":
                 messagebox.showerror("Error", "Choose a penalty duration.")
                 return
+
             if len(self.engine.stored_penalties) >= 6:
-                messagebox.showerror("Error", "Maximum 6 penalties can be stored.")
+                messagebox.showerror(
+                    "Error",
+                    "Maximum 6 penalties can be stored."
+                )
                 return
 
             if self.start_penalty_timer(team, cap, duration):
@@ -4527,12 +4553,19 @@ Usage:
                 dropdown_variable.set(dropdown_options[0])
                 radio_variable.set("")
             else:
-                messagebox.showerror("Error", "Failed to start penalty timer.")
+                messagebox.showerror(
+                    "Error",
+                    "Failed to start penalty timer."
+                )
 
         def remove_penalty():
             selection = penalty_listbox.curselection()
+
             if not selection:
-                messagebox.showerror("Error", "Please select a penalty to remove.")
+                messagebox.showerror(
+                    "Error",
+                    "Please select a penalty to remove."
+                )
                 return
 
             idx = selection[0]
@@ -4544,6 +4577,7 @@ Usage:
                 refresh_penalty_listbox()
             else:
                 stored_idx = idx - active_count
+
                 if 0 <= stored_idx < len(self.engine.stored_penalties):
                     self.engine.stored_penalties.pop(stored_idx)
                     refresh_penalty_listbox()
@@ -4553,46 +4587,81 @@ Usage:
 
         button_container = ttk.Frame(start_button_frame)
         button_container.pack(expand=True, fill="x")
-    
-        start_button = ttk.Button(button_container, text="Start Penalty", command=start_penalty)
-        start_button.pack(side="left", expand=True, fill="x", padx=(0, 5))
 
-        remove_button = ttk.Button(button_container, text="Remove Selected", command=remove_penalty)
-        remove_button.pack(side="right", expand=True, fill="x", padx=(5, 0))
+        start_button = ttk.Button(
+            button_container,
+            text="Start Penalty",
+            command=start_penalty
+        )
+        start_button.pack(
+            side="left",
+            expand=True,
+            fill="x",
+            padx=(0, 5)
+        )
 
-        # --- PATCH: Close button directly under Start Penalty/Remove Selected buttons ---
-        close_button = ttk.Button(start_button_frame, text="Close", command=penalty_window.destroy)
-        close_button.pack(side="bottom", fill="x", padx=10, pady=(0,10))
+        remove_button = ttk.Button(
+            button_container,
+            text="Remove Selected",
+            command=remove_penalty
+        )
+        remove_button.pack(
+            side="right",
+            expand=True,
+            fill="x",
+            padx=(5, 0)
+        )
 
-        # Function to save the dialog position when it's moved
-        def save_dialog_position(event=None):
-            # Only save position if the event is from the main window (not child widgets)
-            if event is None or event.widget == penalty_window:
-                try:
-                    # Use winfo methods to get actual screen position
-                    x_coord = penalty_window.winfo_x()
-                    y_coord = penalty_window.winfo_y()
-                    # Only save if we have valid coordinates
-                    if x_coord >= 0 and y_coord >= 0:
-                        self.penalty_dialog_last_position = (x_coord, y_coord)
-                except:
-                    pass
-        
-        # Bind the Configure event to save position when window is moved
-        penalty_window.bind('<Configure>', save_dialog_position)
-        
-        # Also save position when dialog is closed
         def on_close():
-            save_dialog_position()
             penalty_window.destroy()
-        
-        # Update the close button to use our custom close handler
-        close_button.config(command=on_close)
-        penalty_window.protocol("WM_DELETE_WINDOW", on_close)
+
+        close_button = ttk.Button(
+            start_button_frame,
+            text="Close",
+            command=on_close
+        )
+        close_button.pack(
+            side="bottom",
+            fill="x",
+            padx=10,
+            pady=(0, 10)
+        )
 
         penalty_window.transient(self.master)
         penalty_window.grab_set()
 
+        penalty_window.update_idletasks()
+
+        if trigger_button:
+            button_x = trigger_button.winfo_rootx()
+            button_y = trigger_button.winfo_rooty()
+            button_w = trigger_button.winfo_width()
+
+            dialog_w = penalty_window.winfo_width()
+            dialog_h = penalty_window.winfo_height()
+
+            x = button_x + (button_w // 2) - (dialog_w // 2)
+            y = button_y - dialog_h - 8
+
+            screen_w = penalty_window.winfo_screenwidth()
+            screen_h = penalty_window.winfo_screenheight()
+
+            if x < 0:
+                x = 0
+
+            if x + dialog_w > screen_w:
+                x = screen_w - dialog_w
+
+            if y < 0:
+                y = button_y + trigger_button.winfo_height() + 8
+
+            if y + dialog_h > screen_h:
+                y = max(0, screen_h - dialog_h)
+
+            penalty_window.geometry(f"250x450+{x}+{y}")
+
+        penalty_window.protocol("WM_DELETE_WINDOW", on_close)
+    
     def toggle_referee_timeout(self):
         if not self.referee_timeout_active:
             self.referee_timeout_active = True
