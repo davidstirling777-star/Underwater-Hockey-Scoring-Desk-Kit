@@ -17,3 +17,14 @@ def sync_penalty_display_to_external(app):
 
 def penalty_sort_key(p):
     return p["seconds_remaining"] if not p["is_rest_of_match"] else 999999
+
+def format_penalty_label(p):
+    cap_str = f"#{p['cap']}"
+
+    if p["is_rest_of_match"]:
+        time_str = "rest"
+    else:
+        mins, secs = divmod(p["seconds_remaining"], 60)
+        time_str = f"{mins}:{secs:02d}"
+
+    return f"{cap_str}  {time_str}"
