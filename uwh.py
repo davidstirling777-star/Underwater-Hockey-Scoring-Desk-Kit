@@ -3704,46 +3704,35 @@ Usage:
         
             self.timer_job = self.master.after(1000, self.countdown_timer)
             
-            # Log period start events for halves and overtime halves
-            if cur_period['name'] == 'First Half':
-                self.log_game_event("First Half Start")
-            elif cur_period['name'] == 'Second Half':
-                self.log_game_event("Second Half Start")
-            elif cur_period['name'] == 'Overtime First Half':
-                self.log_game_event("Overtime First Half Start")
-            elif cur_period['name'] == 'Overtime Second Half':
-                self.log_game_event("Overtime Second Half Start")
+            event_name = self.engine.period_start_event_name(
+                cur_period["name"]
+            )
+    
+            if event_name:
+                self.log_game_event(event_name)
 
     def next_period(self):
-    
+
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
-    
+
         cur_period = self.engine.get_current_period()
-    
+
         period_name = cur_period["name"]
-    
-        if period_name == "First Half":
-            self.log_game_event("First Half End")
-    
-        elif period_name == "Second Half":
-            self.log_game_event("Second Half End")
-    
-        elif period_name == "Overtime First Half":
-            self.log_game_event("Overtime First Half End")
-    
-        elif period_name == "Overtime Second Half":
-            self.log_game_event("Overtime Second Half End")
-    
-        elif period_name == "Sudden Death":
-            self.log_game_event("Sudden Death End")
-    
+
+        event_name = self.engine.period_end_event_name(
+            period_name
+        )
+
+        if event_name:
+            self.log_game_event(event_name)
+
         self.engine.advance_period(
             self.white_score_var.get(),
             self.black_score_var.get()
         )
-    
+
         self.start_current_period()
 
     def start_sudden_death_timer(self):
