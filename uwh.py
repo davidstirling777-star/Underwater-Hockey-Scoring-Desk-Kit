@@ -3681,10 +3681,16 @@ Usage:
             self.court_time_paused = False
         if cur_period['name'] == 'Sudden Death':
             self.engine.start_timer()
-            self.engine.sudden_death_seconds = -1
+            self.engine.sudden_death_seconds = 0
             self.update_timer_display()
             self.start_sudden_death_timer()
-            self.log_game_event("Sudden Death Start")
+
+            event_name = self.engine.period_start_event_name(
+                cur_period["name"]
+            )
+
+            if event_name:
+                self.log_game_event(event_name)
         else:
             self.engine.set_timer_seconds(
                 cur_period['duration'] if cur_period['duration'] is not None else 0
@@ -3732,13 +3738,14 @@ Usage:
     def start_sudden_death_timer(self):
         if not self.engine.timer_running:
             return
-        # Update display BEFORE incrementing for consistency
+
         self.update_timer_display()
-        if self.engine.sudden_death_seconds < 0:
-            self.engine.sudden_death_seconds = 0
-        else:
-            self.engine.sudden_death_seconds += 1
-        self.sudden_death_timer_job = self.master.after(1000, self.start_sudden_death_timer)
+        self.engine.sudden_death_seconds += 1
+
+        self.sudden_death_timer_job = self.master.after(
+            1000,
+            self.start_sudden_death_timer
+        )
 
     def stop_sudden_death_timer(self):
         if self.sudden_death_timer_job:
