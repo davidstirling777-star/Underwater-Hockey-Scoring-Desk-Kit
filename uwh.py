@@ -543,7 +543,7 @@ class GameManagementApp:
         # Center splash screen
         splash.update_idletasks()
         x = (splash.winfo_screenwidth() // 2) - (splash.winfo_width() // 2)
-        y = (splash.winfo_screenheight() // 2) - (splash.winfo_height() // 2)
+        y = splash.winfo_screenheight() // 3
         splash.geometry(f"+{x}+{y}")
 
         splash_title = tk.Label(
