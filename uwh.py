@@ -611,84 +611,12 @@ class GameManagementApp:
         )
 
         # Perform MQTT stability check
-        mqtt_connection_stable = False
-        mqtt_check_timeout = 30
-        mqtt_check_start = time.time()
-        mqtt_connection_attempts = 0
-        mqtt_stable_count = 0
-        mqtt_stable_threshold = 3
-
-        splash_report("Beginning MQTT stability verification", True)
-        print("STARTUP: Beginning MQTT stability verification...")
-
-        while time.time() - mqtt_check_start < mqtt_check_timeout:
-            mqtt_connection_attempts += 1
-            splash_report(
-                f"Checking MQTT broker attempt {mqtt_connection_attempts}",
-                True
-            )
-
-            try:
-                from zigbee_siren import is_mqtt_available
-
-                if is_mqtt_available():
-                    import paho.mqtt.client as mqtt_test
-
-                    try:
-                        test_client = mqtt_test.Client(
-                            callback_api_version=mqtt_test.CallbackAPIVersion.VERSION2
-                        )
-                    except AttributeError:
-                        test_client = mqtt_test.Client()
-
-                    try:
-                        test_client.connect("localhost", 1883, keepalive=5)
-                        test_client.disconnect()
-
-                        mqtt_stable_count += 1
-
-                        splash_report(
-                            f"MQTT check {mqtt_stable_count}/{mqtt_stable_threshold} passed",
-                            True
-                        )
-
-                        print(
-                            f"STARTUP: MQTT connection check "
-                            f"{mqtt_stable_count}/{mqtt_stable_threshold} passed"
-                        )
-
-                        if mqtt_stable_count >= mqtt_stable_threshold:
-                            mqtt_connection_stable = True
-                            splash_report("MQTT connection stable", True)
-                            break
-
-                    except Exception as mqtt_err:
-                        mqtt_stable_count = 0
-                        splash_report(
-                            f"MQTT connection test failed: {mqtt_err}",
-                            False
-                        )
-                        print(f"STARTUP: MQTT connection test failed: {mqtt_err}")
-
-                else:
-                    splash_report("MQTT library not available - continuing", False)
-                    print("STARTUP: MQTT not available, continuing without Zigbee support")
-                    mqtt_connection_stable = True
-                    break
-
-            except Exception as init_err:
-                mqtt_stable_count = 0
-                splash_report(f"MQTT check error: {init_err}", False)
-                print(f"STARTUP: MQTT check error: {init_err}")
-
-            time.sleep(2)
-
-        if mqtt_connection_stable:
-            print("STARTUP: MQTT network connection is STABLE - proceeding with initialization")
-            splash_report("MQTT ready", True)
-        else:
-            print(f"STARTUP: MQTT timeout after {mqtt_check_timeout}s - continuing without Zigbee")
-            splash_report("MQTT unavailable - continuing without Zigbee", False)
+        mqtt_connection_stable = startup_selftest.check_mqtt_stability(
+            splash_report=splash_report,
+            is_mqtt_available=is_mqtt_available,
+            timeout_seconds=30,
+            stable_threshold=3
+        )
 
         # AUTO-DETECT ARDUINO AND ZIGBEE PORTS
         try:
