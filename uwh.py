@@ -552,14 +552,37 @@ class GameManagementApp:
             try:
                 import pygame
                 pygame.mixer.Channel(7).stop()
-                pygame.mixer.stop()
             except Exception:
                 pass
-        else:
-            self.test_app_siren()
+
+            try:
+                self.zigbee_controller.handle_hardware_siren_event("OFF")
+            except Exception:
+                pass
+
+            return
 
         try:
-            self.zigbee_controller.handle_hardware_siren_event(event_name)
+            import pygame
+            import sound
+
+            track = self.siren_var.get()
+            volume = self.siren_volume.get() / 100.0
+
+            if hasattr(sound, "_preloaded_sounds") and track in sound._preloaded_sounds:
+                siren_channel = pygame.mixer.Channel(7)
+                siren_channel.set_volume(volume)
+                siren_channel.play(
+                    sound._preloaded_sounds[track],
+                    loops=-1
+                )
+
+        except Exception as e:
+            if DEBUG_MODE:
+                print(f"Hardware siren local audio failed: {e}")
+
+        try:
+            self.zigbee_controller.handle_hardware_siren_event("ON")
         except Exception:
             pass
     
