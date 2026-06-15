@@ -3654,30 +3654,13 @@ Usage:
                 self.black_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
             self.penalties_button.config(state=tk.NORMAL)
 
-        PAUSE_PERIODS = [
-            "First Game Starts In:",
-            "Between Game Break",
-            "Half Time",
-            "Overtime Game Break",
-            "Overtime Half Time",
-            "Sudden Death Game Break",
-            "White Team Time-Out",
-            "Black Team Time-Out",
-            "Referee Time-Out"
-        ]
+        PAUSE_PERIODS = self.engine.penalty_pause_periods()
         if cur_period['name'] in PAUSE_PERIODS:
             self.pause_all_penalty_timers()
         else:
             self.resume_all_penalty_timers()
 
-        paused_periods = [
-            'Overtime Game Break',
-            'Overtime First Half',
-            'Overtime Half Time',
-            'Overtime Second Half',
-            'Sudden Death Game Break',
-            'Sudden Death'
-        ]
+        paused_periods = self.engine.court_time_paused_periods()
         if cur_period['name'] in paused_periods:
             self.court_time_paused = True
         else:
