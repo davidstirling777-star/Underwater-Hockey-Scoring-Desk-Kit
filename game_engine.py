@@ -145,7 +145,6 @@ class GameEngine:
     
         return self.full_sequence[self.current_index]
     
-    
     def save_timer_state(self, timer_running, timer_seconds):
     
         self.saved_timer_running = timer_running
@@ -211,16 +210,34 @@ class GameEngine:
     def start_timer(self):
         self.timer_running = True
     
-    
     def stop_timer(self):
         self.timer_running = False
     
-    
     def set_timer_seconds(self, seconds):
-        self.timer_seconds = seconds
-    
+        self.timer_seconds = seconds 
     
     def decrement_timer(self):
         if self.timer_seconds > 0:
             self.timer_seconds -= 1
 
+    def period_start_event_name(self, period_name):
+        start_events = {
+            "First Half": "First Half Start",
+            "Second Half": "Second Half Start",
+            "Overtime First Half": "Overtime First Half Start",
+            "Overtime Second Half": "Overtime Second Half Start",
+            "Sudden Death": "Sudden Death Start",
+        }
+
+        return start_events.get(period_name)
+
+    def period_end_event_name(self, period_name):
+        end_events = {
+            "First Half": "First Half End",
+            "Second Half": "Second Half End",
+            "Overtime First Half": "Overtime First Half End",
+            "Overtime Second Half": "Overtime Second Half End",
+            "Sudden Death": "Sudden Death End",
+        }
+
+        return end_events.get(period_name)
