@@ -3665,7 +3665,9 @@ Usage:
             self.court_time_paused = True
         else:
             self.court_time_paused = False
-        if cur_period['name'] == 'Sudden Death':
+        if self.engine.is_sudden_death(
+            cur_period["name"]
+        ):
             self.engine.start_timer()
             self.engine.sudden_death_seconds = 0
             self.update_timer_display()
