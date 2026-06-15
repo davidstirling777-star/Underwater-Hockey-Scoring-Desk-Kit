@@ -4500,6 +4500,44 @@ Usage:
         else:
             self.end_timeout()
 
+    def end_timeout(self):
+        self.in_timeout = False
+        prev_active_team = self.engine.active_timeout_team
+        self.engine.end_timeout()
+        self.court_time_paused = False
+        self.resume_all_penalty_timers()
+        state = self.engine.saved_state
+
+        self.engine.timer_running = state["timer_running"]
+        self.engine.timer_seconds = state["timer_seconds"]
+        self.engine.current_index = state["current_index"]
+
+        self.half_label_var.set(state["half_label"])
+        self.half_label.config(bg=state["half_label_bg"])
+        self.update_timer_display()
+
+        if self.timer_job:
+            self.master.after_cancel(self.timer_job)
+            self.timer_job = None
+
+        # End-of-timeout siren is now played in timeout_countdown()
+        # when timer_seconds == 1, before display changes to 00:00.
+        # Do not play it here or it will be late / double-trigger.
+
+        # If a pending timeout exists, start it now
+        if self.pending_timeout is not None:
+            if self.pending_timeout == "white" and self.engine.white_timeouts_this_half < 1:
+                self.pending_timeout = None
+                self.white_team_timeout(preserve_saved_state=True)
+            elif self.pending_timeout == "black" and self.engine.black_timeouts_this_half < 1:
+                self.pending_timeout = None
+                self.black_team_timeout(preserve_saved_state=True)
+            else:
+                self.pending_timeout = None
+
+        elif self.engine.timer_running:
+            self.timer_job = self.master.after(1000, self.countdown_timer)
+
     def save_timer_state(self):
     
         self.engine.saved_state = {
