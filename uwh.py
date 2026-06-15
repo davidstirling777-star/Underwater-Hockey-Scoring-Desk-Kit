@@ -550,8 +550,9 @@ class GameManagementApp:
 
         if event_name == "OFF":
             try:
-                import pygame
-                pygame.mixer.Channel(7).stop()
+                if hasattr(self, "arduino_siren_channel") and self.arduino_siren_channel:
+                    self.arduino_siren_channel.stop()
+                    self.arduino_siren_channel = None
             except Exception:
                 pass
 
@@ -563,25 +564,23 @@ class GameManagementApp:
             return
 
         try:
-            import pygame
             import sound
 
             track = self.siren_var.get()
-            volume = float(self.siren_volume.get()) / 100.0
+            volume = self.siren_volume.get()
+
+            normalized_volume = max(0.0, min(100.0, volume)) / 100.0
 
             if hasattr(sound, "_preloaded_sounds") and track in sound._preloaded_sounds:
-                siren_channel = pygame.mixer.Channel(7)
-
-                siren_channel.stop()
-                siren_channel.set_volume(volume)
-
                 sound_obj = sound._preloaded_sounds[track]
-                sound_obj.set_volume(volume)
+                sound_obj.set_volume(normalized_volume)
 
-                siren_channel.play(
-                    sound_obj,
-                    loops=-1
-                )
+                # Stop previous Arduino loop if one somehow exists
+                if hasattr(self, "arduino_siren_channel") and self.arduino_siren_channel:
+                    self.arduino_siren_channel.stop()
+
+                # Let pygame choose the channel, same general path as normal playback
+                self.arduino_siren_channel = sound_obj.play(loops=-1)
 
         except Exception as e:
             if DEBUG_MODE:
@@ -950,6 +949,7 @@ class GameManagementApp:
         # 1. INSTANTIATE ALL GUI TRACKING VARIABLES FIRST
         self.zigbee_status_var = tk.StringVar(value="Disconnected")
         self.siren_loop_active = False
+        self.arduino_siren_channel = None
         self.connection_watchdog_active = False
         self.connection_watchdog_attempts = 0
         self.connection_watchdog_max_attempts = 3
