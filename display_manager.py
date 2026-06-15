@@ -11,3 +11,17 @@ def sync_penalty_display_to_external(app):
     except Exception as e:
         if getattr(app, "DEBUG_MODE", False):
             print(f"Penalty display sync error: {e}")
+
+def update_penalty_display(app):
+    """
+    Update penalty display window.
+    Extracted from uwh.py.
+    """
+    try:
+        # Paste the ENTIRE current body of
+        # update_penalty_display() here
+        pass
+
+    except Exception as e:
+        if getattr(app, "DEBUG_MODE", False):
+            print(f"Display update error: {e}")
