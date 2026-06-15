@@ -1,6 +1,7 @@
 
 import csv_export
 import hardware_detection
+import startup_selftest
 import os
 import sys
 import shutil
