@@ -284,3 +284,30 @@ class GameEngine:
             "Sudden Death Game Break",
             "Sudden Death",
         ]
+
+    def is_sudden_death(self, period_name):
+        return period_name == "Sudden Death"
+    
+    
+    def is_between_game_break(self, period_name):
+        return period_name == "Between Game Break"
+    
+    
+    def is_referee_timeout(self, period_name):
+        return period_name == "Referee Time-Out"
+    
+    
+    def is_timeout_disabled_period(self, period_name):
+        return period_name in self.timeouts_disabled_periods()
+    
+    
+    def is_penalty_disabled_period(self, period_name):
+        return period_name in self.penalty_disabled_periods()
+    
+    
+    def is_penalty_pause_period(self, period_name):
+        return period_name in self.penalty_pause_periods()
+    
+    
+    def is_court_time_paused_period(self, period_name):
+        return period_name in self.court_time_paused_periods()
