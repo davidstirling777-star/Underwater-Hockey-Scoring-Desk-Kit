@@ -3659,8 +3659,7 @@ Usage:
         else:
             self.resume_all_penalty_timers()
 
-        paused_periods = self.engine.court_time_paused_periods()
-        if cur_period['name'] in paused_periods:
+        if self.engine.is_court_time_paused_period(cur_period["name"]):
             self.court_time_paused = True
         else:
             self.court_time_paused = False
