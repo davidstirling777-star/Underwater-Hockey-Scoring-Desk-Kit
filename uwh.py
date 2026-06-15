@@ -1,5 +1,6 @@
 
 import csv_export
+import hardware_detection
 import os
 import sys
 import shutil
@@ -89,81 +90,10 @@ from game_engine import GameEngine
 SETTINGS_FILE = "settings.json"
 
 def is_usb_dongle_connected():
-    """
-    Check if a Sonoff USB Zigbee dongle is connected.
-    Returns True if a USB Zigbee dongle is detected, False otherwise.
-
-    Cross-platform support:
-    - Linux: Checks /dev/ttyUSB* devices and lsusb output
-    - Windows: Checks COM ports for common Zigbee dongle chipsets
-    """
-    import platform
-
-    system = platform.system()
-
-    # Linux-specific checks
-    if system == 'Linux':
-        try:
-            # Check for /dev/ttyUSB* devices first
-            dev_dir = os.path.join(os.sep, 'dev')
-            if os.path.exists(dev_dir):
-                devices = [f for f in os.listdir(dev_dir) if f.startswith('ttyUSB')]
-                if devices:
-                    return True
-        except (OSError, PermissionError):
-            pass
-
-        try:
-            # Check using lsusb for Zigbee dongles
-            result = subprocess.run(
-                ['lsusb'],
-                capture_output=True,
-                text=True,
-                timeout=5
-            )
-
-            if result.returncode == 0:
-                usb_output = result.stdout.lower()
-
-                zigbee_keywords = [
-                    'itead',
-                    'sonoff',
-                    'cc2531',
-                    'cc2652',
-                    'silicon labs',
-                    'cp210'
-                ]
-
-                return any(
-                    keyword in usb_output
-                    for keyword in zigbee_keywords
-                )
-
-        except (
-            subprocess.CalledProcessError,
-            subprocess.TimeoutExpired,
-            FileNotFoundError
-        ):
-            pass
-
-    # Windows-specific checks
-    elif system == 'Windows':
-        try:
-            detection = load_hardware_detection_cache()
-
-            if detection:
-                zigbee_port = detection.get("zigbee_port")
-
-                if zigbee_port:
-                    return True
-
-        except Exception as e:
-            if DEBUG_MODE:
-                print(
-                    f"USB dongle Windows check failed: {e}"
-                )
-
-    return False
+    return hardware_detection.is_usb_dongle_connected(
+        load_unified_settings,
+        DEBUG_MODE
+    )
 
 def open_folder_in_file_manager(folder_path):
     """
@@ -202,175 +132,25 @@ def open_folder_in_file_manager(folder_path):
         messagebox.showerror("Error", f"Failed to open folder:\n{e}")
 
 def load_hardware_detection_cache():
-    """Load cached hardware detection results from settings.json"""
-    try:
-        unified_settings = load_unified_settings()
-        return unified_settings.get("hardwareDetection", {})
-    except Exception:
-        return {}
-
-def save_hardware_detection_cache(arduino_port, zigbee_port):
-    """Save hardware detection results to settings.json for faster future startups"""
-    try:
-        unified_settings = load_unified_settings()
-        unified_settings["hardwareDetection"] = {
-            "arduino_port": arduino_port,
-            "zigbee_port": zigbee_port,
-            "last_detected": datetime.datetime.now().isoformat()
-        }
-        save_unified_settings(unified_settings)
-        if DEBUG_MODE:
-            print(
-                f"Saved hardware detection cache: "
-                f"Arduino={arduino_port}, Zigbee={zigbee_port}"
-            )
-    except Exception as e:
-        if DEBUG_MODE:
-            print(
-                f"Warning: Could not save hardware detection cache: {e}"
-            )
-
-def auto_detect_com_ports():
-    """
-    Auto-detect COM ports for Arduino and Zigbee dongle.
-
-    Returns a tuple (arduino_port, zigbee_port) with detected ports.
-    Falls back to default ports if auto-detection fails.
-
-    Returns:
-        tuple: (arduino_port, zigbee_port)
-    """
-    try:
-        import serial
-        import serial.tools.list_ports
-    except ImportError:
-        print(
-            "WARNING: pyserial not available. "
-            "Using default port assignments."
-        )
-        return "COM5", "COM6"
-
-    arduino_port = None
-    zigbee_port = None
-
-    # 1. Get a list of all physically connected COM ports
-    ports = list(serial.tools.list_ports.comports())
-    assigned_ports = set()
-
-    if DEBUG_MODE:
-        print(
-            f"Scanning system... "
-            f"Found {len(ports)} available COM ports."
-        )
-
-    # 2. First Pass: Look for Arduino by its hardware description
-    for p in ports:
-        desc = (p.description or "").lower()
-        hwid = (p.hwid or "").lower()
-        device = p.device or ""
-
-        if (
-            "arduino" in desc
-            or "ch340" in desc
-            or "usb-serial" in desc
-            or "vid:pid=2341" in hwid
-            or "1a86:7523" in hwid
-        ):
-            if DEBUG_MODE:
-                print(
-                    f"Found Arduino candidate via "
-                    f"hardware profile on {device}"
-                )
-
-            arduino_port = device
-            assigned_ports.add(device)
-            break
-
-    # 3. Second Pass: Scan remaining ports for Zigbee devices
-    for p in ports:
-
-        if p.device in assigned_ports:
-            continue
-
-        desc = (p.description or "").lower()
-        device = p.device or ""
-
-        if DEBUG_MODE:
-            print(
-                f"Testing port {device} "
-                f"for Zigbee or missing devices..."
-            )
-
-        # Check hardware description first
-        if (
-            "ti cc2531" in desc
-            or "silicon labs" in desc
-            or "cp210" in desc
-            or "sonoff" in desc
-            or "zigbee" in desc
-        ):
-            zigbee_port = device
-            assigned_ports.add(device)
-
-            if DEBUG_MODE:
-                print(f"Found Zigbee Dongle on {device}")
-
-            break
-
-        # Optional fallback probe
-        try:
-            with serial.Serial(
-                device,
-                9600,
-                timeout=1
-            ) as ser:
-
-                time.sleep(0.5)
-
-                if not zigbee_port:
-                    zigbee_port = device
-                    assigned_ports.add(device)
-
-                    if DEBUG_MODE:
-                        print(
-                            f"Found alternative device on "
-                            f"{device}"
-                        )
-
-        except (
-            serial.SerialException,
-            PermissionError
-        ):
-            if DEBUG_MODE:
-                print(
-                    f"Port {device} is locked or "
-                    f"unavailable. Skipping."
-                )
-
-            continue
-
-    # 4. Fallback default assignments
-    if not arduino_port:
-        print(
-            "Warning: Arduino not detected "
-            "automatically. Defaulting to COM5."
-        )
-        arduino_port = "COM5"
-
-    if not zigbee_port:
-        print(
-            "Warning: Zigbee not detected "
-            "automatically. Defaulting to COM6."
-        )
-        zigbee_port = "COM6"
-
-    # Save detection results for future use
-    save_hardware_detection_cache(
-        arduino_port,
-        zigbee_port
+    return hardware_detection.load_hardware_detection_cache(
+        load_unified_settings
     )
 
-    return arduino_port, zigbee_port
+def save_hardware_detection_cache(arduino_port, zigbee_port):
+    return hardware_detection.save_hardware_detection_cache(
+        arduino_port,
+        zigbee_port,
+        load_unified_settings,
+        save_unified_settings,
+        DEBUG_MODE
+    )
+
+def auto_detect_com_ports():
+    return hardware_detection.auto_detect_com_ports(
+        load_unified_settings,
+        save_unified_settings,
+        DEBUG_MODE
+    )
 
 def migrate_legacy_settings():
     """Migrate settings from legacy separate files to unified settings.json"""
