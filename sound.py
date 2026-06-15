@@ -1,15 +1,5 @@
 """
 Sound module for Underwater Hockey Scoring Desk Kit.
-
-This module contains all sound-related functions for audio playback,
-device checking, and sound file management.
-
-Cross-platform support:
-- Preferred: Uses pygame.mixer for instant preloaded sound playback (all platforms)
-- Fallback Linux/Raspberry Pi: Uses aplay for .wav, omxplayer for .mp3, amixer for volume
-- Fallback Windows: Uses winsound for .wav
-
-Note: Sound playback functions use threading to prevent blocking the UI timer.
 """
 
 import subprocess
@@ -19,36 +9,44 @@ import platform
 import threading
 from tkinter import messagebox
 
-# Platform detection
-IS_WINDOWS = platform.system() == 'Windows'
-IS_LINUX = platform.system() == 'Linux'
+IS_WINDOWS = platform.system() == "Windows"
+IS_LINUX = platform.system() == "Linux"
+
 
 def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller executable """
+    """Get absolute path to resource, works for dev and PyInstaller."""
     try:
-        # PyInstaller creates a temporary folder and stores its path in _MEIPASS
         base_path = sys._MEIPASS
     except Exception:
         base_path = os.path.abspath(".")
+
     return os.path.join(base_path, relative_path)
 
-# Try to import pygame.mixer for preloaded sound playback
+
 try:
     import pygame.mixer
+
     PYGAME_AVAILABLE = True
-    # Initialize pygame.mixer with appropriate settings
+
     try:
-        pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
+        pygame.mixer.init(
+            frequency=22050,
+            size=-16,
+            channels=2,
+            buffer=512
+        )
         PYGAME_INITIALIZED = True
+
     except Exception as e:
         print(f"Warning: pygame.mixer initialization failed: {e}")
         PYGAME_INITIALIZED = False
+
 except ImportError:
     PYGAME_AVAILABLE = False
     PYGAME_INITIALIZED = False
-    print("Warning: pygame not available. Falling back to subprocess-based sound playback.")
+    print("Warning: pygame not available. Falling back to subprocess sound playback.")
 
-# Optional imports for Windows
+
 if IS_WINDOWS:
     try:
         import winsound
@@ -58,294 +56,358 @@ if IS_WINDOWS:
 else:
     WINSOUND_AVAILABLE = False
 
-# Global dictionary to store preloaded sounds
+
 _preloaded_sounds = {}
 
 
+def _get_value(value):
+    return value.get() if hasattr(value, "get") else value
+
+
+def _normalise_volume(volume):
+    return max(0.0, min(100.0, float(volume))) / 100.0
+
+
 def check_audio_device_available(enable_sound):
-    """
-    Check if audio devices are available for playback.
-    Returns True if audio devices are available, False otherwise.
-    If sound is disabled, always returns True to prevent warnings.
-    
-    Cross-platform support:
-    - Windows: Assumes audio device available if winsound module is available
-    - Linux: Checks using aplay and amixer commands
-    
-    Args:
-        enable_sound: BooleanVar or bool indicating if sound is enabled
-    
-    Returns:
-        bool: True if audio devices available or sound disabled, False otherwise
-    """
-    sound_enabled = enable_sound.get() if hasattr(enable_sound, 'get') else enable_sound
+    sound_enabled = _get_value(enable_sound)
+
     if not sound_enabled:
         return True
-    
+
     if IS_WINDOWS:
-        return WINSOUND_AVAILABLE
-    
+        return WINSOUND_AVAILABLE or PYGAME_INITIALIZED
+
     if IS_LINUX:
         try:
-            result = subprocess.run(['aplay', '-l'], capture_output=True, text=True, timeout=5)
+            result = subprocess.run(
+                ["aplay", "-l"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+
             if result.returncode == 0 and result.stdout.strip():
                 return True
-        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+
+        except (
+            subprocess.CalledProcessError,
+            subprocess.TimeoutExpired,
+            FileNotFoundError
+        ):
             pass
-        
+
         try:
-            result = subprocess.run(['amixer', 'scontrols'], capture_output=True, text=True, timeout=5)
+            result = subprocess.run(
+                ["amixer", "scontrols"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+
             if result.returncode == 0 and result.stdout.strip():
                 return True
-        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+
+        except (
+            subprocess.CalledProcessError,
+            subprocess.TimeoutExpired,
+            FileNotFoundError
+        ):
             pass
-    
+
     return False
 
 
-def handle_no_audio_device_warning(sound_var, sound_type, enable_sound, audio_device_warning_shown):
-    """
-    Handle the case when no audio device is available.
-    """
-    sound_enabled = enable_sound.get() if hasattr(enable_sound, 'get') else enable_sound
+def handle_no_audio_device_warning(
+    sound_var,
+    sound_type,
+    enable_sound,
+    audio_device_warning_shown
+):
+    sound_enabled = _get_value(enable_sound)
+
     if not sound_enabled:
         return audio_device_warning_shown
-        
+
     if not audio_device_warning_shown:
         messagebox.showwarning(
-            "Audio Device Warning", 
+            "Audio Device Warning",
             f"No audio device detected. Cannot play {sound_type} sounds.\n"
-            f"Sound selection will be reset to 'Default'."
+            "Sound selection will be reset to 'Default'."
         )
         audio_device_warning_shown = True
-    
+
     sound_var.set("Default")
     return audio_device_warning_shown
 
 
 def get_sound_files():
-    """
-    Scan the assets directory for supported sound files (.wav, .mp3).
-    Returns a list of sound files found.
-    
-    Returns:
-        list: Sorted list of sound files, or ["No sound files found"] if none
-    """
     sound_files = []
-    supported_extensions = ['.wav', '.mp3']
-    
+    supported_extensions = [".wav", ".mp3"]
+
     try:
-        # Read from the bundled/local assets directory path
         assets_dir = resource_path("assets")
+
         if os.path.exists(assets_dir):
             for filename in os.listdir(assets_dir):
-                if any(filename.lower().endswith(ext) for ext in supported_extensions):
+                if any(
+                    filename.lower().endswith(ext)
+                    for ext in supported_extensions
+                ):
                     sound_files.append(filename)
+
     except Exception as e:
         print(f"Error scanning for sound files: {e}")
-    
+
     return sorted(sound_files) if sound_files else ["No sound files found"]
 
 
 def preload_sounds():
-    """
-    Preload all available sound files into memory using pygame.mixer.
-    """
     global _preloaded_sounds
-    
+
     if not PYGAME_AVAILABLE or not PYGAME_INITIALIZED:
         print("pygame.mixer not available - sounds will not be preloaded")
         return 0
-    
+
     sound_files = get_sound_files()
+
     if sound_files == ["No sound files found"]:
         print("No sound files found to preload")
         return 0
-    
+
     loaded_count = 0
+
     for filename in sound_files:
         try:
-            # Look inside our structured assets subdirectory
             file_path = resource_path(os.path.join("assets", filename))
+
             if os.path.exists(file_path):
-                sound = pygame.mixer.Sound(file_path)
-                _preloaded_sounds[filename] = sound
+                sound_obj = pygame.mixer.Sound(file_path)
+                _preloaded_sounds[filename] = sound_obj
                 loaded_count += 1
                 print(f"Preloaded sound: {filename}")
+
         except Exception as e:
             print(f"Warning: Failed to preload {filename}: {e}")
-    
+
     print(f"Successfully preloaded {loaded_count} sound files")
     return loaded_count
 
 
 def _play_sound_sync(filename, enable_sound):
-    """
-    Internal synchronous sound playback function.
-    """
     if not enable_sound:
         return
-        
-    if filename == "No sound files found" or filename == "Default":
+
+    if filename in ("No sound files found", "Default"):
         print(f"Sound Test: Cannot play '{filename}' - not a valid sound file")
         return
-        
+
     try:
-        # Correctly point files to the assets/ subfolder via the resource path extractor
         file_path = resource_path(os.path.join("assets", filename))
+
         if not os.path.exists(file_path):
             print(f"Sound Error: Sound file '{filename}' not found at {file_path}")
             return
-        
-        # 1. Use the preloaded pygame player if available (Safest and cleanest option)
+
         if PYGAME_INITIALIZED and filename in _preloaded_sounds:
             _preloaded_sounds[filename].play()
             return
 
-        # 2. Windows Fallbacks if Pygame failed to initialize
         if IS_WINDOWS:
-            if filename.lower().endswith('.wav'):
-                if WINSOUND_AVAILABLE:
-                    winsound.PlaySound(file_path, winsound.SND_FILENAME | winsound.SND_ASYNC)
-            elif filename.lower().endswith('.mp3'):
-                if PYGAME_INITIALIZED:
-                    pygame.mixer.music.load(file_path)
-                    pygame.mixer.music.play()
-                else:
-                    print("Error: Windows requires pygame to play MP3 files in this executable bundle.")
+            if filename.lower().endswith(".wav") and WINSOUND_AVAILABLE:
+                winsound.PlaySound(
+                    file_path,
+                    winsound.SND_FILENAME | winsound.SND_ASYNC
+                )
 
-        # 3. Linux Fallbacks if Pygame failed to initialize
+            elif filename.lower().endswith(".mp3"):
+                print("Error: Windows requires pygame to play MP3 files.")
+
         elif IS_LINUX:
-            if filename.lower().endswith('.wav'):
-                subprocess.Popen(['aplay', '-q', file_path])
-            elif filename.lower().endswith('.mp3'):
-                subprocess.Popen(['omxplayer', '-o', 'local', file_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if filename.lower().endswith(".wav"):
+                subprocess.Popen(["aplay", "-q", file_path])
+
+            elif filename.lower().endswith(".mp3"):
+                subprocess.Popen(
+                    ["omxplayer", "-o", "local", file_path],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL
+                )
 
     except Exception as e:
         print(f"Unexpected error executing sound sync: {e}")
 
 
 def play_sound(filename, enable_sound):
-    """
-    Play a sound file asynchronously using a background thread.
-    """
-    sound_thread = threading.Thread(target=_play_sound_sync, args=(filename, enable_sound))
-    sound_thread.daemon = True
+    sound_enabled = _get_value(enable_sound)
+
+    sound_thread = threading.Thread(
+        target=_play_sound_sync,
+        args=(filename, sound_enabled),
+        daemon=True
+    )
     sound_thread.start()
 
 
-def play_sound_with_volume(filename, sound_type, enable_sound, pips_volume, siren_volume, air_volume, water_volume, siren_duration):
-    """
-    Play a sound file with volume control.
-    
-    Args:
-        filename: Name of the sound file to play
-        sound_type: Type of sound ("pips" or "siren") - determines which volume to use
-        enable_sound: BooleanVar or bool indicating if sound is enabled
-        pips_volume: DoubleVar for pips volume (0-100)
-        siren_volume: DoubleVar for siren volume (0-100)
-        air_volume: DoubleVar for air volume (0-100) - Linux only
-        water_volume: DoubleVar for water volume (0-100) - Linux only
-        siren_duration: DoubleVar for siren duration in seconds
-    """
-    sound_enabled = enable_sound.get() if hasattr(enable_sound, 'get') else enable_sound
-    
-    # Get the appropriate volume based on sound type
+def play_sound_with_volume(
+    filename,
+    sound_type,
+    enable_sound,
+    pips_volume,
+    siren_volume,
+    air_volume,
+    water_volume,
+    siren_duration
+):
+    sound_enabled = _get_value(enable_sound)
+
     if sound_type == "pips":
-        volume = pips_volume.get() if hasattr(pips_volume, 'get') else pips_volume
-    else:  # siren
-        volume = siren_volume.get() if hasattr(siren_volume, 'get') else siren_volume
-    
-    # Normalize volume to 0.0-1.0 range for pygame
-    normalized_volume = max(0.0, min(100.0, volume)) / 100.0
-    
+        volume = _get_value(pips_volume)
+    else:
+        volume = _get_value(siren_volume)
+
+    normalized_volume = _normalise_volume(volume)
+
     sound_thread = threading.Thread(
         target=_play_sound_with_volume_sync,
-        args=(filename, sound_type, sound_enabled, normalized_volume, air_volume, water_volume, siren_duration)
+        args=(
+            filename,
+            sound_type,
+            sound_enabled,
+            normalized_volume,
+            air_volume,
+            water_volume,
+            siren_duration
+        ),
+        daemon=True
     )
-    sound_thread.daemon = True
     sound_thread.start()
 
 
-def _play_sound_with_volume_sync(filename, sound_type, enable_sound, normalized_volume, air_volume, water_volume, siren_duration):
-    """
-    Internal synchronous sound playback function with volume control.
-    For siren sounds, loops the audio until the minimum duration is reached.
-    """
+def _play_sound_with_volume_sync(
+    filename,
+    sound_type,
+    enable_sound,
+    normalized_volume,
+    air_volume,
+    water_volume,
+    siren_duration
+):
     if not enable_sound:
         return
-    
-    if filename == "No sound files found" or filename == "Default":
+
+    if filename in ("No sound files found", "Default"):
         return
-    
+
     try:
         file_path = resource_path(os.path.join("assets", filename))
+
         if not os.path.exists(file_path):
             print(f"Sound Error: Sound file '{filename}' not found at {file_path}")
             return
-            
-        # Get siren duration (in seconds)
-        duration_seconds = siren_duration.get() if hasattr(siren_duration, 'get') else siren_duration
-        duration_ms = int(duration_seconds * 1000)  # Convert to milliseconds
-        
-        
-        # Use pygame.mixer for volume control if available
+
+        duration_seconds = _get_value(siren_duration)
+        duration_ms = int(float(duration_seconds) * 1000)
+
         if PYGAME_INITIALIZED and filename in _preloaded_sounds:
-            sound = _preloaded_sounds[filename]
-            sound.set_volume(normalized_volume)
-           
-            # For siren sounds, loop until duration is reached
+            sound_obj = _preloaded_sounds[filename]
+            sound_obj.set_volume(normalized_volume)
+
             if sound_type == "siren" and duration_seconds > 0:
-                # Get the sound length in milliseconds
-                sound_length_ms = int(sound.get_length() * 1000)
-                
+                sound_length_ms = int(sound_obj.get_length() * 1000)
+
                 if sound_length_ms > 0:
-                    # Calculate how many times to loop
                     loops = max(0, (duration_ms // sound_length_ms) - 1)
-                    sound.play(loops=loops)
-                    
-                    # If we still need to play a partial sound at the end
-                    remainder_ms = duration_ms % sound_length_ms
-                    if remainder_ms > 0:
-                        # The remainder will play automatically after the loops
-                        pass
+                    sound_obj.play(loops=loops)
                 else:
-                    sound.play()
+                    sound_obj.play()
             else:
-                # For pips or if duration not specified, just play once
-                sound.play()
+                sound_obj.play()
+
             return
-        
-        # Windows fallback
+
         if IS_WINDOWS:
-            if filename.lower().endswith('.wav'):
-                if WINSOUND_AVAILABLE:
-                    winsound.PlaySound(file_path, winsound.SND_FILENAME | winsound.SND_ASYNC)
-            elif filename.lower().endswith('.mp3'):
-                if PYGAME_INITIALIZED:
-                    pygame.mixer.set_volume(normalized_volume)
-                    pygame.mixer.music.load(file_path)
-                 
-                    # For siren sounds, loop until duration is reached
-                    if sound_type == "siren" and duration_seconds > 0:
-                        pygame.mixer.music.play(loops=-1)  # -1 means infinite loop
-                        # In practice, the caller should manage the duration
-                    else:
-                        pygame.mixer.music.play()
-        
-        # Linux fallback with amixer volume control
+            if filename.lower().endswith(".wav") and WINSOUND_AVAILABLE:
+                winsound.PlaySound(
+                    file_path,
+                    winsound.SND_FILENAME | winsound.SND_ASYNC
+                )
+
         elif IS_LINUX:
-            air_vol = air_volume.get() if hasattr(air_volume, 'get') else air_volume
-            water_vol = water_volume.get() if hasattr(water_volume, 'get') else water_volume
-            
-            if filename.lower().endswith('.wav'):
-                subprocess.Popen(['aplay', '-q', file_path])
-            elif filename.lower().endswith('.mp3'):
+            if filename.lower().endswith(".wav"):
+                subprocess.Popen(["aplay", "-q", file_path])
+
+            elif filename.lower().endswith(".mp3"):
                 subprocess.Popen(
-                    ['omxplayer', '-o', 'local', file_path],
+                    ["omxplayer", "-o", "local", file_path],
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL
                 )
-    
+
     except Exception as e:
         print(f"Error in sound playback with volume: {e}")
+
+
+def start_looping_sound_with_volume(
+    filename,
+    sound_type,
+    enable_sound,
+    pips_volume,
+    siren_volume
+):
+    """
+    Start a looping sound and return the pygame Channel object.
+
+    Used for Arduino press-and-hold siren playback.
+    Caller is responsible for storing the returned channel and stopping it.
+    """
+    sound_enabled = _get_value(enable_sound)
+
+    if not sound_enabled:
+        return None
+
+    if filename in ("No sound files found", "Default"):
+        return None
+
+    if sound_type == "pips":
+        volume = _get_value(pips_volume)
+    else:
+        volume = _get_value(siren_volume)
+
+    normalized_volume = _normalise_volume(volume)
+
+    try:
+        file_path = resource_path(os.path.join("assets", filename))
+
+        if not os.path.exists(file_path):
+            print(f"Sound Error: Sound file '{filename}' not found at {file_path}")
+            return None
+
+        if PYGAME_INITIALIZED and filename in _preloaded_sounds:
+            sound_obj = _preloaded_sounds[filename]
+            sound_obj.set_volume(normalized_volume)
+
+            channel = sound_obj.play(loops=-1)
+
+            if channel:
+                channel.set_volume(normalized_volume)
+
+            return channel
+
+        print("Looping sound requires pygame.mixer and a preloaded sound.")
+        return None
+
+    except Exception as e:
+        print(f"Error starting looping sound: {e}")
+        return None
+
+
+def stop_looping_sound(channel):
+    """
+    Stop a previously started looping sound channel.
+    """
+    try:
+        if channel:
+            channel.stop()
+
+    except Exception as e:
+        print(f"Error stopping looping sound: {e}")
