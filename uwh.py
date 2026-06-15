@@ -605,21 +605,9 @@ class GameManagementApp:
 
         splash_report("Game engine loaded", True)
         splash_report("Settings system available", True)
-        mosquitto_installed = shutil.which("mosquitto") is not None
-        splash_report(
-            "Mosquitto MQTT Broker installed"
-            if mosquitto_installed
-            else "Mosquitto MQTT Broker not found - install from https://mosquitto.org/download/",
-            mosquitto_installed
-        )
 
-        zigbee2mqtt_installed = shutil.which("zigbee2mqtt") is not None
-
-        splash_report(
-            "Zigbee2MQTT executable found"
-            if zigbee2mqtt_installed
-            else "Zigbee2MQTT executable not found on PATH",
-            zigbee2mqtt_installed
+        startup_selftest.report_installation_status(
+            splash_report
         )
 
         # Perform MQTT stability check
