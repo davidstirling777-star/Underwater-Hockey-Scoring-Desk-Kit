@@ -872,71 +872,7 @@ class GameManagementApp:
 
 
     def update_penalty_display(self):
-        """
-        Robustly ensures that the penalty grid is only shown if there are penalties left to serve,
-        and that 'Game 1' label is shown otherwise.
-        Applies to both main and display windows.
-        """
-        main_has_penalties = bool(self.engine.active_penalties or self.engine.stored_penalties)
-        # Main window: show penalty grid if any penalties; otherwise show 'Game 1'
-        if main_has_penalties:
-            if self.game_label.winfo_ismapped():
-                self.game_label.grid_remove()
-            if not self.penalty_grid_frame.winfo_ismapped():
-                self.penalty_grid_frame.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
-            self.update_penalty_grid()
-        else:
-            # Hide penalty grid
-            try:
-                self.penalty_grid_frame.grid_remove()
-            except Exception:
-                pass
-            # Show current game number label always
-            if not self.game_label.winfo_ismapped():
-                self.game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
-            # Event-driven: Update the StringVar with current game number
-            self.update_game_number_display()
-
-        # Display window: same logic
-        try:
-            display_has_penalties = bool(self.engine.active_penalties or self.engine.stored_penalties)
-        
-            if display_has_penalties:
-        
-                if self.display_game_label.winfo_exists() and self.display_game_label.winfo_ismapped():
-                    self.display_game_label.grid_remove()
-        
-                if self.display_penalty_grid_frame.winfo_exists() and \
-                   not self.display_penalty_grid_frame.winfo_ismapped():
-                    self.display_penalty_grid_frame.grid(
-                        row=2,
-                        column=3,
-                        columnspan=3,
-                        padx=1,
-                        pady=1,
-                        sticky="nsew"
-                    )
-        
-                self.update_display_penalty_grid()
-        
-            else:
-        
-                if self.display_penalty_grid_frame.winfo_exists():
-                    self.display_penalty_grid_frame.grid_remove()
-        
-                if self.display_game_label.winfo_exists() and \
-                   not self.display_game_label.winfo_ismapped():
-                    self.display_game_label.grid(
-                        row=2,
-                        column=3,
-                        columnspan=3,
-                        padx=1,
-                        pady=1,
-                        sticky="nsew"
-                    )
-        
-        except (AttributeError, tk.TclError):
-            pass
+        return display_manager.update_penalty_display(self)
 
     def _penalty_sort_key(self, p):
         """Helper method to sort penalties by time remaining."""
