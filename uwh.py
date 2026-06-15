@@ -3616,7 +3616,9 @@ Usage:
                     new_duration = cur_period['duration'] - reduce_by
                     cur_period['duration'] = max(32, new_duration)
 
-        if cur_period['name'] in ['First Half', 'Second Half', 'Between Game Break']:
+        if self.engine.is_regular_timeout_reset_period(
+            cur_period["name"]
+        ):
             self.engine.reset_half_timeouts()
 
         # Event-driven: Update the StringVar instead of calling .config()
