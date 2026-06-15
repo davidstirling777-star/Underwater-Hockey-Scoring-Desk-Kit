@@ -3654,7 +3654,6 @@ Usage:
                 self.black_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
             self.penalties_button.config(state=tk.NORMAL)
 
-        PAUSE_PERIODS = self.engine.penalty_pause_periods()
         if self.engine.is_penalty_pause_period(cur_period["name"]):
             self.pause_all_penalty_timers()
         else:
