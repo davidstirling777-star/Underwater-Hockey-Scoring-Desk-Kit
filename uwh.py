@@ -3,6 +3,7 @@ import csv_export
 import hardware_detection
 import startup_selftest
 import game_logging
+import display_manager
 import os
 import sys
 import shutil
