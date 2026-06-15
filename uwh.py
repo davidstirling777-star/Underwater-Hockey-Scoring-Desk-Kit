@@ -1021,9 +1021,7 @@ class GameManagementApp:
         self.master.after(1000, self.start_penalty_display_updates)
 
     def sync_penalty_display_to_external(self):
-        # Event-driven: No need to sync text since both widgets use the same StringVar
-        # Only background colors need to be synchronized
-        self.display_window.after(1000, self.sync_penalty_display_to_external)
+        return display_manager.sync_penalty_display_to_external(self)
 
     def create_penalty_grid_widget(self, parent, is_display=False):
         # Add internal padding for slightly smaller appearance than the game label
