@@ -258,6 +258,7 @@ class GameEngine:
             "Between Game Break",
             "Half Time",
             "Overtime Game Break",
+            "Overtime Half Time",
             "Sudden Death Game Break",
         ]
 
