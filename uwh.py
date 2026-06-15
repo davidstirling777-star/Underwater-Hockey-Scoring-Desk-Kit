@@ -3620,16 +3620,10 @@ Usage:
         self.half_label_var.set(cur_period['name'])
         self.update_half_label_background(cur_period['name'])
 
-        TIMEOUTS_DISABLED_PERIODS = [
-            "First Game Starts In:",
-            "Half Time",
-            "Overtime Game Break",
-            "Sudden Death Game Break",
-            "Overtime First Half",
-            "Overtime Half Time",
-            "Overtime Second Half",
-            "Sudden Death",
-        ]
+        TIMEOUTS_DISABLED_PERIODS = (
+            self.engine.timeouts_disabled_periods()
+        )
+        
         # Always enable penalties during Referee Time-Out, even if entered from First Game Starts In:
         if cur_period['name'] == "Referee Time-Out":
             self.penalties_button.config(state=tk.NORMAL)
