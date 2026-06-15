@@ -3655,7 +3655,7 @@ Usage:
             self.penalties_button.config(state=tk.NORMAL)
 
         PAUSE_PERIODS = self.engine.penalty_pause_periods()
-        if cur_period['name'] in PAUSE_PERIODS:
+        if self.engine.is_penalty_pause_period(cur_period["name"]):
             self.pause_all_penalty_timers()
         else:
             self.resume_all_penalty_timers()
