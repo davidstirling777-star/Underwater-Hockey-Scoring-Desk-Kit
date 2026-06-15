@@ -753,7 +753,7 @@ class GameManagementApp:
         splash.focus_force()
         splash.grab_set()
         splash.title("Initializing UWH Scoring Desk")
-        splash.geometry("520x360")
+        splash.geometry("520x520")
         splash.resizable(False, False)
 
         # Center splash screen
