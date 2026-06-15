@@ -537,14 +537,17 @@ class GameManagementApp:
         splash.focus_force()
         splash.grab_set()
         splash.title("Initializing UWH Scoring Desk")
-        splash.geometry("520x520")
+        splash_width = 520
+        splash_height = 700
+        
         splash.resizable(False, False)
-
-        # Center splash screen
+        
+        # Position splash screen
         splash.update_idletasks()
-        x = (splash.winfo_screenwidth() // 2) - (splash.winfo_width() // 2)
-        y = splash.winfo_screenheight() // 4
-        splash.geometry(f"+{x}+{y}")
+        x = (splash.winfo_screenwidth() - splash_width) // 2
+        y = splash.winfo_screenheight() // 5
+        
+        splash.geometry(f"{splash_width}x{splash_height}+{x}+{y}")
 
         splash_title = tk.Label(
             splash,
