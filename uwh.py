@@ -734,40 +734,17 @@ class GameManagementApp:
         # ─────────────────────────────────────────────────────────────────────
     
     def log_game_event(self, event_type, team=None, cap_number=None, duration=None, break_status=None):
-        """
-        Log a game event to UWH_Game_Data.txt.
-        """
-        now = datetime.datetime.now()
-        local_time = now.strftime("%Y-%m-%d %H:%M:%S")
-
-        if self.court_time_seconds is not None:
-            hours, remainder = divmod(self.court_time_seconds, 3600)
-            minutes, seconds = divmod(remainder, 60)
-            court_time = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
-        else:
-            court_time = "00:00:00"
-
-        fields = [
-            local_time,
-            court_time,
-            event_type,
-            team if team else "",
-            cap_number if cap_number else "",
-            duration if duration else "",
-            break_status if break_status else ""
-        ]
-
-        event_line = "|".join(str(field) for field in fields)
-        txt_file = os.path.join(BASE_DIR, "UWH_Game_Data.txt")
-
-        try:
-            with open(txt_file, "a", encoding="utf-8") as f:
-                f.write(event_line + "\n")
-        except Exception as e:
-            if DEBUG_MODE:
-                print(f"Error logging game event: {e}")
-
-
+        return game_logging.log_game_event(
+            base_dir=BASE_DIR,
+            court_time_seconds=self.court_time_seconds,
+            event_type=event_type,
+            team=team,
+            cap_number=cap_number,
+            duration=duration,
+            break_status=break_status,
+            debug_mode=DEBUG_MODE
+        )
+        
     def write_game_results_to_csv(self, game_number, white_score, black_score, penalties):
         return csv_export.write_game_results_to_csv(
             csv_file=self.csv_var.get(),
