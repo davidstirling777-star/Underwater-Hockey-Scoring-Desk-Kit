@@ -3635,7 +3635,7 @@ Usage:
         elif self.engine.is_timeout_disabled_period(cur_period["name"]):
             self.white_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
             self.black_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
-            if cur_period["name"] in self.engine.penalty_disabled_periods():
+            if self.engine.is_penalty_disabled_period(cur_period["name"]):
                 self.penalties_button.config(state=tk.DISABLED)
             else:
                 self.penalties_button.config(state=tk.NORMAL)
