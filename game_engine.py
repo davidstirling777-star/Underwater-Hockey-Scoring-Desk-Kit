@@ -241,3 +241,50 @@ class GameEngine:
         }
 
         return end_events.get(period_name)
+
+    def timeouts_disabled_periods(self):
+        return [
+            "First Game Starts In:",
+            "Half Time",
+            "Overtime Game Break",
+            "Sudden Death Game Break",
+            "Overtime First Half",
+            "Overtime Half Time",
+            "Overtime Second Half",
+            "Sudden Death",
+        ]
+
+
+    def penalty_disabled_periods(self):
+        return [
+            "First Game Starts In:",
+            "Between Game Break",
+            "Half Time",
+            "Overtime Game Break",
+            "Sudden Death Game Break",
+        ]
+
+
+    def penalty_pause_periods(self):
+        return [
+            "First Game Starts In:",
+            "Between Game Break",
+            "Half Time",
+            "Overtime Game Break",
+            "Overtime Half Time",
+            "Sudden Death Game Break",
+            "White Team Time-Out",
+            "Black Team Time-Out",
+            "Referee Time-Out",
+        ]
+
+
+    def court_time_paused_periods(self):
+        return [
+            "Overtime Game Break",
+            "Overtime First Half",
+            "Overtime Half Time",
+            "Overtime Second Half",
+            "Sudden Death Game Break",
+            "Sudden Death",
+        ]
