@@ -4448,69 +4448,57 @@ Usage:
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
+
         if not self.in_timeout:
             self.update_timer_display()
             return
+
         if self.engine.timer_seconds > 0:
-            # Enhancement: Play pip sound at 16 seconds (displays as 00:16, plays 1s earlier than old 15s trigger)
-            # Only play if no pending timeout exists
-            # Play sound BEFORE decrementing timer
+            # Enhancement: Play pip sound at 16 seconds.
+            # Plays BEFORE decrementing, while display still shows 00:16.
+            # Only play if no pending timeout exists.
             if self.engine.timer_seconds == 16 and self.pending_timeout is None:
                 try:
-                    play_sound_with_volume(self.pips_var.get(), "pips", self.enable_sound,
-                                           self.pips_volume, self.siren_volume,
-                                           self.air_volume, self.water_volume,
-                                           self.siren_duration)
+                    play_sound_with_volume(
+                        self.pips_var.get(),
+                        "pips",
+                        self.enable_sound,
+                        self.pips_volume,
+                        self.siren_volume,
+                        self.air_volume,
+                        self.water_volume,
+                        self.siren_duration
+                    )
                 except Exception as e:
                     print(f"Error playing pip sound at 16s timeout: {e}")
-            
-            # Decrement timer AFTER playing sound
+
+            # Enhancement: Play end-of-timeout siren at 1 second.
+            # Plays BEFORE decrementing, so the siren command is sent before
+            # the screen changes from 00:01 to 00:00.
+            # Only play if no pending timeout exists.
+            if self.engine.timer_seconds == 1 and self.pending_timeout is None:
+                try:
+                    play_sound_with_volume(
+                        self.siren_var.get(),
+                        "siren",
+                        self.enable_sound,
+                        self.pips_volume,
+                        self.siren_volume,
+                        self.air_volume,
+                        self.water_volume,
+                        self.siren_duration
+                    )
+                except Exception as e:
+                    print(f"Error playing siren at 1s timeout: {e}")
+
+            # Decrement timer AFTER playing any sounds
             self.engine.decrement_timer()
             self.update_timer_display()
-            
+
             self.timer_job = self.master.after(1000, self.timeout_countdown)
+
         else:
             self.end_timeout()
-
-    def end_timeout(self):
-        self.in_timeout = False
-        prev_active_team = self.engine.active_timeout_team  # Store who just finished
-        self.engine.end_timeout()
-        self.court_time_paused = False
-        self.resume_all_penalty_timers()
-        state = self.engine.saved_state
-        
-        self.engine.timer_running = state["timer_running"]
-        self.engine.timer_seconds = state["timer_seconds"]
-        self.engine.current_index = state["current_index"]
-        
-        self.half_label_var.set(state["half_label"])
-        self.half_label.config(bg=state["half_label_bg"])
-        self.update_timer_display()
-        if self.timer_job:
-            self.master.after_cancel(self.timer_job)
-            self.timer_job = None
-        # Play siren at end of team timeout unless there is a pending timeout
-        if self.pending_timeout is None:
-            try:
-                play_sound_with_volume(self.siren_var.get(), "siren", self.enable_sound,
-                                       self.pips_volume, self.siren_volume,
-                                       self.air_volume, self.water_volume,
-                                       self.siren_duration)
-            except Exception as e:
-                print(f"Error playing siren at end of timeout: {e}")
-        # If a pending timeout exists, start it now
-        if self.pending_timeout is not None:
-            if self.pending_timeout == "white" and self.engine.white_timeouts_this_half < 1:
-                self.pending_timeout = None
-                self.white_team_timeout(preserve_saved_state=True)
-            elif self.pending_timeout == "black" and self.engine.black_timeouts_this_half < 1:
-                self.pending_timeout = None
-                self.black_team_timeout(preserve_saved_state=True)
-            else:
-                self.pending_timeout = None
-        elif self.engine.timer_running:
-            self.timer_job = self.master.after(1000, self.countdown_timer)
 
     def save_timer_state(self):
     
