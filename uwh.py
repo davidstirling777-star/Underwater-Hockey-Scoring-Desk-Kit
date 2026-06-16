@@ -4576,40 +4576,54 @@ Usage:
         penalty_window.grab_set()
     
     def toggle_referee_timeout(self):
+        cur_period = self.engine.get_current_period()
+        was_sudden_death = (
+            cur_period
+            and self.engine.is_sudden_death(cur_period["name"])
+        )
+
         if not self.referee_timeout_active:
             self.referee_timeout_active = True
+
             self.referee_timeout_button.config(
                 bg=self.referee_timeout_active_bg,
                 fg=self.referee_timeout_active_fg,
                 activebackground=self.referee_timeout_active_bg,
                 activeforeground=self.referee_timeout_active_fg
             )
+
             self.engine.saved_state = {
                 "timer_seconds": self.engine.timer_seconds,
                 "timer_running": self.engine.timer_running,
-                "timer_job": self.timer_job,
+                "sudden_death_seconds": self.engine.sudden_death_seconds,
+                "was_sudden_death": was_sudden_death,
                 "current_index": self.engine.current_index,
-                # Event-driven: Get text from StringVar instead of widget
                 "half_label_text": self.half_label_var.get(),
                 "half_label_bg": self.half_label.cget("bg"),
                 "court_time_paused": self.court_time_paused,
-                "court_time_job": self.court_time_job,
             }
+
             if self.timer_job:
                 self.master.after_cancel(self.timer_job)
                 self.timer_job = None
-            self.engine.stop_timer()
+
+            if self.sudden_death_timer_job:
+                game_flow.stop_sudden_death_timer(self)
+
             if self.court_time_job:
                 self.master.after_cancel(self.court_time_job)
                 self.court_time_job = None
+
+            self.engine.stop_timer()
             self.court_time_paused = True
             self.pause_all_penalty_timers()
             self.referee_timeout_elapsed = 0
-            # Event-driven: Update the StringVar instead of calling .config()
+
             self.half_label_var.set("Ref Time-Out")
             self.half_label.config(bg="red")
-            # Show the referee timeout timer label
+
             self.referee_timeout_timer_label.grid()
+
             try:
                 if (
                     hasattr(self, "display_referee_timeout_timer_label")
@@ -4618,20 +4632,24 @@ Usage:
                     self.display_referee_timeout_timer_label.grid()
             except tk.TclError:
                 pass
+
             self.referee_timeout_countup()
-            # --- PATCH: Explicitly enable penalties button during referee timeout ---
+
             if hasattr(self, "penalties_button"):
                 self.penalties_button.config(state=tk.NORMAL)
+
         else:
             self.referee_timeout_active = False
+
             self.referee_timeout_button.config(
                 bg=self.referee_timeout_default_bg,
                 fg=self.referee_timeout_default_fg,
                 activebackground=self.referee_timeout_default_bg,
                 activeforeground=self.referee_timeout_default_fg
             )
-            # Hide the referee timeout timer label
+
             self.referee_timeout_timer_label.grid_remove()
+
             try:
                 if (
                     hasattr(self, "display_referee_timeout_timer_label")
@@ -4640,43 +4658,73 @@ Usage:
                     self.display_referee_timeout_timer_label.grid_remove()
             except tk.TclError:
                 pass
+
             self.engine.timer_seconds = self.engine.saved_state["timer_seconds"]
             self.engine.timer_running = self.engine.saved_state["timer_running"]
             self.engine.current_index = self.engine.saved_state["current_index"]
-            # Event-driven: Update the StringVar instead of calling .config()
-            self.half_label_var.set(self.engine.saved_state["half_label_text"])
-            self.half_label.config(bg=self.engine.saved_state["half_label_bg"])
-            self.court_time_paused = self.engine.saved_state.get("court_time_paused", False)
-            # Only resume penalty timers if we're not in a break period
+            self.engine.sudden_death_seconds = self.engine.saved_state.get(
+                "sudden_death_seconds",
+                self.engine.sudden_death_seconds
+            )
+
+            was_sudden_death = self.engine.saved_state.get(
+                "was_sudden_death",
+                False
+            )
+
+            self.half_label_var.set(
+                self.engine.saved_state["half_label_text"]
+            )
+            self.half_label.config(
+                bg=self.engine.saved_state["half_label_bg"]
+            )
+
+            self.court_time_paused = self.engine.saved_state.get(
+                "court_time_paused",
+                False
+            )
+
             cur_period = self.engine.get_current_period()
-            PAUSE_PERIODS = [
-                "First Game Starts In:",
-                "Between Game Break",
-                "Half Time",
-                "Overtime Game Break",
-                "Overtime Half Time",
-                "Sudden Death Game Break",
-                "White Team Time-Out",
-                "Black Team Time-Out",
-                "Referee Time-Out"
-            ]
-            if cur_period['name'] not in PAUSE_PERIODS:
+
+            if (
+                cur_period
+                and not self.engine.is_penalty_pause_period(cur_period["name"])
+            ):
                 self.resume_all_penalty_timers()
+
             self.update_timer_display()
-            # --- PATCH: Resume Team Time-Out timer if it was interrupted ---
+
             if self.in_timeout:
-                # Resume the timeout countdown
                 if self.timer_job:
                     self.master.after_cancel(self.timer_job)
                     self.timer_job = None
-                self.timer_job = self.master.after(1000, self.timeout_countdown)
+
+                self.timer_job = self.master.after(
+                    1000,
+                    self.timeout_countdown
+                )
+
+            elif was_sudden_death and self.engine.timer_running:
+                self.sudden_death_timer_job = self.master.after(
+                    1000,
+                    lambda: game_flow.start_sudden_death_timer(self)
+                )
+
             elif self.engine.timer_running:
-                self.timer_job = self.master.after(1000, self.countdown_timer)
+                self.timer_job = self.master.after(
+                    1000,
+                    self.countdown_timer
+                )
+
             if not self.court_time_paused:
-                self.court_time_job = self.master.after(1000, self.update_court_time)
-            # --- PATCH: Restore penalties button state after referee timeout ends ---
-            # (reusing cur_period from line 3773)
-            if cur_period['type'] == 'break':
+                self.court_time_job = self.master.after(
+                    1000,
+                    self.update_court_time
+                )
+
+            if cur_period and self.engine.is_penalty_disabled_period(
+                cur_period["name"]
+            ):
                 self.penalties_button.config(state=tk.DISABLED)
             else:
                 self.penalties_button.config(state=tk.NORMAL)
