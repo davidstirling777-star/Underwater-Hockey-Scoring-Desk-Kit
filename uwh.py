@@ -3795,8 +3795,7 @@ Usage:
                 except Exception as e:
                     print(f"Error playing period-end siren: {e}")
 
-            if cur_period and cur_period["name"] == "Between Game Break":
-                if self.engine.timer_seconds == 30:
+            if self.engine.should_export_game_results(cur_period):
                     current_game = self.get_current_game_number()
                     white_score = self.white_score_var.get()
                     black_score = self.black_score_var.get()
