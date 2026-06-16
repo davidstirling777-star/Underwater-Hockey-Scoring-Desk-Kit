@@ -58,3 +58,21 @@ def get_current_game_number(app):
 
     except Exception:
         return "1"
+
+def advance_to_next_game(app):
+    if not app.game_numbers:
+        return
+
+    current_game = app.starting_game_var.get()
+
+    if current_game in app.game_numbers:
+        app.current_game_index = app.game_numbers.index(current_game)
+
+    app.current_game_index = (
+        app.current_game_index + 1
+    ) % len(app.game_numbers)
+
+    next_game = app.game_numbers[app.current_game_index]
+
+    app.starting_game_var.set(next_game)
+    app.update_game_number_display()
