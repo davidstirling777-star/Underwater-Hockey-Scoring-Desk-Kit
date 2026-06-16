@@ -1735,11 +1735,7 @@ class GameManagementApp:
         return game_flow.get_current_game_number(self)
 
     def update_game_number_display(self):
-        """Update the game number display based on current Tournament List selection."""
-        current_game = self.get_current_game_number()
-        self.game_number_var.set(f"Game #{current_game}")
-        # Also update team names when game number changes
-        self.update_team_names_display()
+        return game_flow.update_game_number_display(self)
 
     def update_team_names_display(self):
         """Update the team name widgets with data from CSV file."""
@@ -4145,6 +4141,7 @@ Usage:
     
         dialog_width = 400
         dialog_height = 300
+        gap = 8
     
         cap_number_dialog = tk.Toplevel(self.master)
         cap_number_dialog.withdraw()  # Hide until correctly positioned
@@ -4154,7 +4151,6 @@ Usage:
     
         selected_cap = {"value": None}
     
-        # Title label
         title_label = tk.Label(
             cap_number_dialog,
             text="Select Scorer's Cap Number:",
@@ -4162,112 +4158,82 @@ Usage:
         )
         title_label.pack(pady=10)
     
-        # Frame for cap number buttons
         matrix_frame = tk.Frame(cap_number_dialog)
         matrix_frame.pack(pady=10)
     
-        def select_cap(cap):
+        bottom_frame = tk.Frame(cap_number_dialog)
+        bottom_frame.pack(pady=10)
+    
+        def clear_button_highlights():
+            for widget in matrix_frame.winfo_children():
+                if isinstance(widget, tk.Button) and hasattr(widget, "original_bg"):
+                    widget.config(relief=tk.RAISED, bg=widget.original_bg)
+    
+            for widget in bottom_frame.winfo_children():
+                if isinstance(widget, tk.Button) and hasattr(widget, "original_bg"):
+                    widget.config(relief=tk.RAISED, bg=widget.original_bg)
+    
+        def highlight_selected_button(selected_widget):
+            clear_button_highlights()
+            selected_widget.config(relief=tk.SUNKEN, bg="lightblue")
+    
+        def select_cap(cap, button):
             selected_cap["value"] = str(cap)
+            highlight_selected_button(button)
     
-            def apply_highlight():
-                for widget in matrix_frame.winfo_children():
-                    if hasattr(widget, "cap_value") and widget.cap_value == cap:
-                        widget.config(relief=tk.SUNKEN, bg="lightblue")
-                    elif isinstance(widget, tk.Button) and hasattr(widget, "original_bg"):
-                        widget.config(relief=tk.RAISED, bg=widget.original_bg)
-    
-                for widget in bottom_frame.winfo_children():
-                    if isinstance(widget, tk.Button) and hasattr(widget, "original_bg"):
-                        widget.config(relief=tk.RAISED, bg=widget.original_bg)
-    
-            apply_highlight()
-            cap_number_dialog.after(1, apply_highlight)
-    
-        def select_unknown():
+        def select_unknown(button):
             selected_cap["value"] = "Unknown"
+            highlight_selected_button(button)
     
-            def apply_highlight():
-                for widget in matrix_frame.winfo_children():
-                    if isinstance(widget, tk.Button) and hasattr(widget, "original_bg"):
-                        widget.config(relief=tk.RAISED, bg=widget.original_bg)
-    
-                for widget in bottom_frame.winfo_children():
-                    if hasattr(widget, "is_unknown"):
-                        widget.config(relief=tk.SUNKEN, bg="lightblue")
-                    elif isinstance(widget, tk.Button) and hasattr(widget, "original_bg"):
-                        widget.config(relief=tk.RAISED, bg=widget.original_bg)
-    
-            apply_highlight()
-            cap_number_dialog.after(1, apply_highlight)
-    
-        def select_penalty_goal():
+        def select_penalty_goal(button):
             selected_cap["value"] = "Penalty Goal"
-    
-            def apply_highlight():
-                for widget in matrix_frame.winfo_children():
-                    if isinstance(widget, tk.Button) and hasattr(widget, "original_bg"):
-                        widget.config(relief=tk.RAISED, bg=widget.original_bg)
-    
-                for widget in bottom_frame.winfo_children():
-                    if hasattr(widget, "is_penalty_goal"):
-                        widget.config(relief=tk.SUNKEN, bg="lightblue")
-                    elif isinstance(widget, tk.Button) and hasattr(widget, "original_bg"):
-                        widget.config(relief=tk.RAISED, bg=widget.original_bg)
-    
-            apply_highlight()
-            cap_number_dialog.after(1, apply_highlight)
+            highlight_selected_button(button)
     
         def on_ok():
-            if selected_cap["value"] is not None:
-                cap_number_dialog.destroy()
-            else:
+            if selected_cap["value"] is None:
                 messagebox.showwarning(
                     "No Selection",
                     "Please select a cap number, Unknown, or Penalty Goal."
                 )
+                return
     
-        # Create 5x3 matrix of buttons: 1-15
+            cap_number_dialog.destroy()
+    
         button_width = 5
         button_height = 2
     
         for row in range(3):
             for col in range(5):
                 cap_num = row * 5 + col + 1
+    
                 btn = tk.Button(
                     matrix_frame,
                     text=str(cap_num),
                     width=button_width,
-                    height=button_height,
-                    command=lambda c=cap_num: select_cap(c)
+                    height=button_height
                 )
-                btn.cap_value = cap_num
                 btn.original_bg = btn.cget("bg")
+                btn.config(command=lambda c=cap_num, b=btn: select_cap(c, b))
                 btn.grid(row=row, column=col, padx=2, pady=2)
-    
-        # Bottom frame
-        bottom_frame = tk.Frame(cap_number_dialog)
-        bottom_frame.pack(pady=10)
     
         unknown_btn = tk.Button(
             bottom_frame,
             text="Unknown",
             width=button_width * 2 + 3,
-            height=button_height,
-            command=select_unknown
+            height=button_height
         )
-        unknown_btn.is_unknown = True
         unknown_btn.original_bg = unknown_btn.cget("bg")
+        unknown_btn.config(command=lambda b=unknown_btn: select_unknown(b))
         unknown_btn.grid(row=0, column=0, columnspan=2, padx=2, pady=2)
     
         penalty_goal_btn = tk.Button(
             bottom_frame,
             text="Penalty Goal",
             width=button_width * 2 + 3,
-            height=button_height,
-            command=select_penalty_goal
+            height=button_height
         )
-        penalty_goal_btn.is_penalty_goal = True
         penalty_goal_btn.original_bg = penalty_goal_btn.cget("bg")
+        penalty_goal_btn.config(command=lambda b=penalty_goal_btn: select_penalty_goal(b))
         penalty_goal_btn.grid(row=0, column=2, columnspan=2, padx=2, pady=2)
     
         ok_btn = tk.Button(
@@ -4280,46 +4246,25 @@ Usage:
         ok_btn.original_bg = ok_btn.cget("bg")
         ok_btn.grid(row=0, column=4, padx=2, pady=2)
     
-        # Calculate final position BEFORE showing dialog
+        # Position from the CURRENT live location of the Add Goal button.
+        # This works after moving the app to another monitor.
+        cap_number_dialog.update_idletasks()
+    
         if trigger_button:
             button_x = trigger_button.winfo_rootx()
             button_y = trigger_button.winfo_rooty()
+            button_w = trigger_button.winfo_width()
     
-            screen_width = cap_number_dialog.winfo_screenwidth()
-            screen_height = cap_number_dialog.winfo_screenheight()
-    
-            top_margin = 20
-            bottom_margin = 20
-            left_margin = 20
-            right_margin = 20
-            gap = 10
-    
-            dialog_x = button_x
-            dialog_y = button_y - gap - dialog_height
-    
-            if dialog_y < top_margin:
-                dialog_y = top_margin
-    
-            if dialog_y + dialog_height > screen_height - bottom_margin:
-                dialog_y = screen_height - dialog_height - bottom_margin
-    
-            if dialog_x + dialog_width > screen_width - right_margin:
-                dialog_x = screen_width - dialog_width - right_margin
-    
-            if dialog_x < left_margin:
-                dialog_x = left_margin
+            dialog_x = button_x + (button_w // 2) - (dialog_width // 2)
+            dialog_y = button_y - dialog_height - gap
         else:
-            screen_width = cap_number_dialog.winfo_screenwidth()
-            screen_height = cap_number_dialog.winfo_screenheight()
-    
-            dialog_x = (screen_width - dialog_width) // 2
-            dialog_y = (screen_height - dialog_height) // 2
+            dialog_x = self.master.winfo_rootx() + (self.master.winfo_width() // 2) - (dialog_width // 2)
+            dialog_y = self.master.winfo_rooty() + (self.master.winfo_height() // 2) - (dialog_height // 2)
     
         cap_number_dialog.geometry(
             f"{dialog_width}x{dialog_height}+{dialog_x}+{dialog_y}"
         )
     
-        # Now show it only after geometry is correct
         cap_number_dialog.deiconify()
         cap_number_dialog.lift()
         cap_number_dialog.focus_force()
