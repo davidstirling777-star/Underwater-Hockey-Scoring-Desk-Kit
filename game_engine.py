@@ -321,3 +321,34 @@ class GameEngine:
     def format_seconds_as_mmss(self, seconds):
         mins, secs = divmod(max(0, int(seconds)), 60)
         return f"{mins:02d}:{secs:02d}"
+
+    def should_play_period_end_siren(self, period):
+        if not period:
+            return False
+
+        if self.timer_seconds != 1:
+            return False
+
+        break_periods = [
+            "First Game Starts In:",
+            "Between Game Break",
+            "Half Time",
+            "Sudden Death Game Break",
+            "Overtime Game Break",
+            "Overtime Half Time",
+        ]
+
+        half_periods = [
+            "First Half",
+            "Second Half",
+            "Overtime First Half",
+            "Overtime Second Half",
+        ]
+
+        if period["type"] == "break" and period["name"] in break_periods:
+            return True
+
+        if period["type"] in ["regular", "overtime"] and period["name"] in half_periods:
+            return True
+
+        return False
