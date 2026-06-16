@@ -3780,32 +3780,6 @@ Usage:
         self.engine.go_to_period('Between Game Break')
         self.start_current_period()
 
-    def export_and_reset_game_at_break(self):
-        current_game = self.get_current_game_number()
-        white_score = self.white_score_var.get()
-        black_score = self.black_score_var.get()
-
-        penalties_to_write = list(self.engine.stored_penalties)
-
-        self.log_game_event("Game End")
-
-        self.write_game_results_to_csv(
-            current_game,
-            white_score,
-            black_score,
-            penalties_to_write
-        )
-
-        self.white_score_var.set(0)
-        self.black_score_var.set(0)
-
-        self.engine.stored_penalties.clear()
-        self.clear_all_penalties()
-        self.engine.clear_goal_scorers()
-
-        self.advance_to_next_game()
-        self.update_team_names_display()
-
     def countdown_timer(self):
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
