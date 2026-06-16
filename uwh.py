@@ -3715,7 +3715,7 @@ Usage:
 
             self.sudden_death_timer_job = self.master.after(
                 1000,
-                self.start_sudden_death_timer
+                lambda: game_flow.start_sudden_death_timer(self)
             )
         else:
             self.engine.set_timer_seconds(
@@ -3768,13 +3768,8 @@ Usage:
 
         self.sudden_death_timer_job = self.master.after(
             1000,
-            self.start_sudden_death_timer
+            lambda: game_flow.start_sudden_death_timer(self)
         )
-
-    def stop_sudden_death_timer(self):
-        if self.sudden_death_timer_job:
-            self.master.after_cancel(self.sudden_death_timer_job)
-            self.sudden_death_timer_job = None
 
     def goto_between_game_break(self):
         self.engine.go_to_period('Between Game Break')
@@ -4891,7 +4886,7 @@ Usage:
             )
 
             self.engine.stop_timer()
-            self.stop_sudden_death_timer()
+           game_flow.stop_sudden_death_timer(self)
             self.next_period()
             return
 
