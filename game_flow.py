@@ -76,3 +76,12 @@ def advance_to_next_game(app):
 
     app.starting_game_var.set(next_game)
     app.update_game_number_display()
+
+def update_game_number_display(app):
+    current_game = get_current_game_number(app)
+
+    app.game_number_var.set(
+        f"Game #{current_game}"
+    )
+
+    app.update_team_names_display()
