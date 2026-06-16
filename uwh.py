@@ -4886,7 +4886,7 @@ Usage:
             )
 
             self.engine.stop_timer()
-           game_flow.stop_sudden_death_timer(self)
+            game_flow.stop_sudden_death_timer(self)
             self.next_period()
             return
 
