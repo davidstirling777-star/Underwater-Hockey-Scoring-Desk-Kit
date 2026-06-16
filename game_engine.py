@@ -352,3 +352,30 @@ class GameEngine:
             return True
 
         return False
+
+    def should_play_break_countdown_pip(self, period):
+        if not period:
+            return False
+
+        if period["type"] != "break":
+            return False
+
+        break_periods = [
+            "First Game Starts In:",
+            "Between Game Break",
+            "Half Time",
+            "Sudden Death Game Break",
+            "Overtime Game Break",
+            "Overtime Half Time",
+        ]
+
+        if period["name"] not in break_periods:
+            return False
+
+        if self.timer_seconds == 31:
+            return True
+
+        if 2 <= self.timer_seconds <= 11:
+            return True
+
+        return False
