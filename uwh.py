@@ -3490,48 +3490,57 @@ Usage:
     def reset_timer(self):
         self.white_score_var.set(0)
         self.black_score_var.set(0)
-    
+
         self.engine.reset_to_first_period()
         self.engine.start_timer()
         self.engine.sudden_death_goal_scored = False
-    
+
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
-    
-        self.sudden_death_timer_job = None
+
+        if self.court_time_job:
+            self.master.after_cancel(self.court_time_job)
+            self.court_time_job = None
+
+        if self.sudden_death_timer_job:
+            self.master.after_cancel(self.sudden_death_timer_job)
+            self.sudden_death_timer_job = None
+
         self.engine.sudden_death_seconds = 0
-    
+
         # Rebuild game sequence to reflect any settings changes
         self.build_game_sequence()
-    
+
         first_period = self.engine.get_first_period()
-    
+
         if first_period:
             self.engine.set_timer_seconds(first_period["duration"])
-    
-            # Event-driven: Update the StringVar instead of calling .config()
             self.half_label_var.set(first_period["name"])
             self.update_half_label_background(first_period["name"])
-    
         else:
             self.engine.set_timer_seconds(0)
-    
-            # Event-driven: Update the StringVar instead of calling .config()
             self.half_label_var.set("")
-    
+
         self.update_timer_display()
-    
+
+        # Sync court time to local computer time at reset/startup.
         now = datetime.datetime.now()
         self.court_time_seconds = (
             now.hour * 3600 +
             now.minute * 60 +
             now.second
         )
-    
+
         self.court_time_paused = False
+
+        hours, remainder = divmod(self.court_time_seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        self.court_time_var.set(
+            f"Court Time is {hours:02d}:{minutes:02d}:{seconds:02d}"
+        )
+
         self.update_court_time()
-    
         self.start_current_period()
             
     def update_court_time(self):
