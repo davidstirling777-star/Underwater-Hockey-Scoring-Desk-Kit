@@ -1772,24 +1772,7 @@ class GameManagementApp:
                 self.black_team_name_widget.config(text="")
 
     def advance_to_next_game(self):
-        """Advance to the next game in the Tournament List."""
-        if not self.game_numbers:
-            return
-        
-        # Find current game index
-        current_game = self.starting_game_var.get()
-        if current_game in self.game_numbers:
-            self.current_game_index = self.game_numbers.index(current_game)
-        
-        # Advance to next game (wrap around to start if at end)
-        self.current_game_index = (self.current_game_index + 1) % len(self.game_numbers)
-        next_game = self.game_numbers[self.current_game_index]
-        
-        # Update the dropdown selection
-        self.starting_game_var.set(next_game)
-        
-        # Update the display
-        self.update_game_number_display()
+        return game_flow.advance_to_next_game(self)
 
     def on_game_selection_changed(self, event=None):
         """Handle manual game selection change from dropdown."""
