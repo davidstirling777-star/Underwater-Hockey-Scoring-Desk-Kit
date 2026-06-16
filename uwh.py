@@ -3548,19 +3548,16 @@ Usage:
             self.master.after_cancel(self.court_time_job)
             self.court_time_job = None
 
-        if self.court_time_paused:
-            self.court_time_job = self.master.after(
-                1000,
-                self.update_court_time
+        if self.court_time_seconds is None:
+            now = datetime.datetime.now()
+            self.court_time_seconds = (
+                now.hour * 3600 +
+                now.minute * 60 +
+                now.second
             )
-            return
 
-        now = datetime.datetime.now()
-        self.court_time_seconds = (
-            now.hour * 3600 +
-            now.minute * 60 +
-            now.second
-        )
+        if not self.court_time_paused:
+            self.court_time_seconds += 1
 
         hours, remainder = divmod(self.court_time_seconds, 3600)
         minutes, seconds = divmod(remainder, 60)
