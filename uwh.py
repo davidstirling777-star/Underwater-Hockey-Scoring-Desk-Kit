@@ -1732,17 +1732,7 @@ class GameManagementApp:
         self.update_game_number_display()
 
     def get_current_game_number(self):
-        """Get the current game number from Tournament List selection."""
-        try:
-            selected_game = self.starting_game_var.get()
-            if selected_game and selected_game in self.game_numbers:
-                return selected_game
-            elif self.game_numbers and len(self.game_numbers) > self.current_game_index:
-                return self.game_numbers[self.current_game_index]
-            else:
-                return "1"  # fallback to default
-        except Exception:
-            return "1"  # fallback to default
+        return game_flow.get_current_game_number(self)
 
     def update_game_number_display(self):
         """Update the game number display based on current Tournament List selection."""
