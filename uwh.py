@@ -4171,188 +4171,196 @@ Usage:
 
     def show_cap_number_dialog(self, trigger_button=None):
         """
-        Show a dialog to select a cap number (1-15) or Unknown.
+        Show a dialog to select a cap number (1-15), Unknown, or Penalty Goal.
         Returns the selected cap number as a string, or None if canceled.
-        
-        Args:
-            trigger_button: Optional button widget that triggered this dialog.
-                          If provided, dialog will be positioned near the button.
         """
+    
+        dialog_width = 400
+        dialog_height = 300
+    
         cap_number_dialog = tk.Toplevel(self.master)
+        cap_number_dialog.withdraw()  # Hide until correctly positioned
         cap_number_dialog.title("Select Cap Number")
-        
-        # Position the dialog near the trigger button if provided
-        if trigger_button:
-            # Get button's screen coordinates
-            button_x = trigger_button.winfo_rootx()
-            button_y = trigger_button.winfo_rooty()
-            button_width = trigger_button.winfo_width()
-            button_height = trigger_button.winfo_height()
-            
-            # Set initial geometry to get accurate dialog dimensions
-            cap_number_dialog.geometry("400x300")
-            cap_number_dialog.update_idletasks()
-            
-            # Get screen and dialog dimensions
-            screen_width = cap_number_dialog.winfo_screenwidth()
-            screen_height = cap_number_dialog.winfo_screenheight()
-            dialog_width = cap_number_dialog.winfo_reqwidth()
-            dialog_height = cap_number_dialog.winfo_reqheight()
-            
-            # Define margins
-            top_margin = 20
-            bottom_margin = 20
-            left_margin = 20
-            right_margin = 20
-            gap = 10  # Gap between dialog bottom and button top
-            
-            # Position dialog so its bottom edge is above the button top edge
-            # dialog_y is the top of the dialog
-            # dialog_y + dialog_height is the bottom of the dialog
-            # We want: dialog_y + dialog_height <= button_y - gap
-            # Therefore: dialog_y <= button_y - gap - dialog_height
-            dialog_y = button_y - gap - dialog_height
-            dialog_x = button_x  # Align left edge with button
-            
-            # Ensure dialog is fully visible on screen
-            # Check if dialog would go above screen top
-            if dialog_y < top_margin:
-                dialog_y = top_margin
-            
-            # After adjusting for top margin, ensure bottom edge is still above button
-            # If dialog bottom would be at or below button top, we have a constraint violation
-            # In this case, keep dialog as high as possible while staying on screen
-            if dialog_y + dialog_height > button_y - gap:
-                # Dialog cannot fit above button with gap, position as high as possible
-                dialog_y = max(top_margin, button_y - gap - dialog_height)
-            
-            # Ensure dialog doesn't extend beyond screen bottom
-            if dialog_y + dialog_height > screen_height - bottom_margin:
-                dialog_y = screen_height - dialog_height - bottom_margin
-                if dialog_y < top_margin:
-                    dialog_y = top_margin
-            
-            # Ensure dialog doesn't extend beyond screen right edge
-            if dialog_x + dialog_width > screen_width - right_margin:
-                dialog_x = screen_width - dialog_width - right_margin
-            
-            # Ensure dialog doesn't go beyond screen left edge
-            if dialog_x < left_margin:
-                dialog_x = left_margin
-            
-            cap_number_dialog.geometry(f"400x300+{dialog_x}+{dialog_y}")
-        else:
-            cap_number_dialog.geometry("400x300")
-        
+        cap_number_dialog.resizable(False, False)
         cap_number_dialog.transient(self.master)
-        cap_number_dialog.grab_set()
-        
+    
         selected_cap = {"value": None}
-        
+    
         # Title label
-        title_label = tk.Label(cap_number_dialog, text="Select Scorer's Cap Number:", 
-                               font=("Arial", 12, "bold"))
+        title_label = tk.Label(
+            cap_number_dialog,
+            text="Select Scorer's Cap Number:",
+            font=("Arial", 12, "bold")
+        )
         title_label.pack(pady=10)
-        
-        # Frame for the button matrix
+    
+        # Frame for cap number buttons
         matrix_frame = tk.Frame(cap_number_dialog)
         matrix_frame.pack(pady=10)
-        
+    
         def select_cap(cap):
             selected_cap["value"] = str(cap)
-            # Highlight the selected button and keep it highlighted
+    
             def apply_highlight():
                 for widget in matrix_frame.winfo_children():
-                    if hasattr(widget, 'cap_value') and widget.cap_value == cap:
+                    if hasattr(widget, "cap_value") and widget.cap_value == cap:
                         widget.config(relief=tk.SUNKEN, bg="lightblue")
-                    elif isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
+                    elif isinstance(widget, tk.Button) and hasattr(widget, "original_bg"):
                         widget.config(relief=tk.RAISED, bg=widget.original_bg)
+    
                 for widget in bottom_frame.winfo_children():
-                    if isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
+                    if isinstance(widget, tk.Button) and hasattr(widget, "original_bg"):
                         widget.config(relief=tk.RAISED, bg=widget.original_bg)
-            # Apply immediately and schedule again to override button's default behavior
+    
             apply_highlight()
             cap_number_dialog.after(1, apply_highlight)
-        
+    
         def select_unknown():
             selected_cap["value"] = "Unknown"
-            # Highlight Unknown button and keep it highlighted
+    
             def apply_highlight():
                 for widget in matrix_frame.winfo_children():
-                    if isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
+                    if isinstance(widget, tk.Button) and hasattr(widget, "original_bg"):
                         widget.config(relief=tk.RAISED, bg=widget.original_bg)
+    
                 for widget in bottom_frame.winfo_children():
-                    if hasattr(widget, 'is_unknown'):
+                    if hasattr(widget, "is_unknown"):
                         widget.config(relief=tk.SUNKEN, bg="lightblue")
-                    elif isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
+                    elif isinstance(widget, tk.Button) and hasattr(widget, "original_bg"):
                         widget.config(relief=tk.RAISED, bg=widget.original_bg)
-            # Apply immediately and schedule again to override button's default behavior
+    
             apply_highlight()
             cap_number_dialog.after(1, apply_highlight)
-        
+    
         def select_penalty_goal():
             selected_cap["value"] = "Penalty Goal"
-            # Highlight Penalty Goal button and keep it highlighted
+    
             def apply_highlight():
                 for widget in matrix_frame.winfo_children():
-                    if isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
+                    if isinstance(widget, tk.Button) and hasattr(widget, "original_bg"):
                         widget.config(relief=tk.RAISED, bg=widget.original_bg)
+    
                 for widget in bottom_frame.winfo_children():
-                    if hasattr(widget, 'is_penalty_goal'):
+                    if hasattr(widget, "is_penalty_goal"):
                         widget.config(relief=tk.SUNKEN, bg="lightblue")
-                    elif isinstance(widget, tk.Button) and hasattr(widget, 'original_bg'):
+                    elif isinstance(widget, tk.Button) and hasattr(widget, "original_bg"):
                         widget.config(relief=tk.RAISED, bg=widget.original_bg)
-            # Apply immediately and schedule again to override button's default behavior
+    
             apply_highlight()
             cap_number_dialog.after(1, apply_highlight)
-        
+    
         def on_ok():
             if selected_cap["value"] is not None:
                 cap_number_dialog.destroy()
             else:
-                messagebox.showwarning("No Selection", "Please select a cap number or Unknown.")
-        
-        # Create 5x3 matrix of buttons (1-15)
+                messagebox.showwarning(
+                    "No Selection",
+                    "Please select a cap number, Unknown, or Penalty Goal."
+                )
+    
+        # Create 5x3 matrix of buttons: 1-15
         button_width = 5
         button_height = 2
+    
         for row in range(3):
             for col in range(5):
                 cap_num = row * 5 + col + 1
-                btn = tk.Button(matrix_frame, text=str(cap_num), width=button_width, height=button_height,
-                               command=lambda c=cap_num: select_cap(c))
+                btn = tk.Button(
+                    matrix_frame,
+                    text=str(cap_num),
+                    width=button_width,
+                    height=button_height,
+                    command=lambda c=cap_num: select_cap(c)
+                )
                 btn.cap_value = cap_num
-                btn.original_bg = btn.cget('bg')  # Store original background color
+                btn.original_bg = btn.cget("bg")
                 btn.grid(row=row, column=col, padx=2, pady=2)
-        
-        # Bottom frame for Unknown and OK buttons
+    
+        # Bottom frame
         bottom_frame = tk.Frame(cap_number_dialog)
         bottom_frame.pack(pady=10)
-        
-        # Unknown button (columnspan 2, half the original width)
-        unknown_btn = tk.Button(bottom_frame, text="Unknown", width=button_width * 2 + 3, height=button_height,
-                               command=select_unknown)
+    
+        unknown_btn = tk.Button(
+            bottom_frame,
+            text="Unknown",
+            width=button_width * 2 + 3,
+            height=button_height,
+            command=select_unknown
+        )
         unknown_btn.is_unknown = True
-        unknown_btn.original_bg = unknown_btn.cget('bg')  # Store original background color
+        unknown_btn.original_bg = unknown_btn.cget("bg")
         unknown_btn.grid(row=0, column=0, columnspan=2, padx=2, pady=2)
-        
-        # Penalty Goal button (columnspan 2)
-        penalty_goal_btn = tk.Button(bottom_frame, text="Penalty Goal", width=button_width * 2 + 3, height=button_height,
-                                    command=select_penalty_goal)
+    
+        penalty_goal_btn = tk.Button(
+            bottom_frame,
+            text="Penalty Goal",
+            width=button_width * 2 + 3,
+            height=button_height,
+            command=select_penalty_goal
+        )
         penalty_goal_btn.is_penalty_goal = True
-        penalty_goal_btn.original_bg = penalty_goal_btn.cget('bg')  # Store original background color
+        penalty_goal_btn.original_bg = penalty_goal_btn.cget("bg")
         penalty_goal_btn.grid(row=0, column=2, columnspan=2, padx=2, pady=2)
-        
-        # OK button (in column 4)
-        ok_btn = tk.Button(bottom_frame, text="OK", width=button_width, height=button_height,
-                          command=on_ok)
-        ok_btn.original_bg = ok_btn.cget('bg')  # Store original background color
+    
+        ok_btn = tk.Button(
+            bottom_frame,
+            text="OK",
+            width=button_width,
+            height=button_height,
+            command=on_ok
+        )
+        ok_btn.original_bg = ok_btn.cget("bg")
         ok_btn.grid(row=0, column=4, padx=2, pady=2)
-        
-        # Wait for the dialog to close
+    
+        # Calculate final position BEFORE showing dialog
+        if trigger_button:
+            button_x = trigger_button.winfo_rootx()
+            button_y = trigger_button.winfo_rooty()
+    
+            screen_width = cap_number_dialog.winfo_screenwidth()
+            screen_height = cap_number_dialog.winfo_screenheight()
+    
+            top_margin = 20
+            bottom_margin = 20
+            left_margin = 20
+            right_margin = 20
+            gap = 10
+    
+            dialog_x = button_x
+            dialog_y = button_y - gap - dialog_height
+    
+            if dialog_y < top_margin:
+                dialog_y = top_margin
+    
+            if dialog_y + dialog_height > screen_height - bottom_margin:
+                dialog_y = screen_height - dialog_height - bottom_margin
+    
+            if dialog_x + dialog_width > screen_width - right_margin:
+                dialog_x = screen_width - dialog_width - right_margin
+    
+            if dialog_x < left_margin:
+                dialog_x = left_margin
+        else:
+            screen_width = cap_number_dialog.winfo_screenwidth()
+            screen_height = cap_number_dialog.winfo_screenheight()
+    
+            dialog_x = (screen_width - dialog_width) // 2
+            dialog_y = (screen_height - dialog_height) // 2
+    
+        cap_number_dialog.geometry(
+            f"{dialog_width}x{dialog_height}+{dialog_x}+{dialog_y}"
+        )
+    
+        # Now show it only after geometry is correct
+        cap_number_dialog.deiconify()
+        cap_number_dialog.lift()
+        cap_number_dialog.focus_force()
+        cap_number_dialog.grab_set()
+    
         self.master.wait_window(cap_number_dialog)
-        
+    
         return selected_cap["value"]
-
+    
     def show_penalties(self, trigger_button=None):
         """
         Show the penalties dialog window.
