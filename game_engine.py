@@ -318,3 +318,6 @@ class GameEngine:
             "Second Half",
             "Between Game Break"
         ]
+    def format_seconds_as_mmss(self, seconds):
+        mins, secs = divmod(max(0, int(seconds)), 60)
+        return f"{mins:02d}:{secs:02d}"
