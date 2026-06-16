@@ -4410,37 +4410,40 @@ Usage:
         radio_frame.pack(side="top", anchor="w", pady=10, fill="both")
     
         # Blank when the popup opens
-        radio_variable = tk.StringVar(value="")
+        NO_PENALTY_DURATION_SELECTED = "__none__"
+        radio_variable = tk.StringVar(value=NO_PENALTY_DURATION_SELECTED)
     
         radio_button_1 = tk.Radiobutton(
             radio_frame,
             text="1 minute",
             variable=radio_variable,
             value="1 minute",
-            indicatoron=True
+            tristatevalue="__tristate__"
         )
+        
         radio_button_2 = tk.Radiobutton(
             radio_frame,
             text="2 minutes",
             variable=radio_variable,
             value="2 minutes",
-            indicatoron=True
+            tristatevalue="__tristate__"
         )
+        
         radio_button_3 = tk.Radiobutton(
             radio_frame,
             text="5 minutes",
             variable=radio_variable,
             value="5 minutes",
-            indicatoron=True
+            tristatevalue="__tristate__"
         )
+        
         radio_button_4 = tk.Radiobutton(
             radio_frame,
             text="Rest of the match",
             variable=radio_variable,
             value="Rest of the match",
-            indicatoron=True
-        )
-    
+            tristatevalue="__tristate__"
+        )    
         radio_button_1.pack(anchor="w")
         radio_button_2.pack(anchor="w")
         radio_button_3.pack(anchor="w")
@@ -4525,7 +4528,7 @@ Usage:
                 messagebox.showerror("Error", "Choose a cap number.")
                 return
     
-            if duration == "":
+            if duration == NO_PENALTY_DURATION_SELECTED:
                 messagebox.showerror("Error", "Choose a penalty duration.")
                 return
     
@@ -4541,7 +4544,7 @@ Usage:
                 selected_team.set("")
                 select_team("")
                 dropdown_variable.set(dropdown_options[0])
-                radio_variable.set("")
+                radio_variable.set(NO_PENALTY_DURATION_SELECTED)
             else:
                 messagebox.showerror(
                     "Error",
