@@ -3692,10 +3692,17 @@ Usage:
         if self.engine.is_sudden_death(
             cur_period["name"]
         ):
+            if self.timer_job:
+                self.master.after_cancel(self.timer_job)
+                self.timer_job = None
+
+            if self.sudden_death_timer_job:
+                self.master.after_cancel(self.sudden_death_timer_job)
+                self.sudden_death_timer_job = None
+
             self.engine.start_timer()
             self.engine.sudden_death_seconds = 0
             self.update_timer_display()
-            self.start_sudden_death_timer()
 
             event_name = self.engine.period_start_event_name(
                 cur_period["name"]
@@ -3703,6 +3710,11 @@ Usage:
 
             if event_name:
                 self.log_game_event(event_name)
+
+            self.sudden_death_timer_job = self.master.after(
+                1000,
+                self.start_sudden_death_timer
+            )
         else:
             self.engine.set_timer_seconds(
                 cur_period['duration'] if cur_period['duration'] is not None else 0
@@ -3744,6 +3756,18 @@ Usage:
         )
 
         self.start_current_period()
+
+        def start_sudden_death_timer(self):
+        if not self.engine.timer_running:
+            return
+
+        self.update_timer_display()
+        self.engine.sudden_death_seconds += 1
+
+        self.sudden_death_timer_job = self.master.after(
+            1000,
+            self.start_sudden_death_timer
+        )
 
     def stop_sudden_death_timer(self):
         if self.sudden_death_timer_job:
