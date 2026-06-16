@@ -3775,109 +3775,83 @@ Usage:
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
+
         if not self.engine.timer_running:
             self.update_timer_display()
             return
+
         if self.engine.timer_seconds > 0:
-            cur_period = self.engine.get_current_period() if self.engine.full_sequence and self.engine.current_index < len(self.engine.full_sequence) else None
-            
-            # Play siren at 1s for break periods (plays 1s earlier than old 0s trigger)
-            if cur_period and cur_period['type'] == 'break':
-                break_periods = ['First Game Starts In:', 'Between Game Break', 'Half Time', 'Sudden Death Game Break', 
-                               'Overtime Game Break', 'Overtime Half Time']
-                if cur_period['name'] in break_periods and self.engine.timer_seconds == 1:
-                    # Play siren at 1s (displays as 00:01, plays 1s earlier than old 0s trigger)
-                    try:
-                        play_sound_with_volume(self.siren_var.get(), "siren", self.enable_sound,
-                                               self.pips_volume, self.siren_volume,
-                                               self.air_volume, self.water_volume,
-                                               self.siren_duration)
-                    except Exception as e:
-                        print(f"Error playing siren at 1s for break period: {e}")
-            
-            # Play siren at 1s for regular/overtime periods (plays 1s earlier than old 0s trigger)
-            if cur_period and cur_period['type'] in ['regular', 'overtime']:
-                half_periods = ['First Half', 'Second Half', 'Overtime First Half', 'Overtime Second Half']
-                if cur_period['name'] in half_periods and self.engine.timer_seconds == 1:
-                    # Play siren at 1s (displays as 00:01, plays 1s earlier than old 0s trigger)
-                    try:
-                        play_sound_with_volume(self.siren_var.get(), "siren", self.enable_sound,
-                                               self.pips_volume, self.siren_volume,
-                                               self.air_volume, self.water_volume,
-                                               self.siren_duration)
-                    except Exception as e:
-                        print(f"Error playing siren at 1s for half period: {e}")
-            
-            if cur_period and cur_period['name'] == 'Between Game Break':
+            cur_period = self.engine.get_current_period()
+
+            if self.engine.should_play_period_end_siren(cur_period):
+                try:
+                    play_sound_with_volume(
+                        self.siren_var.get(),
+                        "siren",
+                        self.enable_sound,
+                        self.pips_volume,
+                        self.siren_volume,
+                        self.air_volume,
+                        self.water_volume,
+                        self.siren_duration
+                    )
+                except Exception as e:
+                    print(f"Error playing period-end siren: {e}")
+
+            if cur_period and cur_period["name"] == "Between Game Break":
                 if self.engine.timer_seconds == 30:
-                    # Write game results to CSV/TXT BEFORE resetting scores
                     current_game = self.get_current_game_number()
                     white_score = self.white_score_var.get()
                     black_score = self.black_score_var.get()
-            
-                    # Copy stored_penalties before clearing
+
                     penalties_to_write = list(self.engine.stored_penalties)
-            
-                    # Log game end event to TXT file
+
                     self.log_game_event("Game End")
-            
-                    # Write results to CSV file
+
                     self.write_game_results_to_csv(
                         current_game,
                         white_score,
                         black_score,
                         penalties_to_write
                     )
-            
-                    # -----------------------------
-                    # Reset game state for next game
-                    # -----------------------------
-                    
+
                     self.white_score_var.set(0)
                     self.black_score_var.set(0)
-                    
+
                     self.engine.stored_penalties.clear()
                     self.clear_all_penalties()
-
                     self.engine.clear_goal_scorers()
-                    
-                    # Advance to next game
+
                     self.advance_to_next_game()
-                    
-                    # Update team names
                     self.update_team_names_display()
-            
-            # Sound logic for break periods - play BEFORE decrementing timer
-            if cur_period and cur_period['type'] == 'break':
-                break_periods = ['First Game Starts In:', 'Between Game Break', 'Half Time', 'Sudden Death Game Break', 
-                               'Overtime Game Break', 'Overtime Half Time']
-                if cur_period['name'] in break_periods:
-                    if self.engine.timer_seconds == 31:
-                        # Play one pip at 31s (displays as 00:31, plays 1s earlier than old 30s trigger)
-                        try:
-                            play_sound_with_volume(self.pips_var.get(), "pips", self.enable_sound, 
-                                                   self.pips_volume, self.siren_volume, 
-                                                   self.air_volume, self.water_volume,
-                                                   self.siren_duration)
-                        except Exception as e:
-                            print(f"Error playing pip sound at 31s: {e}")
-                    elif 2 <= self.engine.timer_seconds <= 11:
-                        # Play one pip per second from 11s to 2s (displays 00:11 to 00:02, plays 1s earlier than old 10-1s trigger)
-                        try:
-                            play_sound_with_volume(self.pips_var.get(), "pips", self.enable_sound,
-                                                   self.pips_volume, self.siren_volume,
-                                                   self.air_volume, self.water_volume,
-                                                   self.siren_duration)
-                        except Exception as e:
-                            print(f"Error playing pip sound at {self.engine.timer_seconds}s: {e}")
-            
-            # Decrement timer AFTER playing sounds
+
+            if self.engine.should_play_break_countdown_pip(cur_period):
+                try:
+                    play_sound_with_volume(
+                        self.pips_var.get(),
+                        "pips",
+                        self.enable_sound,
+                        self.pips_volume,
+                        self.siren_volume,
+                        self.air_volume,
+                        self.water_volume,
+                        self.siren_duration
+                    )
+                except Exception as e:
+                    print(
+                        f"Error playing break countdown pip at "
+                        f"{self.engine.timer_seconds}s: {e}"
+                    )
+
             self.engine.decrement_timer()
             self.update_timer_display()
-            
-            self.timer_job = self.master.after(1000, self.countdown_timer)
+
+            self.timer_job = self.master.after(
+                1000,
+                self.countdown_timer
+            )
+
         else:
-            # Timer reached 0 - no sounds played here anymore (moved to 1s)
             self.next_period()
 
     def reset_timeouts_for_half(self):
