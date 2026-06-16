@@ -4359,35 +4359,25 @@ Usage:
     def show_penalties(self, trigger_button=None):
         """
         Show the penalties dialog window.
-
+    
         Args:
             trigger_button: Optional button widget that triggered this dialog.
         """
+        penalty_width = 250
+        penalty_height = 450
+        gap = 8
+    
         penalty_window = tk.Toplevel(self.master)
+        penalty_window.withdraw()  # Hide until correctly positioned
         penalty_window.title("Penalties")
-        penalty_window.geometry("250x450")
-
+        penalty_window.resizable(False, False)
+        penalty_window.transient(self.master)
+    
         button_frame = ttk.Frame(penalty_window, padding="10")
         button_frame.pack(side="top", fill="x")
-
+    
         selected_team = tk.StringVar(value="")
-
-        button_white = tk.Button(
-            button_frame,
-            text="White",
-            width=10,
-            command=lambda: select_team("White")
-        )
-        button_white.pack(side="left", padx=5, expand=True)
-
-        button_black = tk.Button(
-            button_frame,
-            text="Black",
-            width=10,
-            command=lambda: select_team("Black")
-        )
-        button_black.pack(side="left", padx=5, expand=True)
-
+    
         def select_team(team):
             selected_team.set(team)
             button_white.config(
@@ -4396,11 +4386,27 @@ Usage:
             button_black.config(
                 relief=tk.SUNKEN if team == "Black" else tk.RAISED
             )
-
+    
+        button_white = tk.Button(
+            button_frame,
+            text="White",
+            width=10,
+            command=lambda: select_team("White")
+        )
+        button_white.pack(side="left", padx=5, expand=True)
+    
+        button_black = tk.Button(
+            button_frame,
+            text="Black",
+            width=10,
+            command=lambda: select_team("Black")
+        )
+        button_black.pack(side="left", padx=5, expand=True)
+    
         numbers = list(range(1, 16))
         dropdown_options = ["Pick Cap Number"] + numbers
         dropdown_variable = tk.StringVar(value=dropdown_options[0])
-
+    
         dropdown = ttk.Combobox(
             penalty_window,
             textvariable=dropdown_variable,
@@ -4409,12 +4415,13 @@ Usage:
             height=16
         )
         dropdown.pack(pady=10)
-
+    
         radio_frame = ttk.Frame(penalty_window)
         radio_frame.pack(side="top", anchor="w", pady=10, fill="both")
-
+    
+        # Blank when the popup opens
         radio_variable = tk.StringVar(value="")
-
+    
         radio_button_1 = tk.Radiobutton(
             radio_frame,
             text="1 minute",
@@ -4443,46 +4450,46 @@ Usage:
             value="Rest of the match",
             indicatoron=True
         )
-
+    
         radio_button_1.pack(anchor="w")
         radio_button_2.pack(anchor="w")
         radio_button_3.pack(anchor="w")
         radio_button_4.pack(anchor="w")
-
+    
         summary_frame = ttk.Frame(penalty_window)
         summary_frame.pack(side="top", fill="both", expand=True)
-
+    
         summary_label = ttk.Label(
             summary_frame,
             text="Stored Penalties (max 6):"
         )
         summary_label.pack(anchor="w")
-
+    
         penalty_listbox = tk.Listbox(
             summary_frame,
             height=6,
             exportselection=0
         )
         penalty_listbox.pack(fill="both", expand=True)
-
+    
         def refresh_penalty_listbox():
             selection = penalty_listbox.curselection()
             selected_index = selection[0] if selection else None
-
+    
             penalty_listbox.delete(0, tk.END)
-
+    
             for penalty in self.engine.active_penalties:
                 if penalty["is_rest_of_match"]:
                     time_str = "REST OF MATCH"
                 else:
                     mins, secs = divmod(penalty["seconds_remaining"], 60)
                     time_str = f"{int(mins):02d}:{int(secs):02d}"
-
+    
                 penalty_listbox.insert(
                     tk.END,
                     f"{penalty['team']} #{penalty['cap']} {time_str}"
                 )
-
+    
             for p in self.engine.stored_penalties:
                 already_active = any(
                     ap["team"] == p["team"]
@@ -4490,21 +4497,21 @@ Usage:
                     and ap["duration"] == p["duration"]
                     for ap in self.engine.active_penalties
                 )
-
+    
                 if not already_active:
                     penalty_listbox.insert(
                         tk.END,
                         f"{p['team']} #{p['cap']} {p['duration']}"
                     )
-
+    
             if selected_index is not None and penalty_listbox.size() > selected_index:
                 penalty_listbox.selection_set(selected_index)
                 penalty_listbox.activate(selected_index)
             else:
                 penalty_listbox.selection_clear(0, tk.END)
-
+    
         refresh_penalty_listbox()
-
+    
         def periodic_refresh():
             try:
                 if penalty_window.winfo_exists():
@@ -4512,33 +4519,33 @@ Usage:
                     penalty_window.after(1000, periodic_refresh)
             except tk.TclError:
                 pass
-
+    
         penalty_window.after(1000, periodic_refresh)
-
+    
         def start_penalty():
             team = selected_team.get()
             cap = dropdown_variable.get()
             duration = radio_variable.get()
-
+    
             if team not in ["White", "Black"]:
                 messagebox.showerror("Error", "Choose White or Black team.")
                 return
-
+    
             if cap == "Pick Cap Number":
                 messagebox.showerror("Error", "Choose a cap number.")
                 return
-
+    
             if duration == "":
                 messagebox.showerror("Error", "Choose a penalty duration.")
                 return
-
+    
             if len(self.engine.stored_penalties) >= 6:
                 messagebox.showerror(
                     "Error",
                     "Maximum 6 penalties can be stored."
                 )
                 return
-
+    
             if self.start_penalty_timer(team, cap, duration):
                 refresh_penalty_listbox()
                 selected_team.set("")
@@ -4550,37 +4557,37 @@ Usage:
                     "Error",
                     "Failed to start penalty timer."
                 )
-
+    
         def remove_penalty():
             selection = penalty_listbox.curselection()
-
+    
             if not selection:
                 messagebox.showerror(
                     "Error",
                     "Please select a penalty to remove."
                 )
                 return
-
+    
             idx = selection[0]
             active_count = len(self.engine.active_penalties)
-
+    
             if idx < active_count:
                 penalty_to_remove = self.engine.active_penalties[idx]
                 self.remove_penalty(penalty_to_remove)
                 refresh_penalty_listbox()
             else:
                 stored_idx = idx - active_count
-
+    
                 if 0 <= stored_idx < len(self.engine.stored_penalties):
                     self.engine.stored_penalties.pop(stored_idx)
                     refresh_penalty_listbox()
-
+    
         start_button_frame = ttk.Frame(penalty_window)
         start_button_frame.pack(side="bottom", fill="x", pady=10)
-
+    
         button_container = ttk.Frame(start_button_frame)
         button_container.pack(expand=True, fill="x")
-
+    
         start_button = ttk.Button(
             button_container,
             text="Start Penalty",
@@ -4592,7 +4599,7 @@ Usage:
             fill="x",
             padx=(0, 5)
         )
-
+    
         remove_button = ttk.Button(
             button_container,
             text="Remove Selected",
@@ -4604,10 +4611,10 @@ Usage:
             fill="x",
             padx=(5, 0)
         )
-
+    
         def on_close():
             penalty_window.destroy()
-
+    
         close_button = ttk.Button(
             start_button_frame,
             text="Close",
@@ -4619,41 +4626,33 @@ Usage:
             padx=10,
             pady=(0, 10)
         )
-
-        penalty_window.transient(self.master)
-        penalty_window.grab_set()
-
+    
+        penalty_window.protocol("WM_DELETE_WINDOW", on_close)
+    
+        # Position from the CURRENT live location of the Penalties button.
+        # Do not use winfo_screenwidth()/winfo_screenheight() here, because that
+        # can pull the popup back toward the original/primary monitor.
         penalty_window.update_idletasks()
-
+    
         if trigger_button:
             button_x = trigger_button.winfo_rootx()
             button_y = trigger_button.winfo_rooty()
             button_w = trigger_button.winfo_width()
-
-            dialog_w = penalty_window.winfo_width()
-            dialog_h = penalty_window.winfo_height()
-
-            x = button_x + (button_w // 2) - (dialog_w // 2)
-            y = button_y - dialog_h - 8
-
-            screen_w = penalty_window.winfo_screenwidth()
-            screen_h = penalty_window.winfo_screenheight()
-
-            if x < 0:
-                x = 0
-
-            if x + dialog_w > screen_w:
-                x = screen_w - dialog_w
-
-            if y < 0:
-                y = button_y + trigger_button.winfo_height() + 8
-
-            if y + dialog_h > screen_h:
-                y = max(0, screen_h - dialog_h)
-
-            penalty_window.geometry(f"250x450+{x}+{y}")
-
-        penalty_window.protocol("WM_DELETE_WINDOW", on_close)
+    
+            popup_x = button_x + (button_w // 2) - (penalty_width // 2)
+            popup_y = button_y - penalty_height - gap
+        else:
+            popup_x = self.master.winfo_rootx() + 100
+            popup_y = self.master.winfo_rooty() + 100
+    
+        penalty_window.geometry(
+            f"{penalty_width}x{penalty_height}+{popup_x}+{popup_y}"
+        )
+    
+        penalty_window.deiconify()
+        penalty_window.lift()
+        penalty_window.focus_force()
+        penalty_window.grab_set()
     
     def toggle_referee_timeout(self):
         if not self.referee_timeout_active:
