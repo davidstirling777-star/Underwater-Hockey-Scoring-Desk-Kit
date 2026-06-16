@@ -382,3 +382,12 @@ class GameEngine:
             return True
 
         return False
+
+    def should_export_game_results(self, period):
+        if not period:
+            return False
+
+        return (
+            period["name"] == "Between Game Break"
+            and self.timer_seconds == 30
+        )
