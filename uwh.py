@@ -4,6 +4,7 @@ import hardware_detection
 import startup_selftest
 import game_logging
 import display_manager
+import game_flow
 import os
 import sys
 import shutil
@@ -3833,7 +3834,7 @@ Usage:
                     print(f"Error playing period-end siren: {e}")
 
             if self.engine.should_export_game_results(cur_period):
-                self.export_and_reset_game_at_break()
+                game_flow.export_and_reset_game_at_break(self)
 
             if self.engine.should_play_break_countdown_pip(cur_period):
                 try:
