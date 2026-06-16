@@ -25,3 +25,21 @@ def export_and_reset_game_at_break(app):
 
     app.advance_to_next_game()
     app.update_team_names_display()
+
+def start_sudden_death_timer(app):
+    if not app.engine.timer_running:
+        return
+
+    app.engine.sudden_death_seconds += 1
+    app.update_timer_display()
+
+    app.sudden_death_timer_job = app.master.after(
+        1000,
+        lambda: start_sudden_death_timer(app)
+    )
+
+
+def stop_sudden_death_timer(app):
+    if app.sudden_death_timer_job:
+        app.master.after_cancel(app.sudden_death_timer_job)
+        app.sudden_death_timer_job = None
