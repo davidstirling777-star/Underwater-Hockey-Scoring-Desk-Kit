@@ -3757,12 +3757,12 @@ Usage:
 
         self.start_current_period()
 
-        def start_sudden_death_timer(self):
+    def start_sudden_death_timer(self):
         if not self.engine.timer_running:
             return
 
-        self.update_timer_display()
         self.engine.sudden_death_seconds += 1
+        self.update_timer_display()
 
         self.sudden_death_timer_job = self.master.after(
             1000,
