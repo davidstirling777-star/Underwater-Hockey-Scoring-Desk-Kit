@@ -3548,37 +3548,55 @@ Usage:
             self.master.after_cancel(self.court_time_job)
             self.court_time_job = None
 
-        if self.court_time_seconds is None:
-            now = datetime.datetime.now()
-            self.court_time_seconds = now.hour * 3600 + now.minute * 60 + now.second
-
         if self.court_time_paused:
-            self.court_time_job = self.master.after(1000, self.update_court_time)
+            self.court_time_job = self.master.after(
+                1000,
+                self.update_court_time
+            )
             return
 
-        self.court_time_seconds += 1
+        now = datetime.datetime.now()
+        self.court_time_seconds = (
+            now.hour * 3600 +
+            now.minute * 60 +
+            now.second
+        )
 
         hours, remainder = divmod(self.court_time_seconds, 3600)
         minutes, seconds = divmod(remainder, 60)
-        time_string = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
-        # Event-driven: Update the StringVar instead of calling .config()
-        self.court_time_var.set(f"Court Time is {time_string}")
-        self.court_time_job = self.master.after(1000, self.update_court_time)
+
+        self.court_time_var.set(
+            f"Court Time is {hours:02d}:{minutes:02d}:{seconds:02d}"
+        )
+
+        self.court_time_job = self.master.after(
+            1000,
+            self.update_court_time
+        )
 
     def update_timer_display(self):
         if self.referee_timeout_active:
-            mins, secs = divmod(self.referee_timeout_elapsed, 60)
-            self.timer_var.set(f"{int(mins):02d}:{int(secs):02d}")
+            self.timer_var.set(
+                self.engine.format_seconds_as_mmss(
+                    self.referee_timeout_elapsed
+                )
+            )
             return
-    
+
         cur_period = self.engine.get_current_period()
-    
-        if cur_period and cur_period['name'] == 'Sudden Death':
-            mins, secs = divmod(self.engine.sudden_death_seconds, 60)
-            self.timer_var.set(f"{int(mins):02d}:{int(secs):02d}")
+
+        if cur_period and self.engine.is_sudden_death(cur_period["name"]):
+            self.timer_var.set(
+                self.engine.format_seconds_as_mmss(
+                    self.engine.sudden_death_seconds
+                )
+            )
         else:
-            mins, secs = divmod(self.engine.timer_seconds, 60)
-            self.timer_var.set(f"{int(mins):02d}:{int(secs):02d}")
+            self.timer_var.set(
+                self.engine.format_seconds_as_mmss(
+                    self.engine.timer_seconds
+                )
+            )
 
     def adjust_between_game_break_for_crib_time(self):
         current_court_time = datetime.datetime.now() - datetime.timedelta(seconds=self.court_time_seconds)
