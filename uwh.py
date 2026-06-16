@@ -4886,17 +4886,27 @@ Usage:
         elif is_break:
             break_status = "Break"
         
-        self.log_game_event("Goal", team=team_name, cap_number=cap_number, break_status=break_status)
+        self.log_game_event(
+            "Goal",
+            team=team_name,
+            cap_number=cap_number,
+            break_status=break_status
+        )
 
-#Saves the current Sudden Death timer value (self.engine.sudden_death_seconds) for possible restoration (for example, if the goal is later subtracted).
-#Flags that a goal has been scored in Sudden Death (prevents this block from running again).
-#Progresses the game to the next period (typically Between Game Break or End of Game).
-        if cur_period['name'] == 'Sudden Death' and not self.engine.sudden_death_goal_scored:
-        
+        # Saves the current Sudden Death timer value for possible restoration.
+        # Flags that a goal has been scored in Sudden Death.
+        # Progresses the game to the next period.
+
+        if (
+            cur_period
+            and self.engine.is_sudden_death(cur_period["name"])
+            and not self.engine.sudden_death_goal_scored
+        ):
+
             self.engine.mark_sudden_death_goal(
                 self.engine.sudden_death_seconds
             )
-        
+
             self.engine.stop_timer()
             self.stop_sudden_death_timer()
             self.next_period()
