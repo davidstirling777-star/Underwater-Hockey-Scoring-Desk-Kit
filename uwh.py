@@ -3724,21 +3724,19 @@ Usage:
                 self.log_game_event(event_name)
 
     def next_period(self):
-
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
 
         cur_period = self.engine.get_current_period()
 
-        period_name = cur_period["name"]
+        if cur_period:
+            event_name = self.engine.period_end_event_name(
+                cur_period["name"]
+            )
 
-        event_name = self.engine.period_end_event_name(
-            period_name
-        )
-
-        if event_name:
-            self.log_game_event(event_name)
+            if event_name:
+                self.log_game_event(event_name)
 
         self.engine.advance_period(
             self.white_score_var.get(),
@@ -3746,18 +3744,6 @@ Usage:
         )
 
         self.start_current_period()
-
-    def start_sudden_death_timer(self):
-        if not self.engine.timer_running:
-            return
-
-        self.update_timer_display()
-        self.engine.sudden_death_seconds += 1
-
-        self.sudden_death_timer_job = self.master.after(
-            1000,
-            self.start_sudden_death_timer
-        )
 
     def stop_sudden_death_timer(self):
         if self.sudden_death_timer_job:
