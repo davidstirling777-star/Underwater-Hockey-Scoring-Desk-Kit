@@ -3588,13 +3588,14 @@ Usage:
                     self.engine.sudden_death_seconds
                 )
             )
-        else:
-            self.timer_var.set(
-                self.engine.format_seconds_as_mmss(
-                    self.engine.timer_seconds
-                )
-            )
+            return
 
+        self.timer_var.set(
+            self.engine.format_seconds_as_mmss(
+                self.engine.timer_seconds
+            )
+        )
+        
     def adjust_between_game_break_for_crib_time(self):
         current_court_time = datetime.datetime.now() - datetime.timedelta(seconds=self.court_time_seconds)
         local_time = datetime.datetime.now()
