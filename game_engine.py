@@ -283,6 +283,9 @@ class GameEngine:
             "Overtime Second Half",
             "Sudden Death Game Break",
             "Sudden Death",
+            "White Team Time-Out",
+            "Black Team Time-Out",
+            "Referee Time-Out",
         ]
 
     def is_sudden_death(self, period_name):
