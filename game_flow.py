@@ -43,3 +43,18 @@ def stop_sudden_death_timer(app):
     if app.sudden_death_timer_job:
         app.master.after_cancel(app.sudden_death_timer_job)
         app.sudden_death_timer_job = None
+
+def get_current_game_number(app):
+    try:
+        selected_game = app.starting_game_var.get()
+
+        if selected_game and selected_game in app.game_numbers:
+            return selected_game
+
+        if app.game_numbers and len(app.game_numbers) > app.current_game_index:
+            return app.game_numbers[app.current_game_index]
+
+        return "1"
+
+    except Exception:
+        return "1"
