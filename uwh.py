@@ -1697,18 +1697,7 @@ class GameManagementApp:
         return ",".join(comment_parts)
     
     def _sort_cap_key(self, cap_number):
-        """
-        Helper to sort cap numbers: numeric first (1-15), then PG, then UNK.
-        """
-        if cap_number == "Penalty Goal":
-            return (1, 100)
-        elif cap_number == "Unknown":
-            return (1, 101)
-        else:
-            try:
-                return (0, int(cap_number))
-            except ValueError:
-                return (2, 0)
+        return csv_export.sort_cap_key(cap_number)
 
     def on_csv_file_changed(self, event=None):
         return game_flow.on_csv_file_changed(
