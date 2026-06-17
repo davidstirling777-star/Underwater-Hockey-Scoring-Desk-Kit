@@ -198,3 +198,21 @@ def format_goal_scorers_comment(scorers):
         comment_parts.extend(black_parts)
 
     return ",".join(comment_parts)
+
+def aggregate_goal_scorers(goal_events):
+    scorers = {
+        "White": {},
+        "Black": {}
+    }
+
+    for event in goal_events:
+        team = event.get("team", "")
+        cap_number = event.get("cap_number", "")
+
+        if team in scorers and cap_number:
+            if cap_number not in scorers[team]:
+                scorers[team][cap_number] = 0
+
+            scorers[team][cap_number] += 1
+
+    return scorers
