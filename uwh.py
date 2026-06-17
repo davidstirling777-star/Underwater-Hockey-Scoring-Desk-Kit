@@ -1666,21 +1666,10 @@ class GameManagementApp:
                 return (2, 0)
 
     def on_csv_file_changed(self, event=None):
-        """Handle CSV file selection change - update game numbers dropdown."""
-        csv_file = self.csv_var.get()
-        self.game_numbers = self.parse_csv_game_numbers(csv_file)
-        
-        if hasattr(self, 'starting_game_dropdown'):
-            self.starting_game_dropdown['values'] = self.game_numbers
-            if self.game_numbers:
-                self.starting_game_var.set(self.game_numbers[0])
-                self.current_game_index = 0
-            else:
-                self.starting_game_var.set("")
-                self.current_game_index = 0
-        
-        # Update game number display after CSV change
-        self.update_game_number_display()
+        return game_flow.on_csv_file_changed(
+            self,
+            event
+        )
 
     def get_current_game_number(self):
         return game_flow.get_current_game_number(self)
