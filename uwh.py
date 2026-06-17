@@ -1705,32 +1705,32 @@ class GameManagementApp:
         """Update the team name widgets with data from CSV file."""
         try:
             current_game = self.get_current_game_number()
-            csv_file = self.csv_var.get() if hasattr(self, 'csv_var') else None
-            
-            # Get team names from CSV
-            white_team, black_team = self.parse_csv_team_names(csv_file, current_game)
-            
-            # Update the team name widgets if they exist
-            if hasattr(self, 'white_team_name_widget'):
-                if white_team:
-                    self.white_team_name_widget.config(text=white_team)
-                else:
-                    self.white_team_name_widget.config(text="")
-                    
-            if hasattr(self, 'black_team_name_widget'):
-                if black_team:
-                    self.black_team_name_widget.config(text=black_team)
-                else:
-                    self.black_team_name_widget.config(text="")
-                    
+            csv_file = self.csv_var.get() if hasattr(self, "csv_var") else None
+
+            white_team, black_team = self.parse_csv_team_names(
+                csv_file,
+                current_game
+            )
+
+            if hasattr(self, "white_team_name_widget"):
+                self.white_team_name_widget.config(
+                    text=white_team if white_team else ""
+                )
+
+            if hasattr(self, "black_team_name_widget"):
+                self.black_team_name_widget.config(
+                    text=black_team if black_team else ""
+                )
+
         except Exception as e:
             print(f"Error updating team names display: {e}")
-            # Set empty text on error
-            if hasattr(self, 'white_team_name_widget'):
-                self.white_team_name_widget.config(text="")
-            if hasattr(self, 'black_team_name_widget'):
-                self.black_team_name_widget.config(text="")
 
+            if hasattr(self, "white_team_name_widget"):
+                self.white_team_name_widget.config(text="")
+
+            if hasattr(self, "black_team_name_widget"):
+                self.black_team_name_widget.config(text="")
+                
     def advance_to_next_game(self):
         return game_flow.advance_to_next_game(self)
 
