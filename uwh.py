@@ -812,7 +812,11 @@ class GameManagementApp:
         for i in range(11):
             tab.grid_rowconfigure(i, weight=1)
         for i in range(9):
-            tab.grid_columnconfigure(i, weight=1)
+            tab.grid_columnconfigure(
+                i,
+                weight=1,
+                uniform="scoreboard_cols"
+            )
 
         self.court_time_label = tk.Label(tab, textvariable=self.court_time_var, font=self.fonts["court_time"], bg="lightgrey")
         self.court_time_label.grid(row=0, column=0, columnspan=9, padx=1, pady=1, sticky="nsew")
@@ -915,7 +919,6 @@ class GameManagementApp:
         self.penalties_button.grid(row=10, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
 
         self.update_team_timeouts_allowed()
-
 
     def update_penalty_display(self):
         """
