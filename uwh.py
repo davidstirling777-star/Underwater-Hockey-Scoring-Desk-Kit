@@ -1771,8 +1771,7 @@ class GameManagementApp:
         return game_flow.advance_to_next_game(self)
 
     def on_game_selection_changed(self, event=None):
-        """Handle manual game selection change from dropdown."""
-        self.update_game_number_display()
+        return game_flow.on_game_selection_changed(self, event)
 
     def open_csv_folder(self):
         """Open the folder containing CSV files in the system file manager."""
