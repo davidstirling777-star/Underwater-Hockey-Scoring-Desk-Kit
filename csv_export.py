@@ -157,3 +157,44 @@ def sort_cap_key(cap_number):
         return (0, int(cap_number))
     except ValueError:
         return (2, 0)
+
+def format_goal_scorers_comment(scorers):
+    comment_parts = []
+
+    if "White" in scorers and scorers["White"]:
+        white_parts = []
+
+        for cap_number, count in sorted(
+            scorers["White"].items(),
+            key=lambda x: sort_cap_key(x[0])
+        ):
+            if cap_number == "Penalty Goal":
+                white_parts.append(f"W#PG({count})")
+            elif cap_number == "Unknown":
+                white_parts.append(f"W#UNK({count})")
+            else:
+                white_parts.append(
+                    f"W#{cap_number}({count})"
+                )
+
+        comment_parts.extend(white_parts)
+
+    if "Black" in scorers and scorers["Black"]:
+        black_parts = []
+
+        for cap_number, count in sorted(
+            scorers["Black"].items(),
+            key=lambda x: sort_cap_key(x[0])
+        ):
+            if cap_number == "Penalty Goal":
+                black_parts.append(f"B#PG({count})")
+            elif cap_number == "Unknown":
+                black_parts.append(f"B#UNK({count})")
+            else:
+                black_parts.append(
+                    f"B#{cap_number}({count})"
+                )
+
+        comment_parts.extend(black_parts)
+
+    return ",".join(comment_parts)
