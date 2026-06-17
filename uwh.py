@@ -5,6 +5,7 @@ import startup_selftest
 import game_logging
 import display_manager
 import game_flow
+import csv_helpers
 import os
 import sys
 import shutil
@@ -1489,57 +1490,11 @@ class GameManagementApp:
         return sorted(csv_files) if csv_files else ["No CSV files found"]
     
     def parse_csv_game_numbers(self, csv_filename):
-        """
-        Parse CSV file and extract game numbers from the '#' column.
-        Expected header: date,#,White,Score,Black,Score,Referees,Penalties
-        """
-        game_numbers = []
-        if csv_filename == "No CSV files found" or not csv_filename:
-            return game_numbers
-            
-        try:
-            # CHANGED: Use BASE_DIR instead of os.getcwd() so it successfully finds the CSV next to the EXE
-            csv_path = os.path.join(BASE_DIR, csv_filename)
-            if not os.path.exists(csv_path):
-                return game_numbers
-                
-            with open(csv_path, 'r', encoding='utf-8') as f:
-                lines = f.readlines()
-                if len(lines) < 2:  # Need header + at least one data row
-                    return game_numbers
-                    
-                # Check header format
-                header = lines[0].strip().lower()
-                expected_cols = ['date', '#', 'white', 'score', 'black', 'score', 'referees']
-                header_cols = [col.strip() for col in header.split(',')]
-                
-                # Find the '#' column index (flexible header matching)
-                game_num_col_idx = -1
-                for i, col in enumerate(header_cols):
-                    if col in ['#', 'game', 'game#', 'game_number']:
-                        game_num_col_idx = i
-                        break
-                
-                if game_num_col_idx == -1:
-                    print(f"Warning: Could not find game number column in CSV {csv_filename}")
-                    return game_numbers
-                
-                # Parse data rows
-                for line in lines[1:]:
-                    line = line.strip()
-                    if line:
-                        cols = [col.strip() for col in line.split(',')]
-                        if len(cols) > game_num_col_idx:
-                            try:
-                                game_num = int(cols[game_num_col_idx])
-                                game_numbers.append(str(game_num))
-                            except ValueError:
-                                continue
-                                
-        except Exception as e:
-            print(f"Error parsing CSV file {csv_filename}: {e}")
+        return csv_helpers.parse_csv_game_numbers(
+            csv_filename,
+            BASE_DIR
+        )
         
-        return sorted(set(game_numbers), key=int) if game_numbers else []
     def parse_csv_team_names(self, csv_filename, game_number):
         """
         Parse CSV file and extract team names for a specific game number.
