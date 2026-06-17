@@ -1447,7 +1447,32 @@ class GameManagementApp:
         # Get CSV files in current directory
         csv_files = self.get_csv_files()
         self.csv_var = tk.StringVar(value=csv_files[0] if csv_files else "No CSV files found")
-        csv_dropdown = ttk.Combobox(widget4, textvariable=self.csv_var, values=csv_files, state="readonly", width=20)
+        self.csv_dropdown = ttk.Combobox(
+            widget4,
+            textvariable=self.csv_var,
+            values=csv_files,
+            state="readonly",
+            width=20
+        )
+        
+        self.csv_dropdown.grid(
+            row=2,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            padx=8,
+            pady=2
+        )
+        
+        self.csv_dropdown.bind(
+            "<<ComboboxSelected>>",
+            self.on_csv_file_changed
+        )
+        
+        self.csv_dropdown.bind(
+            "<Button-1>",
+            self.refresh_csv_dropdown
+        )
         csv_dropdown.grid(row=2, column=0, columnspan=2, sticky="ew", padx=8, pady=2)
         csv_dropdown.bind("<<ComboboxSelected>>", self.on_csv_file_changed)
         
