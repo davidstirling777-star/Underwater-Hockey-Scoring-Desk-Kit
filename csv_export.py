@@ -145,3 +145,15 @@ def write_game_results_to_csv(
         print("CSV UPDATE: Success")
 
     return True
+
+def sort_cap_key(cap_number):
+    if cap_number == "Penalty Goal":
+        return (1, 100)
+
+    if cap_number == "Unknown":
+        return (1, 101)
+
+    try:
+        return (0, int(cap_number))
+    except ValueError:
+        return (2, 0)
