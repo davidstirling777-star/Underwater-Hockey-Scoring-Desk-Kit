@@ -85,3 +85,6 @@ def update_game_number_display(app):
     )
 
     app.update_team_names_display()
+
+def on_game_selection_changed(app, event=None):
+    update_game_number_display(app)
