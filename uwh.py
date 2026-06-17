@@ -836,11 +836,53 @@ class GameManagementApp:
         self.penalty_grid_frame.grid_remove()  # hide initially
 
         # Team name widgets - NEW: Added in row 3 to show CSV team names
-        self.white_team_name_widget = tk.Label(tab, text="", font=self.fonts["team"], bg="white", fg="black")
-        self.white_team_name_widget.grid(row=3, column=0, columnspan=3, padx=1, pady=1, sticky="nsew")
-        
-        self.black_team_name_widget = tk.Label(tab, text="", font=self.fonts["team"], bg="black", fg="white")
-        self.black_team_name_widget.grid(row=3, column=6, columnspan=3, padx=1, pady=1, sticky="nsew")
+        self.white_team_name_frame = tk.Frame(tab, bg="white")
+        self.white_team_name_frame.grid(
+            row=3,
+            column=0,
+            columnspan=3,
+            padx=1,
+            pady=1,
+            sticky="nsew"
+        )
+        self.white_team_name_frame.grid_propagate(False)
+
+        self.white_team_name_widget = tk.Label(
+            self.white_team_name_frame,
+            text="",
+            font=self.fonts["team"],
+            bg="white",
+            fg="black",
+            anchor="center"
+        )
+        self.white_team_name_widget.pack(
+            fill="both",
+            expand=True
+        )
+
+        self.black_team_name_frame = tk.Frame(tab, bg="black")
+        self.black_team_name_frame.grid(
+            row=3,
+            column=6,
+            columnspan=3,
+            padx=1,
+            pady=1,
+            sticky="nsew"
+        )
+        self.black_team_name_frame.grid_propagate(False)
+
+        self.black_team_name_widget = tk.Label(
+            self.black_team_name_frame,
+            text="",
+            font=self.fonts["team"],
+            bg="black",
+            fg="white",
+            anchor="center"
+        )
+        self.black_team_name_widget.pack(
+            fill="both",
+            expand=True
+        )
         
         # Spacer label - Added to match timer widget background color in row 3
         self.timer_spacer = tk.Label(tab, text="", bg="lightgrey")
@@ -1600,51 +1642,10 @@ class GameManagementApp:
         )
 
     def get_goal_events_for_game(self, game_number):
-        """
-        Read UWH_Game_Data.txt and extract all goal events for the current game.
-        Returns a list of goal events with team and cap_number.
-        """
-        # CHANGED: Use BASE_DIR instead of os.getcwd()
-        txt_file = os.path.join(BASE_DIR, "UWH_Game_Data.txt")
-        goal_events = []
-        
-        if not os.path.exists(txt_file):
-            return goal_events
-        
-        try:
-            with open(txt_file, 'r', encoding='utf-8') as f:
-                in_current_game = False
-                for line in f:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    
-                    # Parse pipe-separated fields
-                    # local_datetime|court_time|event_type|team|cap_number|duration|break_status
-                    fields = line.split('|')
-                    if len(fields) < 5:
-                        continue
-                    
-                    event_type = fields[2].strip()
-                    
-                    # Track when we're in the current game
-                    if event_type == "First Half Start":
-                        in_current_game = True
-                    elif event_type == "Game End":
-                        in_current_game = False
-                    
-                    # Collect goal events
-                    if event_type == "Goal" and len(fields) >= 5:
-                        team = fields[3].strip()
-                        cap_number = fields[4].strip()
-                        goal_events.append({
-                            "team": team,
-                            "cap_number": cap_number
-                        })
-        except Exception as e:
-            print(f"Error reading goal events from {txt_file}: {e}")
-        
-        return goal_events
+        return csv_export.get_goal_events_for_game(
+            BASE_DIR,
+            game_number
+        )
     
     def aggregate_goal_scorers(self, goal_events):
         return csv_export.aggregate_goal_scorers(
