@@ -1644,25 +1644,9 @@ class GameManagementApp:
         return goal_events
     
     def aggregate_goal_scorers(self, goal_events):
-        """
-        Aggregate goal events by team and cap number.
-        Returns a dict with 'White' and 'Black' keys, each containing a dict of cap_number -> count.
-        """
-        scorers = {
-            "White": {},
-            "Black": {}
-        }
-        
-        for event in goal_events:
-            team = event.get("team", "")
-            cap_number = event.get("cap_number", "")
-            
-            if team in scorers and cap_number:
-                if cap_number not in scorers[team]:
-                    scorers[team][cap_number] = 0
-                scorers[team][cap_number] += 1
-        
-        return scorers
+        return csv_export.aggregate_goal_scorers(
+            goal_events
+        )
     
     def format_goal_scorers_comment(self, scorers):
         return csv_export.format_goal_scorers_comment(
