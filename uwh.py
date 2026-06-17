@@ -1494,67 +1494,18 @@ class GameManagementApp:
             csv_filename,
             BASE_DIR
         )
-        
-    def parse_csv_team_names(self, csv_filename, game_number):
-        """
-        Parse CSV file and extract team names for a specific game number.
-        Expected header: date,#,White,Score,Black,Score,Referees,Penalties
-        Returns: (white_team_name, black_team_name) or (None, None) if not found
-        """
-        if csv_filename == "No CSV files found" or not csv_filename or not game_number:
-            return (None, None)
-            
-        try:
-            # CHANGED: Use BASE_DIR instead of os.getcwd()
-            csv_path = os.path.join(BASE_DIR, csv_filename)
-            if not os.path.exists(csv_path):
-                return (None, None)
-                
-            with open(csv_path, 'r', encoding='utf-8') as f:
-                lines = f.readlines()
-                if len(lines) < 2:  # Need header + at least one data row
-                    return (None, None)
-                    
-                # Check header format
-                header = lines[0].strip().lower()
-                header_cols = [col.strip() for col in header.split(',')]
-                
-                # Find column indices
-                game_num_col_idx = -1
-                white_team_col_idx = -1
-                black_team_col_idx = -1
-                
-                for i, col in enumerate(header_cols):
-                    if col in ['#', 'game', 'game#', 'game_number']:
-                        game_num_col_idx = i
-                    elif col in ['white']:
-                        white_team_col_idx = i
-                    elif col in ['black']:
-                        black_team_col_idx = i
-                
-                # Must have all required columns
-                if game_num_col_idx == -1 or white_team_col_idx == -1 or black_team_col_idx == -1:
-                    return (None, None)
-                
-                # Parse data rows to find the specific game
-                for line in lines[1:]:
-                    line = line.strip()
-                    if line:
-                        cols = [col.strip() for col in line.split(',')]
-                        if len(cols) > max(game_num_col_idx, white_team_col_idx, black_team_col_idx):
-                            try:
-                                if str(int(cols[game_num_col_idx])) == str(game_number):
-                                    white_team = cols[white_team_col_idx] if white_team_col_idx < len(cols) else None
-                                    black_team = cols[black_team_col_idx] if black_team_col_idx < len(cols) else None
-                                    return (white_team, black_team)
-                            except (ValueError, IndexError):
-                                continue
-                                
-        except Exception as e:
-            print(f"Error parsing team names from CSV file {csv_filename}: {e}")
-        
-        return (None, None)
-    
+
+    def parse_csv_team_names(
+        self,
+        csv_filename,
+        game_number
+    ):
+        return csv_helpers.parse_csv_team_names(
+            csv_filename,
+            game_number,
+            BASE_DIR
+        )
+
     def get_goal_events_for_game(self, game_number):
         """
         Read UWH_Game_Data.txt and extract all goal events for the current game.
