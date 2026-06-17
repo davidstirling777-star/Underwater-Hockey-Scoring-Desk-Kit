@@ -846,7 +846,7 @@ class GameManagementApp:
             sticky="nsew"
         )
         self.white_team_name_frame.grid_propagate(False)
-        self.white_team_name_frame.pack_propagate(False)
+
         self.white_team_name_widget = tk.Label(
             self.white_team_name_frame,
             text="",
@@ -870,7 +870,7 @@ class GameManagementApp:
             sticky="nsew"
         )
         self.black_team_name_frame.grid_propagate(False)
-        self.black_team_name_frame.pack_propagate(False)
+
         self.black_team_name_widget = tk.Label(
             self.black_team_name_frame,
             text="",
