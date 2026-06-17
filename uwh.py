@@ -1665,36 +1665,9 @@ class GameManagementApp:
         return scorers
     
     def format_goal_scorers_comment(self, scorers):
-        """
-        Format goal scorers as a comment string for CSV.
-        """
-        comment_parts = []
-        
-        # Process White team first
-        if "White" in scorers and scorers["White"]:
-            white_parts = []
-            for cap_number, count in sorted(scorers["White"].items(), key=lambda x: self._sort_cap_key(x[0])):
-                if cap_number == "Penalty Goal":
-                    white_parts.append(f"W#PG({count})")
-                elif cap_number == "Unknown":
-                    white_parts.append(f"W#UNK({count})")
-                else:
-                    white_parts.append(f"W#{cap_number}({count})")
-            comment_parts.extend(white_parts)
-        
-        # Process Black team
-        if "Black" in scorers and scorers["Black"]:
-            black_parts = []
-            for cap_number, count in sorted(scorers["Black"].items(), key=lambda x: self._sort_cap_key(x[0])):
-                if cap_number == "Penalty Goal":
-                    black_parts.append(f"B#PG({count})")
-                elif cap_number == "Unknown":
-                    black_parts.append(f"B#UNK({count})")
-                else:
-                    black_parts.append(f"B#{cap_number}({count})")
-            comment_parts.extend(black_parts)
-        
-        return ",".join(comment_parts)
+        return csv_export.format_goal_scorers_comment(
+            scorers
+        )
     
     def _sort_cap_key(self, cap_number):
         return csv_export.sort_cap_key(cap_number)
