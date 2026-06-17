@@ -1463,24 +1463,31 @@ class GameManagementApp:
             padx=8,
             pady=2
         )
-        
+
         self.csv_dropdown.bind(
             "<<ComboboxSelected>>",
             self.on_csv_file_changed
         )
-        
-        self.csv_dropdown.bind(
-            "<Button-1>",
-            self.refresh_csv_dropdown
-        )
-        csv_dropdown.grid(row=2, column=0, columnspan=2, sticky="ew", padx=8, pady=2)
-        csv_dropdown.bind("<<ComboboxSelected>>", self.on_csv_file_changed)
-        
+
         # Open Folder button
-        open_folder_btn = tk.Button(widget4, text="Open Folder", 
-                                    font=(default_font.cget("family"), default_font.cget("size")),
-                                    command=self.open_csv_folder, width=12)
-        open_folder_btn.grid(row=3, column=0, columnspan=2, padx=8, pady=(2,8))
+        open_folder_btn = tk.Button(
+            widget4,
+            text="Open Folder",
+            font=(
+                default_font.cget("family"),
+                default_font.cget("size")
+            ),
+            command=self.open_csv_folder,
+            width=12
+        )
+
+        open_folder_btn.grid(
+            row=3,
+            column=0,
+            columnspan=2,
+            padx=8,
+            pady=(2, 8)
+        )
         
         # Starting game number selection
         tk.Label(widget4, text="Starting Game #:", font=(default_font.cget("family"), default_font.cget("size")), anchor="w").grid(row=4, column=0, sticky="w", padx=8, pady=(8,2))
