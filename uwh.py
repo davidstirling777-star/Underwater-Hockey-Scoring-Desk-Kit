@@ -2454,7 +2454,12 @@ Usage:
     def _start_button_hold(self, event, idx):
         self._button_hold_start_time = time.time()
         self._button_hold_index = idx
-        self._button_hold_timer = self.master.after(3000, lambda: self._open_button_dialog(idx))
+        self._button_hold_widget = event.widget
+    
+        self._button_hold_timer = self.master.after(
+            3000,
+            lambda: self._open_button_dialog(idx, self._button_hold_widget)
+        )
 
     def _button_release(self, event, idx):
         if hasattr(self, '_button_hold_timer') and self._button_hold_timer is not None:
@@ -2518,122 +2523,226 @@ Usage:
         self.build_game_sequence()
 
 
-    def _open_button_dialog(self, idx):
+    def _open_button_dialog(self, idx, trigger_button=None):
+        dialog_width = 400
+        dialog_height = 700
+        gap = 8
+    
         dlg = tk.Toplevel(self.master)
-        dlg.title(f"Button {idx+1} Settings")
-        dlg.geometry("400x700")
+        dlg.withdraw()  # Hide until fully built and positioned
+        dlg.title(f"Button {idx + 1} Settings")
+        dlg.resizable(False, False)
+        dlg.transient(self.master)
+    
         entries = {}
         checks = {}
         row_num = 0
         max_btn_text_len = 16
-        tk.Label(dlg, text="Button Display Text:").grid(row=row_num, column=0, sticky="w", padx=6, pady=4)
-        btn_text_var = tk.StringVar(value=self.button_data[idx].get("text", str(idx+1)))
-        text_entry = ttk.Entry(dlg, textvariable=btn_text_var, width=max_btn_text_len)
+    
+        tk.Label(
+            dlg,
+            text="Button Display Text:"
+        ).grid(row=row_num, column=0, sticky="w", padx=6, pady=4)
+    
+        btn_text_var = tk.StringVar(
+            value=self.button_data[idx].get("text", str(idx + 1))
+        )
+    
+        text_entry = ttk.Entry(
+            dlg,
+            textvariable=btn_text_var,
+            width=max_btn_text_len
+        )
         text_entry.grid(row=row_num, column=1, sticky="w", padx=6, pady=4)
+    
         row_num += 1
-
+    
         for widget in self.widgets:
             var_name = widget["name"]
             label = widget["label_widget"]
-            
-            # Skip "Time to Start First Game" and "First Game Starts In:" from preset dialog
+    
+            # Skip these from preset dialog
             if var_name in ["time_to_start_first_game", "start_first_game_in"]:
                 continue
-            
-            # Special handling for sudden_death_game_break: show both checkbox and entry
+    
+            # Special handling for Sudden Death: checkbox plus value entry
             if var_name == "sudden_death_game_break":
-                # Show checkbox with relabeled text
-                tk.Label(dlg, text="Sudden Death Allowed?").grid(row=row_num, column=0, sticky="w", padx=6, pady=4)
-                # Use default value from self.variables instead of current UI value
+                tk.Label(
+                    dlg,
+                    text="Sudden Death Allowed?"
+                ).grid(row=row_num, column=0, sticky="w", padx=6, pady=4)
+    
                 default_checkbox_val = self.variables[var_name].get("used", True)
-                val = self.button_data[idx]["checkboxes"].get(var_name, default_checkbox_val)
+                val = self.button_data[idx]["checkboxes"].get(
+                    var_name,
+                    default_checkbox_val
+                )
+    
                 check_var = tk.BooleanVar(value=val)
                 cb = ttk.Checkbutton(dlg, variable=check_var)
                 cb.grid(row=row_num, column=1, sticky="w", padx=6, pady=4)
+    
                 checks[var_name] = check_var
                 row_num += 1
-                # Add value entry immediately below checkbox
-                tk.Label(dlg, text="Sudden Death Game Break:").grid(row=row_num, column=0, sticky="w", padx=6, pady=4)
-                sudden_death_val = self.button_data[idx]["values"].get("sudden_death_game_break", "1")
+    
+                tk.Label(
+                    dlg,
+                    text="Sudden Death Game Break:"
+                ).grid(row=row_num, column=0, sticky="w", padx=6, pady=4)
+    
+                sudden_death_val = self.button_data[idx]["values"].get(
+                    "sudden_death_game_break",
+                    "1"
+                )
+    
                 sudden_death_entry_var = tk.StringVar(value=sudden_death_val)
-                sudden_death_entry = ttk.Entry(dlg, textvariable=sudden_death_entry_var, width=10)
-                sudden_death_entry.grid(row=row_num, column=1, sticky="w", padx=6, pady=4)
+                sudden_death_entry = ttk.Entry(
+                    dlg,
+                    textvariable=sudden_death_entry_var,
+                    width=10
+                )
+                sudden_death_entry.grid(
+                    row=row_num,
+                    column=1,
+                    sticky="w",
+                    padx=6,
+                    pady=4
+                )
+    
                 entries["sudden_death_game_break"] = sudden_death_entry_var
                 row_num += 1
                 continue
-            
-            tk.Label(dlg, text=label.cget("text")).grid(row=row_num, column=0, sticky="w", padx=6, pady=4)
+    
+            tk.Label(
+                dlg,
+                text=label.cget("text")
+            ).grid(row=row_num, column=0, sticky="w", padx=6, pady=4)
+    
             if widget["checkbox"] is not None:
-                # For button 1, preset checkboxes as True for required options
                 if idx == 0 and var_name in ["team_timeouts_allowed", "overtime_allowed"]:
                     val = True
                 else:
-                    # Use default value from self.variables instead of current UI value
                     default_checkbox_val = self.variables[var_name].get("used", True)
-                    val = self.button_data[idx]["checkboxes"].get(var_name, default_checkbox_val)
+                    val = self.button_data[idx]["checkboxes"].get(
+                        var_name,
+                        default_checkbox_val
+                    )
+    
                 check_var = tk.BooleanVar(value=val)
                 cb = ttk.Checkbutton(dlg, variable=check_var)
                 cb.grid(row=row_num, column=1, sticky="w", padx=6, pady=4)
+    
                 checks[var_name] = check_var
+    
             else:
-                # For button 1, preset values for required options
                 if idx == 0 and var_name in [
-                    "team_timeout_period", "half_period", "half_time_break",
-                    "overtime_game_break", "overtime_half_period", "overtime_half_time_break",
-                    "sudden_death_game_break", "between_game_break", "crib_time"
+                    "team_timeout_period",
+                    "half_period",
+                    "half_time_break",
+                    "overtime_game_break",
+                    "overtime_half_period",
+                    "overtime_half_time_break",
+                    "sudden_death_game_break",
+                    "between_game_break",
+                    "crib_time"
                 ]:
-                    val = self.button_data[idx]["values"].get(var_name, {
-                        "team_timeout_period": "1",
-                        "half_period": "15",
-                        "half_time_break": "3",
-                        "overtime_game_break": "3",
-                        "overtime_half_period": "5",
-                        "overtime_half_time_break": "1",
-                        "sudden_death_game_break": "1",
-                        "between_game_break": "5",
-                        "crib_time": "60"
-                    }.get(var_name, str(self.variables[var_name]["default"])))
+                    val = self.button_data[idx]["values"].get(
+                        var_name,
+                        {
+                            "team_timeout_period": "1",
+                            "half_period": "15",
+                            "half_time_break": "3",
+                            "overtime_game_break": "3",
+                            "overtime_half_period": "5",
+                            "overtime_half_time_break": "1",
+                            "sudden_death_game_break": "1",
+                            "between_game_break": "5",
+                            "crib_time": "60"
+                        }.get(var_name, str(self.variables[var_name]["default"]))
+                    )
                 else:
-                    # Use default value from self.variables instead of current UI value
                     default_entry_val = str(self.variables[var_name]["default"])
-                    val = self.button_data[idx]["values"].get(var_name, default_entry_val)
+                    val = self.button_data[idx]["values"].get(
+                        var_name,
+                        default_entry_val
+                    )
+    
                 entry_var = tk.StringVar(value=val)
                 entry = ttk.Entry(dlg, textvariable=entry_var, width=10)
                 entry.grid(row=row_num, column=1, sticky="w", padx=6, pady=4)
+    
                 entries[var_name] = entry_var
+    
             row_num += 1
-
-        # --- PATCH: Add Crib Time entry below Crib Time: checkbox and above Save button ---
-        tk.Label(dlg, text="Crib Time (seconds):").grid(row=row_num, column=0, sticky="w", padx=6, pady=4)
+    
+        # Crib Time entry below Crib Time checkbox and above Save button
+        tk.Label(
+            dlg,
+            text="Crib Time (seconds):"
+        ).grid(row=row_num, column=0, sticky="w", padx=6, pady=4)
+    
         crib_time_val = self.button_data[idx]["values"].get("crib_time", "60")
         crib_time_entry_var = tk.StringVar(value=crib_time_val)
-        crib_time_entry = ttk.Entry(dlg, textvariable=crib_time_entry_var, width=10)
+    
+        crib_time_entry = ttk.Entry(
+            dlg,
+            textvariable=crib_time_entry_var,
+            width=10
+        )
         crib_time_entry.grid(row=row_num, column=1, sticky="w", padx=6, pady=4)
+    
         entries["crib_time"] = crib_time_entry_var
         row_num += 1
-
+    
         def save_and_close():
             for v in entries:
-                # PATCH: Remove "time_to_start_first_game" and "start_first_game_in" from dialog value save
                 if v in ["time_to_start_first_game", "start_first_game_in"]:
                     continue
+    
                 try:
-                    val = entries[v].get().replace(',', '.')
+                    val = entries[v].get().replace(",", ".")
                     float(val)
                     self.button_data[idx]["values"][v] = val
                 except ValueError:
                     continue
+    
             for v in checks:
                 self.button_data[idx]["checkboxes"][v] = checks[v].get()
+    
             self.button_data[idx]["text"] = btn_text_var.get()[:max_btn_text_len]
             self.set_widget2_button_text(idx, self.button_data[idx]["text"])
-            # Save presets to JSON file
+    
             save_preset_settings(self.button_data)
+    
             dlg.destroy()
-        save_btn = ttk.Button(dlg, text="Save", command=save_and_close)
+    
+        save_btn = ttk.Button(
+            dlg,
+            text="Save",
+            command=save_and_close
+        )
         save_btn.grid(row=row_num, column=0, columnspan=2, pady=16)
-        dlg.transient(self.master)
+    
+        # Position from the CURRENT live location of the held preset button.
+        # The right edge of the popup sits just left of the button.
+        dlg.update_idletasks()
+    
+        if trigger_button:
+            button_x = trigger_button.winfo_rootx()
+            button_y = trigger_button.winfo_rooty()
+    
+            popup_x = button_x - dialog_width - gap
+            popup_y = button_y
+        else:
+            popup_x = self.master.winfo_rootx() + 100
+            popup_y = self.master.winfo_rooty() + 100
+    
+        dlg.geometry(f"{dialog_width}x{dialog_height}+{popup_x}+{popup_y}")
+    
+        dlg.deiconify()
         dlg.wait_visibility()
+        dlg.lift()
+        dlg.focus_force()
         dlg.grab_set()
 
     def _on_settings_variable_change(self, *args):
