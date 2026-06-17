@@ -88,3 +88,26 @@ def update_game_number_display(app):
 
 def on_game_selection_changed(app, event=None):
     update_game_number_display(app)
+
+def on_csv_file_changed(app, event=None):
+    """Handle CSV file selection change - update game numbers dropdown."""
+
+    csv_file = app.csv_var.get()
+
+    app.game_numbers = app.parse_csv_game_numbers(
+        csv_file
+    )
+
+    if hasattr(app, "starting_game_dropdown"):
+        app.starting_game_dropdown["values"] = app.game_numbers
+
+        if app.game_numbers:
+            app.starting_game_var.set(
+                app.game_numbers[0]
+            )
+            app.current_game_index = 0
+        else:
+            app.starting_game_var.set("")
+            app.current_game_index = 0
+
+    app.update_game_number_display()
