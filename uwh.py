@@ -325,12 +325,52 @@ def save_preset_settings(presets):
 
 class GameManagementApp:
     def _on_display_window_close(self):
-        """Handle display window close event safely."""
+        """Handle Display Window being closed by the window X button."""
         try:
-            # Clean stop procedures before destroying
-            self.display_window.destroy()
+            if hasattr(self, "display_window") and self.display_window is not None:
+                if self.display_window.winfo_exists():
+                    self.display_window.destroy()
         except tk.TclError:
-            pass  # Already destroyed
+            pass
+    
+        self.display_window = None
+    
+        try:
+            if hasattr(self, "show_display_screen_var"):
+                self.show_display_screen_var.set(False)
+        except tk.TclError:
+            pass
+
+    def toggle_display_screen(self):
+        """Open or close the main Display Window from the Game Variables checkbox."""
+        if self.show_display_screen_var.get():
+            try:
+                if (
+                    hasattr(self, "display_window")
+                    and self.display_window is not None
+                    and self.display_window.winfo_exists()
+                ):
+                    self.display_window.lift()
+                    self.display_window.focus_force()
+                    return
+            except tk.TclError:
+                self.display_window = None
+    
+            self.create_display_window()
+            self.update_penalty_display()
+    
+        else:
+            try:
+                if (
+                    hasattr(self, "display_window")
+                    and self.display_window is not None
+                    and self.display_window.winfo_exists()
+                ):
+                    self.display_window.destroy()
+            except tk.TclError:
+                pass
+    
+            self.display_window = None
 
     def handle_hardware_siren_event(self, event_name="ON"):
 
@@ -477,6 +517,7 @@ class GameManagementApp:
         self.team_timeouts_allowed_var = tk.BooleanVar(value=self.variables["team_timeouts_allowed"]["default"])
         self.overtime_allowed_var = tk.BooleanVar(value=self.variables["overtime_allowed"]["default"])
         self.record_scorers_cap_number_var = tk.BooleanVar(value=self.variables["record_scorers_cap_number"]["default"])
+        self.show_display_screen_var = tk.BooleanVar(value=True)
         self.referee_timeout_active = False
         self.referee_timeout_elapsed = 0
         self.referee_timeout_default_bg = "red"
@@ -1393,7 +1434,8 @@ class GameManagementApp:
         widget4.grid_rowconfigure(4, weight=0)  # Game number label  
         widget4.grid_rowconfigure(5, weight=0)  # Game number dropdown
         widget4.grid_rowconfigure(6, weight=0)  # Comment label
-        widget4.grid_rowconfigure(7, weight=1)  # Spacer
+        widget4.grid_rowconfigure(7, weight=0)  # Show Display Screen checkbox
+        widget4.grid_rowconfigure(8, weight=1)  # Spacer
         
         # Add header
         tournament_header = tk.Label(widget4, text="Tournament List", font=(default_font.cget("family"), new_size, "bold"))
@@ -1434,6 +1476,22 @@ class GameManagementApp:
                               font=(default_font.cget("family"), default_font.cget("size") - 1),
                               anchor="w", justify="left", wraplength=600)
         csv_comment.grid(row=6, column=0, columnspan=2, sticky="w", padx=8, pady=(4,8))
+
+        show_display_checkbox = ttk.Checkbutton(
+            widget4,
+            text="Show Display Screen",
+            variable=self.show_display_screen_var,
+            command=self.toggle_display_screen,
+            style="Large.TCheckbutton"
+        )
+        show_display_checkbox.grid(
+            row=7,
+            column=0,
+            columnspan=2,
+            sticky="w",
+            padx=8,
+            pady=(4, 8)
+        )
 
         # Widget 3 (Game Sequence Explanation) - Bottom right - height reduced for snug text
         widget3 = ttk.Frame(tab, borderwidth=1, relief="solid")
@@ -3295,9 +3353,22 @@ Usage:
                         entry.config(state="disabled")
                         
     def create_display_window(self):
+        try:
+            if (
+                hasattr(self, "display_window")
+                and self.display_window is not None
+                and self.display_window.winfo_exists()
+            ):
+                self.display_window.lift()
+                self.display_window.focus_force()
+                return
+        except tk.TclError:
+            self.display_window = None
+    
         self.display_window = tk.Toplevel(self.master)
         self.display_window.title("Display Window")
         self.display_window.geometry('1200x800')
+        self.display_window.protocol("WM_DELETE_WINDOW", self._on_display_window_close)
 
         tab = ttk.Frame(self.display_window)
         tab.pack(fill="both", expand=True,)
