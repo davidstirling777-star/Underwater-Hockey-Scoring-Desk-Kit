@@ -1452,7 +1452,8 @@ class GameManagementApp:
             textvariable=self.csv_var,
             values=csv_files,
             state="readonly",
-            width=20
+            width=20,
+            postcommand=self.refresh_csv_dropdown
         )
         
         self.csv_dropdown.grid(
@@ -5086,6 +5087,18 @@ if __name__ == "__main__":
     def refresh_csv_dropdown(self, event=None):
         current_selection = self.csv_var.get()
 
+        csv_files = self.get_csv_files()
+
+        self.csv_dropdown["values"] = csv_files
+
+        if current_selection in csv_files:
+            self.csv_var.set(current_selection)
+
+    def refresh_csv_dropdown(self, event=None):
+        if not hasattr(self, "csv_dropdown"):
+            return
+
+        current_selection = self.csv_var.get()
         csv_files = self.get_csv_files()
 
         self.csv_dropdown["values"] = csv_files
