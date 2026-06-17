@@ -1532,21 +1532,8 @@ class GameManagementApp:
         self.update_overtime_variables_state()
 
     def get_csv_files(self):
-        """
-        Scan the current directory for CSV files.
-        Returns a list of CSV files found.
-        """
-        csv_files = []
-        try:
-            current_dir = os.getcwd()
-            for filename in os.listdir(current_dir):
-                if filename.lower().endswith('.csv'):
-                    csv_files.append(filename)
-        except Exception as e:
-            print(f"Error scanning for CSV files: {e}")
+        return csv_helpers.get_csv_files(BASE_DIR)
         
-        return sorted(csv_files) if csv_files else ["No CSV files found"]
-    
     def parse_csv_game_numbers(self, csv_filename):
         return csv_helpers.parse_csv_game_numbers(
             csv_filename,
@@ -1742,7 +1729,6 @@ class GameManagementApp:
         # CHANGED: Use BASE_DIR instead of os.getcwd() so it always opens the folder containing the EXE and CSVs
         csv_folder = BASE_DIR
         open_folder_in_file_manager(csv_folder)
-
 
     def create_sounds_tab(self):
         tab = ttk.Frame(self.notebook)
