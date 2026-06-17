@@ -216,3 +216,39 @@ def aggregate_goal_scorers(goal_events):
             scorers[team][cap_number] += 1
 
     return scorers
+
+def get_goal_events_for_game(base_dir, game_number):
+    txt_file = os.path.join(base_dir, "UWH_Game_Data.txt")
+    goal_events = []
+
+    if not os.path.exists(txt_file):
+        return goal_events
+
+    try:
+        with open(txt_file, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+
+                if not line:
+                    continue
+
+                fields = line.split("|")
+
+                if len(fields) < 5:
+                    continue
+
+                event_type = fields[2].strip()
+
+                if event_type == "Goal":
+                    team = fields[3].strip()
+                    cap_number = fields[4].strip()
+
+                    goal_events.append({
+                        "team": team,
+                        "cap_number": cap_number
+                    })
+
+    except Exception as e:
+        print(f"Error reading goal events from {txt_file}: {e}")
+
+    return goal_events
