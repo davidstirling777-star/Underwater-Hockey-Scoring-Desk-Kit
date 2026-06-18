@@ -813,7 +813,7 @@ class GameManagementApp:
             tab.grid_rowconfigure(i, weight=1)
         for i in range(9):
         for i in range(9):
-            tab.grid_columnconfigure(i, weight=1)
+                tab.grid_columnconfigure(i, weight=1)
 
             tab.grid_columnconfigure(0, weight=1, uniform="left_side")
             tab.grid_columnconfigure(1, weight=1, uniform="left_side")
