@@ -29,12 +29,14 @@ Here, six buttons are located where commonly used settings can be stored.  Holdi
 **Tournament List**
 A sample CSV file is included with the distribution of this app.
 This has a dropdown list where a CSV file can be selected that contains the draw for a Tournament or a list of games. The team names listed in the 'White' and 'Black' columns will appear on the Scoreboard Tab (and not on the 'Display Window' Screen (If the teams don't know who they are, they are in trouble).
+The CSV File dropdown automatically refreshes when clicked. New Tournament CSV files copied into the application folder can be selected without restarting the application.
 Expected CSV headers: date,#,White,WScore,Black,BScore,Referees,Penalties,Comments. where # is the Game Number [but this can actually also be 'game', 'game#' or 'game_number'].
 THIS CSV FILE GETS MODIFIED as the games progress as the app stores the scores, what Cap Numbers were penalised (into the 'Penalties' column), and if the 'Record Scorers Cap Number' checkbox is selected, the Cap Numbers' to which goals were attributed (into the 'Comments' column).
 
 When the 'Between Game Break' timer reached 30 seconds, the penalties and cap numbers of the goal scorers from the previous game are written to the selected CSV file and the penalties remaining on the screens are cleared.
 
 The 'Starting Game #' will show a list of Game Numbers in the CSV file selected above. This could be useful if the app crashes and the games need to be restarted, or if multiple days' games are in the CSV file.
+At the completion of each game, the application automatically advances to the next game number in the selected Tournament CSV file and updates the displayed team names.
 
 
 **Game Sequence**
@@ -74,7 +76,7 @@ The system automatically plays audio cues during different periods:
 - **Siren Minimum Duration**: All siren sounds play for a minimum period to ensure audibility for officials and players. If the sound file is shorter than the specified period, it will automatically loop until the minimum is reached.
 - Audio channels (Air/Water) use their respective volume settings
 - Game periods (halves) only play siren at the end, no countdown pips
-- Sudden Death periods have no automatic audio cues
+- Sudden Death periods have no automatic audio cues.  The Sudden Death timer counts upwards from 00:00. A goal scored during Sudden Death immediately ends the game. Sudden Death Start and Sudden Death End are recorded in UWH_Game_Data.txt.
 
 **Scoreboard Tab**
 In this tab, which can be maximised to fit the screen, is the Court Time.  This is synchronised to the 'Local Computer Time' when the app first opens.  If the 'Crib Time' is selected, the Court Time, which may have been extended by 'Ref' or 'Team' 'Time Outs' will try and move back to the 'Local Computer Time' by shortening the 'Between Game Break'.
@@ -84,7 +86,13 @@ Then are the Team names, picked up from the CSV file.
 The Scores, which will get written to the CSV file when the 'Between Game Break' timer reaches 30 seconds, are displayed next.
 If the 'Team time-outs allowed?' check box is selected, the Team Time-Out buttons are selectable.  Only one team time-out per half, no team time-outs are permitted in Overtime or Sudden Death as per CMAS rules as of October 2025.
 'Add Goal White' adds a goal to white and if the 'Record Scorers Cap Number' check box is ticked, a popup dialogue box where the cap number of the player scoring the goal can be entered.
-'Referee Time-Out' stops Court Time and the timer of whatever period the timer is displaying.  This is a toggle button.
+Referee Time-Out pauses:
+- Court Time
+- The active game timer
+- Team Time-Out timers
+- Penalty timers
+
+When Referee Time-Out is released, the interrupted period resumes from the exact point at which it was paused, including Sudden Death periods.
 'Penalties' is enabled during play but greyed out for breaks (as you cannot award a Penalty when play cannot be stopped [section 17.1.1 of CMAS rules]) but if the 'Referee Time-Out' button is pushed, the 'Penalties' button is enabled.  When the 'Penalties' button is pushed, a popup dialogue box appears that enables the selection of cap colour, Cap number and penalty time period.  'YOU MUST SELECT START PENALTY' to record the penalty. These penalties are written to the CSV file when the 'Between Game Break' timer reaches 30 seconds.  The penalties are also displayed on both screens along with the time remaining to serve.  When this time reaches zero, the penalty is removed from the list.  Penalties can be removed in case the wrong details were entered.
 
 
@@ -115,7 +123,7 @@ The system includes comprehensive Zigbee integration for wireless siren control 
 
 #### Platform Support
 - **Linux (Raspberry Pi)**: Full MQTT support via Zigbee2MQTT
-- **Windows**: Direct serial communication with Zigbee dongle OR MQTT support
+- **Windows**: Zigbee2MQTT with Mosquitto MQTT broker.
 
 #### Key Features
 - **Wireless Chief Referee Controls**: Use Zigbee buttons to trigger sirens remotely
@@ -176,22 +184,9 @@ The application can be packaged as a standalone executable using PyInstaller. Th
 
 #### Windows Build
 
-1. Install PyInstaller (if not already installed):
-   ```cmd
-   pip install pyinstaller
-   ```
+1. Extract .zip file
 
-2. Run the build script:
-   ```cmd
-   build_exe.bat
-   ```
-
-3. The executable will be created in the `dist` folder as `uwh.exe`
-
-4. To run the executable:
-   ```cmd
-   dist\uwh.exe
-   ```
+4. Run the executable.
 
 #### Linux Build
 
@@ -217,13 +212,33 @@ The application can be packaged as a standalone executable using PyInstaller. Th
    ./dist/uwh
    ```
 
+   Startup Self-Test
+
+#### When the application starts it performs:
+
+• MQTT broker detection
+• Zigbee2MQTT detection
+• MQTT stability verification
+• Arduino auto-detection
+• Zigbee adapter auto-detection
+• COM port assignment verification
+
+The startup window displays progress and diagnostic information before the main application opens.
+
 #### Build Process Details
 
 The build scripts use PyInstaller with the following configuration:
 - **--onefile**: Packages everything into a single executable file
 - **--windowed**: Runs without a console window (GUI mode)
 - **--add-data**: Includes all necessary data files:
-  - Sound files: `beep-cut.mp3`, `car-honk-cut.mp3`, `charging-machine-cut.mp3`, `countdown-beep-cut.mp3`, `notification-beep-cut.mp3`, `police-siren-cut.mp3`, `short-beep-tone-cut.mp3`
+  - Sound files:
+pip-beep.mp3
+pip-countdown-beep.mp3
+pip-notification.mp3
+pip-short-tone.mp3
+siren-car-honk.mp3
+siren-machinegun.mp3
+siren-police.mp3
   - Configuration: `settings.json`
   - Tournament data: `tournament Draw.csv`
   
