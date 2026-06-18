@@ -24,6 +24,7 @@ a = Analysis(
         "csv_helpers.py",
         "csv_export.py",
         "hardware_detection.py",
+        "csv_ui.py",
     ],
     pathex=[spec_dir],
     binaries=[],
@@ -49,7 +50,6 @@ a = Analysis(
         "pygame",
         "paho.mqtt.client",
         "serial",
-
         "sound",
         "zigbee_siren",
         "serial_siren_listener",
@@ -61,6 +61,7 @@ a = Analysis(
         "csv_helpers",
         "csv_export",
         "hardware_detection",
+        "csv_ui",
     ],
     hookspath=[],
     runtime_hooks=[],
