@@ -1855,6 +1855,11 @@ class GameManagementApp:
     def get_csv_files(self):
         return csv_helpers.get_csv_files(BASE_DIR)
 
+    def get_csv_files(self):
+        return csv_ui.get_csv_files(
+            BASE_DIR
+        )
+
     def refresh_csv_dropdown(self):
         if not hasattr(self, "csv_dropdown"):
             return
