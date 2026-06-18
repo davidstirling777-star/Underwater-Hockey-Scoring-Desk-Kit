@@ -1853,9 +1853,6 @@ class GameManagementApp:
         self.update_overtime_variables_state()
 
     def get_csv_files(self):
-        return csv_helpers.get_csv_files(BASE_DIR)
-
-    def get_csv_files(self):
         return csv_ui.get_csv_files(
             BASE_DIR
         )
