@@ -1859,16 +1859,7 @@ class GameManagementApp:
         )
 
     def refresh_csv_dropdown(self):
-        if not hasattr(self, "csv_dropdown"):
-            return
-
-        current_selection = self.csv_var.get()
-        csv_files = self.get_csv_files()
-
-        self.csv_dropdown["values"] = csv_files
-
-        if current_selection in csv_files:
-            self.csv_var.set(current_selection)
+        return csv_ui.refresh_csv_dropdown(self)
         
     def parse_csv_game_numbers(self, csv_filename):
         return csv_helpers.parse_csv_game_numbers(
