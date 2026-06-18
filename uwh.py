@@ -915,7 +915,9 @@ class GameManagementApp:
             text="",
             font=self.fonts["team"],
             bg="white",
-            fg="black"
+            fg="black",
+            width=14,
+            anchor="center"
         )
         self.white_team_name_widget.grid(
             row=3,
@@ -931,7 +933,9 @@ class GameManagementApp:
             text="",
             font=self.fonts["team"],
             bg="black",
-            fg="white"
+            fg="white",
+            width=14,
+            anchor="center"
         )
         self.black_team_name_widget.grid(
             row=3,
