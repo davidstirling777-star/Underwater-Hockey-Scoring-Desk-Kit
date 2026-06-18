@@ -815,17 +815,17 @@ class GameManagementApp:
         for i in range(9):
             tab.grid_columnconfigure(i, weight=1)
 
-        tab.grid_columnconfigure(0, weight=1, uniform="left_side")
-        tab.grid_columnconfigure(1, weight=1, uniform="left_side")
-        tab.grid_columnconfigure(2, weight=1, uniform="left_side")
-
-        tab.grid_columnconfigure(3, weight=1, uniform="centre_side")
-        tab.grid_columnconfigure(4, weight=1, uniform="centre_side")
-        tab.grid_columnconfigure(5, weight=1, uniform="centre_side")
-
-        tab.grid_columnconfigure(6, weight=1, uniform="right_side")
-        tab.grid_columnconfigure(7, weight=1, uniform="right_side")
-        tab.grid_columnconfigure(8, weight=1, uniform="right_side")
+            tab.grid_columnconfigure(0, weight=1, uniform="left_side")
+            tab.grid_columnconfigure(1, weight=1, uniform="left_side")
+            tab.grid_columnconfigure(2, weight=1, uniform="left_side")
+    
+            tab.grid_columnconfigure(3, weight=1, uniform="centre_side")
+            tab.grid_columnconfigure(4, weight=1, uniform="centre_side")
+            tab.grid_columnconfigure(5, weight=1, uniform="centre_side")
+    
+            tab.grid_columnconfigure(6, weight=1, uniform="right_side")
+            tab.grid_columnconfigure(7, weight=1, uniform="right_side")
+            tab.grid_columnconfigure(8, weight=1, uniform="right_side")
 
         self.court_time_label = tk.Label(tab, textvariable=self.court_time_var, font=self.fonts["court_time"], bg="lightgrey")
         self.court_time_label.grid(row=0, column=0, columnspan=9, padx=1, pady=1, sticky="nsew")
