@@ -3689,39 +3689,59 @@ Usage:
             print(f"Error updating Zigbee status: {e}")
 
     def update_usb_dongle_status(self):
-        """Update USB dongle connection status in UI."""
-    
+        """Update USB dongle connection status in UI using the actual detected COM ports."""
         try:
-            zigbee_port = getattr(self, "zigbee_port", None)
-    
-            if zigbee_port:
+            import serial.tools.list_ports
+
+            ports = list(serial.tools.list_ports.comports())
+            connected_devices = {
+                (p.device or "").upper(): p
+                for p in ports
+            }
+
+            zigbee_port = (self.zigbee_port or "").upper()
+
+            # Do not treat fallback/default COM assignments as connected hardware.
+            zigbee_detected = False
+
+            if zigbee_port and zigbee_port in connected_devices:
+                port = connected_devices[zigbee_port]
+                desc = (port.description or "").lower()
+                hwid = (port.hwid or "").lower()
+
+                zigbee_detected = (
+                    "zigbee" in desc
+                    or "sonoff" in desc
+                    or "itead" in desc
+                    or "silicon labs" in desc
+                    or "cp210" in desc
+                    or "cc2531" in desc
+                    or "cc2652" in desc
+                    or "10c4:ea60" in hwid
+                )
+
+            if zigbee_detected:
                 self.usb_dongle_status_label.config(
-                    text="Connected",
+                    text=f"Connected ({self.zigbee_port})",
                     fg="green"
                 )
                 self.add_to_zigbee_log(
-                    f"USB Dongle: Connected ({zigbee_port})"
+                    f"USB Dongle: Connected ({self.zigbee_port})"
                 )
             else:
                 self.usb_dongle_status_label.config(
                     text="Disconnected",
                     fg="red"
                 )
-                self.add_to_zigbee_log(
-                    "USB Dongle: Disconnected"
-                )
-    
+                self.add_to_zigbee_log("USB Dongle: Disconnected")
+
         except Exception as e:
             self.usb_dongle_status_label.config(
                 text="Error",
                 fg="red"
             )
-            self.add_to_zigbee_log(
-                f"USB Dongle check error: {e}"
-            )
-    
-            if DEBUG_MODE:
-                print(f"Error updating USB dongle status: {e}")
+            self.add_to_zigbee_log(f"USB Dongle check error: {e}")
+            print(f"Error updating USB dongle status: {e}")
 
     def add_to_zigbee_log(self, message: str):
         """Add a message to the Zigbee log."""
