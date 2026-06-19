@@ -1358,13 +1358,22 @@ class GameManagementApp:
     def scale_fonts(self, event=None):
         try:
             cur_width = self.master.winfo_width()
+
             if cur_width <= 0:
-                cur_width = self.initial_width if hasattr(self, 'initial_width') else 1200
+                cur_width = (
+                    self.initial_width
+                    if hasattr(self, "initial_width")
+                    else 1200
+                )
+
         except Exception:
             cur_width = 1200
+
         base_width = 1200
+
         scale = cur_width / base_width
         scale = max(0.5, min(2.0, scale))
+
         base_sizes = {
             "court_time": 36,
             "half": 36,
@@ -1376,16 +1385,32 @@ class GameManagementApp:
             "timeout_button": 20,
             "referee_timeout_timer": 24,
         }
+
         reduced_button_scale = 0.7
+
         for key, fnt in self.fonts.items():
             if key == "timeout_button":
-                new_size = int(base_sizes[key] * scale * reduced_button_scale)
+                new_size = int(
+                    base_sizes[key]
+                    * scale
+                    * reduced_button_scale
+                )
             else:
-                new_size = int(base_sizes[key] * scale)
+                new_size = int(
+                    base_sizes[key]
+                    * scale
+                )
+
             try:
                 fnt.config(size=new_size)
             except Exception:
                 pass
+
+        # Also scale ttk buttons, checkboxes and other controls
+        try:
+            self.scale_ttk_interface_fonts()
+        except Exception:
+            pass
 
     def scale_ttk_interface_fonts(self):
         default_font = font.nametofont("TkDefaultFont")
