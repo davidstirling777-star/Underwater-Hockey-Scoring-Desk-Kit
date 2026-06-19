@@ -2485,7 +2485,7 @@ class GameManagementApp:
             font=button_font,
             height=2,
             relief="raised",
-            borderwidth=2
+            borderwidth=2,
             command=self.toggle_zigbee_connection
         )
         self.toggle_connection_btn.grid(
