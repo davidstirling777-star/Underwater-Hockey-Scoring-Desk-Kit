@@ -2328,7 +2328,7 @@ class GameManagementApp:
         label_bold_font = ("Arial", 11, "bold")
         entry_font = ("Arial", 10)
         button_font = ("Arial", 10, "bold")
-        small_button_font = ("Arial", 9, "bold")
+        small_button_font = ("Arial", 9)
 
         tab.grid_rowconfigure(0, weight=1)
         tab.grid_columnconfigure(0, weight=1)
@@ -2383,8 +2383,8 @@ class GameManagementApp:
             row=0,
             column=1,
             sticky="w",
-            padx=5,
-            pady=2
+            padx=8,
+            pady=6
         )
 
         mqtt_available = is_mqtt_available()
@@ -2399,20 +2399,20 @@ class GameManagementApp:
             status_frame,
             text="MQTT Library:",
             font=label_bold_font
-        ).grid(row=1, column=0, sticky="w", padx=5, pady=2)
+        ).grid(row=1, column=0, sticky="w", padx=8, pady=6)
 
         tk.Label(
             status_frame,
             text=mqtt_status,
             font=label_font,
             fg=mqtt_color
-        ).grid(row=1, column=1, sticky="w", padx=5, pady=2)
+        ).grid(row=1, column=1, sticky="w", padx=8, pady=6)
 
         tk.Label(
             status_frame,
             text="USB Dongle:",
             font=label_bold_font
-        ).grid(row=2, column=0, sticky="w", padx=5, pady=2)
+        ).grid(row=2, column=0, sticky="w", padx=8, pady=6)
 
         self.usb_dongle_status_label = tk.Label(
             status_frame,
@@ -2424,8 +2424,8 @@ class GameManagementApp:
             row=2,
             column=1,
             sticky="w",
-            padx=5,
-            pady=2
+            padx=8,
+            pady=6
         )
 
         self.hardware_ports_label = tk.Label(
@@ -2442,23 +2442,25 @@ class GameManagementApp:
             column=0,
             columnspan=2,
             sticky="w",
-            padx=5,
-            pady=2
+            padx=8,
+            pady=6
         )
 
         self.retest_usb_btn = tk.Button(
             status_frame,
             text="Retest USB Dongle",
             font=small_button_font,
-            height=1,
+            height=2,
+            relief="raised",
+            borderwidth=2
             command=self.update_usb_dongle_status
         )
         self.retest_usb_btn.grid(
             row=3,
             column=2,
             sticky="w",
-            padx=5,
-            pady=2
+            padx=8,
+            pady=4
         )
 
         # ------------------------------------------------------------
@@ -2481,7 +2483,9 @@ class GameManagementApp:
             control_frame,
             text="Connect",
             font=button_font,
-            height=1,
+            height=2,
+            relief="raised",
+            borderwidth=2
             command=self.toggle_zigbee_connection
         )
         self.toggle_connection_btn.grid(
@@ -2496,7 +2500,9 @@ class GameManagementApp:
             control_frame,
             text="Test Connection",
             font=button_font,
-            height=1,
+            height=2,
+            relief="raised",
+            borderwidth=2
             command=self.test_zigbee_connection
         )
         self.test_btn.grid(
@@ -2685,7 +2691,9 @@ class GameManagementApp:
             button_row_frame,
             text="Save Configuration",
             font=button_font,
-            height=1,
+            height=2,
+            relief="raised",
+            borderwidth=2
             command=self.save_zigbee_config
         )
         save_config_btn.grid(row=0, column=0, sticky="ew", padx=5, pady=4)
@@ -2694,7 +2702,9 @@ class GameManagementApp:
             button_row_frame,
             text="Linux Open Zigbee2MQTT Frontend",
             font=button_font,
-            height=1,
+            height=2,
+            relief="raised",
+            borderwidth=2
             command=lambda: webbrowser.open("http://localhost:8080")
         )
         open_frontend_btn.grid(row=0, column=1, sticky="ew", padx=5, pady=4)
@@ -2703,7 +2713,9 @@ class GameManagementApp:
             button_row_frame,
             text="Windows Open Zigbee2MQTT Frontend",
             font=button_font,
-            height=1,
+            height=2,
+            relief="raised",
+            borderwidth=2
             command=lambda: webbrowser.open("http://localhost:8080")
         )
         windows_frontend_btn.grid(row=0, column=2, sticky="ew", padx=5, pady=4)
@@ -2712,7 +2724,9 @@ class GameManagementApp:
             button_row_frame,
             text="Test App Siren",
             font=button_font,
-            height=1,
+            height=2,
+            relief="raised",
+            borderwidth=2
             command=self.test_app_siren
         )
         test_siren_btn.grid(row=0, column=3, sticky="ew", padx=5, pady=4)
