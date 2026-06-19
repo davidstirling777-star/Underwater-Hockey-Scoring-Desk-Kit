@@ -2704,7 +2704,7 @@ class GameManagementApp:
             font=button_font,
             height=2,
             relief="raised",
-            borderwidth=2
+            borderwidth=2,
             command=lambda: webbrowser.open("http://localhost:8080")
         )
         open_frontend_btn.grid(row=0, column=1, sticky="ew", padx=5, pady=4)
