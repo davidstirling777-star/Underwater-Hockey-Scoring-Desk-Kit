@@ -3689,27 +3689,36 @@ Usage:
             print(f"Error updating Zigbee status: {e}")
 
     def update_usb_dongle_status(self):
-        """Update USB dongle connection status in UI using the actual detected COM ports."""
+        """Rescan COM ports and update USB dongle connection status in the UI."""
         try:
             import serial.tools.list_ports
 
-            ports = list(serial.tools.list_ports.comports())
-            connected_devices = {
-                (p.device or "").upper(): p
-                for p in ports
-            }
+            # Force a fresh scan.
+            try:
+                import serial_siren_listener
+                ports = serial_siren_listener.get_detected_ports()
+                arduino_port = ports.get("arduino_port")
+                zigbee_port = ports.get("zigbee_port")
+            except Exception:
+                arduino_port, zigbee_port = auto_detect_com_ports()
 
-            zigbee_port = (self.zigbee_port or "").upper()
+            if arduino_port:
+                self.arduino_port = arduino_port
 
-            # Do not treat fallback/default COM assignments as connected hardware.
+            if zigbee_port:
+                self.zigbee_port = zigbee_port
+
+            available_ports = list(serial.tools.list_ports.comports())
+
             zigbee_detected = False
+            detected_port_text = None
 
-            if zigbee_port and zigbee_port in connected_devices:
-                port = connected_devices[zigbee_port]
+            for port in available_ports:
+                device = (port.device or "").upper()
                 desc = (port.description or "").lower()
                 hwid = (port.hwid or "").lower()
 
-                zigbee_detected = (
+                looks_like_zigbee = (
                     "zigbee" in desc
                     or "sonoff" in desc
                     or "itead" in desc
@@ -3720,13 +3729,32 @@ Usage:
                     or "10c4:ea60" in hwid
                 )
 
+                if looks_like_zigbee:
+                    zigbee_detected = True
+                    detected_port_text = port.device
+                    self.zigbee_port = port.device
+                    break
+
+                if self.zigbee_port and device == self.zigbee_port.upper():
+                    zigbee_detected = True
+                    detected_port_text = port.device
+                    break
+
+            if hasattr(self, "hardware_ports_label"):
+                self.hardware_ports_label.config(
+                    text=(
+                        f"Hardware Ports: Arduino={self.arduino_port}  "
+                        f"Zigbee={self.zigbee_port}"
+                    )
+                )
+
             if zigbee_detected:
                 self.usb_dongle_status_label.config(
-                    text=f"Connected ({self.zigbee_port})",
+                    text=f"Connected ({detected_port_text})",
                     fg="green"
                 )
                 self.add_to_zigbee_log(
-                    f"USB Dongle: Connected ({self.zigbee_port})"
+                    f"USB Dongle: Connected ({detected_port_text})"
                 )
             else:
                 self.usb_dongle_status_label.config(
