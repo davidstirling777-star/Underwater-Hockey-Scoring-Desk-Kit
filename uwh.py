@@ -2727,9 +2727,159 @@ class GameManagementApp:
         )
         test_siren_btn.grid(row=0, column=3, sticky="ew", padx=5, pady=4)
 
-        # Keep the rest of your existing method from:
-        #   # Information Section
-        # down to the end unchanged.
+        # Information Section
+        info_frame = tk.LabelFrame(
+            main_frame,
+            text="Setup Information",
+            borderwidth=1,
+            relief="solid"
+        )
+        info_frame.grid(row=4, column=0, columnspan=4, sticky="ew", padx=5, pady=5)
+        
+        info_scroll_frame = tk.Frame(info_frame)
+        info_scroll_frame.pack(fill="both", expand=True, padx=5, pady=5)
+        
+        info_scrollbar = tk.Scrollbar(info_scroll_frame)
+        info_scrollbar.pack(side="right", fill="y")
+        
+        info_text_widget = tk.Text(
+            info_scroll_frame,
+            height=8,
+            font=("Arial", 9),
+            wrap=tk.WORD,
+            yscrollcommand=info_scrollbar.set
+        )
+        info_text_widget.pack(side="left", fill="both", expand=True)
+        
+        info_scrollbar.config(command=info_text_widget.yview)
+        
+        info_text_widget.insert("1.0", """Zigbee Siren Setup
+
+WINDOWS 11
+1. Install Mosquitto MQTT Broker:
+   https://mosquitto.org/download/
+
+2. Install Zigbee2MQTT for Windows:
+   https://www.zigbee2mqtt.io/guide/installation/05_windows.html
+
+   This requires Node.js and a Zigbee2MQTT data/config folder.
+
+3. Configure Zigbee2MQTT to use the detected Zigbee COM port.
+
+4. Start Mosquitto MQTT Broker.
+
+5. Start Zigbee2MQTT.
+
+6. Use 'Windows Open Zigbee2MQTT Frontend' to open:
+   http://localhost:8080
+
+LINUX / RASPBERRY PI
+1. Install Zigbee2MQTT as a service.
+2. Install Mosquitto MQTT Broker.
+3. Use 'Linux Open Zigbee2MQTT Frontend'.
+
+Recommended PM2 commands:
+sudo npm install -g pm2
+pm2 start zigbee2mqtt --name zigbee2mqtt
+pm2 save
+pm2 startup
+
+Python MQTT Library:
+python3 -m venv ~/myenv
+source ~/myenv/bin/activate
+pip install paho-mqtt
+
+Usage:
+- Arduino Siren Button: press and hold to sound, release to stop.
+- Test App Siren: tests local siren sound.
+- Timer sirens use the same sound file and volume settings.
+- Hardware ports are automatically detected and shown above.
+""")
+
+        info_text_widget.config(state="disabled")
+        
+        # Log Section
+        log_frame = tk.LabelFrame(
+            main_frame,
+            text="Activity Log",
+            borderwidth=1,
+            relief="solid"
+        )
+        
+        log_frame.grid(
+            row=5,
+            column=0,
+            columnspan=4,
+            sticky="ew",
+            padx=5,
+            pady=5
+        )
+        
+        # Create scrollable log area
+        log_scroll_frame = tk.Frame(log_frame)
+        
+        log_scroll_frame.grid(
+            row=0,
+            column=0,
+            sticky="ew",
+            padx=5,
+            pady=5
+        )
+        
+        log_scroll_frame.grid_columnconfigure(0, weight=1)
+        
+        self.log_text = tk.Text(
+            log_scroll_frame,
+            height=6,
+            font=("Courier", 9),
+            wrap=tk.WORD,
+            state=tk.DISABLED
+        )
+        
+        log_scrollbar = tk.Scrollbar(
+            log_scroll_frame,
+            orient="vertical",
+            command=self.log_text.yview
+        )
+        
+        self.log_text.config(
+            yscrollcommand=log_scrollbar.set
+        )
+        
+        self.log_text.grid(
+            row=0,
+            column=0,
+            sticky="ew"
+        )
+        
+        log_scrollbar.grid(
+            row=0,
+            column=1,
+            sticky="ns"
+        )
+        
+        # Clear log button
+        clear_log_btn = tk.Button(
+            log_frame,
+            text="Clear Log",
+            font=("Arial", 9),
+            command=self.clear_zigbee_log
+        )
+        
+        clear_log_btn.grid(
+            row=1,
+            column=0,
+            pady=2
+        )
+        
+        # Add initial log entry
+        self.add_to_zigbee_log("Zigbee Siren tab initialized")
+        
+        if not is_mqtt_available():
+            self.add_to_zigbee_log(
+                "WARNING: paho-mqtt library not installed. Install with: pip install paho-mqtt"
+            )
+            
     
     def test_app_siren(self):
         """Test the app siren sound using the same path as timer sirens."""
