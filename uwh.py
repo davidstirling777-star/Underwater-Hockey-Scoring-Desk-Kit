@@ -724,6 +724,8 @@ class GameManagementApp:
 
         self.create_zigbee_siren_tab()
         splash_report("Siren control tab created", True)
+        self.scale_ttk_interface_fonts()
+        splash_report("Interface button scaling applied", True)
 
         # NOW start Zigbee AFTER all widgets exist
         print("STARTUP: Initializing Zigbee connection (MQTT stability verified)")
@@ -5292,4 +5294,37 @@ if __name__ == "__main__":
 
         if current_selection in csv_files:
             self.csv_var.set(current_selection)
+
+    def scale_ttk_interface_fonts(self):
+        default_font = font.nametofont("TkDefaultFont")
+        default_size = max(10, default_font.cget("size"))
+
+        button_size = max(12, default_size + 2)
+        label_size = max(11, default_size + 1)
+
+        style = ttk.Style()
+
+        style.configure(
+            "TButton",
+            font=(default_font.cget("family"), button_size),
+            padding=(8, 6)
+        )
+
+        style.configure(
+            "Preset.TButton",
+            font=(default_font.cget("family"), button_size),
+            padding=(8, 6)
+        )
+
+        style.configure(
+            "TCheckbutton",
+            font=(default_font.cget("family"), label_size),
+            padding=(4, 4)
+        )
+
+        style.configure(
+            "Large.TCheckbutton",
+            font=(default_font.cget("family"), label_size + 1),
+            padding=(4, 4)
+        )
 
