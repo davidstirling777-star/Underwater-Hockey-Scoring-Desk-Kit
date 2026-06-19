@@ -2443,7 +2443,7 @@ class GameManagementApp:
             columnspan=2,
             sticky="w",
             padx=8,
-            pady=6
+            pady=6,
         )
 
         self.retest_usb_btn = tk.Button(
