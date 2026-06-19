@@ -423,8 +423,6 @@ class GameManagementApp:
         self.master = master
         self.master.title("Underwater Hockey Game Management App")
         self.master.geometry('1200x800')
-        self.scale_ttk_interface_fonts()
-        splash_report("Interface button scaling applied", True)
         self.notebook = ttk.Notebook(master)
         self.notebook.pack(expand=True, fill='both',)
 
@@ -1406,12 +1404,6 @@ class GameManagementApp:
                 fnt.config(size=new_size)
             except Exception:
                 pass
-
-        # Also scale ttk buttons, checkboxes and other controls
-        try:
-            self.scale_ttk_interface_fonts()
-        except Exception:
-            pass
 
     def scale_ttk_interface_fonts(self):
         default_font = font.nametofont("TkDefaultFont")
