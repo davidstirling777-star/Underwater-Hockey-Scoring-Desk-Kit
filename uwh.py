@@ -2502,7 +2502,7 @@ class GameManagementApp:
             font=button_font,
             height=2,
             relief="raised",
-            borderwidth=2
+            borderwidth=2,
             command=self.test_zigbee_connection
         )
         self.test_btn.grid(
