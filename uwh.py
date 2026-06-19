@@ -2324,11 +2324,11 @@ class GameManagementApp:
         tab = ttk.Frame(self.notebook)
         self.notebook.add(tab, text="Zigbee Siren")
 
-        button_font = ("Arial", 11, "bold")
-        small_button_font = ("Arial", 9, "bold")
         label_font = ("Arial", 11)
         label_bold_font = ("Arial", 11, "bold")
         entry_font = ("Arial", 10)
+        button_font = ("Arial", 10, "bold")
+        small_button_font = ("Arial", 9, "bold")
 
         tab.grid_rowconfigure(0, weight=1)
         tab.grid_columnconfigure(0, weight=1)
@@ -2341,12 +2341,17 @@ class GameManagementApp:
         )
         main_frame.grid(row=0, column=0, sticky="nsew", padx=8, pady=8)
 
-        for r in range(12):
-            main_frame.grid_rowconfigure(r, weight=1)
+        for r in range(6):
+            main_frame.grid_rowconfigure(r, weight=0)
+        main_frame.grid_rowconfigure(4, weight=1)
+        main_frame.grid_rowconfigure(5, weight=1)
 
         for c in range(4):
             main_frame.grid_columnconfigure(c, weight=1)
 
+        # ------------------------------------------------------------
+        # Connection Status
+        # ------------------------------------------------------------
         status_frame = tk.LabelFrame(
             main_frame,
             text="Connection Status",
@@ -2445,24 +2450,28 @@ class GameManagementApp:
             status_frame,
             text="Retest USB Dongle",
             font=small_button_font,
-            height=2,
+            height=1,
             command=self.update_usb_dongle_status
         )
         self.retest_usb_btn.grid(
             row=3,
             column=2,
-            sticky="ew",
+            sticky="w",
             padx=5,
             pady=2
         )
 
+        # ------------------------------------------------------------
+        # Connection Buttons
+        # ------------------------------------------------------------
         control_frame = tk.Frame(main_frame)
         control_frame.grid(
             row=1,
             column=0,
             columnspan=4,
             sticky="ew",
-            pady=10
+            padx=5,
+            pady=5
         )
 
         for c in range(2):
@@ -2472,7 +2481,7 @@ class GameManagementApp:
             control_frame,
             text="Connect",
             font=button_font,
-            height=2,
+            height=1,
             command=self.toggle_zigbee_connection
         )
         self.toggle_connection_btn.grid(
@@ -2487,7 +2496,7 @@ class GameManagementApp:
             control_frame,
             text="Test Connection",
             font=button_font,
-            height=2,
+            height=1,
             command=self.test_zigbee_connection
         )
         self.test_btn.grid(
@@ -2498,6 +2507,9 @@ class GameManagementApp:
             pady=4
         )
 
+        # ------------------------------------------------------------
+        # MQTT Configuration
+        # ------------------------------------------------------------
         config_frame = tk.LabelFrame(
             main_frame,
             text="MQTT Configuration",
@@ -2517,31 +2529,22 @@ class GameManagementApp:
         config = self.zigbee_controller.config
 
         row = 0
-        tk.Label(
-            config_frame,
-            text="MQTT Broker:",
-            font=entry_font
-        ).grid(row=row, column=0, sticky="w", padx=5, pady=2)
 
+        tk.Label(config_frame, text="MQTT Broker:", font=entry_font).grid(
+            row=row, column=0, sticky="w", padx=5, pady=2
+        )
         self.config_widgets["mqtt_broker"] = tk.Entry(
             config_frame,
             font=entry_font
         )
         self.config_widgets["mqtt_broker"].insert(0, config["mqtt_broker"])
         self.config_widgets["mqtt_broker"].grid(
-            row=row,
-            column=1,
-            sticky="ew",
-            padx=5,
-            pady=2
+            row=row, column=1, sticky="ew", padx=5, pady=2
         )
 
-        tk.Label(
-            config_frame,
-            text="Port:",
-            font=entry_font
-        ).grid(row=row, column=2, sticky="w", padx=5, pady=2)
-
+        tk.Label(config_frame, text="Port:", font=entry_font).grid(
+            row=row, column=2, sticky="w", padx=5, pady=2
+        )
         self.config_widgets["mqtt_port"] = tk.Entry(
             config_frame,
             font=entry_font,
@@ -2549,20 +2552,14 @@ class GameManagementApp:
         )
         self.config_widgets["mqtt_port"].insert(0, str(config["mqtt_port"]))
         self.config_widgets["mqtt_port"].grid(
-            row=row,
-            column=3,
-            sticky="w",
-            padx=5,
-            pady=2
+            row=row, column=3, sticky="w", padx=5, pady=2
         )
 
         row += 1
-        tk.Label(
-            config_frame,
-            text="Username:",
-            font=entry_font
-        ).grid(row=row, column=0, sticky="w", padx=5, pady=2)
 
+        tk.Label(config_frame, text="Username:", font=entry_font).grid(
+            row=row, column=0, sticky="w", padx=5, pady=2
+        )
         self.config_widgets["mqtt_username"] = tk.Entry(
             config_frame,
             font=entry_font
@@ -2572,19 +2569,12 @@ class GameManagementApp:
             config["mqtt_username"]
         )
         self.config_widgets["mqtt_username"].grid(
-            row=row,
-            column=1,
-            sticky="ew",
-            padx=5,
-            pady=2
+            row=row, column=1, sticky="ew", padx=5, pady=2
         )
 
-        tk.Label(
-            config_frame,
-            text="Password:",
-            font=entry_font
-        ).grid(row=row, column=2, sticky="w", padx=5, pady=2)
-
+        tk.Label(config_frame, text="Password:", font=entry_font).grid(
+            row=row, column=2, sticky="w", padx=5, pady=2
+        )
         self.config_widgets["mqtt_password"] = tk.Entry(
             config_frame,
             font=entry_font,
@@ -2595,20 +2585,14 @@ class GameManagementApp:
             config["mqtt_password"]
         )
         self.config_widgets["mqtt_password"].grid(
-            row=row,
-            column=3,
-            sticky="ew",
-            padx=5,
-            pady=2
+            row=row, column=3, sticky="ew", padx=5, pady=2
         )
 
         row += 1
-        tk.Label(
-            config_frame,
-            text="MQTT Topic:",
-            font=entry_font
-        ).grid(row=row, column=0, sticky="w", padx=5, pady=2)
 
+        tk.Label(config_frame, text="MQTT Topic:", font=entry_font).grid(
+            row=row, column=0, sticky="w", padx=5, pady=2
+        )
         self.config_widgets["mqtt_topic"] = tk.Entry(
             config_frame,
             font=entry_font
@@ -2624,6 +2608,7 @@ class GameManagementApp:
         )
 
         row += 1
+
         tk.Label(
             config_frame,
             text="Button Device Names (comma-separated):",
@@ -2653,6 +2638,7 @@ class GameManagementApp:
         )
 
         row += 1
+
         tk.Label(
             config_frame,
             text="Siren Device Name:",
@@ -2677,7 +2663,11 @@ class GameManagementApp:
         )
 
         config_frame.grid_columnconfigure(1, weight=1)
+        config_frame.grid_columnconfigure(3, weight=1)
 
+        # ------------------------------------------------------------
+        # Action Buttons
+        # ------------------------------------------------------------
         button_row_frame = tk.Frame(main_frame)
         button_row_frame.grid(
             row=3,
@@ -2695,7 +2685,7 @@ class GameManagementApp:
             button_row_frame,
             text="Save Configuration",
             font=button_font,
-            height=2,
+            height=1,
             command=self.save_zigbee_config
         )
         save_config_btn.grid(row=0, column=0, sticky="ew", padx=5, pady=4)
@@ -2704,7 +2694,7 @@ class GameManagementApp:
             button_row_frame,
             text="Linux Open Zigbee2MQTT Frontend",
             font=button_font,
-            height=2,
+            height=1,
             command=lambda: webbrowser.open("http://localhost:8080")
         )
         open_frontend_btn.grid(row=0, column=1, sticky="ew", padx=5, pady=4)
@@ -2713,7 +2703,7 @@ class GameManagementApp:
             button_row_frame,
             text="Windows Open Zigbee2MQTT Frontend",
             font=button_font,
-            height=2,
+            height=1,
             command=lambda: webbrowser.open("http://localhost:8080")
         )
         windows_frontend_btn.grid(row=0, column=2, sticky="ew", padx=5, pady=4)
@@ -2722,10 +2712,55 @@ class GameManagementApp:
             button_row_frame,
             text="Test App Siren",
             font=button_font,
-            height=2,
+            height=1,
             command=self.test_app_siren
         )
         test_siren_btn.grid(row=0, column=3, sticky="ew", padx=5, pady=4)
+
+        # ------------------------------------------------------------
+        # Information Section
+        # ------------------------------------------------------------
+        info_frame = tk.LabelFrame(
+            main_frame,
+            text="Setup Information",
+            borderwidth=1,
+            relief="solid"
+        )
+        info_frame.grid(
+            row=4,
+            column=0,
+            columnspan=4,
+            sticky="nsew",
+            padx=5,
+            pady=5
+        )
+
+        info_frame.grid_rowconfigure(0, weight=1)
+        info_frame.grid_columnconfigure(0, weight=1)
+
+        info_scroll_frame = tk.Frame(info_frame)
+        info_scroll_frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+
+        info_scroll_frame.grid_rowconfigure(0, weight=1)
+        info_scroll_frame.grid_columnconfigure(0, weight=1)
+
+        info_scrollbar = tk.Scrollbar(info_scroll_frame)
+        info_scrollbar.grid(row=0, column=1, sticky="ns")
+
+        info_text_widget = tk.Text(
+            info_scroll_frame,
+            height=7,
+            font=("Arial", 9),
+            wrap=tk.WORD,
+            yscrollcommand=info_scrollbar.set
+        )
+        info_text_widget.grid(row=0, column=0, sticky="nsew")
+
+        info_scrollbar.config(command=info_text_widget.yview)
+
+        info_text_widget.insert(
+            "1.0",
+            """Zigbee Siren Setup
 
 WINDOWS 11
 1. Install Mosquitto MQTT Broker:
@@ -2766,40 +2801,44 @@ Usage:
 - Test App Siren: tests local siren sound.
 - Timer sirens use the same sound file and volume settings.
 - Hardware ports are automatically detected and shown above.
-""")
+"""
+        )
 
         info_text_widget.config(state="disabled")
-        
-        # Log Section
+
+        # ------------------------------------------------------------
+        # Activity Log
+        # ------------------------------------------------------------
         log_frame = tk.LabelFrame(
             main_frame,
             text="Activity Log",
             borderwidth=1,
             relief="solid"
         )
-        
         log_frame.grid(
             row=5,
             column=0,
             columnspan=4,
-            sticky="ew",
+            sticky="nsew",
             padx=5,
             pady=5
         )
-        
-        # Create scrollable log area
+
+        log_frame.grid_rowconfigure(0, weight=1)
+        log_frame.grid_columnconfigure(0, weight=1)
+
         log_scroll_frame = tk.Frame(log_frame)
-        
         log_scroll_frame.grid(
             row=0,
             column=0,
-            sticky="ew",
+            sticky="nsew",
             padx=5,
             pady=5
         )
-        
+
+        log_scroll_frame.grid_rowconfigure(0, weight=1)
         log_scroll_frame.grid_columnconfigure(0, weight=1)
-        
+
         self.log_text = tk.Text(
             log_scroll_frame,
             height=6,
@@ -2807,51 +2846,34 @@ Usage:
             wrap=tk.WORD,
             state=tk.DISABLED
         )
-        
+
         log_scrollbar = tk.Scrollbar(
             log_scroll_frame,
             orient="vertical",
             command=self.log_text.yview
         )
-        
-        self.log_text.config(
-            yscrollcommand=log_scrollbar.set
-        )
-        
-        self.log_text.grid(
-            row=0,
-            column=0,
-            sticky="ew"
-        )
-        
-        log_scrollbar.grid(
-            row=0,
-            column=1,
-            sticky="ns"
-        )
-        
-        # Clear log button
+
+        self.log_text.config(yscrollcommand=log_scrollbar.set)
+
+        self.log_text.grid(row=0, column=0, sticky="nsew")
+        log_scrollbar.grid(row=0, column=1, sticky="ns")
+
         clear_log_btn = tk.Button(
             log_frame,
             text="Clear Log",
-            font=("Arial", 9),
+            font=small_button_font,
+            height=1,
             command=self.clear_zigbee_log
         )
-        
-        clear_log_btn.grid(
-            row=1,
-            column=0,
-            pady=2
-        )
-        
-        # Add initial log entry
+        clear_log_btn.grid(row=1, column=0, pady=2)
+
         self.add_to_zigbee_log("Zigbee Siren tab initialized")
-        
+
         if not is_mqtt_available():
             self.add_to_zigbee_log(
-                "WARNING: paho-mqtt library not installed. Install with: pip install paho-mqtt"
+                "WARNING: paho-mqtt library not installed. "
+                "Install with: pip install paho-mqtt"
             )
-            
     
     def test_app_siren(self):
         """Test the app siren sound using the same path as timer sirens."""
