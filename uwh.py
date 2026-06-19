@@ -423,7 +423,8 @@ class GameManagementApp:
         self.master = master
         self.master.title("Underwater Hockey Game Management App")
         self.master.geometry('1200x800')
-
+        self.scale_ttk_interface_fonts()
+        splash_report("Interface button scaling applied", True)
         self.notebook = ttk.Notebook(master)
         self.notebook.pack(expand=True, fill='both',)
 
