@@ -2443,7 +2443,7 @@ class GameManagementApp:
             columnspan=2,
             sticky="w",
             padx=8,
-            pady=6,
+            pady=6
         )
 
         self.retest_usb_btn = tk.Button(
@@ -2452,7 +2452,7 @@ class GameManagementApp:
             font=small_button_font,
             height=2,
             relief="raised",
-            borderwidth=2
+            borderwidth=2,
             command=self.update_usb_dongle_status
         )
         self.retest_usb_btn.grid(
