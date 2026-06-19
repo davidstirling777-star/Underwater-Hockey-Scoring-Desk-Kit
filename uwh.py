@@ -2727,34 +2727,6 @@ class GameManagementApp:
         )
         test_siren_btn.grid(row=0, column=3, sticky="ew", padx=5, pady=4)
 
-        # Information Section
-        info_frame = tk.LabelFrame(
-            main_frame,
-            text="Setup Information",
-            borderwidth=1,
-            relief="solid"
-        )
-        info_frame.grid(row=4, column=0, columnspan=4, sticky="ew", padx=5, pady=5)
-        
-        info_scroll_frame = tk.Frame(info_frame)
-        info_scroll_frame.pack(fill="both", expand=True, padx=5, pady=5)
-        
-        info_scrollbar = tk.Scrollbar(info_scroll_frame)
-        info_scrollbar.pack(side="right", fill="y")
-        
-        info_text_widget = tk.Text(
-            info_scroll_frame,
-            height=8,
-            font=("Arial", 9),
-            wrap=tk.WORD,
-            yscrollcommand=info_scrollbar.set
-        )
-        info_text_widget.pack(side="left", fill="both", expand=True)
-        
-        info_scrollbar.config(command=info_text_widget.yview)
-        
-        info_text_widget.insert("1.0", """Zigbee Siren Setup
-
 WINDOWS 11
 1. Install Mosquitto MQTT Broker:
    https://mosquitto.org/download/
