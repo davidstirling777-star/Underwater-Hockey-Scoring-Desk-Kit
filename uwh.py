@@ -2693,7 +2693,7 @@ class GameManagementApp:
             font=button_font,
             height=2,
             relief="raised",
-            borderwidth=2
+            borderwidth=2,
             command=self.save_zigbee_config
         )
         save_config_btn.grid(row=0, column=0, sticky="ew", padx=5, pady=4)
@@ -2715,7 +2715,7 @@ class GameManagementApp:
             font=button_font,
             height=2,
             relief="raised",
-            borderwidth=2
+            borderwidth=2,
             command=lambda: webbrowser.open("http://localhost:8080")
         )
         windows_frontend_btn.grid(row=0, column=2, sticky="ew", padx=5, pady=4)
@@ -2726,7 +2726,7 @@ class GameManagementApp:
             font=button_font,
             height=2,
             relief="raised",
-            borderwidth=2
+            borderwidth=2,
             command=self.test_app_siren
         )
         test_siren_btn.grid(row=0, column=3, sticky="ew", padx=5, pady=4)
