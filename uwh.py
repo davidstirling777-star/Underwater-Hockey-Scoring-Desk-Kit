@@ -2618,7 +2618,7 @@ class GameManagementApp:
         label_font = ("Arial", 11)
         label_bold_font = ("Arial", 11, "bold")
         entry_font = ("Arial", 10)
-        button_font = ("Arial", 10, "bold")
+        button_font = ("Arial", 9)
         small_button_font = ("Arial", 9)
 
         tab.grid_rowconfigure(0, weight=1)
@@ -2632,12 +2632,11 @@ class GameManagementApp:
         )
         main_frame.grid(row=0, column=0, sticky="nsew", padx=8, pady=8)
 
-        for r in range(6):
+        for r in range(5):
             main_frame.grid_rowconfigure(r, weight=0)
 
-        # Let Setup Information and Activity Log share spare vertical space.
-        main_frame.grid_rowconfigure(4, weight=1)
-        main_frame.grid_rowconfigure(5, weight=2)
+        main_frame.grid_rowconfigure(3, weight=1)
+        main_frame.grid_rowconfigure(4, weight=4)
 
         for c in range(4):
             main_frame.grid_columnconfigure(c, weight=1)
@@ -2664,7 +2663,7 @@ class GameManagementApp:
             status_frame,
             text="Status:",
             font=label_bold_font
-        ).grid(row=0, column=0, sticky="w", padx=5, pady=2)
+        ).grid(row=0, column=0, sticky="w", padx=8, pady=4)
 
         self.zigbee_status_label = tk.Label(
             status_frame,
@@ -2677,7 +2676,7 @@ class GameManagementApp:
             column=1,
             sticky="w",
             padx=8,
-            pady=6
+            pady=4
         )
 
         mqtt_available = is_mqtt_available()
@@ -2692,20 +2691,20 @@ class GameManagementApp:
             status_frame,
             text="MQTT Library:",
             font=label_bold_font
-        ).grid(row=1, column=0, sticky="w", padx=8, pady=6)
+        ).grid(row=1, column=0, sticky="w", padx=8, pady=4)
 
         tk.Label(
             status_frame,
             text=mqtt_status,
             font=label_font,
             fg=mqtt_color
-        ).grid(row=1, column=1, sticky="w", padx=8, pady=6)
+        ).grid(row=1, column=1, sticky="w", padx=8, pady=4)
 
         tk.Label(
             status_frame,
             text="USB Dongle:",
             font=label_bold_font
-        ).grid(row=2, column=0, sticky="w", padx=8, pady=6)
+        ).grid(row=2, column=0, sticky="w", padx=8, pady=4)
 
         self.usb_dongle_status_label = tk.Label(
             status_frame,
@@ -2718,7 +2717,7 @@ class GameManagementApp:
             column=1,
             sticky="w",
             padx=8,
-            pady=6
+            pady=4
         )
 
         self.hardware_ports_label = tk.Label(
@@ -2736,75 +2735,45 @@ class GameManagementApp:
             columnspan=2,
             sticky="w",
             padx=8,
-            pady=6
+            pady=4
         )
 
-        self.retest_usb_btn = tk.Button(
-            status_frame,
-            text="Retest USB Dongle",
-            font=small_button_font,
-            height=2,
-            relief="raised",
-            borderwidth=2,
-            command=self.update_usb_dongle_status
-        )
-        self.retest_usb_btn.grid(
+        status_button_frame = tk.Frame(status_frame)
+        status_button_frame.grid(
             row=3,
             column=2,
+            columnspan=2,
             sticky="w",
             padx=8,
             pady=4
         )
 
-        # ------------------------------------------------------------
-        # Connection Buttons
-        # ------------------------------------------------------------
-        control_frame = tk.Frame(main_frame)
-        control_frame.grid(
-            row=1,
-            column=0,
-            columnspan=4,
-            sticky="ew",
-            padx=5,
-            pady=5
+        self.retest_usb_btn = tk.Button(
+            status_button_frame,
+            text="Retest USB Dongle",
+            font=small_button_font,
+            height=1,
+            command=self.update_usb_dongle_status
         )
-
-        for c in range(2):
-            control_frame.grid_columnconfigure(c, weight=1)
+        self.retest_usb_btn.grid(row=0, column=0, padx=5, pady=2)
 
         self.toggle_connection_btn = tk.Button(
-            control_frame,
+            status_button_frame,
             text="Connect",
-            font=button_font,
-            height=2,
-            relief="raised",
-            borderwidth=2,
+            font=small_button_font,
+            height=1,
             command=self.toggle_zigbee_connection
         )
-        self.toggle_connection_btn.grid(
-            row=0,
-            column=0,
-            sticky="ew",
-            padx=8,
-            pady=4
-        )
+        self.toggle_connection_btn.grid(row=0, column=1, padx=5, pady=2)
 
         self.test_btn = tk.Button(
-            control_frame,
+            status_button_frame,
             text="Test Connection",
-            font=button_font,
-            height=2,
-            relief="raised",
-            borderwidth=2,
+            font=small_button_font,
+            height=1,
             command=self.test_zigbee_connection
         )
-        self.test_btn.grid(
-            row=0,
-            column=1,
-            sticky="ew",
-            padx=8,
-            pady=4
-        )
+        self.test_btn.grid(row=0, column=2, padx=5, pady=2)
 
         # ------------------------------------------------------------
         # MQTT Configuration
@@ -2816,7 +2785,7 @@ class GameManagementApp:
             relief="solid"
         )
         config_frame.grid(
-            row=2,
+            row=1,
             column=0,
             columnspan=4,
             sticky="ew",
@@ -2969,7 +2938,7 @@ class GameManagementApp:
         # ------------------------------------------------------------
         button_row_frame = tk.Frame(main_frame)
         button_row_frame.grid(
-            row=3,
+            row=2,
             column=0,
             columnspan=4,
             sticky="ew",
@@ -2984,9 +2953,7 @@ class GameManagementApp:
             button_row_frame,
             text="Save Configuration",
             font=button_font,
-            height=2,
-            relief="raised",
-            borderwidth=2,
+            height=1,
             command=self.save_zigbee_config
         )
         save_config_btn.grid(row=0, column=0, sticky="ew", padx=5, pady=4)
@@ -2995,9 +2962,7 @@ class GameManagementApp:
             button_row_frame,
             text="Linux Open Zigbee2MQTT Frontend",
             font=button_font,
-            height=2,
-            relief="raised",
-            borderwidth=2,
+            height=1,
             command=lambda: webbrowser.open("http://localhost:8080")
         )
         open_frontend_btn.grid(row=0, column=1, sticky="ew", padx=5, pady=4)
@@ -3006,9 +2971,7 @@ class GameManagementApp:
             button_row_frame,
             text="Windows Open Zigbee2MQTT Frontend",
             font=button_font,
-            height=2,
-            relief="raised",
-            borderwidth=2,
+            height=1,
             command=lambda: webbrowser.open("http://localhost:8080")
         )
         windows_frontend_btn.grid(row=0, column=2, sticky="ew", padx=5, pady=4)
@@ -3017,9 +2980,7 @@ class GameManagementApp:
             button_row_frame,
             text="Test App Siren",
             font=button_font,
-            height=2,
-            relief="raised",
-            borderwidth=2,
+            height=1,
             command=self.test_app_siren
         )
         test_siren_btn.grid(row=0, column=3, sticky="ew", padx=5, pady=4)
@@ -3034,7 +2995,7 @@ class GameManagementApp:
             relief="solid"
         )
         info_frame.grid(
-            row=4,
+            row=3,
             column=0,
             columnspan=4,
             sticky="nsew",
@@ -3056,7 +3017,7 @@ class GameManagementApp:
 
         info_text_widget = tk.Text(
             info_scroll_frame,
-            height=7,
+            height=5,
             font=("Arial", 9),
             wrap=tk.WORD,
             yscrollcommand=info_scrollbar.set
@@ -3123,7 +3084,7 @@ Usage:
             relief="solid"
         )
         log_frame.grid(
-            row=5,
+            row=4,
             column=0,
             columnspan=4,
             sticky="nsew",
@@ -3131,7 +3092,6 @@ Usage:
             pady=5
         )
 
-        # Allow the log frame itself to expand
         log_frame.grid_rowconfigure(0, weight=1)
         log_frame.grid_columnconfigure(0, weight=1)
 
@@ -3144,7 +3104,6 @@ Usage:
             pady=5
         )
 
-        # Allow the text widget area to expand
         log_scroll_frame.grid_rowconfigure(0, weight=1)
         log_scroll_frame.grid_columnconfigure(0, weight=1)
 
