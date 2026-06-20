@@ -2343,8 +2343,10 @@ class GameManagementApp:
 
         for r in range(6):
             main_frame.grid_rowconfigure(r, weight=0)
+
+        # Let Setup Information and Activity Log share spare vertical space.
         main_frame.grid_rowconfigure(4, weight=1)
-        main_frame.grid_rowconfigure(5, weight=1)
+        main_frame.grid_rowconfigure(5, weight=2)
 
         for c in range(4):
             main_frame.grid_columnconfigure(c, weight=1)
@@ -2838,6 +2840,7 @@ Usage:
             pady=5
         )
 
+        # Allow the log frame itself to expand
         log_frame.grid_rowconfigure(0, weight=1)
         log_frame.grid_columnconfigure(0, weight=1)
 
@@ -2850,12 +2853,13 @@ Usage:
             pady=5
         )
 
+        # Allow the text widget area to expand
         log_scroll_frame.grid_rowconfigure(0, weight=1)
         log_scroll_frame.grid_columnconfigure(0, weight=1)
 
         self.log_text = tk.Text(
             log_scroll_frame,
-            height=6,
+            height=10,
             font=("Courier", 9),
             wrap=tk.WORD,
             state=tk.DISABLED
@@ -2867,10 +2871,21 @@ Usage:
             command=self.log_text.yview
         )
 
-        self.log_text.config(yscrollcommand=log_scrollbar.set)
+        self.log_text.config(
+            yscrollcommand=log_scrollbar.set
+        )
 
-        self.log_text.grid(row=0, column=0, sticky="nsew")
-        log_scrollbar.grid(row=0, column=1, sticky="ns")
+        self.log_text.grid(
+            row=0,
+            column=0,
+            sticky="nsew"
+        )
+
+        log_scrollbar.grid(
+            row=0,
+            column=1,
+            sticky="ns"
+        )
 
         clear_log_btn = tk.Button(
             log_frame,
@@ -2879,9 +2894,15 @@ Usage:
             height=1,
             command=self.clear_zigbee_log
         )
-        clear_log_btn.grid(row=1, column=0, pady=2)
+        clear_log_btn.grid(
+            row=1,
+            column=0,
+            pady=2
+        )
 
-        self.add_to_zigbee_log("Zigbee Siren tab initialized")
+        self.add_to_zigbee_log(
+            "Zigbee Siren tab initialized"
+        )
 
         if not is_mqtt_available():
             self.add_to_zigbee_log(
