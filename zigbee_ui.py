@@ -6,6 +6,6 @@ from zigbee_siren import is_mqtt_available
 
 
 def create_zigbee_siren_tab(app):
-    # paste the full body of create_zigbee_siren_tab here
-    # change every self. to app.
-    pass
+    """Create the Zigbee Siren configuration tab."""
+    tab = ttk.Frame(app.notebook)
+    app.notebook.add(tab, text="Zigbee Siren")
