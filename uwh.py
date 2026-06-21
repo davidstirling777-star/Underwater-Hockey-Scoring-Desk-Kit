@@ -3516,70 +3516,70 @@ class GameManagementApp:
             self.add_to_zigbee_log(f"USB Dongle check error: {e}")
             print(f"Error updating USB dongle status: {e}")
 
-        def monitor_usb_dongle_presence(self):
-        """Continuously check whether the configured Zigbee USB dongle is still present."""
+    def monitor_usb_dongle_presence(self):
+    """Continuously check whether the configured Zigbee USB dongle is still present."""
+    try:
+        if not hasattr(self, "usb_dongle_status_label"):
+            self.usb_dongle_monitor_job = self.master.after(
+                5000,
+                self.monitor_usb_dongle_presence
+            )
+            return
+
+        import serial.tools.list_ports
+
+        available_ports = list(serial.tools.list_ports.comports())
+        current_zigbee_port = (self.zigbee_port or "").upper()
+
+        port_still_present = False
+
+        for port in available_ports:
+            if (port.device or "").upper() == current_zigbee_port:
+                port_still_present = True
+                break
+
+        if not port_still_present:
+            self.usb_dongle_status_label.config(
+                text="Disconnected",
+                fg="red"
+            )
+
+            self.zigbee_status_var.set("Disconnected - USB dongle removed")
+
+            if hasattr(self, "toggle_connection_btn"):
+                self.toggle_connection_btn.config(text="Connect")
+
+            if getattr(self, "connected", False):
+                self.connected = False
+
+            if (
+                hasattr(self, "zigbee_controller")
+                and self.zigbee_controller
+                and getattr(self.zigbee_controller, "connected", False)
+            ):
+                self.zigbee_controller.connected = False
+
+            self.add_to_zigbee_log(
+                f"USB Dongle removed from {self.zigbee_port}"
+            )
+
+        self.usb_dongle_monitor_job = self.master.after(
+            5000,
+            self.monitor_usb_dongle_presence
+        )
+
+    except Exception as e:
         try:
-            if not hasattr(self, "usb_dongle_status_label"):
-                self.usb_dongle_monitor_job = self.master.after(
-                    5000,
-                    self.monitor_usb_dongle_presence
-                )
-                return
-
-            import serial.tools.list_ports
-
-            available_ports = list(serial.tools.list_ports.comports())
-            current_zigbee_port = (self.zigbee_port or "").upper()
-
-            port_still_present = False
-
-            for port in available_ports:
-                if (port.device or "").upper() == current_zigbee_port:
-                    port_still_present = True
-                    break
-
-            if not port_still_present:
-                self.usb_dongle_status_label.config(
-                    text="Disconnected",
-                    fg="red"
-                )
-
-                self.zigbee_status_var.set("Disconnected - USB dongle removed")
-
-                if hasattr(self, "toggle_connection_btn"):
-                    self.toggle_connection_btn.config(text="Connect")
-
-                if getattr(self, "connected", False):
-                    self.connected = False
-
-                if (
-                    hasattr(self, "zigbee_controller")
-                    and self.zigbee_controller
-                    and getattr(self.zigbee_controller, "connected", False)
-                ):
-                    self.zigbee_controller.connected = False
-
-                self.add_to_zigbee_log(
-                    f"USB Dongle removed from {self.zigbee_port}"
-                )
-
-            self.usb_dongle_monitor_job = self.master.after(
-                5000,
-                self.monitor_usb_dongle_presence
+            self.add_to_zigbee_log(
+                f"USB dongle monitor error: {e}"
             )
+        except Exception:
+            pass
 
-        except Exception as e:
-            try:
-                self.add_to_zigbee_log(
-                    f"USB dongle monitor error: {e}"
-                )
-            except Exception:
-                pass
-
-            self.usb_dongle_monitor_job = self.master.after(
-                5000,
-                self.monitor_usb_dongle_presence
-            )
+        self.usb_dongle_monitor_job = self.master.after(
+            5000,
+            self.monitor_usb_dongle_presence
+        )
 
     def add_to_zigbee_log(self, message: str):
         """Add a message to the Zigbee log."""
