@@ -3429,8 +3429,8 @@ class GameManagementApp:
 
     def update_usb_dongle_status(self):
         """Rescan COM ports and update USB dongle connection status in the UI."""
-                if not hasattr(self, "usb_dongle_status_label"):
-            return
+            if not hasattr(self, "usb_dongle_status_label"):
+        return
                     
         try:
             import serial.tools.list_ports
