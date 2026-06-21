@@ -13,7 +13,7 @@ def create_zigbee_siren_tab(app):
     def create_zigbee_siren_tab(self):
         """Create the Zigbee Siren configuration tab."""
         tab = ttk.Frame(self.notebook)
-        self.notebook.add(tab, text="Zigbee Siren")
+        app.notebook.add(tab, text="Zigbee Siren")
 
         label_font = ("Arial", 11)
         label_bold_font = ("Arial", 11, "bold")
