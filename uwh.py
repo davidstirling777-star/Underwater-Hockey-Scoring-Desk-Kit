@@ -2592,6 +2592,7 @@ class GameManagementApp:
         water_vol_label.grid(row=8, column=5, sticky="n")
         
         # Add interaction detection for water volume slider
+        
         def on_water_slider_interaction(event=None):
             # Update volume label
             water_vol_label.config(text=f"{self.water_volume.get()}%")
@@ -2610,13 +2611,6 @@ class GameManagementApp:
                                font=("Arial", 9, "italic"), 
                                fg="gray")
         warning_label.grid(row=9, column=0, columnspan=6, sticky="ew", pady=(10, 0))
-
-import tkinter as tk
-from tkinter import ttk
-import webbrowser
-
-from zigbee_siren import is_mqtt_available
-
 
     def create_zigbee_siren_tab(app):
         """Create the Zigbee Siren configuration tab."""
