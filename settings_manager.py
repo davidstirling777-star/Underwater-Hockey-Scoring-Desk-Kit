@@ -2,6 +2,12 @@
 import os
 import json
 
+SETTINGS_FILENAME = "settings.json"
+SETTINGS_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    SETTINGS_FILENAME
+)
+
 def load_unified_settings():
     """Load unified settings from JSON file."""
     if os.path.exists(SETTINGS_PATH):
