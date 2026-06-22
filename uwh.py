@@ -1,4 +1,5 @@
 
+
 import csv_export
 import hardware_detection
 import startup_selftest
@@ -10,7 +11,6 @@ import csv_ui
 import zigbee_ui
 import zigbee_hardware_ui
 import zigbee_control
-import settings_manager
 import os
 import sys
 import shutil
@@ -164,7 +164,7 @@ def auto_detect_com_ports():
 
 def migrate_legacy_settings():
     """Migrate settings from legacy separate files to unified settings.json"""
-    unified_settings = settings_manager.get_default_unified_settings()
+    unified_settings = get_default_unified_settings()
     migrated = False
     
     # Migrate game_settings.json (sound settings)
@@ -194,12 +194,12 @@ def migrate_legacy_settings():
             print(f"Error migrating zigbee_config.json: {e}")
     
     if migrated:
-        settings_manager.save_unified_settings(unified_settings)
+        save_unified_settings(unified_settings)
         print("Migration completed. Legacy files preserved.")
     
     return unified_settings
 
-def settings_manager.load_unified_settings():
+def load_unified_settings():
     """Load unified settings from JSON file."""
     # CHANGED: Use the absolute SETTINGS_PATH defined at the top of the file
     if os.path.exists(SETTINGS_PATH):
@@ -213,13 +213,13 @@ def settings_manager.load_unified_settings():
         # If settings.json doesn't exist, try migration first
         return migrate_legacy_settings()
 
-def settings_manager.save_unified_settings(settings):
+def save_unified_settings(settings):
     """Save unified settings to JSON file."""
     # CHANGED: Use the absolute SETTINGS_PATH defined at the top of the file
     with open(SETTINGS_PATH, "w") as f:
         json.dump(settings, f, indent=2)
 
-def settings_manager.get_default_unified_settings():
+def get_default_unified_settings():
     """Get default unified settings structure."""
     return {
         "soundSettings": {
@@ -308,25 +308,25 @@ def settings_manager.get_default_unified_settings():
 
 def load_sound_settings():
     """Load sound settings from unified JSON file."""
-    unified_settings = settings_manager.load_unified_settings()
+    unified_settings = load_unified_settings()
     return unified_settings.get("soundSettings", {})
 
 def save_sound_settings(settings):
     """Save sound settings to unified JSON file."""
-    unified_settings = settings_manager.load_unified_settings()
+    unified_settings = load_unified_settings()
     unified_settings["soundSettings"] = settings
-    settings_manager.save_unified_settings(unified_settings)
+    save_unified_settings(unified_settings)
 
 def load_preset_settings():
     """Load preset settings from unified JSON file."""
-    unified_settings = settings_manager.load_unified_settings()
-    return unified_settings.get("presetSettings", settings_manager.get_default_unified_settings()["presetSettings"])
+    unified_settings = load_unified_settings()
+    return unified_settings.get("presetSettings", get_default_unified_settings()["presetSettings"])
 
 def save_preset_settings(presets):
     """Save preset settings to unified JSON file."""
-    unified_settings = settings_manager.load_unified_settings()
+    unified_settings = load_unified_settings()
     unified_settings["presetSettings"] = presets
-    settings_manager.save_unified_settings(unified_settings)
+    save_unified_settings(unified_settings)
 
 class GameManagementApp:
 
@@ -3153,7 +3153,7 @@ class GameManagementApp:
 
     def load_game_settings(self):
         """Load game settings from unified JSON file."""
-        unified_settings = settings_manager.load_unified_settings()
+        unified_settings = load_unified_settings()
         game_settings = unified_settings.get("gameSettings", {})
         
         # Load settings into variables
@@ -3206,7 +3206,7 @@ class GameManagementApp:
 
     def save_game_settings(self):
         """Save current game settings to unified JSON file."""
-        unified_settings = settings_manager.load_unified_settings()
+        unified_settings = load_unified_settings()
         game_settings = {}
         
         # Collect current game settings from variables (updated by load_settings)
@@ -3246,7 +3246,7 @@ class GameManagementApp:
                     game_settings[var_name] = value
         
         unified_settings["gameSettings"] = game_settings
-        settings_manager.save_unified_settings(unified_settings)
+        save_unified_settings(unified_settings)
 
     # Zigbee Siren Methods
     def start_zigbee_connection(self):
@@ -3320,9 +3320,9 @@ class GameManagementApp:
             self.zigbee_controller.save_config(current_config)
             
             # Also save to unified settings file
-            unified_settings = settings_manager.load_unified_settings()
+            unified_settings = load_unified_settings()
             unified_settings["zigbeeSettings"] = current_config
-            settings_manager.save_unified_settings(unified_settings)
+            save_unified_settings(unified_settings)
             
             self.add_to_zigbee_log("Configuration saved")
             messagebox.showinfo("Configuration", "Zigbee configuration saved successfully!")
@@ -5148,4 +5148,3 @@ if __name__ == "__main__":
 
         if current_selection in csv_files:
             self.csv_var.set(current_selection)
-
