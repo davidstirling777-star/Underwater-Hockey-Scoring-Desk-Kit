@@ -2,89 +2,79 @@ import serial.tools.list_ports
 import serial_siren_listener
 
 
-def update_usb_dongle_status(app):
-    """Rescan COM ports and update USB dongle connection status in the UI."""
+def _safe_log(app, message):
+    try:
+        app.add_to_zigbee_log(message)
+    except Exception:
+        pass
 
-    if not hasattr(app, "usb_dongle_status_label"):
-        return
+
+def _port_exists(port_name):
+    if not port_name:
+        return False
+
+    wanted = port_name.upper()
+
+    for port in serial.tools.list_ports.comports():
+        if (port.device or "").upper() == wanted:
+            return True
+
+    return False
+
+
+def update_usb_dongle_status(app):
+    """Rescan COM ports and update Arduino/Zigbee hardware status labels."""
 
     try:
-        # Force a fresh scan.
-        try:
-            ports = serial_siren_listener.get_detected_ports()
-            arduino_port = ports.get("arduino_port")
-            zigbee_port = ports.get("zigbee_port")
-        except Exception:
-            arduino_port, zigbee_port = None, None
+        ports = serial_siren_listener.get_detected_ports()
+        arduino_port = ports.get("arduino_port")
+        zigbee_port = ports.get("zigbee_port")
+    except Exception:
+        arduino_port = None
+        zigbee_port = None
 
-        if arduino_port:
-            app.arduino_port = arduino_port
+    if arduino_port:
+        app.arduino_port = arduino_port
 
-        if zigbee_port:
-            app.zigbee_port = zigbee_port
+    if zigbee_port:
+        app.zigbee_port = zigbee_port
 
-        available_ports = list(serial.tools.list_ports.comports())
+    arduino_present = _port_exists(app.arduino_port)
+    zigbee_present = _port_exists(app.zigbee_port)
 
-        zigbee_detected = False
-        detected_port_text = None
-
-        for port in available_ports:
-            device = (port.device or "").upper()
-            desc = (port.description or "").lower()
-            hwid = (port.hwid or "").lower()
-
-            looks_like_zigbee = (
-                "zigbee" in desc
-                or "sonoff" in desc
-                or "itead" in desc
-                or "silicon labs" in desc
-                or "cp210" in desc
-                or "cc2531" in desc
-                or "cc2652" in desc
-                or "10c4:ea60" in hwid
-            )
-
-            if looks_like_zigbee:
-                zigbee_detected = True
-                detected_port_text = port.device
-                app.zigbee_port = port.device
-                break
-
-            if app.zigbee_port and device == app.zigbee_port.upper():
-                zigbee_detected = True
-                detected_port_text = port.device
-                break
-
-        if hasattr(app, "hardware_ports_label"):
-            app.hardware_ports_label.config(
-                text=(
-                    f"Hardware Ports: Arduino={app.arduino_port}  "
-                    f"Zigbee={app.zigbee_port}"
-                )
-            )
-
-        if zigbee_detected:
-            app.usb_dongle_status_label.config(
-                text=f"Connected ({detected_port_text})",
+    if hasattr(app, "arduino_status_label"):
+        if arduino_present:
+            app.arduino_status_label.config(
+                text=f"Connected ({app.arduino_port})",
                 fg="green"
             )
-            app.add_to_zigbee_log(
-                f"USB Dongle: Connected ({detected_port_text})"
+        else:
+            app.arduino_status_label.config(
+                text="Disconnected",
+                fg="red"
             )
+
+    if hasattr(app, "usb_dongle_status_label"):
+        if zigbee_present:
+            app.usb_dongle_status_label.config(
+                text=f"Connected ({app.zigbee_port})",
+                fg="green"
+            )
+            _safe_log(app, f"USB Dongle: Connected ({app.zigbee_port})")
         else:
             app.usb_dongle_status_label.config(
                 text="Disconnected",
                 fg="red"
             )
-            app.add_to_zigbee_log("USB Dongle: Disconnected")
+            _safe_log(app, "USB Dongle: Disconnected")
 
-    except Exception as e:
-        app.usb_dongle_status_label.config(
-            text="Error",
-            fg="red"
+    if hasattr(app, "hardware_ports_label"):
+        app.hardware_ports_label.config(
+            text=(
+                f"Hardware Ports: Arduino={app.arduino_port}  "
+                f"Zigbee={app.zigbee_port}"
+            )
         )
-        app.add_to_zigbee_log(f"USB Dongle check error: {e}")
-        print(f"Error updating USB dongle status: {e}")
 
 
 def monitor_usb_dongle_presence(app):
@@ -98,17 +88,15 @@ def monitor_usb_dongle_presence(app):
             )
             return
 
-        available_ports = list(serial.tools.list_ports.comports())
-        current_zigbee_port = (app.zigbee_port or "").upper()
+        zigbee_present = _port_exists(app.zigbee_port)
 
-        port_still_present = False
+        if zigbee_present:
+            app.usb_dongle_status_label.config(
+                text=f"Connected ({app.zigbee_port})",
+                fg="green"
+            )
 
-        for port in available_ports:
-            if (port.device or "").upper() == current_zigbee_port:
-                port_still_present = True
-                break
-
-        if not port_still_present:
+        else:
             app.usb_dongle_status_label.config(
                 text="Disconnected",
                 fg="red"
@@ -131,9 +119,7 @@ def monitor_usb_dongle_presence(app):
             ):
                 app.zigbee_controller.connected = False
 
-            app.add_to_zigbee_log(
-                f"USB Dongle removed from {app.zigbee_port}"
-            )
+            _safe_log(app, f"USB Dongle removed from {app.zigbee_port}")
 
         app.usb_dongle_monitor_job = app.master.after(
             5000,
@@ -141,17 +127,13 @@ def monitor_usb_dongle_presence(app):
         )
 
     except Exception as e:
-        try:
-            app.add_to_zigbee_log(
-                f"USB dongle monitor error: {e}"
-            )
-        except Exception:
-            pass
+        _safe_log(app, f"USB dongle monitor error: {e}")
 
         app.usb_dongle_monitor_job = app.master.after(
             5000,
             app.monitor_usb_dongle_presence
         )
+
 
 def monitor_arduino_presence(app):
     """Continuously check whether the configured Arduino siren is still present."""
@@ -164,27 +146,21 @@ def monitor_arduino_presence(app):
             )
             return
 
-        available_ports = list(serial.tools.list_ports.comports())
-        current_arduino_port = (app.arduino_port or "").upper()
+        arduino_present = _port_exists(app.arduino_port)
 
-        port_still_present = any(
-            (port.device or "").upper() == current_arduino_port
-            for port in available_ports
-        )
-
-        if port_still_present:
+        if arduino_present:
             app.arduino_status_label.config(
                 text=f"Connected ({app.arduino_port})",
                 fg="green"
             )
+
         else:
             app.arduino_status_label.config(
                 text="Disconnected",
                 fg="red"
             )
-            app.add_to_zigbee_log(
-                f"Arduino Siren removed from {app.arduino_port}"
-            )
+
+            _safe_log(app, f"Arduino Siren removed from {app.arduino_port}")
 
         app.arduino_monitor_job = app.master.after(
             5000,
@@ -192,10 +168,7 @@ def monitor_arduino_presence(app):
         )
 
     except Exception as e:
-        try:
-            app.add_to_zigbee_log(f"Arduino monitor error: {e}")
-        except Exception:
-            pass
+        _safe_log(app, f"Arduino monitor error: {e}")
 
         app.arduino_monitor_job = app.master.after(
             5000,
