@@ -223,3 +223,38 @@ def open_button_dialog(app, idx, trigger_button=None):
     dlg.lift()
     dlg.focus_force()
     dlg.grab_set()
+
+def make_press_handler(app, idx):
+    def handler(event):
+        app._preset_long_press_triggered = False
+
+        app._preset_long_press_job = app.master.after(
+            4000,
+            lambda: app._handle_preset_long_press(idx, event.widget)
+        )
+
+    return handler
+
+
+def handle_preset_long_press(app, idx, trigger_button=None):
+    app._preset_long_press_triggered = True
+    app._open_button_dialog(idx, trigger_button)
+
+
+def make_release_handler(app, idx):
+    def handler(event):
+        if hasattr(app, "_preset_long_press_job"):
+            try:
+                app.master.after_cancel(app._preset_long_press_job)
+            except Exception:
+                pass
+
+            app._preset_long_press_job = None
+
+        if getattr(app, "_preset_long_press_triggered", False):
+            app._preset_long_press_triggered = False
+            return
+
+        app.load_button_settings(idx)
+
+    return handler
