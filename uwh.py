@@ -1,17 +1,17 @@
 
 
 import csv_export
-import hardware_detection
 import startup_selftest
-import game_logging
-import display_manager
-import game_flow
 import csv_helpers
 import csv_ui
-import zigbee_ui
-import zigbee_hardware_ui
-import zigbee_control
+import display_manager
+import game_flow
+import game_logging
+import hardware_detection
 import settings_manager
+import zigbee_ui
+import zigbee_control
+import zigbee_hardware_ui
 import os
 import sys
 import shutil
