@@ -3266,7 +3266,17 @@ class GameManagementApp:
         return zigbee_control.check_connection_status(self)
 
     def update_zigbee_status(self, connected: bool, message: str = ""):
-        return zigbee_control.update_zigbee_status(self, connected, message)
+        try:
+            self.master.after(
+                0,
+                lambda: zigbee_control.update_zigbee_status(
+                    self,
+                    connected,
+                    message
+                )
+            )
+        except Exception as e:
+            print(f"Error scheduling Zigbee status update: {e}")
 
     def update_usb_dongle_status(self):
         return zigbee_hardware_ui.update_usb_dongle_status(self)
