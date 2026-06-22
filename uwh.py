@@ -11,6 +11,7 @@ import csv_ui
 import zigbee_ui
 import zigbee_hardware_ui
 import zigbee_control
+import settings_manager
 import os
 import sys
 import shutil
