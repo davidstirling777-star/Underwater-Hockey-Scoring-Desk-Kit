@@ -152,3 +152,52 @@ def monitor_usb_dongle_presence(app):
             5000,
             app.monitor_usb_dongle_presence
         )
+
+def monitor_arduino_presence(app):
+    """Continuously check whether the configured Arduino siren is still present."""
+
+    try:
+        if not hasattr(app, "arduino_status_label"):
+            app.arduino_monitor_job = app.master.after(
+                5000,
+                app.monitor_arduino_presence
+            )
+            return
+
+        available_ports = list(serial.tools.list_ports.comports())
+        current_arduino_port = (app.arduino_port or "").upper()
+
+        port_still_present = any(
+            (port.device or "").upper() == current_arduino_port
+            for port in available_ports
+        )
+
+        if port_still_present:
+            app.arduino_status_label.config(
+                text=f"Connected ({app.arduino_port})",
+                fg="green"
+            )
+        else:
+            app.arduino_status_label.config(
+                text="Disconnected",
+                fg="red"
+            )
+            app.add_to_zigbee_log(
+                f"Arduino Siren removed from {app.arduino_port}"
+            )
+
+        app.arduino_monitor_job = app.master.after(
+            5000,
+            app.monitor_arduino_presence
+        )
+
+    except Exception as e:
+        try:
+            app.add_to_zigbee_log(f"Arduino monitor error: {e}")
+        except Exception:
+            pass
+
+        app.arduino_monitor_job = app.master.after(
+            5000,
+            app.monitor_arduino_presence
+        )
