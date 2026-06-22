@@ -12,7 +12,7 @@ from sound import (
 
 from settings_manager import save_sound_settings
 
-def create_sounds_tab(self):
+def create_sounds_tab(app):
     tab = ttk.Frame(self.notebook)
     self.notebook.add(tab, text="Sounds")
     
@@ -345,7 +345,7 @@ def create_sounds_tab(self):
                            fg="gray")
     warning_label.grid(row=9, column=0, columnspan=6, sticky="ew", pady=(10, 0))
 
-def save_sound_settings_method(self):
+def save_sound_settings_method(app):
     """Save current sound settings to JSON file."""
     settings = {
         "pips_sound": self.pips_var.get(),
