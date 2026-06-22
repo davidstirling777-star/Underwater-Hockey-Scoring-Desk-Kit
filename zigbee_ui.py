@@ -114,7 +114,7 @@ def create_zigbee_siren_tab(app):
         fg="blue"
     )
     app.hardware_ports_label.grid(
-        row=3,
+        row=4,
         column=0,
         columnspan=2,
         sticky="w",
