@@ -2275,6 +2275,9 @@ class GameManagementApp:
     def on_game_selection_changed(self, event=None):
         return game_flow.on_game_selection_changed(self, event)
 
+    def monitor_arduino_presence(self):
+        return zigbee_hardware_ui.monitor_arduino_presence(self)
+
     def open_csv_folder(self):
         """Open the folder containing CSV files in the system file manager."""
         # CHANGED: Use BASE_DIR instead of os.getcwd() so it always opens the folder containing the EXE and CSVs
