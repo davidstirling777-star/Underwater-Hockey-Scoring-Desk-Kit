@@ -72,33 +72,6 @@ def create_zigbee_siren_tab(app):
         row=2, column=0, sticky="w", padx=8, pady=4
     )
 
-    tk.Label(
-    status_frame,
-    text="Arduino Siren:",
-    font=label_bold_font
-    ).grid(
-        row=3,
-        column=0,
-        sticky="w",
-        padx=8,
-        pady=4
-    )
-    
-    app.arduino_status_label = tk.Label(
-        status_frame,
-        text="Checking...",
-        font=label_font,
-        fg="orange"
-    )
-    
-    app.arduino_status_label.grid(
-        row=3,
-        column=1,
-        sticky="w",
-        padx=8,
-        pady=4
-    )
-
     app.usb_dongle_status_label = tk.Label(
         status_frame,
         text="Checking...",
@@ -106,6 +79,18 @@ def create_zigbee_siren_tab(app):
         fg="orange"
     )
     app.usb_dongle_status_label.grid(row=2, column=1, sticky="w", padx=8, pady=4)
+
+    tk.Label(status_frame, text="Arduino Siren:", font=label_bold_font).grid(
+        row=3, column=0, sticky="w", padx=8, pady=4
+    )
+
+    app.arduino_status_label = tk.Label(
+        status_frame,
+        text="Checking...",
+        font=label_font,
+        fg="orange"
+    )
+    app.arduino_status_label.grid(row=3, column=1, sticky="w", padx=8, pady=4)
 
     app.hardware_ports_label = tk.Label(
         status_frame,
@@ -124,40 +109,45 @@ def create_zigbee_siren_tab(app):
 
     status_button_frame = tk.Frame(status_frame)
     status_button_frame.grid(
-        row=3,
+        row=0,
         column=2,
+        rowspan=5,
         columnspan=2,
-        sticky="w",
+        sticky="n",
         padx=8,
         pady=4
     )
-
-    app.retest_usb_btn = tk.Button(
-        status_button_frame,
-        text="Retest USB Dongle",
-        font=small_button_font,
-        height=1,
-        command=app.update_usb_dongle_status
-    )
-    app.retest_usb_btn.grid(row=0, column=0, padx=5, pady=2)
+    status_button_frame.grid_columnconfigure(0, weight=1)
 
     app.toggle_connection_btn = tk.Button(
         status_button_frame,
         text="Connect",
         font=small_button_font,
         height=1,
+        width=18,
         command=app.toggle_zigbee_connection
     )
-    app.toggle_connection_btn.grid(row=0, column=1, padx=5, pady=2)
+    app.toggle_connection_btn.grid(row=0, column=0, sticky="ew", padx=5, pady=2)
 
     app.test_btn = tk.Button(
         status_button_frame,
         text="Test Connection",
         font=small_button_font,
         height=1,
+        width=18,
         command=app.test_zigbee_connection
     )
-    app.test_btn.grid(row=0, column=2, padx=5, pady=2)
+    app.test_btn.grid(row=1, column=0, sticky="ew", padx=5, pady=2)
+
+    app.retest_usb_btn = tk.Button(
+        status_button_frame,
+        text="Retest Hardware",
+        font=small_button_font,
+        height=1,
+        width=18,
+        command=app.update_usb_dongle_status
+    )
+    app.retest_usb_btn.grid(row=2, column=0, sticky="ew", padx=5, pady=2)
 
     config_frame = tk.LabelFrame(
         main_frame,
@@ -177,18 +167,14 @@ def create_zigbee_siren_tab(app):
     )
     app.config_widgets["mqtt_broker"] = tk.Entry(config_frame, font=entry_font)
     app.config_widgets["mqtt_broker"].insert(0, config["mqtt_broker"])
-    app.config_widgets["mqtt_broker"].grid(
-        row=row, column=1, sticky="ew", padx=5, pady=2
-    )
+    app.config_widgets["mqtt_broker"].grid(row=row, column=1, sticky="ew", padx=5, pady=2)
 
     tk.Label(config_frame, text="Port:", font=entry_font).grid(
         row=row, column=2, sticky="w", padx=5, pady=2
     )
     app.config_widgets["mqtt_port"] = tk.Entry(config_frame, font=entry_font, width=8)
     app.config_widgets["mqtt_port"].insert(0, str(config["mqtt_port"]))
-    app.config_widgets["mqtt_port"].grid(
-        row=row, column=3, sticky="w", padx=5, pady=2
-    )
+    app.config_widgets["mqtt_port"].grid(row=row, column=3, sticky="w", padx=5, pady=2)
 
     row += 1
 
@@ -197,22 +183,14 @@ def create_zigbee_siren_tab(app):
     )
     app.config_widgets["mqtt_username"] = tk.Entry(config_frame, font=entry_font)
     app.config_widgets["mqtt_username"].insert(0, config["mqtt_username"])
-    app.config_widgets["mqtt_username"].grid(
-        row=row, column=1, sticky="ew", padx=5, pady=2
-    )
+    app.config_widgets["mqtt_username"].grid(row=row, column=1, sticky="ew", padx=5, pady=2)
 
     tk.Label(config_frame, text="Password:", font=entry_font).grid(
         row=row, column=2, sticky="w", padx=5, pady=2
     )
-    app.config_widgets["mqtt_password"] = tk.Entry(
-        config_frame,
-        font=entry_font,
-        show="*"
-    )
+    app.config_widgets["mqtt_password"] = tk.Entry(config_frame, font=entry_font, show="*")
     app.config_widgets["mqtt_password"].insert(0, config["mqtt_password"])
-    app.config_widgets["mqtt_password"].grid(
-        row=row, column=3, sticky="ew", padx=5, pady=2
-    )
+    app.config_widgets["mqtt_password"].grid(row=row, column=3, sticky="ew", padx=5, pady=2)
 
     row += 1
 
@@ -238,10 +216,7 @@ def create_zigbee_siren_tab(app):
         font=entry_font
     ).grid(row=row, column=0, sticky="w", padx=5, pady=2)
 
-    if (
-        "siren_button_devices" in config
-        and isinstance(config["siren_button_devices"], list)
-    ):
+    if "siren_button_devices" in config and isinstance(config["siren_button_devices"], list):
         device_value = ", ".join(config["siren_button_devices"])
     else:
         device_value = config.get("siren_button_device", "")
@@ -452,53 +427,4 @@ Usage:
         app.add_to_zigbee_log(
             "WARNING: paho-mqtt library not installed. "
             "Install with: pip install paho-mqtt"
-        )
-
-def monitor_arduino_presence(app):
-    """Continuously check whether the configured Arduino siren is still present."""
-
-    try:
-        if not hasattr(app, "arduino_status_label"):
-            app.arduino_monitor_job = app.master.after(
-                5000,
-                app.monitor_arduino_presence
-            )
-            return
-
-        available_ports = list(serial.tools.list_ports.comports())
-        current_arduino_port = (app.arduino_port or "").upper()
-
-        port_still_present = any(
-            (port.device or "").upper() == current_arduino_port
-            for port in available_ports
-        )
-
-        if port_still_present:
-            app.arduino_status_label.config(
-                text=f"Connected ({app.arduino_port})",
-                fg="green"
-            )
-        else:
-            app.arduino_status_label.config(
-                text="Disconnected",
-                fg="red"
-            )
-            app.add_to_zigbee_log(
-                f"Arduino Siren removed from {app.arduino_port}"
-            )
-
-        app.arduino_monitor_job = app.master.after(
-            5000,
-            app.monitor_arduino_presence
-        )
-
-    except Exception as e:
-        try:
-            app.add_to_zigbee_log(f"Arduino monitor error: {e}")
-        except Exception:
-            pass
-
-        app.arduino_monitor_job = app.master.after(
-            5000,
-            app.monitor_arduino_presence
         )
