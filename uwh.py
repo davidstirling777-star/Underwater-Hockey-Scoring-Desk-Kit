@@ -740,6 +740,7 @@ class GameManagementApp:
         self.notebook.select(1)
         self.update_usb_dongle_status()
         self.monitor_usb_dongle_presence()
+        self.monitor_arduino_presence()
         self.start_connection_watchdog()
         splash_report("Connection watchdog started", True)
 
