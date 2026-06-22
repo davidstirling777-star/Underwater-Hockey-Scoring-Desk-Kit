@@ -744,6 +744,13 @@ class GameManagementApp:
         self.monitor_arduino_presence()
         self.start_connection_watchdog()
         splash_report("Connection watchdog started", True)
+        self.master.after(
+            1500,
+            lambda: self.update_zigbee_status(
+                getattr(self.zigbee_controller, "connected", False),
+                "Startup sync"
+            )
+        )
 
         self.load_game_settings()
         splash_report("Game settings loaded", True)
