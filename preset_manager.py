@@ -2,7 +2,7 @@
 import tkinter as tk
 from tkinter import ttk
 
-def _open_button_dialog(app, idx, trigger_button=None):
+def open_button_dialog(app, idx, trigger_button=None):
     dialog_width = 400
     dialog_height = 700
     gap = 8
