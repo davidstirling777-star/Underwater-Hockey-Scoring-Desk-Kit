@@ -72,6 +72,33 @@ def create_zigbee_siren_tab(app):
         row=2, column=0, sticky="w", padx=8, pady=4
     )
 
+    tk.Label(
+    status_frame,
+    text="Arduino Siren:",
+    font=label_bold_font
+    ).grid(
+        row=3,
+        column=0,
+        sticky="w",
+        padx=8,
+        pady=4
+    )
+    
+    app.arduino_status_label = tk.Label(
+        status_frame,
+        text="Checking...",
+        font=label_font,
+        fg="orange"
+    )
+    
+    app.arduino_status_label.grid(
+        row=3,
+        column=1,
+        sticky="w",
+        padx=8,
+        pady=4
+    )
+
     app.usb_dongle_status_label = tk.Label(
         status_frame,
         text="Checking...",
