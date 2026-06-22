@@ -696,7 +696,7 @@ class GameManagementApp:
         self.last_hardware_detection = load_hardware_detection_cache()
 
         # 1. INSTANTIATE ALL GUI TRACKING VARIABLES FIRST
-        self.zigbee_status_var = tk.StringVar(value="Disconnected")
+        self.zigbee_status_var = tk.StringVar(value="Connecting...")
         self.siren_loop_active = False
         self.arduino_siren_channel = None
         self.connection_watchdog_active = False
@@ -3406,31 +3406,35 @@ class GameManagementApp:
             self.add_to_zigbee_log(f"Error saving config: {e}")
             messagebox.showerror("Configuration Error", f"Error saving configuration: {e}")
 
-    def update_zigbee_status(self, connected: bool, message: str):
+    def update_zigbee_status(self, connected: bool, message: str = ""):
         """Update Zigbee connection status in UI."""
         try:
             if connected:
-                status_text = f"Connected - {message}"
+                status_text = "Connected"
                 self.zigbee_status_label.config(fg="green")
                 self.toggle_connection_btn.config(text="Disconnect", state="normal")
-                
-                # If watchdog is active and we're connected, stop watchdog
+
                 if self.connection_watchdog_active and not self.user_initiated_action:
-                    self.add_to_zigbee_log("Watchdog: Connection established, stopping watchdog")
+                    self.add_to_zigbee_log("Watchdog: Connection established successfully")
                     self.stop_connection_watchdog()
-                    
             else:
-                status_text = f"Disconnected - {message}"
+                status_text = "Disconnected"
                 self.zigbee_status_label.config(fg="red")
-                # Only change button text if watchdog is not running or has exceeded max attempts
-                if not self.connection_watchdog_active or self.connection_watchdog_attempts >= self.connection_watchdog_max_attempts:
+
+                if not self.connection_watchdog_active or (
+                    self.connection_watchdog_attempts >= self.connection_watchdog_max_attempts
+                ):
                     self.toggle_connection_btn.config(text="Connect", state="normal")
                 else:
-                    # Watchdog is still trying, keep showing "Disconnect" temporarily
                     self.toggle_connection_btn.config(text="Disconnect", state="normal")
-            
+
             self.zigbee_status_var.set(status_text)
-            self.add_to_zigbee_log(f"Status: {status_text}")
+
+            if message and message != status_text:
+                self.add_to_zigbee_log(f"Status: {status_text} - {message}")
+            else:
+                self.add_to_zigbee_log(f"Status: {status_text}")
+
         except Exception as e:
             print(f"Error updating Zigbee status: {e}")
             
