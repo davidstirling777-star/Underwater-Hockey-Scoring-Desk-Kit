@@ -163,170 +163,35 @@ def auto_detect_com_ports():
     )
 
 def migrate_legacy_settings():
-    """Migrate settings from legacy separate files to unified settings.json"""
-    unified_settings = get_default_unified_settings()
-    migrated = False
-    
-    # Migrate game_settings.json (sound settings)
-    # CHANGED: Use BASE_DIR instead of os.getcwd() to guarantee looking next to the .exe
-    legacy_sound_file = os.path.join(BASE_DIR, "game_settings.json")
-    if os.path.exists(legacy_sound_file):
-        try:
-            with open(legacy_sound_file, "r") as f:
-                legacy_sound_settings = json.load(f)
-            unified_settings["soundSettings"].update(legacy_sound_settings)
-            migrated = True
-            print("Migrated sound settings from game_settings.json")
-        except Exception as e:
-            print(f"Error migrating game_settings.json: {e}")
-    
-    # Migrate zigbee_config.json (zigbee settings)
-    # CHANGED: Use BASE_DIR instead of os.getcwd()
-    legacy_zigbee_file = os.path.join(BASE_DIR, "zigbee_config.json")
-    if os.path.exists(legacy_zigbee_file):
-        try:
-            with open(legacy_zigbee_file, "r") as f:
-                legacy_zigbee_settings = json.load(f)
-            unified_settings["zigbeeSettings"].update(legacy_zigbee_settings)
-            migrated = True
-            print("Migrated Zigbee settings from zigbee_config.json")
-        except Exception as e:
-            print(f"Error migrating zigbee_config.json: {e}")
-    
-    if migrated:
-        save_unified_settings(unified_settings)
-        print("Migration completed. Legacy files preserved.")
-    
-    return unified_settings
+    return settings_manager.migrate_legacy_settings(BASE_DIR)
+
 
 def load_unified_settings():
-    """Load unified settings from JSON file."""
-    # CHANGED: Use the absolute SETTINGS_PATH defined at the top of the file
-    if os.path.exists(SETTINGS_PATH):
-        with open(SETTINGS_PATH, "r") as f:
-            try:
-                return json.load(f)
-            except Exception:
-                # If settings.json exists but is corrupted, try migration
-                return migrate_legacy_settings()
-    else:
-        # If settings.json doesn't exist, try migration first
-        return migrate_legacy_settings()
+    return settings_manager.load_unified_settings(BASE_DIR)
+
 
 def save_unified_settings(settings):
-    """Save unified settings to JSON file."""
-    # CHANGED: Use the absolute SETTINGS_PATH defined at the top of the file
-    with open(SETTINGS_PATH, "w") as f:
-        json.dump(settings, f, indent=2)
+    return settings_manager.save_unified_settings(BASE_DIR, settings)
+
 
 def get_default_unified_settings():
-    """Get default unified settings structure."""
-    return {
-        "soundSettings": {
-            "pips_sound": "Default",
-            "siren_sound": "Default", 
-            "pips_volume": 50.0,
-            "siren_volume": 50.0,
-            "air_volume": 50.0,
-            "water_volume": 50.0,
-            "enable_sound": True
-        },
-        "zigbeeSettings": {
-            "mqtt_broker": "localhost",
-            "mqtt_port": 1883,
-            "mqtt_username": "",
-            "mqtt_password": "",
-            "mqtt_topic": "zigbee2mqtt/+",
-            "siren_button_devices": ["siren_button"],  # Now supports multiple devices as a list
-            "siren_button_device": "siren_button",     # Keep for backward compatibility
-            "connection_timeout": 60,
-            "reconnect_delay": 5,
-            "enable_logging": True
-        },
-        "gameSettings": {
-            "time_to_start_first_game": "",
-            "start_first_game_in": 1,
-            "team_timeouts_allowed": True,
-            "team_timeout_period": 1,
-            "half_period": 1,
-            "half_time_break": 1,
-            "overtime_allowed": True,
-            "overtime_game_break": 1,
-            "overtime_half_period": 1,
-            "overtime_half_time_break": 1,
-            "sudden_death_game_break": 1,
-            "between_game_break": 1,
-            "record_scorers_cap_number": False,
-            "crib_time": 3
-        },
-        "presetSettings": [
-            {
-                "text": "CMAS",
-                "values": {
-                    "team_timeout_period": "1",           # Team timeout 1 minute
-                    "half_period": "15",                  # Half period 15 minutes
-                    "half_time_break": "3",               # Half time break 3 minutes
-                    "overtime_game_break": "3",           # Overtime game break 3 minutes
-                    "overtime_half_period": "5",          # Overtime half period 5 minutes
-                    "overtime_half_time_break": "1",      # Overtime half time break 1 minute
-                    "sudden_death_game_break": "1",       # Sudden Death Game break 1 minute
-                    "between_game_break": "5",            # Between Game break 5 minutes
-                    "crib_time": "60"                     # Crib time default 60 seconds
-                },
-                "checkboxes": {
-                    "team_timeouts_allowed": True,        # Team timeouts allowed checked
-                    "overtime_allowed": True              # Overtime allowed checked
-                }
-            },
-            {
-                "text": "2",
-                "values": {},
-                "checkboxes": {}
-            },
-            {
-                "text": "3",
-                "values": {},
-                "checkboxes": {}
-            },
-            {
-                "text": "4",
-                "values": {},
-                "checkboxes": {}
-            },
-            {
-                "text": "5",
-                "values": {},
-                "checkboxes": {}
-            },
-            {
-                "text": "6",
-                "values": {},
-                "checkboxes": {}
-            }
-        ]
-    }
+    return settings_manager.get_default_unified_settings()
+
 
 def load_sound_settings():
-    """Load sound settings from unified JSON file."""
-    unified_settings = load_unified_settings()
-    return unified_settings.get("soundSettings", {})
+    return settings_manager.load_sound_settings(BASE_DIR)
+
 
 def save_sound_settings(settings):
-    """Save sound settings to unified JSON file."""
-    unified_settings = load_unified_settings()
-    unified_settings["soundSettings"] = settings
-    save_unified_settings(unified_settings)
+    return settings_manager.save_sound_settings(BASE_DIR, settings)
+
 
 def load_preset_settings():
-    """Load preset settings from unified JSON file."""
-    unified_settings = load_unified_settings()
-    return unified_settings.get("presetSettings", get_default_unified_settings()["presetSettings"])
+    return settings_manager.load_preset_settings(BASE_DIR)
+
 
 def save_preset_settings(presets):
-    """Save preset settings to unified JSON file."""
-    unified_settings = load_unified_settings()
-    unified_settings["presetSettings"] = presets
-    save_unified_settings(unified_settings)
+    return settings_manager.save_preset_settings(BASE_DIR, presets)
 
 class GameManagementApp:
 
