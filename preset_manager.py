@@ -303,3 +303,6 @@ def apply_button_data(app, idx):
     # Fix: Rebuild game sequence after applying preset settings so Reset button uses new values
     app.build_game_sequence()
 
+def set_widget2_button_text(app, idx, new_text):
+    if 0 <= idx < len(app.widget2_buttons):
+        app.widget2_buttons[idx].config(text=new_text)
