@@ -2187,86 +2187,35 @@ class GameManagementApp:
             self.add_to_zigbee_log(f"App siren test failed: {e}")
 
     def _make_press_handler(self, idx):
-        return lambda e: self._start_button_hold(e, idx)
+        return preset_manager.make_press_handler(self, idx)
 
     def _make_release_handler(self, idx):
-        return lambda e: self._button_release(e, idx)
+        return preset_manager.make_release_handler(self, idx)
 
     def set_widget2_button_text(self, idx, new_text):
         if 0 <= idx < len(self.widget2_buttons):
             self.widget2_buttons[idx].config(text=new_text)
 
     def _start_button_hold(self, event, idx):
-        self._button_hold_start_time = time.time()
-        self._button_hold_index = idx
-        self._button_hold_widget = event.widget
-    
-        self._button_hold_timer = self.master.after(
-            3000,
-            lambda: self._open_button_dialog(idx, self._button_hold_widget)
+        return preset_manager.start_button_hold(
+            self,
+            event,
+            idx
         )
 
     def _button_release(self, event, idx):
-        if hasattr(self, '_button_hold_timer') and self._button_hold_timer is not None:
-            self.master.after_cancel(self._button_hold_timer)
-            self._button_hold_timer = None
-        if hasattr(self, '_button_hold_start_time') and self._button_hold_start_time is not None and (time.time() - self._button_hold_start_time < 2.9):
-            self._apply_button_data(idx)
-        self._button_hold_start_time = None
-        self._button_hold_index = None
+        return preset_manager.button_release(
+            self,
+            event,
+            idx
+        )
 
     def _apply_button_data(self, idx):
-        # Apply saved values and checkboxes for all widgets
-        for widget in self.widgets:
-            var_name = widget["name"]
-            # Do not apply preset to "time_to_start_first_game" or "start_first_game_in"
-            if var_name in ["time_to_start_first_game", "start_first_game_in"]:
-                continue
-            if widget["checkbox"] is not None:
-                val = self.button_data[idx]["checkboxes"].get(var_name, widget["checkbox"].get())
-                widget["checkbox"].set(val)
-            else:
-                val = self.button_data[idx]["values"].get(var_name, widget["entry"].get())
-                widget["entry"].delete(0, tk.END)
-                widget["entry"].insert(0, val)
-        # Also populate Crib Time value in main variables from preset
-        crib_time_val = self.button_data[idx]["values"].get("crib_time", None)
-        if crib_time_val is not None:
-            for widget in self.widgets:
-                if widget["name"] == "crib_time" and widget["entry"] is not None:
-                    widget["entry"].delete(0, tk.END)
-                    widget["entry"].insert(0, crib_time_val)
-        
-        # Validate crib_time after applying preset
-        crib_time_seconds = None
-        between_game_break_minutes = None
-        for widget in self.widgets:
-            if widget["name"] == "crib_time" and widget["entry"] is not None:
-                try:
-                    crib_time_seconds = float(widget["entry"].get().strip().replace(',', '.'))
-                except (ValueError, AttributeError):
-                    pass
-            elif widget["name"] == "between_game_break":
-                try:
-                    between_game_break_minutes = float(widget["entry"].get().strip().replace(',', '.'))
-                except (ValueError, AttributeError):
-                    pass
-        
-        # Check the validation condition
-        if crib_time_seconds is not None and between_game_break_minutes is not None:
-            if (between_game_break_minutes * 60) - crib_time_seconds <= 31:
-                # Restore the last valid crib_time value
-                for widget in self.widgets:
-                    if widget["name"] == "crib_time" and widget["entry"] is not None:
-                        widget["entry"].delete(0, tk.END)
-                        widget["entry"].insert(0, self.last_valid_values.get("crib_time", "60"))
-                messagebox.showerror("Input Error", "Crib time too large. Between Game Break minus Crib time must be > 31 seconds.")
-                return
-        
-        self.load_settings()
-        # Fix: Rebuild game sequence after applying preset settings so Reset button uses new values
-        self.build_game_sequence()
-
+        return preset_manager.apply_button_data(
+            self,
+            idx
+        )
+    
     def _open_button_dialog(self, idx, trigger_button=None):
         return preset_manager.open_button_dialog(
             self,
