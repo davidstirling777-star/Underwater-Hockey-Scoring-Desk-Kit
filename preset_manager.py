@@ -304,5 +304,15 @@ def apply_button_data(app, idx):
     app.build_game_sequence()
 
 def set_widget2_button_text(app, idx, new_text):
-    if 0 <= idx < len(app.widget2_buttons):
-        app.widget2_buttons[idx].config(text=new_text)
+    if not (0 <= idx < len(app.widget2_buttons)):
+        return
+
+    app.widget2_buttons[idx].config(text=new_text)
+
+    if 0 <= idx < len(app.button_data):
+        app.button_data[idx]["text"] = new_text
+
+    try:
+        app.save_game_settings()
+    except Exception as e:
+        print(f"Error saving preset button text: {e}")
