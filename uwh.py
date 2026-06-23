@@ -2193,8 +2193,11 @@ class GameManagementApp:
         return lambda event: self._button_release(event, idx)
 
     def set_widget2_button_text(self, idx, new_text):
-        if 0 <= idx < len(self.widget2_buttons):
-            self.widget2_buttons[idx].config(text=new_text)
+        return preset_manager.set_widget2_button_text(
+            self,
+            idx,
+            new_text
+        )
 
     def _start_button_hold(self, event, idx):
         return preset_manager.start_button_hold(
