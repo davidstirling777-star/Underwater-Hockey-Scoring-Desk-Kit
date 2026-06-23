@@ -2187,10 +2187,10 @@ class GameManagementApp:
             self.add_to_zigbee_log(f"App siren test failed: {e}")
 
     def _make_press_handler(self, idx):
-        return preset_manager.make_press_handler(self, idx)
+        return lambda event: self._start_button_hold(event, idx)
 
     def _make_release_handler(self, idx):
-        return preset_manager.make_release_handler(self, idx)
+        return lambda event: self._button_release(event, idx)
 
     def set_widget2_button_text(self, idx, new_text):
         if 0 <= idx < len(self.widget2_buttons):
