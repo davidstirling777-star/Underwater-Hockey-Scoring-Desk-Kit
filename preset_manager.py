@@ -3,7 +3,6 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
 import time
-from settings_manager import save_preset_setting
 
 def open_button_dialog(app, idx, trigger_button=None):
     dialog_width = 400
