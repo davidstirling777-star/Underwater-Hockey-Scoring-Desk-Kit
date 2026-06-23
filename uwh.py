@@ -2199,6 +2199,9 @@ class GameManagementApp:
             new_text
         )
 
+    def save_preset_settings(self):
+        return save_preset_settings(self.button_data)
+
     def _start_button_hold(self, event, idx):
         return preset_manager.start_button_hold(
             self,
