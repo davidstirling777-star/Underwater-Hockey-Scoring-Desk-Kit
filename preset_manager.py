@@ -249,3 +249,56 @@ def button_release(app, event, idx):
 
     app._button_hold_start_time = None
     app._button_hold_index = None
+
+def apply_button_data(app, idx):
+    # Apply saved values and checkboxes for all widgets
+    for widget in app.widgets:
+        var_name = widget["name"]
+        # Do not apply preset to "time_to_start_first_game" or "start_first_game_in"
+        if var_name in ["time_to_start_first_game", "start_first_game_in"]:
+            continue
+        if widget["checkbox"] is not None:
+            val = app.button_data[idx]["checkboxes"].get(var_name, widget["checkbox"].get())
+            widget["checkbox"].set(val)
+        else:
+            val = app.button_data[idx]["values"].get(var_name, widget["entry"].get())
+            widget["entry"].delete(0, tk.END)
+            widget["entry"].insert(0, val)
+    # Also populate Crib Time value in main variables from preset
+    crib_time_val = app.button_data[idx]["values"].get("crib_time", None)
+    if crib_time_val is not None:
+        for widget in app.widgets:
+            if widget["name"] == "crib_time" and widget["entry"] is not None:
+                widget["entry"].delete(0, tk.END)
+                widget["entry"].insert(0, crib_time_val)
+    
+    # Validate crib_time after applying preset
+    crib_time_seconds = None
+    between_game_break_minutes = None
+    for widget in app.widgets:
+        if widget["name"] == "crib_time" and widget["entry"] is not None:
+            try:
+                crib_time_seconds = float(widget["entry"].get().strip().replace(',', '.'))
+            except (ValueError, AttributeError):
+                pass
+        elif widget["name"] == "between_game_break":
+            try:
+                between_game_break_minutes = float(widget["entry"].get().strip().replace(',', '.'))
+            except (ValueError, AttributeError):
+                pass
+    
+    # Check the validation condition
+    if crib_time_seconds is not None and between_game_break_minutes is not None:
+        if (between_game_break_minutes * 60) - crib_time_seconds <= 31:
+            # Restore the last valid crib_time value
+            for widget in app.widgets:
+                if widget["name"] == "crib_time" and widget["entry"] is not None:
+                    widget["entry"].delete(0, tk.END)
+                    widget["entry"].insert(0, app.last_valid_values.get("crib_time", "60"))
+            messagebox.showerror("Input Error", "Crib time too large. Between Game Break minus Crib time must be > 31 seconds.")
+            return
+    
+    app.load_settings()
+    # Fix: Rebuild game sequence after applying preset settings so Reset button uses new values
+    app.build_game_sequence()
+
