@@ -3,6 +3,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
 import time
+from settings_manager import save_preset_setting
 
 def open_button_dialog(app, idx, trigger_button=None):
     dialog_width = 400
@@ -313,6 +314,6 @@ def set_widget2_button_text(app, idx, new_text):
         app.button_data[idx]["text"] = new_text
 
     try:
-        app.save_game_settings()
+        app.save_preset_settings()
     except Exception as e:
         print(f"Error saving preset button text: {e}")
