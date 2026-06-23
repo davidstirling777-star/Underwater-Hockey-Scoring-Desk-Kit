@@ -1,6 +1,7 @@
 
 import tkinter as tk
 from tkinter import ttk
+import time
 
 def open_button_dialog(app, idx, trigger_button=None):
     dialog_width = 400
@@ -224,37 +225,27 @@ def open_button_dialog(app, idx, trigger_button=None):
     dlg.focus_force()
     dlg.grab_set()
 
-def make_press_handler(app, idx):
-    def handler(event):
-        app._preset_long_press_triggered = False
+def start_button_hold(app, event, idx):
+    app._button_hold_start_time = time.time()
+    app._button_hold_index = idx
+    app._button_hold_widget = event.widget
 
-        app._preset_long_press_job = app.master.after(
-            4000,
-            lambda: app._handle_preset_long_press(idx, event.widget)
-        )
+    app._button_hold_timer = app.master.after(
+        3000,
+        lambda: app._open_button_dialog(idx, app._button_hold_widget)
+    )
 
-    return handler
+def button_release(app, event, idx):
+    if hasattr(app, "_button_hold_timer") and app._button_hold_timer is not None:
+        app.master.after_cancel(app._button_hold_timer)
+        app._button_hold_timer = None
 
+    if (
+        hasattr(app, "_button_hold_start_time")
+        and app._button_hold_start_time is not None
+        and (time.time() - app._button_hold_start_time < 2.9)
+    ):
+        app._apply_button_data(idx)
 
-def handle_preset_long_press(app, idx, trigger_button=None):
-    app._preset_long_press_triggered = True
-    app._open_button_dialog(idx, trigger_button)
-
-
-def make_release_handler(app, idx):
-    def handler(event):
-        if hasattr(app, "_preset_long_press_job"):
-            try:
-                app.master.after_cancel(app._preset_long_press_job)
-            except Exception:
-                pass
-
-            app._preset_long_press_job = None
-
-        if getattr(app, "_preset_long_press_triggered", False):
-            app._preset_long_press_triggered = False
-            return
-
-        app.load_button_settings(idx)
-
-    return handler
+    app._button_hold_start_time = None
+    app._button_hold_index = None
