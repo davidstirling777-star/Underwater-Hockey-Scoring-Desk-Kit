@@ -84,7 +84,6 @@ import datetime
 import re
 import time
 import threading
-import os
 import subprocess
 import json
 import webbrowser
