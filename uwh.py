@@ -2424,57 +2424,7 @@ class GameManagementApp:
         return sounds_ui.save_sound_settings_method(self)
         
     def load_game_settings(self):
-        """Load game settings from unified JSON file."""
-        unified_settings = load_unified_settings()
-        game_settings = unified_settings.get("gameSettings", {})
-        
-        # Load settings into variables
-        for var_name, var_info in self.variables.items():
-            if var_name in game_settings:
-                value = game_settings[var_name]
-                
-                # Check if this variable has both checkbox and entry
-                has_checkbox = var_info.get("checkbox", False)
-                has_entry = False
-                for widget in self.widgets:
-                    if widget["name"] == var_name and widget["entry"] is not None:
-                        has_entry = True
-                        break
-                
-                if has_checkbox and has_entry:
-                    # For variables with both checkbox and entry (like sudden_death_game_break, crib_time)
-                    if isinstance(value, bool):
-                        # Legacy format - convert to numeric value and enable
-                        self.variables[var_name]["value"] = str(var_info["default"])
-                        self.variables[var_name]["used"] = value
-                    else:
-                        # New format - value is numeric, assume enabled
-                        self.variables[var_name]["value"] = str(value)
-                        self.variables[var_name]["used"] = True
-                elif has_checkbox:
-                    # Pure checkbox variables (like team_timeouts_allowed, overtime_allowed)
-                    self.variables[var_name]["used"] = value
-                else:
-                    # Entry-only variables
-                    self.variables[var_name]["value"] = str(value)
-                
-                # Update widgets if they exist
-                for widget in self.widgets:
-                    if widget["name"] == var_name:
-                        if widget["entry"] is not None:
-                            widget["entry"].delete(0, tk.END)
-                            if has_checkbox and has_entry:
-                                # Use the numeric value for mixed variables
-                                widget["entry"].insert(0, self.variables[var_name]["value"])
-                            else:
-                                widget["entry"].insert(0, str(value))
-                        if widget["checkbox"] is not None:
-                            if has_checkbox and has_entry:
-                                # Use the "used" flag for mixed variables
-                                widget["checkbox"].set(self.variables[var_name]["used"])
-                            else:
-                                widget["checkbox"].set(value if isinstance(value, bool) else True)
-                        break
+        return game_settings_manager.load_game_settings(self)
                         
     def save_game_settings(self):
         return game_settings_manager.save_game_settings(self)
