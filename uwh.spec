@@ -30,7 +30,7 @@ a = Analysis(
         "sounds_ui.py",
         "startup_selftest.py",
         "hardware_detection.py",
-        "ui_scaling.py"
+        "ui_scaling.py",
         "uwh.py",
         "zigbee_control.py",
         "zigbee_hardware_ui.py",
