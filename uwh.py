@@ -666,6 +666,9 @@ class GameManagementApp:
 
     def save_unified_settings(self, settings):
         return save_unified_settings(settings)
+
+    def save_sound_settings(self, settings):
+        return save_sound_settings(settings)
     
     def log_game_event(self, event_type, team=None, cap_number=None, duration=None, break_status=None):
         return game_logging.log_game_event(
