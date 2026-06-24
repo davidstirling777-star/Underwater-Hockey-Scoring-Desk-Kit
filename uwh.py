@@ -6,6 +6,7 @@ import csv_ui
 import display_manager
 import game_flow
 import game_logging
+import game_settings_manager
 import hardware_detection
 import preset_manager
 import settings_manager
@@ -660,6 +661,12 @@ class GameManagementApp:
 
         close_splash_after_final_check()
         # ─────────────────────────────────────────────────────────────────────
+
+    def load_unified_settings(self):
+        return load_unified_settings()
+
+    def save_unified_settings(self, settings):
+        return save_unified_settings(settings)
     
     def log_game_event(self, event_type, team=None, cap_number=None, duration=None, break_status=None):
         return game_logging.log_game_event(
@@ -2466,50 +2473,9 @@ class GameManagementApp:
                             else:
                                 widget["checkbox"].set(value if isinstance(value, bool) else True)
                         break
-
+                        
     def save_game_settings(self):
-        """Save current game settings to unified JSON file."""
-        unified_settings = load_unified_settings()
-        game_settings = {}
-        
-        # Collect current game settings from variables (updated by load_settings)
-        for var_name, var_info in self.variables.items():
-            if var_info.get("checkbox", False):
-                # Check if this is a pure checkbox variable or has both checkbox and entry
-                has_entry = False
-                for widget in self.widgets:
-                    if widget["name"] == var_name and widget["entry"] is not None:
-                        has_entry = True
-                        break
-                
-                if has_entry:
-                    # For variables with both checkbox and entry (like sudden_death_game_break, crib_time)
-                    # Save the numeric value from the entry, not the boolean
-                    value = var_info.get("value", var_info["default"])
-                    if var_name != "time_to_start_first_game":
-                        try:
-                            game_settings[var_name] = float(value) if '.' in str(value) else int(value)
-                        except (ValueError, TypeError):
-                            game_settings[var_name] = var_info["default"]
-                    else:
-                        game_settings[var_name] = value
-                else:
-                    # For pure checkbox variables (like team_timeouts_allowed, overtime_allowed)
-                    # Save the "used" boolean value
-                    game_settings[var_name] = var_info.get("used", var_info["default"])
-            else:
-                # For other variables, use the current value
-                value = var_info.get("value", var_info["default"])
-                if var_name != "time_to_start_first_game":
-                    try:
-                        game_settings[var_name] = float(value) if '.' in str(value) else int(value)
-                    except (ValueError, TypeError):
-                        game_settings[var_name] = value
-                else:
-                    game_settings[var_name] = value
-        
-        unified_settings["gameSettings"] = game_settings
-        save_unified_settings(unified_settings)
+        return game_settings_manager.save_game_settings(self)
 
     # Zigbee Siren Methods
     def start_zigbee_connection(self):
