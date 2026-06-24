@@ -4,6 +4,7 @@ import startup_selftest
 import csv_helpers
 import csv_ui
 import display_manager
+import display_ui
 import game_flow
 import game_logging
 import game_settings_manager
@@ -1622,70 +1623,7 @@ class GameManagementApp:
                         entry.config(state="disabled")
                         
     def create_display_window(self):
-        try:
-            if (
-                hasattr(self, "display_window")
-                and self.display_window is not None
-                and self.display_window.winfo_exists()
-            ):
-                self.display_window.lift()
-                self.display_window.focus_force()
-                return
-        except tk.TclError:
-            self.display_window = None
-    
-        self.display_window = tk.Toplevel(self.master)
-        self.display_window.title("Display Window")
-        self.display_window.geometry('1200x800')
-        self.display_window.protocol("WM_DELETE_WINDOW", self._on_display_window_close)
-
-        tab = ttk.Frame(self.display_window)
-        tab.pack(fill="both", expand=True,)
-
-        for i in range(11):
-            tab.grid_rowconfigure(i, weight=1)
-        for i in range(9):
-            tab.grid_columnconfigure(i, weight=1)
-
-        self.display_court_time_label = tk.Label(tab, textvariable=self.court_time_var, font=self.display_fonts["court_time"], bg="lightgrey")
-        self.display_court_time_label.grid(row=0, column=0, columnspan=9, padx=1, pady=1, sticky="nsew")
-
-        self.display_half_label = tk.Label(tab, textvariable=self.half_label_var, font=self.display_fonts["half"], bg="lightcoral")
-        self.display_half_label.grid(row=1, column=0, columnspan=9, padx=1, pady=1, sticky="nsew")
-
-        self.display_white_label = tk.Label(tab, textvariable=self.white_team_var, font=self.display_fonts["team"], bg="white", fg="black")
-        self.display_white_label.grid(row=2, column=0, columnspan=3, padx=1, pady=1, sticky="nsew")
-        self.display_black_label = tk.Label(tab, textvariable=self.black_team_var, font=self.display_fonts["team"], bg="black", fg="white")
-        self.display_black_label.grid(row=2, column=6, columnspan=3, padx=1, pady=1, sticky="nsew")
-
-        self.display_game_label = tk.Label(tab, textvariable=self.game_number_var, font=self.display_fonts["game_no"], bg="light grey")
-        self.display_game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
-        self.display_penalty_grid_frame, self.display_penalty_labels = self.create_penalty_grid_widget(tab, is_display=True)
-        self.display_penalty_grid_frame.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
-        self.display_penalty_grid_frame.grid_remove()  # hide initially
-
-        self.display_white_score = tk.Label(tab, textvariable=self.white_score_var, font=self.display_fonts["score"], bg="white", fg="black")
-        self.display_white_score.grid(row=3, column=0, rowspan=8, columnspan=3, padx=1, pady=1, sticky="nsew")
-        self.display_black_score = tk.Label(tab, textvariable=self.black_score_var, font=self.display_fonts["score"], bg="black", fg="white")
-        self.display_black_score.grid(row=3, column=6, rowspan=8, columnspan=3, padx=1, pady=1, sticky="nsew")
-
-        self.display_timer_label = tk.Label(tab, textvariable=self.timer_var, font=self.display_fonts["timer"], bg="lightgrey", fg="black")
-        self.display_timer_label.grid(row=3, column=3, rowspan=8, columnspan=3, padx=1, pady=1, sticky="nsew")
-
-        # Referee timeout timer label for display window
-        self.display_referee_timeout_timer_label = tk.Label(
-            tab, textvariable=self.referee_timeout_timer_var, 
-            font=self.display_fonts["referee_timeout_timer"], 
-            bg="red", fg="white"
-        )
-        self.display_referee_timeout_timer_label.grid(row=10, column=3, rowspan=1, columnspan=3, padx=0, pady=1, sticky="nsew")
-        self.display_referee_timeout_timer_label.grid_remove()  # Hide initially
-
-        self.display_window.bind('<Configure>', self.scale_display_fonts)
-        self.display_initial_width = self.display_window.winfo_width() or 1200
-        self.display_window.update_idletasks()
-        self.scale_display_fonts(None)
-        self.sync_display_widgets()
+        return display_ui.create_display_window(self)
     
     def sync_display_widgets(self):
         """Safely sync display window background colors."""
