@@ -61,7 +61,7 @@ def create_sounds_tab(app):
     # Add validation callback for pips selection - only on user interaction
     def validate_pips_selection(*args):
         # Only validate if user is actively interacting with the combobox
-        if hasattr(self, '_user_interacting_with_pips') and app._user_interacting_with_pips:
+        if hasattr(app, '_user_interacting_with_pips') and app._user_interacting_with_pips:
             selected = app.pips_var.get()
             if selected != "Default" and selected != "No sound files found":
                 if not check_audio_device_available(app.enable_sound):
@@ -161,7 +161,7 @@ def create_sounds_tab(app):
     # Add validation callback for siren selection - only on user interaction
     def validate_siren_selection(*args):
         # Only validate if user is actively interacting with the combobox
-        if hasattr(self, '_user_interacting_with_siren') and app._user_interacting_with_siren:
+        if hasattr(app, '_user_interacting_with_siren') and app._user_interacting_with_siren:
             selected = app.siren_var.get()
             if selected != "Default" and selected != "No sound files found":
                 if not check_audio_device_available(app.enable_sound):
