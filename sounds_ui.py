@@ -10,8 +10,6 @@ from sound import (
     handle_no_audio_device_warning,
 )
 
-from settings_manager import save_sound_settings
-
 def create_sounds_tab(app):
     tab = ttk.Frame(app.notebook)
     app.notebook.add(tab, text="Sounds")
@@ -346,7 +344,8 @@ def create_sounds_tab(app):
     warning_label.grid(row=9, column=0, columnspan=6, sticky="ew", pady=(10, 0))
 
 def save_sound_settings_method(app):
-    """Save current sound settings to JSON file."""
+    """Save current sound settings to the main settings.json file."""
+
     settings = {
         "pips_sound": app.pips_var.get(),
         "siren_sound": app.siren_var.get(),
@@ -355,9 +354,24 @@ def save_sound_settings_method(app):
         "air_volume": app.air_volume.get(),
         "water_volume": app.water_volume.get(),
         "enable_sound": app.enable_sound.get(),
-        "siren_duration": app.siren_duration.get()
+        "siren_duration": app.siren_duration.get(),
     }
-    save_sound_settings(settings)
-    # Show a message to confirm settings were saved
+
+    try:
+        app.save_sound_settings(settings)
+        print(f"Sound settings saved: {settings}")
+
+    except Exception as e:
+        print(f"Error saving sound settings: {e}")
+        messagebox.showerror(
+            "Save Error",
+            f"Could not save sound settings:\n{e}"
+        )
+        return
+
+    messagebox.showinfo(
+        "Settings Saved",
+        "Sound settings have been saved."
+    )
     messagebox.showinfo("Settings Saved", "Sound settings have been saved.")
 
