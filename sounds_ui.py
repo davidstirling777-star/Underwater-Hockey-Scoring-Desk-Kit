@@ -373,5 +373,3 @@ def save_sound_settings_method(app):
         "Settings Saved",
         "Sound settings have been saved."
     )
-    messagebox.showinfo("Settings Saved", "Sound settings have been saved.")
-
