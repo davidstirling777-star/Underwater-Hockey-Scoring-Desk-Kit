@@ -1888,7 +1888,11 @@ class GameManagementApp:
             if self.engine.should_export_game_results(cur_period):
                 game_flow.export_and_reset_game_at_break(self)
 
-            if self.engine.should_play_break_countdown_pip(cur_period):
+            if (
+                cur_period
+                and cur_period.get("type") == "break"
+                and self.engine.should_play_break_countdown_pip(cur_period)
+            ):
                 try:
                     play_sound_with_volume(
                         self.pips_var.get(),
