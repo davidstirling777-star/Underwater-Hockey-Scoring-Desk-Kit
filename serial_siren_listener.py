@@ -185,8 +185,11 @@ def get_zigbee_port():
     return zigbee_port
 
 
-def get_detected_ports():
-    arduino_port, zigbee_port = detect_hardware_ports()
+def get_detected_ports(force_scan=False):
+    arduino_port, zigbee_port = detect_hardware_ports(
+        force_scan=force_scan
+    )
+
     return {
         "arduino_port": arduino_port,
         "zigbee_port": zigbee_port,
