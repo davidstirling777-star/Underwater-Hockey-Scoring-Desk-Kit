@@ -197,12 +197,39 @@ def open_button_dialog(app, idx, trigger_button=None):
 
         dlg.destroy()
 
-    save_btn = ttk.Button(
-        dlg,
-        text="Save",
-        command=save_and_close
-    )
-    save_btn.grid(row=row_num, column=0, columnspan=2, pady=16)
+        button_frame = ttk.Frame(dlg)
+        button_frame.grid(
+            row=row_num,
+            column=0,
+            columnspan=2,
+            pady=16
+        )
+
+        button_width = 10
+
+        save_btn = ttk.Button(
+            button_frame,
+            text="Save",
+            width=button_width,
+            command=save_and_close
+        )
+        save_btn.grid(
+            row=0,
+            column=0,
+            padx=(0, 4)
+        )
+
+        close_btn = ttk.Button(
+            button_frame,
+            text="Close",
+            width=button_width,
+            command=dlg.destroy
+        )
+        close_btn.grid(
+            row=0,
+            column=1,
+            padx=(4, 0)
+        )
 
     # Position from the CURRENT live location of the held preset button.
     # The right edge of the popup sits just left of the button.
