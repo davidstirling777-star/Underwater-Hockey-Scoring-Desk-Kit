@@ -120,7 +120,10 @@ def detect_hardware_ports(force_scan=False):
         and _detected_ports["arduino_port"]
         and _detected_ports["zigbee_port"]
     ):
-        return _detected_ports["arduino_port"], _detected_ports["zigbee_port"]
+        return (
+            _detected_ports["arduino_port"],
+            _detected_ports["zigbee_port"]
+        )
 
     cached_arduino, cached_zigbee = load_hardware_ports_from_json()
 
@@ -132,9 +135,10 @@ def detect_hardware_ports(force_scan=False):
     ):
         _detected_ports["arduino_port"] = cached_arduino
         _detected_ports["zigbee_port"] = cached_zigbee
+
         return cached_arduino, cached_zigbee
 
-    _debug("Cached hardware ports missing or invalid. Scanning COM ports...")
+    _debug("Scanning COM ports for currently connected hardware...")
 
     arduino_port = None
     zigbee_port = None
@@ -159,18 +163,34 @@ def detect_hardware_ports(force_scan=False):
             _debug(f"Found Zigbee Dongle on {port.device}")
             break
 
+    # Never invent a COM port for missing hardware.
+    # None means the device is not physically detected.
     if not arduino_port:
-        arduino_port = cached_arduino if _port_exists(cached_arduino) else "COM5"
-        print(f"Warning: Arduino fallback set to {arduino_port}")
+        _debug("Arduino not detected.")
 
     if not zigbee_port:
-        zigbee_port = cached_zigbee if _port_exists(cached_zigbee) else "COM6"
-        print(f"Warning: Zigbee fallback set to {zigbee_port}")
+        _debug("Zigbee dongle not detected.")
+
+    # Safety: one COM port can never be both devices.
+    if (
+        arduino_port
+        and zigbee_port
+        and arduino_port.upper() == zigbee_port.upper()
+    ):
+        _debug(
+            f"Invalid duplicate port assignment prevented: "
+            f"Arduino={arduino_port}, Zigbee={zigbee_port}"
+        )
+        zigbee_port = None
 
     _detected_ports["arduino_port"] = arduino_port
     _detected_ports["zigbee_port"] = zigbee_port
 
-    save_hardware_ports_to_json(arduino_port, zigbee_port)
+    # Save the real detection result, including None for missing devices.
+    save_hardware_ports_to_json(
+        arduino_port,
+        zigbee_port
+    )
 
     return arduino_port, zigbee_port
 
