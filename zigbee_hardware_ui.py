@@ -22,11 +22,13 @@ def _port_exists(port_name):
     return False
 
 
-def update_usb_dongle_status(app):
+def update_usb_dongle_status(app, force_rescan=False):
     """Rescan COM ports and update Arduino/Zigbee hardware status labels."""
 
     try:
-        ports = serial_siren_listener.get_detected_ports()
+        ports = serial_siren_listener.get_detected_ports(
+            force_scan=force_rescan
+        )
         arduino_port = ports.get("arduino_port")
         zigbee_port = ports.get("zigbee_port")
     except Exception:
