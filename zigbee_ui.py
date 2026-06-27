@@ -145,7 +145,9 @@ def create_zigbee_siren_tab(app):
         font=small_button_font,
         height=1,
         width=18,
-        command=app.update_usb_dongle_status
+        command=lambda: app.update_usb_dongle_status(
+            force_rescan=True
+        )
     )
     app.retest_usb_btn.grid(row=2, column=0, sticky="ew", padx=5, pady=2)
 
