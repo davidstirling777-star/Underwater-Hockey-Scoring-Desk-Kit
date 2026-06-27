@@ -1,20 +1,38 @@
-
 import tkinter as tk
 from tkinter import ttk
+
 
 def create_scoreboard_tab(app):
     tab = ttk.Frame(app.notebook)
     app.notebook.add(tab, text="Scoreboard")
 
-    for i in range(11):
-        tab.grid_rowconfigure(i, weight=1)
+    for row in range(11):
+        tab.grid_rowconfigure(row, weight=1)
 
-    for i in range(9):
-        tab.grid_columnconfigure(
-            i,
-            weight=1,
-            uniform="scoreboard_cols"
-        )
+    # Left score area = columns 0–2
+    # Larger timer area = columns 3–5
+    # Right score area = columns 6–8
+    #
+    # The middle area receives more proportional width than either score area.
+    for column in range(9):
+        if column in (3, 4, 5):
+            tab.grid_columnconfigure(
+                column,
+                weight=3,
+                uniform="timer_columns"
+            )
+        elif column in (0, 1, 2):
+            tab.grid_columnconfigure(
+                column,
+                weight=2,
+                uniform="left_score_columns"
+            )
+        else:
+            tab.grid_columnconfigure(
+                column,
+                weight=2,
+                uniform="right_score_columns"
+            )
 
     app.court_time_label = tk.Label(
         tab,
@@ -161,7 +179,9 @@ def create_scoreboard_tab(app):
         textvariable=app.white_score_var,
         font=app.fonts["score"],
         bg="white",
-        fg="black"
+        fg="black",
+        width=3,
+        anchor="center"
     )
     app.white_score.grid(
         row=4,
@@ -178,7 +198,9 @@ def create_scoreboard_tab(app):
         textvariable=app.black_score_var,
         font=app.fonts["score"],
         bg="black",
-        fg="white"
+        fg="white",
+        width=3,
+        anchor="center"
     )
     app.black_score.grid(
         row=4,
@@ -195,7 +217,8 @@ def create_scoreboard_tab(app):
         textvariable=app.timer_var,
         font=app.fonts["timer"],
         bg="lightgrey",
-        fg="black"
+        fg="black",
+        anchor="center"
     )
     app.timer_label.grid(
         row=4,
@@ -217,7 +240,6 @@ def create_scoreboard_tab(app):
     app.referee_timeout_timer_label.grid(
         row=8,
         column=3,
-        rowspan=1,
         columnspan=3,
         padx=0,
         pady=1,
