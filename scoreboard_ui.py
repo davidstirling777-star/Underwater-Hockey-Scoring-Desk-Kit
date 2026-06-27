@@ -180,7 +180,7 @@ def create_scoreboard_tab(app):
         font=app.fonts["score"],
         bg="white",
         fg="black",
-        width=3,
+        width=2,
         anchor="center"
     )
     app.white_score.grid(
@@ -199,7 +199,7 @@ def create_scoreboard_tab(app):
         font=app.fonts["score"],
         bg="black",
         fg="white",
-        width=3,
+        width=2,
         anchor="center"
     )
     app.black_score.grid(
