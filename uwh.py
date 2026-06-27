@@ -345,7 +345,7 @@ class GameManagementApp:
             "half": font.Font(family="Arial", size=36, weight="bold"),
             "team": font.Font(family="Arial", size=30, weight="bold"),
             "score": font.Font(family="Arial", size=200, weight="bold"),
-            "timer": font.Font(family="Arial", size=90, weight="bold"),
+            "timer": font.Font(family="Arial", size=110, weight="bold"),
             "game_no": font.Font(family="Arial", size=20),
             "button": font.Font(family="Arial", size=20, weight="bold"),
             "timeout_button": font.Font(family="Arial", size=20, weight="bold"),
@@ -357,7 +357,7 @@ class GameManagementApp:
             "half": font.Font(family="Arial", size=36, weight="bold"),
             "team": font.Font(family="Arial", size=30, weight="bold"),
             "score": font.Font(family="Arial", size=200, weight="bold"),
-            "timer": font.Font(family="Arial", size=90, weight="bold"),
+            "timer": font.Font(family="Arial", size=110, weight="bold"),
             "game_no": font.Font(family="Arial", size=20),
             "referee_timeout_timer": font.Font(family="Arial", size=24),
         }
