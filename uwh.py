@@ -1315,8 +1315,11 @@ class GameManagementApp:
         except Exception as e:
             print(f"Error scheduling Zigbee status update: {e}")
 
-    def update_usb_dongle_status(self):
-        return zigbee_hardware_ui.update_usb_dongle_status(self)
+    def update_usb_dongle_status(self, force_rescan=False):
+        return zigbee_hardware_ui.update_usb_dongle_status(
+            self,
+            force_rescan=force_rescan
+        )
 
     def monitor_usb_dongle_presence(self):
         return zigbee_hardware_ui.monitor_usb_dongle_presence(self)
