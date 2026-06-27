@@ -22,7 +22,7 @@ def scale_fonts(app, event=None):
         "half": 36,
         "team": 30,
         "score": 200,
-        "timer": 90,
+        "timer": 110,
         "game_no": 20,
         "button": 20,
         "timeout_button": 20,
@@ -68,7 +68,7 @@ def scale_display_fonts(app, event=None):
         "half": 36,
         "team": 30,
         "score": 200,
-        "timer": 90,
+        "timer": 110,
         "game_no": 20,
         "referee_timeout_timer": 24,
     }
