@@ -746,15 +746,18 @@ class GameManagementApp:
         
     def update_penalty_display(self):
         """
-        Show penalties in row 2 and always keep Game Number visible in row 3.
+        Show active penalties in row 2.
+
+        After the completed game's data has been written, show a red
+        Next Game banner in the penalty area until the next game starts.
+        The Game Number remains visible in row 3 at all times.
         """
-    
+
         def place_game_label(label):
             try:
                 grid_info = label.grid_info()
-    
                 current_row = int(grid_info.get("row", -1))
-    
+
                 if not label.winfo_ismapped() or current_row != 3:
                     label.grid(
                         row=3,
@@ -764,63 +767,165 @@ class GameManagementApp:
                         pady=1,
                         sticky="nsew"
                     )
+
             except (AttributeError, tk.TclError):
                 pass
-    
+
+        def place_penalty_grid(grid_frame, area_frame_name):
+            """Put a penalty grid in its normal main/display location."""
+            area_frame = getattr(self, area_frame_name, None)
+
+            if area_frame is not None:
+                grid_frame.grid(
+                    row=0,
+                    column=0,
+                    padx=0,
+                    pady=0,
+                    sticky="nsew"
+                )
+            else:
+                grid_frame.grid(
+                    row=2,
+                    column=3,
+                    columnspan=3,
+                    padx=1,
+                    pady=1,
+                    sticky="nsew"
+                )
+
+        def show_next_game_banner(
+            banner_attribute,
+            area_frame_name,
+            grid_frame,
+            banner_font
+        ):
+            """Create, position, and show the red Next Game banner."""
+            area_frame = getattr(self, area_frame_name, None)
+
+            if area_frame is not None:
+                parent = area_frame
+                grid_options = {
+                    "row": 0,
+                    "column": 0,
+                    "padx": 0,
+                    "pady": 0,
+                    "sticky": "nsew"
+                }
+            else:
+                parent = grid_frame.master
+                grid_options = {
+                    "row": 2,
+                    "column": 3,
+                    "columnspan": 3,
+                    "padx": 1,
+                    "pady": 1,
+                    "sticky": "nsew"
+                }
+
+            banner = getattr(self, banner_attribute, None)
+
+            if banner is None or not banner.winfo_exists():
+                banner = tk.Label(
+                    parent,
+                    text="Next Game",
+                    font=banner_font,
+                    bg="lightcoral",
+                    fg="black",
+                    anchor="center"
+                )
+                setattr(self, banner_attribute, banner)
+
+            try:
+                between_game_colour = self.half_label.cget("bg")
+            except (AttributeError, tk.TclError):
+                between_game_colour = "lightcoral"
+
+            banner.config(
+                text="Next Game",
+                bg=between_game_colour,
+                fg="black"
+            )
+            banner.grid(**grid_options)
+
+        def hide_next_game_banner(banner_attribute):
+            banner = getattr(self, banner_attribute, None)
+
+            try:
+                if banner is not None and banner.winfo_exists():
+                    banner.grid_remove()
+            except (AttributeError, tk.TclError):
+                pass
+
+        show_next_game = bool(
+            getattr(self, "next_game_notice_active", False)
+        )
+
         main_has_penalties = bool(
             self.engine.active_penalties
             or self.engine.stored_penalties
         )
-    
+
         try:
-            if main_has_penalties:
-                if not self.penalty_grid_frame.winfo_ismapped():
-                    self.penalty_grid_frame.grid(
-                        row=2,
-                        column=3,
-                        columnspan=3,
-                        padx=1,
-                        pady=1,
-                        sticky="nsew"
-                    )
-    
-                self.update_penalty_grid()
-    
-            else:
+            if show_next_game:
                 self.penalty_grid_frame.grid_remove()
-    
-            # Game Number stays visible, whether penalties exist or not.
+
+                show_next_game_banner(
+                    "next_game_banner",
+                    "penalty_area_frame",
+                    self.penalty_grid_frame,
+                    self.fonts["game_no"]
+                )
+
+            else:
+                hide_next_game_banner("next_game_banner")
+
+                if main_has_penalties:
+                    place_penalty_grid(
+                        self.penalty_grid_frame,
+                        "penalty_area_frame"
+                    )
+                    self.update_penalty_grid()
+
+                else:
+                    self.penalty_grid_frame.grid_remove()
+
             place_game_label(self.game_label)
             self.update_game_number_display()
-    
+
         except (AttributeError, tk.TclError):
             pass
-    
+
         try:
             display_has_penalties = bool(
                 self.engine.active_penalties
                 or self.engine.stored_penalties
             )
-    
-            if display_has_penalties:
-                if not self.display_penalty_grid_frame.winfo_ismapped():
-                    self.display_penalty_grid_frame.grid(
-                        row=2,
-                        column=3,
-                        columnspan=3,
-                        padx=1,
-                        pady=1,
-                        sticky="nsew"
-                    )
-    
-                self.update_display_penalty_grid()
-    
-            else:
+
+            if show_next_game:
                 self.display_penalty_grid_frame.grid_remove()
-    
-            # The external display Game Number also remains visible.
+
+                show_next_game_banner(
+                    "display_next_game_banner",
+                    "display_penalty_area_frame",
+                    self.display_penalty_grid_frame,
+                    self.display_fonts["game_no"]
+                )
+
+            else:
+                hide_next_game_banner("display_next_game_banner")
+
+                if display_has_penalties:
+                    place_penalty_grid(
+                        self.display_penalty_grid_frame,
+                        "display_penalty_area_frame"
+                    )
+                    self.update_display_penalty_grid()
+
+                else:
+                    self.display_penalty_grid_frame.grid_remove()
+
             place_game_label(self.display_game_label)
-    
+
         except (AttributeError, tk.TclError):
             pass
 
@@ -1751,92 +1856,226 @@ class GameManagementApp:
                 if seconds_behind <= 0:
                     break
 
+        def run_next_game_transition(self):
+            """
+            Runs once, 30 seconds after Between Game Break starts.
+    
+            It writes the completed game's data, resets scores and penalties,
+            advances the tournament list, loads the next teams, and enables
+            the red Next Game banner.
+            """
+            self.next_game_transition_job = None
+    
+            cur_period = self.engine.get_current_period()
+    
+            if not cur_period or cur_period["name"] != "Between Game Break":
+                return
+    
+            if self.next_game_transition_done:
+                return
+    
+            self.next_game_transition_done = True
+    
+            try:
+                game_flow.export_and_reset_game_at_break(self)
+    
+            except Exception as e:
+                print(f"Error changing to next game: {e}")
+                return
+    
+            self.next_game_notice_active = True
+            self.update_penalty_display()
+
     def start_current_period(self):
         if self.engine.current_index >= len(self.engine.full_sequence):
             self.engine.reset_to_between_game_break()
+
         cur_period = self.engine.get_current_period()
 
-        # Shorten Between Game Break if court time is behind local time (paused for ref timeout etc)
-        if cur_period['name'] == "Between Game Break":
-            # Reset Between Game Break to configured duration before applying crib time adjustment
-            cur_period['duration'] = self.get_minutes('between_game_break')
-            
+        # Run the tournament handover exactly 30 seconds after the
+        # completed game enters Between Game Break.
+        if cur_period["name"] == "Between Game Break":
+            if self.next_game_transition_job:
+                self.master.after_cancel(
+                    self.next_game_transition_job
+                )
+                self.next_game_transition_job = None
+
+            self.next_game_transition_done = False
+            self.next_game_notice_active = False
+
+            self.next_game_transition_job = self.master.after(
+                30000,
+                self.run_next_game_transition
+            )
+
+        else:
+            # A new game or other period has started. Remove the
+            # Next Game message and cancel any leftover handover job.
+            if self.next_game_transition_job:
+                self.master.after_cancel(
+                    self.next_game_transition_job
+                )
+                self.next_game_transition_job = None
+
+            self.next_game_notice_active = False
+
+        # Shorten Between Game Break if court time is behind local time
+        # because of a referee timeout, etc.
+        if cur_period["name"] == "Between Game Break":
+            # Reset Between Game Break to configured duration before
+            # applying crib-time adjustment.
+            cur_period["duration"] = self.get_minutes(
+                "between_game_break"
+            )
+
             now = datetime.datetime.now()
-            local_seconds = now.hour * 3600 + now.minute * 60 + now.second
+            local_seconds = (
+                now.hour * 3600
+                + now.minute * 60
+                + now.second
+            )
             court_seconds = self.court_time_seconds
+
             if local_seconds > court_seconds:
                 delta = local_seconds - court_seconds
                 crib_time = 0
+
                 try:
-                    crib_var = self.variables['crib_time']
-                    crib_time = int(float(crib_var.get("value", crib_var["default"])))
+                    crib_var = self.variables["crib_time"]
+                    crib_time = int(
+                        float(
+                            crib_var.get(
+                                "value",
+                                crib_var["default"]
+                            )
+                        )
+                    )
                 except Exception:
                     crib_time = 0
-                # Only reduce by crib_time maximum, never by more
+
+                # Only reduce by crib_time maximum, never by more.
                 reduce_by = min(delta, crib_time)
-                if reduce_by > 0 and cur_period['duration'] is not None:
-                    # Ensure minimum duration is preserved (>31 seconds as per validation)
-                    new_duration = cur_period['duration'] - reduce_by
-                    cur_period['duration'] = max(32, new_duration)
+
+                if (
+                    reduce_by > 0
+                    and cur_period["duration"] is not None
+                ):
+                    # Preserve the existing minimum duration.
+                    new_duration = (
+                        cur_period["duration"] - reduce_by
+                    )
+                    cur_period["duration"] = max(
+                        32,
+                        new_duration
+                    )
 
         if self.engine.is_regular_timeout_reset_period(
             cur_period["name"]
         ):
             self.engine.reset_half_timeouts()
 
-        # Event-driven: Update the StringVar instead of calling .config()
-        self.half_label_var.set(cur_period['name'])
-        self.update_half_label_background(cur_period['name'])
+        self.half_label_var.set(cur_period["name"])
+        self.update_half_label_background(cur_period["name"])
 
-        TIMEOUTS_DISABLED_PERIODS = (
-            self.engine.timeouts_disabled_periods()
-        )
-        
-        # Always enable penalties during Referee Time-Out, even if entered from First Game Starts In:
+        # Always enable penalties during Referee Time-Out, even if
+        # entered from First Game Starts In.
         if self.engine.is_referee_timeout(cur_period["name"]):
             self.penalties_button.config(state=tk.NORMAL)
-            self.white_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
-            self.black_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
-        elif self.engine.is_timeout_disabled_period(cur_period["name"]):
-            self.white_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
-            self.black_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
-            if self.engine.is_penalty_disabled_period(cur_period["name"]):
+            self.white_timeout_button.config(
+                state=tk.DISABLED,
+                bg="#d3d3d3",
+                fg="#888"
+            )
+            self.black_timeout_button.config(
+                state=tk.DISABLED,
+                bg="#d3d3d3",
+                fg="#888"
+            )
+
+        elif self.engine.is_timeout_disabled_period(
+            cur_period["name"]
+        ):
+            self.white_timeout_button.config(
+                state=tk.DISABLED,
+                bg="#d3d3d3",
+                fg="#888"
+            )
+            self.black_timeout_button.config(
+                state=tk.DISABLED,
+                bg="#d3d3d3",
+                fg="#888"
+            )
+
+            if self.engine.is_penalty_disabled_period(
+                cur_period["name"]
+            ):
                 self.penalties_button.config(state=tk.DISABLED)
             else:
                 self.penalties_button.config(state=tk.NORMAL)
-        elif cur_period['name'] == "Between Game Break":
-            # Team timeout buttons should be greyed out (disabled) during Between Game Break
-            self.white_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
-            self.black_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
+
+        elif cur_period["name"] == "Between Game Break":
+            self.white_timeout_button.config(
+                state=tk.DISABLED,
+                bg="#d3d3d3",
+                fg="#888"
+            )
+            self.black_timeout_button.config(
+                state=tk.DISABLED,
+                bg="#d3d3d3",
+                fg="#888"
+            )
             self.penalties_button.config(state=tk.DISABLED)
+
         else:
-            # Only enable timeout buttons if team timeouts are allowed
             if self.team_timeouts_allowed_var.get():
-                self.white_timeout_button.config(state=tk.NORMAL, bg="white", fg="black")
-                self.black_timeout_button.config(state=tk.NORMAL, bg="black", fg="white")
+                self.white_timeout_button.config(
+                    state=tk.NORMAL,
+                    bg="white",
+                    fg="black"
+                )
+                self.black_timeout_button.config(
+                    state=tk.NORMAL,
+                    bg="black",
+                    fg="white"
+                )
             else:
-                self.white_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
-                self.black_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
+                self.white_timeout_button.config(
+                    state=tk.DISABLED,
+                    bg="#d3d3d3",
+                    fg="#888"
+                )
+                self.black_timeout_button.config(
+                    state=tk.DISABLED,
+                    bg="#d3d3d3",
+                    fg="#888"
+                )
+
             self.penalties_button.config(state=tk.NORMAL)
 
-        if self.engine.is_penalty_pause_period(cur_period["name"]):
+        if self.engine.is_penalty_pause_period(
+            cur_period["name"]
+        ):
             self.pause_all_penalty_timers()
         else:
             self.resume_all_penalty_timers()
 
-        if self.engine.is_court_time_paused_period(cur_period["name"]):
+        if self.engine.is_court_time_paused_period(
+            cur_period["name"]
+        ):
             self.court_time_paused = True
         else:
             self.court_time_paused = False
-        if self.engine.is_sudden_death(
-            cur_period["name"]
-        ):
+
+        if self.engine.is_sudden_death(cur_period["name"]):
             if self.timer_job:
                 self.master.after_cancel(self.timer_job)
                 self.timer_job = None
 
             if self.sudden_death_timer_job:
-                self.master.after_cancel(self.sudden_death_timer_job)
+                self.master.after_cancel(
+                    self.sudden_death_timer_job
+                )
                 self.sudden_death_timer_job = None
 
             self.engine.start_timer()
@@ -1854,25 +2093,64 @@ class GameManagementApp:
                 1000,
                 lambda: game_flow.start_sudden_death_timer(self)
             )
+
         else:
             self.engine.set_timer_seconds(
-                cur_period['duration'] if cur_period['duration'] is not None else 0
+                cur_period["duration"]
+                if cur_period["duration"] is not None
+                else 0
             )
             self.update_timer_display()
             self.engine.start_timer()
-        
+
             if self.timer_job:
                 self.master.after_cancel(self.timer_job)
                 self.timer_job = None
-        
-            self.timer_job = self.master.after(1000, self.countdown_timer)
-            
+
+            self.timer_job = self.master.after(
+                1000,
+                self.countdown_timer
+            )
+
             event_name = self.engine.period_start_event_name(
                 cur_period["name"]
             )
-    
+
             if event_name:
                 self.log_game_event(event_name)
+
+        # Refresh penalty / Next Game area whenever a period begins.
+        self.update_penalty_display()
+
+    def run_next_game_transition(self):
+        """
+        Runs once, 30 seconds after Between Game Break starts.
+
+        It writes the completed game's data, resets scores and penalties,
+        advances the tournament list, loads the next teams, and enables
+        the red Next Game banner.
+        """
+        self.next_game_transition_job = None
+
+        cur_period = self.engine.get_current_period()
+
+        if not cur_period or cur_period["name"] != "Between Game Break":
+            return
+
+        if self.next_game_transition_done:
+            return
+
+        self.next_game_transition_done = True
+
+        try:
+            game_flow.export_and_reset_game_at_break(self)
+
+        except Exception as e:
+            print(f"Error changing to next game: {e}")
+            return
+
+        self.next_game_notice_active = True
+        self.update_penalty_display()
 
     def next_period(self):
         if self.timer_job:
