@@ -25,23 +25,17 @@ def _port_display_name(port_name):
     return port_name if port_name else "Not detected"
 
 
-def _apply_hardware_status(
-    app,
-    arduino_port,
-    zigbee_port,
-    log_result=False
-):
-    """Apply strictly detected hardware ports to the UI."""
+def _apply_hardware_status(app, arduino_port, zigbee_port):
+    """Apply detected hardware ports and log only actual connection changes."""
 
-    # Safety: one physical COM port must never be assigned to both devices.
+    # Never allow one COM port to represent both devices.
     if (
         arduino_port
         and zigbee_port
         and arduino_port.upper() == zigbee_port.upper()
     ):
-        _safe_log(
-            app,
-            f"Invalid duplicate port assignment prevented: "
+        print(
+            "Invalid duplicate port assignment prevented: "
             f"Arduino={arduino_port}, Zigbee={zigbee_port}"
         )
         zigbee_port = None
@@ -61,14 +55,8 @@ def _apply_hardware_status(
     app.arduino_port = arduino_port
     app.zigbee_port = zigbee_port
 
-    app._last_detected_arduino_port = arduino_port
-    app._last_detected_zigbee_port = zigbee_port
-
-    arduino_present = arduino_port is not None
-    zigbee_present = zigbee_port is not None
-
     if hasattr(app, "arduino_status_label"):
-        if arduino_present:
+        if arduino_port:
             app.arduino_status_label.config(
                 text=f"Connected ({arduino_port})",
                 fg="green"
@@ -80,7 +68,7 @@ def _apply_hardware_status(
             )
 
     if hasattr(app, "usb_dongle_status_label"):
-        if zigbee_present:
+        if zigbee_port:
             app.usb_dongle_status_label.config(
                 text=f"Connected ({zigbee_port})",
                 fg="green"
@@ -92,27 +80,54 @@ def _apply_hardware_status(
             )
 
     if hasattr(app, "hardware_ports_label"):
+        arduino_text = arduino_port or "Not detected"
+        zigbee_text = zigbee_port or "Not detected"
+
         app.hardware_ports_label.config(
             text=(
-                "Hardware Ports: "
-                f"Arduino={_port_display_name(arduino_port)}  "
-                f"Zigbee={_port_display_name(zigbee_port)}"
+                f"Hardware Ports: Arduino={arduino_text}  "
+                f"Zigbee={zigbee_text}"
             )
         )
 
-    # Log only when the detected hardware changed, not every five seconds.
-    if log_result or previous_arduino_port != arduino_port:
-        if arduino_present:
-            _safe_log(app, f"Arduino Siren: Connected ({arduino_port})")
-        else:
-            _safe_log(app, "Arduino Siren: Disconnected")
+    def log_port_change(device_name, old_port, new_port):
+        if old_port == new_port:
+            return
 
-    if log_result or previous_zigbee_port != zigbee_port:
-        if zigbee_present:
-            _safe_log(app, f"USB Dongle: Connected ({zigbee_port})")
-        else:
-            _safe_log(app, "USB Dongle: Disconnected")
+        if old_port is None and new_port is not None:
+            _safe_log(
+                app,
+                f"{device_name}: Connected ({new_port})"
+            )
 
+        elif old_port is not None and new_port is None:
+            _safe_log(
+                app,
+                f"{device_name}: Disconnected ({old_port})"
+            )
+
+        elif old_port is not None and new_port is not None:
+            _safe_log(
+                app,
+                f"{device_name}: Moved from {old_port} to {new_port}"
+            )
+
+    # Log only genuine changes.
+    log_port_change(
+        "Arduino Siren",
+        previous_arduino_port,
+        arduino_port
+    )
+
+    log_port_change(
+        "USB Dongle",
+        previous_zigbee_port,
+        zigbee_port
+    )
+
+    # Save new state after comparison and logging.
+    app._last_detected_arduino_port = arduino_port
+    app._last_detected_zigbee_port = zigbee_port
 
 def update_usb_dongle_status(app, force_rescan=False):
     """Detect both hardware devices and update their status rows."""
