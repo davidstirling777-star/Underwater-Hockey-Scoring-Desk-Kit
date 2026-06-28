@@ -157,7 +157,7 @@ def monitor_usb_dongle_presence(app):
         )
 
     except Exception as e:
-        _safe_log(app, f"Hardware monitor error: {e}")
+        print(f"Hardware monitor error: {e}")
 
     app.usb_dongle_monitor_job = app.master.after(
         5000,
