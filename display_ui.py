@@ -12,7 +12,6 @@ def create_display_window(app):
             app.display_window.lift()
             app.display_window.focus_force()
             return
-
     except tk.TclError:
         app.display_window = None
 
@@ -27,15 +26,18 @@ def create_display_window(app):
     tab = ttk.Frame(app.display_window)
     tab.pack(fill="both", expand=True)
 
-    for row in range(11):
-        tab.grid_rowconfigure(row, weight=1)
+    for i in range(11):
+        tab.grid_rowconfigure(i, weight=1)
 
-    for column in range(9):
+    for i in range(9):
         tab.grid_columnconfigure(
-            column,
+            i,
             weight=1,
-            uniform="display_scoreboard_cols"
+            uniform="display_cols"
         )
+
+    tab.grid_rowconfigure(2, minsize=58)
+    tab.grid_rowconfigure(3, minsize=58)
 
     app.display_court_time_label = tk.Label(
         tab,
@@ -99,50 +101,100 @@ def create_display_window(app):
         sticky="nsew"
     )
 
+    app.display_penalty_area_frame = tk.Frame(
+        tab,
+        bg="lightgrey",
+        bd=0,
+        highlightthickness=0
+    )
+    app.display_penalty_area_frame.grid(
+        row=2,
+        column=3,
+        columnspan=3,
+        padx=1,
+        pady=1,
+        sticky="nsew"
+    )
+    app.display_penalty_area_frame.grid_rowconfigure(0, weight=1)
+    app.display_penalty_area_frame.grid_columnconfigure(0, weight=1)
+    app.display_penalty_area_frame.grid_propagate(False)
+
+    app.display_penalty_grid_frame, app.display_penalty_labels = (
+        app.create_penalty_grid_widget(
+            app.display_penalty_area_frame,
+            is_display=True
+        )
+    )
+    app.display_penalty_grid_frame.grid(
+        row=0,
+        column=0,
+        sticky="nsew"
+    )
+    app.display_penalty_grid_frame.grid_remove()
+
+    app.display_white_team_name_widget = tk.Label(
+        tab,
+        text="",
+        font=app.display_fonts["team"],
+        bg="white",
+        fg="black",
+        anchor="center"
+    )
+    app.display_white_team_name_widget.grid(
+        row=3,
+        column=0,
+        columnspan=3,
+        padx=1,
+        pady=1,
+        sticky="nsew"
+    )
+
+    app.display_black_team_name_widget = tk.Label(
+        tab,
+        text="",
+        font=app.display_fonts["team"],
+        bg="black",
+        fg="white",
+        anchor="center"
+    )
+    app.display_black_team_name_widget.grid(
+        row=3,
+        column=6,
+        columnspan=3,
+        padx=1,
+        pady=1,
+        sticky="nsew"
+    )
+
+    # Game number moved below penalties
     app.display_game_label = tk.Label(
         tab,
         textvariable=app.game_number_var,
         font=app.display_fonts["game_no"],
-        bg="light grey"
+        bg="lightgrey",
+        fg="black"
     )
     app.display_game_label.grid(
-        row=2,
+        row=3,
         column=3,
         columnspan=3,
         padx=1,
         pady=1,
         sticky="nsew"
     )
-
-    (
-        app.display_penalty_grid_frame,
-        app.display_penalty_labels
-    ) = app.create_penalty_grid_widget(
-        tab,
-        is_display=True
-    )
-
-    app.display_penalty_grid_frame.grid(
-        row=2,
-        column=3,
-        columnspan=3,
-        padx=1,
-        pady=1,
-        sticky="nsew"
-    )
-    app.display_penalty_grid_frame.grid_remove()
 
     app.display_white_score = tk.Label(
         tab,
         textvariable=app.white_score_var,
         font=app.display_fonts["score"],
         bg="white",
-        fg="black"
+        fg="black",
+        anchor="center"
     )
     app.display_white_score.grid(
-        row=3,
+        row=4,
         column=0,
-        rowspan=8,
+        rowspan=7,
         columnspan=3,
         padx=1,
         pady=1,
@@ -154,12 +206,13 @@ def create_display_window(app):
         textvariable=app.black_score_var,
         font=app.display_fonts["score"],
         bg="black",
-        fg="white"
+        fg="white",
+        anchor="center"
     )
     app.display_black_score.grid(
-        row=3,
+        row=4,
         column=6,
-        rowspan=8,
+        rowspan=7,
         columnspan=3,
         padx=1,
         pady=1,
@@ -171,12 +224,13 @@ def create_display_window(app):
         textvariable=app.timer_var,
         font=app.display_fonts["timer"],
         bg="lightgrey",
-        fg="black"
+        fg="black",
+        anchor="center"
     )
     app.display_timer_label.grid(
-        row=3,
+        row=4,
         column=3,
-        rowspan=8,
+        rowspan=7,
         columnspan=3,
         padx=1,
         pady=1,
@@ -200,13 +254,8 @@ def create_display_window(app):
     )
     app.display_referee_timeout_timer_label.grid_remove()
 
-    app.display_window.bind(
-        "<Configure>",
-        app.scale_display_fonts
-    )
-
+    app.display_window.bind("<Configure>", app.scale_display_fonts)
     app.display_initial_width = app.display_window.winfo_width() or 1200
-
     app.display_window.update_idletasks()
     app.scale_display_fonts(None)
     app.sync_display_widgets()
