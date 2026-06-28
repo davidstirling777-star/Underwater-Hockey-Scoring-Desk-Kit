@@ -60,9 +60,25 @@
       }
     },
     {
-      "text": "2",
-      "values": {},
-      "checkboxes": {}
+      "text": "Mini League",
+      "values": {
+        "team_timeout_period": "1",
+        "half_period": "5",
+        "half_time_break": "1.5",
+        "overtime_game_break": "1",
+        "overtime_half_period": "1",
+        "overtime_half_time_break": "1",
+        "sudden_death_game_break": "1",
+        "between_game_break": "3.5",
+        "crib_time": "90"
+      },
+      "checkboxes": {
+        "team_timeouts_allowed": false,
+        "overtime_allowed": false,
+        "sudden_death_game_break": false,
+        "record_scorers_cap_number": false,
+        "crib_time": true
+      }
     },
     {
       "text": "NZSSC KO",
@@ -126,5 +142,10 @@
         "crib_time": true
       }
     }
-  ]
+  ],
+  "hardwareDetection": {
+    "arduino_port": "COM6",
+    "zigbee_port": "COM7",
+    "last_detected": "2026-06-28 13:50:50"
+  }
 }
