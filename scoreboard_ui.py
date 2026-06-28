@@ -6,19 +6,33 @@ def create_scoreboard_tab(app):
     tab = ttk.Frame(app.notebook)
     app.notebook.add(tab, text="Scoreboard")
 
-    for i in range(11):
-        tab.grid_rowconfigure(i, weight=1)
+    for row in range(11):
+        tab.grid_rowconfigure(row, weight=1)
 
-    for i in range(9):
-        tab.grid_columnconfigure(
-            i,
-            weight=1,
-            uniform="scoreboard_cols"
-        )
-
-    # Keep the top two centre rows visually stable
-    tab.grid_rowconfigure(2, minsize=58)
-    tab.grid_rowconfigure(3, minsize=58)
+    # Left score area = columns 0–2
+    # Larger timer area = columns 3–5
+    # Right score area = columns 6–8
+    #
+    # The middle area receives more proportional width than either score area.
+    for column in range(9):
+        if column in (3, 4, 5):
+            tab.grid_columnconfigure(
+                column,
+                weight=3,
+                uniform="timer_columns"
+            )
+        elif column in (0, 1, 2):
+            tab.grid_columnconfigure(
+                column,
+                weight=2,
+                uniform="left_score_columns"
+            )
+        else:
+            tab.grid_columnconfigure(
+                column,
+                weight=2,
+                uniform="right_score_columns"
+            )
 
     app.court_time_label = tk.Label(
         tab,
@@ -50,7 +64,6 @@ def create_scoreboard_tab(app):
         sticky="nsew"
     )
 
-    # Team colour row
     app.white_label = tk.Label(
         tab,
         textvariable=app.white_team_var,
@@ -83,14 +96,13 @@ def create_scoreboard_tab(app):
         sticky="nsew"
     )
 
-    # Fixed centre container for penalties so the row does not jump
-    app.penalty_area_frame = tk.Frame(
+    app.game_label = tk.Label(
         tab,
-        bg="lightgrey",
-        bd=0,
-        highlightthickness=0
+        textvariable=app.game_number_var,
+        font=app.fonts["game_no"],
+        bg="light grey"
     )
-    app.penalty_area_frame.grid(
+    app.game_label.grid(
         row=2,
         column=3,
         columnspan=3,
@@ -98,27 +110,27 @@ def create_scoreboard_tab(app):
         pady=1,
         sticky="nsew"
     )
-    app.penalty_area_frame.grid_rowconfigure(0, weight=1)
-    app.penalty_area_frame.grid_columnconfigure(0, weight=1)
-    app.penalty_area_frame.grid_propagate(False)
 
-    app.penalty_grid_frame, app.penalty_labels = app.create_penalty_grid_widget(
-        app.penalty_area_frame
+    app.penalty_grid_frame, app.penalty_labels = (
+        app.create_penalty_grid_widget(tab)
     )
     app.penalty_grid_frame.grid(
-        row=0,
-        column=0,
+        row=2,
+        column=3,
+        columnspan=3,
+        padx=1,
+        pady=1,
         sticky="nsew"
     )
     app.penalty_grid_frame.grid_remove()
 
-    # Team names row
     app.white_team_name_widget = tk.Label(
         tab,
         text="",
         font=app.fonts["team"],
         bg="white",
         fg="black",
+        width=14,
         anchor="center"
     )
     app.white_team_name_widget.grid(
@@ -136,6 +148,7 @@ def create_scoreboard_tab(app):
         font=app.fonts["team"],
         bg="black",
         fg="white",
+        width=14,
         anchor="center"
     )
     app.black_team_name_widget.grid(
@@ -147,15 +160,12 @@ def create_scoreboard_tab(app):
         sticky="nsew"
     )
 
-    # Move Game Number DOWN to the row below penalties
-    app.game_label = tk.Label(
+    app.timer_spacer = tk.Label(
         tab,
-        textvariable=app.game_number_var,
-        font=app.fonts["game_no"],
-        bg="lightgrey",
-        fg="black"
+        text="",
+        bg="lightgrey"
     )
-    app.game_label.grid(
+    app.timer_spacer.grid(
         row=3,
         column=3,
         columnspan=3,
@@ -164,13 +174,13 @@ def create_scoreboard_tab(app):
         sticky="nsew"
     )
 
-    # Scores
     app.white_score = tk.Label(
         tab,
         textvariable=app.white_score_var,
         font=app.fonts["score"],
         bg="white",
         fg="black",
+        width=3,
         anchor="center"
     )
     app.white_score.grid(
@@ -189,6 +199,7 @@ def create_scoreboard_tab(app):
         font=app.fonts["score"],
         bg="black",
         fg="white",
+        width=3,
         anchor="center"
     )
     app.black_score.grid(
@@ -201,7 +212,6 @@ def create_scoreboard_tab(app):
         sticky="nsew"
     )
 
-    # Timer
     app.timer_label = tk.Label(
         tab,
         textvariable=app.timer_var,
@@ -287,9 +297,9 @@ def create_scoreboard_tab(app):
         tab,
         text="Add Goal White",
         font=app.fonts["button"],
-        bg="lightgrey",
+        bg="light grey",
         fg="black",
-        activebackground="lightgrey",
+        activebackground="light grey",
         activeforeground="black",
         command=lambda: app.add_goal_with_confirmation(
             app.white_score_var,
@@ -310,9 +320,9 @@ def create_scoreboard_tab(app):
         tab,
         text="Add Goal Black",
         font=app.fonts["button"],
-        bg="lightgrey",
+        bg="light grey",
         fg="black",
-        activebackground="lightgrey",
+        activebackground="light grey",
         activeforeground="black",
         command=lambda: app.add_goal_with_confirmation(
             app.black_score_var,
@@ -333,9 +343,9 @@ def create_scoreboard_tab(app):
         tab,
         text="-ve Goal White",
         font=app.fonts["button"],
-        bg="lightgrey",
+        bg="light grey",
         fg="black",
-        activebackground="lightgrey",
+        activebackground="light grey",
         activeforeground="black",
         command=lambda: app.adjust_score_with_confirm(
             app.white_score_var,
@@ -355,9 +365,9 @@ def create_scoreboard_tab(app):
         tab,
         text="-ve Goal Black",
         font=app.fonts["button"],
-        bg="lightgrey",
+        bg="light grey",
         fg="black",
-        activebackground="lightgrey",
+        activebackground="light grey",
         activeforeground="black",
         command=lambda: app.adjust_score_with_confirm(
             app.black_score_var,
