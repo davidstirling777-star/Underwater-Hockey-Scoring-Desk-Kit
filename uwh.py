@@ -424,6 +424,9 @@ class GameManagementApp:
         self.in_timeout = False
         self.pending_timeout = None
         self.sudden_death_timer_job = None
+        self.next_game_transition_job = None
+        self.next_game_transition_done = False
+        self.next_game_notice_active = False
         self.engine.sudden_death_seconds = 0
         self.widgets = []
         self.last_valid_values = {}
