@@ -166,7 +166,6 @@ def create_display_window(app):
         sticky="nsew"
     )
 
-    # Game number moved below penalties
     app.display_game_label = tk.Label(
         tab,
         textvariable=app.game_number_var,
@@ -254,8 +253,24 @@ def create_display_window(app):
     )
     app.display_referee_timeout_timer_label.grid_remove()
 
-    app.display_window.bind("<Configure>", app.scale_display_fonts)
-    app.display_initial_width = app.display_window.winfo_width() or 1200
+    app.display_window.bind(
+        "<Configure>",
+        app.scale_display_fonts
+    )
+
+    app.display_initial_width = (
+        app.display_window.winfo_width() or 1200
+    )
+
     app.display_window.update_idletasks()
     app.scale_display_fonts(None)
     app.sync_display_widgets()
+
+    # The external display team-name labels now exist.
+    # Refresh from the selected CSV game, then apply the checkbox setting.
+    app.update_team_names_display()
+    app.toggle_display_team_names()
+
+    # One additional idle refresh covers startup timing when the
+    # CSV/game selection is still settling.
+    app.master.after_idle(app.update_team_names_display)
