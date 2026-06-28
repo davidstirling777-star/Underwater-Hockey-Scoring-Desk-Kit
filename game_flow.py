@@ -45,44 +45,63 @@ def stop_sudden_death_timer(app):
         app.sudden_death_timer_job = None
 
 def get_current_game_number(app):
+    """Return the selected tournament game, or blank after the final game."""
     try:
         selected_game = app.starting_game_var.get()
 
         if selected_game and selected_game in app.game_numbers:
             return selected_game
 
-        if app.game_numbers and len(app.game_numbers) > app.current_game_index:
+        if (
+            app.game_numbers
+            and 0 <= app.current_game_index < len(app.game_numbers)
+        ):
             return app.game_numbers[app.current_game_index]
 
-        return "1"
+        # Past the final listed tournament game.
+        return ""
 
     except Exception:
-        return "1"
+        return ""
 
 def advance_to_next_game(app):
+    """
+    Advance through the tournament draw.
+
+    After the final listed game, remain in a blank game state rather
+    than looping back to Game 1.
+    """
     if not app.game_numbers:
-        return
+        return False
 
     current_game = app.starting_game_var.get()
 
     if current_game in app.game_numbers:
         app.current_game_index = app.game_numbers.index(current_game)
 
-    app.current_game_index = (
-        app.current_game_index + 1
-    ) % len(app.game_numbers)
+    # Final tournament game has been completed.
+    if app.current_game_index >= len(app.game_numbers) - 1:
+        app.current_game_index = len(app.game_numbers)
+        app.starting_game_var.set("")
+        app.update_game_number_display()
+        return False
 
+    app.current_game_index += 1
     next_game = app.game_numbers[app.current_game_index]
 
     app.starting_game_var.set(next_game)
     app.update_game_number_display()
 
+    return True
+
 def update_game_number_display(app):
+    """Update the main and external Game Number display."""
     current_game = get_current_game_number(app)
 
-    app.game_number_var.set(
-        f"Game #{current_game}"
-    )
+    if current_game:
+        app.game_number_var.set(f"Game #{current_game}")
+    else:
+        app.game_number_var.set("")
 
     app.update_team_names_display()
 
