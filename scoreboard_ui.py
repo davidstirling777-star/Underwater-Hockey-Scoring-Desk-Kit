@@ -86,8 +86,22 @@ def create_scoreboard_tab(app):
         sticky="nsew"
     )
 
-    # Penalties are placed directly in the middle section.
-    # Do NOT put them inside a separate penalty_area_frame.
+    # Permanent grey background for the centre penalty area.
+    # It remains visible even when there are no penalties.
+    app.penalty_background = tk.Label(
+        tab,
+        text="",
+        bg="lightgrey"
+    )
+    app.penalty_background.grid(
+        row=2,
+        column=3,
+        columnspan=3,
+        padx=1,
+        pady=1,
+        sticky="nsew"
+    )
+
     app.penalty_grid_frame, app.penalty_labels = (
         app.create_penalty_grid_widget(tab)
     )
