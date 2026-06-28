@@ -384,10 +384,10 @@ class GameEngine:
         return False
 
     def should_export_game_results(self, period):
-        if not period:
-            return False
-
-        return (
-            period["name"] == "Between Game Break"
-            and self.timer_seconds == 30
-        )
+        """
+        Kept as a compatibility hook.
+    
+        The application now schedules the end-of-game export exactly
+        30 seconds after Between Game Break begins.
+        """
+        return False
