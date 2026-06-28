@@ -633,12 +633,35 @@ def create_settings_tab(app):
         pady=(8, 4)
     )
 
+display_options_frame = ttk.Frame(widget4)
+display_options_frame.grid(
+    row=4,
+    column=0,
+    columnspan=3,
+    sticky="w",
+    padx=8,
+    pady=(4, 8)
+)
+
     show_display_checkbox = ttk.Checkbutton(
-        widget4,
+        display_options_frame,
         text="Show Display Screen",
         variable=app.show_display_screen_var,
         command=app.toggle_display_screen,
         style="Large.TCheckbutton"
+    )
+    show_display_checkbox.pack(side="left")
+    
+    show_team_names_checkbox = ttk.Checkbutton(
+        display_options_frame,
+        text="Show Team Names",
+        variable=app.show_display_team_names_var,
+        command=app.toggle_display_team_names,
+        style="Large.TCheckbutton"
+    )
+    show_team_names_checkbox.pack(
+        side="left",
+        padx=(20, 0)
     )
     show_display_checkbox.grid(
         row=4,
