@@ -239,6 +239,7 @@ class GameManagementApp:
     
             self.create_display_window()
             self.update_penalty_display()
+            self.toggle_display_team_names()
     
         else:
             try:
@@ -252,6 +253,38 @@ class GameManagementApp:
                 pass
     
             self.display_window = None
+
+    def toggle_display_team_names(self):
+        """Show or hide team-name text on the external display window."""
+    
+        try:
+            if (
+                not hasattr(self, "display_window")
+                or self.display_window is None
+                or not self.display_window.winfo_exists()
+            ):
+                return
+    
+            show_names = self.show_display_team_names_var.get()
+    
+            white_name = ""
+            black_name = ""
+    
+            if show_names:
+                if hasattr(self, "white_team_name_widget"):
+                    white_name = self.white_team_name_widget.cget("text")
+    
+                if hasattr(self, "black_team_name_widget"):
+                    black_name = self.black_team_name_widget.cget("text")
+    
+            if hasattr(self, "display_white_team_name_widget"):
+                self.display_white_team_name_widget.config(text=white_name)
+    
+            if hasattr(self, "display_black_team_name_widget"):
+                self.display_black_team_name_widget.config(text=black_name)
+    
+        except tk.TclError:
+            pass
 
     def handle_hardware_siren_event(self, event_name="ON"):
 
@@ -398,6 +431,7 @@ class GameManagementApp:
         self.overtime_allowed_var = tk.BooleanVar(value=self.variables["overtime_allowed"]["default"])
         self.record_scorers_cap_number_var = tk.BooleanVar(value=self.variables["record_scorers_cap_number"]["default"])
         self.show_display_screen_var = tk.BooleanVar(value=True)
+        self.show_display_team_names_var = tk.BooleanVar(value=True)
         self.referee_timeout_active = False
         self.referee_timeout_elapsed = 0
         self.referee_timeout_default_bg = "red"
@@ -1012,6 +1046,7 @@ class GameManagementApp:
 
             if hasattr(self, "black_team_name_widget"):
                 self.black_team_name_widget.config(text="")
+                self.toggle_display_team_names()
                 
     def advance_to_next_game(self):
         return game_flow.advance_to_next_game(self)
