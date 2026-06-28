@@ -266,11 +266,26 @@ def create_display_window(app):
     app.scale_display_fonts(None)
     app.sync_display_widgets()
 
-    # The external display team-name labels now exist.
-    # Refresh from the selected CSV game, then apply the checkbox setting.
-    app.update_team_names_display()
-    app.toggle_display_team_names()
+    def refresh_display_team_names():
+        """Refresh names after the Tournament List has finished loading."""
+        try:
+            if (
+                not hasattr(app, "display_window")
+                or app.display_window is None
+                or not app.display_window.winfo_exists()
+            ):
+                return
 
-    # One additional idle refresh covers startup timing when the
-    # CSV/game selection is still settling.
-    app.master.after_idle(app.update_team_names_display)
+            app.update_team_names_display()
+            app.toggle_display_team_names()
+
+        except tk.TclError:
+            pass
+
+    # Immediate attempt for displays opened after startup.
+    refresh_display_team_names()
+
+    # These cover startup, where the CSV and selected game may load
+    # after the display window is created.
+    app.master.after(250, refresh_display_team_names)
+    app.master.after(750, refresh_display_team_names)
