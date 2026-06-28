@@ -16,9 +16,10 @@ def create_scoreboard_tab(app):
             uniform="scoreboard_cols"
         )
 
-    # Keep the top two centre rows visually stable
-    tab.grid_rowconfigure(2, minsize=58)
-    tab.grid_rowconfigure(3, minsize=58)
+    # Keep the penalties row and Game Number row at a fixed height.
+    # This stops the display shifting when penalty boxes appear or disappear.
+    tab.grid_rowconfigure(2, weight=0, minsize=70)
+    tab.grid_rowconfigure(3, weight=0, minsize=70)
 
     app.court_time_label = tk.Label(
         tab,
@@ -50,13 +51,14 @@ def create_scoreboard_tab(app):
         sticky="nsew"
     )
 
-    # Team colour row
+    # Row 2: team colour names and centred penalty grid.
     app.white_label = tk.Label(
         tab,
         textvariable=app.white_team_var,
         font=app.fonts["team"],
         bg="white",
-        fg="black"
+        fg="black",
+        anchor="center"
     )
     app.white_label.grid(
         row=2,
@@ -72,7 +74,8 @@ def create_scoreboard_tab(app):
         textvariable=app.black_team_var,
         font=app.fonts["team"],
         bg="black",
-        fg="white"
+        fg="white",
+        anchor="center"
     )
     app.black_label.grid(
         row=2,
@@ -83,14 +86,12 @@ def create_scoreboard_tab(app):
         sticky="nsew"
     )
 
-    # Fixed centre container for penalties so the row does not jump
-    app.penalty_area_frame = tk.Frame(
-        tab,
-        bg="lightgrey",
-        bd=0,
-        highlightthickness=0
+    # Penalties are placed directly in the middle section.
+    # Do NOT put them inside a separate penalty_area_frame.
+    app.penalty_grid_frame, app.penalty_labels = (
+        app.create_penalty_grid_widget(tab)
     )
-    app.penalty_area_frame.grid(
+    app.penalty_grid_frame.grid(
         row=2,
         column=3,
         columnspan=3,
@@ -98,32 +99,39 @@ def create_scoreboard_tab(app):
         pady=1,
         sticky="nsew"
     )
-    app.penalty_area_frame.grid_rowconfigure(0, weight=1)
-    app.penalty_area_frame.grid_columnconfigure(0, weight=1)
-    app.penalty_area_frame.grid_propagate(False)
-
-    app.penalty_grid_frame, app.penalty_labels = app.create_penalty_grid_widget(
-        app.penalty_area_frame
-    )
-    app.penalty_grid_frame.grid(
-        row=0,
-        column=0,
-        sticky="nsew"
-    )
     app.penalty_grid_frame.grid_remove()
 
-    # Team names row
+    # Row 3: team names and Game Number.
     app.white_team_name_widget = tk.Label(
         tab,
         text="",
         font=app.fonts["team"],
         bg="white",
         fg="black",
+        width=14,
         anchor="center"
     )
     app.white_team_name_widget.grid(
         row=3,
         column=0,
+        columnspan=3,
+        padx=1,
+        pady=1,
+        sticky="nsew"
+    )
+
+    # Game number stays visible below the penalty row.
+    app.game_label = tk.Label(
+        tab,
+        textvariable=app.game_number_var,
+        font=app.fonts["game_no"],
+        bg="lightgrey",
+        fg="black",
+        anchor="center"
+    )
+    app.game_label.grid(
+        row=3,
+        column=3,
         columnspan=3,
         padx=1,
         pady=1,
@@ -136,6 +144,7 @@ def create_scoreboard_tab(app):
         font=app.fonts["team"],
         bg="black",
         fg="white",
+        width=14,
         anchor="center"
     )
     app.black_team_name_widget.grid(
@@ -147,24 +156,6 @@ def create_scoreboard_tab(app):
         sticky="nsew"
     )
 
-    # Move Game Number DOWN to the row below penalties
-    app.game_label = tk.Label(
-        tab,
-        textvariable=app.game_number_var,
-        font=app.fonts["game_no"],
-        bg="lightgrey",
-        fg="black"
-    )
-    app.game_label.grid(
-        row=3,
-        column=3,
-        columnspan=3,
-        padx=1,
-        pady=1,
-        sticky="nsew"
-    )
-
-    # Scores
     app.white_score = tk.Label(
         tab,
         textvariable=app.white_score_var,
@@ -183,25 +174,6 @@ def create_scoreboard_tab(app):
         sticky="nsew"
     )
 
-    app.black_score = tk.Label(
-        tab,
-        textvariable=app.black_score_var,
-        font=app.fonts["score"],
-        bg="black",
-        fg="white",
-        anchor="center"
-    )
-    app.black_score.grid(
-        row=4,
-        column=6,
-        rowspan=5,
-        columnspan=3,
-        padx=1,
-        pady=1,
-        sticky="nsew"
-    )
-
-    # Timer
     app.timer_label = tk.Label(
         tab,
         textvariable=app.timer_var,
@@ -213,6 +185,24 @@ def create_scoreboard_tab(app):
     app.timer_label.grid(
         row=4,
         column=3,
+        rowspan=5,
+        columnspan=3,
+        padx=1,
+        pady=1,
+        sticky="nsew"
+    )
+
+    app.black_score = tk.Label(
+        tab,
+        textvariable=app.black_score_var,
+        font=app.fonts["score"],
+        bg="black",
+        fg="white",
+        anchor="center"
+    )
+    app.black_score.grid(
+        row=4,
+        column=6,
         rowspan=5,
         columnspan=3,
         padx=1,
@@ -260,29 +250,6 @@ def create_scoreboard_tab(app):
         sticky="nsew"
     )
 
-    app.black_timeout_button = tk.Button(
-        tab,
-        text="Black Team\nTime-Out",
-        font=app.fonts["timeout_button"],
-        bg="black",
-        fg="white",
-        activebackground="black",
-        activeforeground="white",
-        justify="center",
-        wraplength=180,
-        height=2,
-        command=app.black_team_timeout
-    )
-    app.black_timeout_button.grid(
-        row=9,
-        column=8,
-        rowspan=2,
-        columnspan=1,
-        padx=1,
-        pady=1,
-        sticky="nsew"
-    )
-
     app.white_goal_button = tk.Button(
         tab,
         text="Add Goal White",
@@ -301,6 +268,25 @@ def create_scoreboard_tab(app):
         row=9,
         column=1,
         columnspan=2,
+        padx=1,
+        pady=1,
+        sticky="nsew"
+    )
+
+    app.referee_timeout_button = tk.Button(
+        tab,
+        text="Referee Time-Out",
+        font=app.fonts["button"],
+        bg=app.referee_timeout_default_bg,
+        fg=app.referee_timeout_default_fg,
+        activebackground=app.referee_timeout_default_bg,
+        activeforeground=app.referee_timeout_default_fg,
+        command=app.toggle_referee_timeout
+    )
+    app.referee_timeout_button.grid(
+        row=9,
+        column=3,
+        columnspan=3,
         padx=1,
         pady=1,
         sticky="nsew"
@@ -329,6 +315,29 @@ def create_scoreboard_tab(app):
         sticky="nsew"
     )
 
+    app.black_timeout_button = tk.Button(
+        tab,
+        text="Black Team\nTime-Out",
+        font=app.fonts["timeout_button"],
+        bg="black",
+        fg="white",
+        activebackground="black",
+        activeforeground="white",
+        justify="center",
+        wraplength=180,
+        height=2,
+        command=app.black_team_timeout
+    )
+    app.black_timeout_button.grid(
+        row=9,
+        column=8,
+        rowspan=2,
+        columnspan=1,
+        padx=1,
+        pady=1,
+        sticky="nsew"
+    )
+
     app.white_minus_button = tk.Button(
         tab,
         text="-ve Goal White",
@@ -351,6 +360,25 @@ def create_scoreboard_tab(app):
         sticky="nsew"
     )
 
+    app.penalties_button = tk.Button(
+        tab,
+        text="Penalties",
+        font=app.fonts["button"],
+        bg="orange",
+        fg="black",
+        activebackground="orange",
+        activeforeground="black",
+        command=lambda: app.show_penalties(app.penalties_button)
+    )
+    app.penalties_button.grid(
+        row=10,
+        column=3,
+        columnspan=3,
+        padx=1,
+        pady=1,
+        sticky="nsew"
+    )
+
     app.black_minus_button = tk.Button(
         tab,
         text="-ve Goal Black",
@@ -368,44 +396,6 @@ def create_scoreboard_tab(app):
         row=10,
         column=6,
         columnspan=2,
-        padx=1,
-        pady=1,
-        sticky="nsew"
-    )
-
-    app.referee_timeout_button = tk.Button(
-        tab,
-        text="Referee Time-Out",
-        font=app.fonts["button"],
-        bg=app.referee_timeout_default_bg,
-        fg=app.referee_timeout_default_fg,
-        activebackground=app.referee_timeout_default_bg,
-        activeforeground=app.referee_timeout_default_fg,
-        command=app.toggle_referee_timeout
-    )
-    app.referee_timeout_button.grid(
-        row=9,
-        column=3,
-        columnspan=3,
-        padx=1,
-        pady=1,
-        sticky="nsew"
-    )
-
-    app.penalties_button = tk.Button(
-        tab,
-        text="Penalties",
-        font=app.fonts["button"],
-        bg="orange",
-        fg="black",
-        activebackground="orange",
-        activeforeground="black",
-        command=lambda: app.show_penalties(app.penalties_button)
-    )
-    app.penalties_button.grid(
-        row=10,
-        column=3,
-        columnspan=3,
         padx=1,
         pady=1,
         sticky="nsew"
