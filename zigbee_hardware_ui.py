@@ -130,7 +130,7 @@ def _apply_hardware_status(app, arduino_port, zigbee_port):
     app._last_detected_zigbee_port = zigbee_port
 
 def update_usb_dongle_status(app, force_rescan=False):
-    """Detect both hardware devices and update their status rows."""
+    """Detect current Arduino/Zigbee ports and update the status display."""
 
     try:
         ports = serial_siren_listener.get_detected_ports(
@@ -140,19 +140,11 @@ def update_usb_dongle_status(app, force_rescan=False):
         _apply_hardware_status(
             app,
             ports.get("arduino_port"),
-            ports.get("zigbee_port"),
-            log_result=force_rescan
+            ports.get("zigbee_port")
         )
 
     except Exception as e:
-        _safe_log(app, f"Hardware detection error: {e}")
-
-        _apply_hardware_status(
-            app,
-            None,
-            None,
-            log_result=True
-        )
+        print(f"Hardware detection error: {e}")
 
 
 def monitor_usb_dongle_presence(app):
