@@ -709,41 +709,64 @@ class GameManagementApp:
         
     def update_penalty_display(self):
         """
-        Robustly ensures that the penalty grid is only shown if there are penalties left to serve,
-        and that 'Game 1' label is shown otherwise.
-        Applies to both main and display windows.
+        Show penalties in row 2 and always keep Game Number visible in row 3.
         """
-        main_has_penalties = bool(self.engine.active_penalties or self.engine.stored_penalties)
-        # Main window: show penalty grid if any penalties; otherwise show 'Game 1'
-        if main_has_penalties:
-            if self.game_label.winfo_ismapped():
-                self.game_label.grid_remove()
-            if not self.penalty_grid_frame.winfo_ismapped():
-                self.penalty_grid_frame.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
-            self.update_penalty_grid()
-        else:
-            # Hide penalty grid
+    
+        def place_game_label(label):
             try:
-                self.penalty_grid_frame.grid_remove()
-            except Exception:
+                grid_info = label.grid_info()
+    
+                current_row = int(grid_info.get("row", -1))
+    
+                if not label.winfo_ismapped() or current_row != 3:
+                    label.grid(
+                        row=3,
+                        column=3,
+                        columnspan=3,
+                        padx=1,
+                        pady=1,
+                        sticky="nsew"
+                    )
+            except (AttributeError, tk.TclError):
                 pass
-            # Show current game number label always
-            if not self.game_label.winfo_ismapped():
-                self.game_label.grid(row=2, column=3, columnspan=3, padx=1, pady=1, sticky="nsew")
-            # Event-driven: Update the StringVar with current game number
-            self.update_game_number_display()
-
-        # Display window: same logic
+    
+        main_has_penalties = bool(
+            self.engine.active_penalties
+            or self.engine.stored_penalties
+        )
+    
         try:
-            display_has_penalties = bool(self.engine.active_penalties or self.engine.stored_penalties)
-        
+            if main_has_penalties:
+                if not self.penalty_grid_frame.winfo_ismapped():
+                    self.penalty_grid_frame.grid(
+                        row=2,
+                        column=3,
+                        columnspan=3,
+                        padx=1,
+                        pady=1,
+                        sticky="nsew"
+                    )
+    
+                self.update_penalty_grid()
+    
+            else:
+                self.penalty_grid_frame.grid_remove()
+    
+            # Game Number stays visible, whether penalties exist or not.
+            place_game_label(self.game_label)
+            self.update_game_number_display()
+    
+        except (AttributeError, tk.TclError):
+            pass
+    
+        try:
+            display_has_penalties = bool(
+                self.engine.active_penalties
+                or self.engine.stored_penalties
+            )
+    
             if display_has_penalties:
-        
-                if self.display_game_label.winfo_exists() and self.display_game_label.winfo_ismapped():
-                    self.display_game_label.grid_remove()
-        
-                if self.display_penalty_grid_frame.winfo_exists() and \
-                   not self.display_penalty_grid_frame.winfo_ismapped():
+                if not self.display_penalty_grid_frame.winfo_ismapped():
                     self.display_penalty_grid_frame.grid(
                         row=2,
                         column=3,
@@ -752,25 +775,15 @@ class GameManagementApp:
                         pady=1,
                         sticky="nsew"
                     )
-        
+    
                 self.update_display_penalty_grid()
-        
+    
             else:
-        
-                if self.display_penalty_grid_frame.winfo_exists():
-                    self.display_penalty_grid_frame.grid_remove()
-        
-                if self.display_game_label.winfo_exists() and \
-                   not self.display_game_label.winfo_ismapped():
-                    self.display_game_label.grid(
-                        row=2,
-                        column=3,
-                        columnspan=3,
-                        padx=1,
-                        pady=1,
-                        sticky="nsew"
-                    )
-        
+                self.display_penalty_grid_frame.grid_remove()
+    
+            # The external display Game Number also remains visible.
+            place_game_label(self.display_game_label)
+    
         except (AttributeError, tk.TclError):
             pass
 
