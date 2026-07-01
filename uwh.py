@@ -1158,49 +1158,49 @@ class GameManagementApp:
     def update_game_number_display(self):
         return game_flow.update_game_number_display(self)
 
-def update_team_names_display(self):
-    """Update team names from the selected tournament game."""
-    try:
-        current_game = self.get_current_game_number()
+    def update_team_names_display(self):
+        """Update team names from the selected tournament game."""
+        try:
+            current_game = self.get_current_game_number()
 
-        # After the final tournament game, deliberately show no teams.
-        if not current_game:
-            white_team = ""
-            black_team = ""
-        else:
-            csv_file = (
-                self.csv_var.get()
-                if hasattr(self, "csv_var")
-                else None
-            )
+            # After the final tournament game, deliberately show no teams.
+            if not current_game:
+                white_team = ""
+                black_team = ""
+            else:
+                csv_file = (
+                    self.csv_var.get()
+                    if hasattr(self, "csv_var")
+                    else None
+                )
 
-            white_team, black_team = self.parse_csv_team_names(
-                csv_file,
-                current_game
-            )
+                white_team, black_team = self.parse_csv_team_names(
+                    csv_file,
+                    current_game
+                )
 
-        if hasattr(self, "white_team_name_widget"):
-            self.white_team_name_widget.config(
-                text=white_team if white_team else ""
-            )
+            if hasattr(self, "white_team_name_widget"):
+                self.white_team_name_widget.config(
+                    text=white_team if white_team else ""
+                )
 
-        if hasattr(self, "black_team_name_widget"):
-            self.black_team_name_widget.config(
-                text=black_team if black_team else ""
-            )
+            if hasattr(self, "black_team_name_widget"):
+                self.black_team_name_widget.config(
+                    text=black_team if black_team else ""
+                )
 
-        self.toggle_display_team_names()
+            self.toggle_display_team_names()
 
-    except Exception as e:
-        print(f"Error updating team names display: {e}")
+        except Exception as e:
+            print(f"Error updating team names display: {e}")
 
-        if hasattr(self, "white_team_name_widget"):
-            self.white_team_name_widget.config(text="")
+            if hasattr(self, "white_team_name_widget"):
+                self.white_team_name_widget.config(text="")
 
-        if hasattr(self, "black_team_name_widget"):
-            self.black_team_name_widget.config(text="")
+            if hasattr(self, "black_team_name_widget"):
+                self.black_team_name_widget.config(text="")
 
-        self.toggle_display_team_names()
+            self.toggle_display_team_names()
                 
     def advance_to_next_game(self):
         return game_flow.advance_to_next_game(self)
