@@ -1,8 +1,8 @@
 import tkinter as tk
 from tkinter import ttk
 
-
 def create_display_window(app):
+    """Create or bring forward the external scoreboard display window."""
     try:
         if (
             hasattr(app, "display_window")
@@ -12,6 +12,7 @@ def create_display_window(app):
             app.display_window.lift()
             app.display_window.focus_force()
             return
+
     except tk.TclError:
         app.display_window = None
 
@@ -26,19 +27,23 @@ def create_display_window(app):
     tab = ttk.Frame(app.display_window)
     tab.pack(fill="both", expand=True)
 
-    for i in range(11):
-        tab.grid_rowconfigure(i, weight=1)
+    # Match the main Scoreboard tab:
+    # 9 equal columns, making White / Centre / Black equal thirds.
+    for row in range(11):
+        tab.grid_rowconfigure(row, weight=1)
 
-    for i in range(9):
+    for column in range(9):
         tab.grid_columnconfigure(
-            i,
+            column,
             weight=1,
-            uniform="display_cols"
+            uniform="scoreboard_cols"
         )
 
+    # Keep team-name and centre-information rows stable.
     tab.grid_rowconfigure(2, minsize=58)
     tab.grid_rowconfigure(3, minsize=58)
 
+    # Court time.
     app.display_court_time_label = tk.Label(
         tab,
         textvariable=app.court_time_var,
@@ -54,6 +59,7 @@ def create_display_window(app):
         sticky="nsew"
     )
 
+    # Current period label.
     app.display_half_label = tk.Label(
         tab,
         textvariable=app.half_label_var,
@@ -69,12 +75,14 @@ def create_display_window(app):
         sticky="nsew"
     )
 
+    # White / Black colour labels.
     app.display_white_label = tk.Label(
         tab,
         textvariable=app.white_team_var,
         font=app.display_fonts["team"],
         bg="white",
-        fg="black"
+        fg="black",
+        anchor="center"
     )
     app.display_white_label.grid(
         row=2,
@@ -90,7 +98,8 @@ def create_display_window(app):
         textvariable=app.black_team_var,
         font=app.display_fonts["team"],
         bg="black",
-        fg="white"
+        fg="white",
+        anchor="center"
     )
     app.display_black_label.grid(
         row=2,
@@ -101,6 +110,7 @@ def create_display_window(app):
         sticky="nsew"
     )
 
+    # Fixed centre area for penalties / Next Game banner.
     app.display_penalty_area_frame = tk.Frame(
         tab,
         bg="lightgrey",
@@ -115,8 +125,14 @@ def create_display_window(app):
         pady=1,
         sticky="nsew"
     )
-    app.display_penalty_area_frame.grid_rowconfigure(0, weight=1)
-    app.display_penalty_area_frame.grid_columnconfigure(0, weight=1)
+    app.display_penalty_area_frame.grid_rowconfigure(
+        0,
+        weight=1
+    )
+    app.display_penalty_area_frame.grid_columnconfigure(
+        0,
+        weight=1
+    )
     app.display_penalty_area_frame.grid_propagate(False)
 
     app.display_penalty_grid_frame, app.display_penalty_labels = (
@@ -132,6 +148,7 @@ def create_display_window(app):
     )
     app.display_penalty_grid_frame.grid_remove()
 
+    # Team names.
     app.display_white_team_name_widget = tk.Label(
         tab,
         text="",
@@ -166,12 +183,14 @@ def create_display_window(app):
         sticky="nsew"
     )
 
+    # Current game number.
     app.display_game_label = tk.Label(
         tab,
         textvariable=app.game_number_var,
         font=app.display_fonts["game_no"],
         bg="lightgrey",
-        fg="black"
+        fg="black",
+        anchor="center"
     )
     app.display_game_label.grid(
         row=3,
@@ -182,6 +201,7 @@ def create_display_window(app):
         sticky="nsew"
     )
 
+    # Scores.
     app.display_white_score = tk.Label(
         tab,
         textvariable=app.white_score_var,
@@ -218,6 +238,7 @@ def create_display_window(app):
         sticky="nsew"
     )
 
+    # Main countdown timer.
     app.display_timer_label = tk.Label(
         tab,
         textvariable=app.timer_var,
@@ -236,12 +257,14 @@ def create_display_window(app):
         sticky="nsew"
     )
 
+    # Referee time-out overlay.
     app.display_referee_timeout_timer_label = tk.Label(
         tab,
         textvariable=app.referee_timeout_timer_var,
         font=app.display_fonts["referee_timeout_timer"],
         bg="red",
-        fg="white"
+        fg="white",
+        anchor="center"
     )
     app.display_referee_timeout_timer_label.grid(
         row=10,
@@ -258,34 +281,58 @@ def create_display_window(app):
         app.scale_display_fonts
     )
 
-    app.display_initial_width = (
-        app.display_window.winfo_width() or 1200
+    # Calculate dimensions only after widgets have been laid out.
+    app.display_window.update_idletasks()
+
+    app.display_initial_width = max(
+        app.display_window.winfo_width(),
+        1200
     )
 
-    app.display_window.update_idletasks()
     app.scale_display_fonts(None)
     app.sync_display_widgets()
 
-    def refresh_display_team_names():
-        """Refresh names after the Tournament List has finished loading."""
-        try:
-            if (
-                not hasattr(app, "display_window")
-                or app.display_window is None
-                or not app.display_window.winfo_exists()
-            ):
-                return
+def refresh_display_team_names():
+    """Refresh names after CSV and tournament settings are ready."""
+    try:
+        if (
+            not hasattr(app, "display_window")
+            or app.display_window is None
+            or not app.display_window.winfo_exists()
+        ):
+            return
 
-            app.update_team_names_display()
-            app.toggle_display_team_names()
+        app.update_team_names_display()
+        app.toggle_display_team_names()
 
-        except tk.TclError:
-            pass
+    except tk.TclError:
+        pass
 
-    # Immediate attempt for displays opened after startup.
-    refresh_display_team_names()
+# Covers display windows opened during startup and later manually.
+refresh_display_team_names()
+app.master.after(250, refresh_display_team_names)
+app.master.after(750, refresh_display_team_names)
 
-    # These cover startup, where the CSV and selected game may load
-    # after the display window is created.
-    app.master.after(250, refresh_display_team_names)
-    app.master.after(750, refresh_display_team_names)
+def refresh_display_team_names():
+    """Refresh names after the Tournament List has finished loading."""
+    try:
+        if (
+            not hasattr(app, "display_window")
+            or app.display_window is None
+            or not app.display_window.winfo_exists()
+        ):
+            return
+
+        app.update_team_names_display()
+        app.toggle_display_team_names()
+
+    except tk.TclError:
+        pass
+
+# Immediate attempt for displays opened after startup.
+refresh_display_team_names()
+
+# These cover startup, where the CSV and selected game may load
+# after the display window is created.
+app.master.after(250, refresh_display_team_names)
+app.master.after(750, refresh_display_team_names)
