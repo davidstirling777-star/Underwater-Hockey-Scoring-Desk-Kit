@@ -155,7 +155,8 @@ def create_display_window(app):
         font=app.display_fonts["team"],
         bg="white",
         fg="black",
-        anchor="center"
+        anchor="center",
+        width=18
     )
     app.display_white_team_name_widget.grid(
         row=3,
@@ -172,7 +173,8 @@ def create_display_window(app):
         font=app.display_fonts["team"],
         bg="black",
         fg="white",
-        anchor="center"
+        anchor="center",
+        width=18
     )
     app.display_black_team_name_widget.grid(
         row=3,
