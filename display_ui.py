@@ -292,47 +292,24 @@ def create_display_window(app):
     app.scale_display_fonts(None)
     app.sync_display_widgets()
 
-def refresh_display_team_names():
-    """Refresh names after CSV and tournament settings are ready."""
-    try:
-        if (
-            not hasattr(app, "display_window")
-            or app.display_window is None
-            or not app.display_window.winfo_exists()
-        ):
-            return
+    def refresh_display_team_names():
+        """Refresh names after CSV and tournament settings are ready."""
+        try:
+            if (
+                not hasattr(app, "display_window")
+                or app.display_window is None
+                or not app.display_window.winfo_exists()
+            ):
+                return
 
-        app.update_team_names_display()
-        app.toggle_display_team_names()
+            app.update_team_names_display()
+            app.toggle_display_team_names()
 
-    except tk.TclError:
-        pass
+        except tk.TclError:
+            pass
 
-# Covers display windows opened during startup and later manually.
-refresh_display_team_names()
-app.master.after(250, refresh_display_team_names)
-app.master.after(750, refresh_display_team_names)
-
-def refresh_display_team_names():
-    """Refresh names after the Tournament List has finished loading."""
-    try:
-        if (
-            not hasattr(app, "display_window")
-            or app.display_window is None
-            or not app.display_window.winfo_exists()
-        ):
-            return
-
-        app.update_team_names_display()
-        app.toggle_display_team_names()
-
-    except tk.TclError:
-        pass
-
-# Immediate attempt for displays opened after startup.
-refresh_display_team_names()
-
-# These cover startup, where the CSV and selected game may load
-# after the display window is created.
-app.master.after(250, refresh_display_team_names)
-app.master.after(750, refresh_display_team_names)
+    # Refresh immediately and again during startup, after the Tournament
+    # List and selected game may have loaded.
+    refresh_display_team_names()
+    app.master.after(250, refresh_display_team_names)
+    app.master.after(750, refresh_display_team_names)
