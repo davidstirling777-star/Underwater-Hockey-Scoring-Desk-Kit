@@ -2,12 +2,14 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
 import datetime
+import os
 
 from sound import (
     get_sound_files,
     play_sound_with_volume,
     check_audio_device_available,
     handle_no_audio_device_warning,
+    resource_path,
 )
 
 def create_sounds_tab(app):
@@ -30,9 +32,49 @@ def create_sounds_tab(app):
     sounds_widget.grid_columnconfigure(3, weight=0)  # Column 3 has fixed width
     
     # Get dynamic list of sound files
+    # Show only files intended for each sound type.
     sound_files = get_sound_files()
-    pips_options = ["Default"] + sound_files if sound_files != ["No sound files found"] else sound_files
-    siren_options = ["Default"] + sound_files if sound_files != ["No sound files found"] else sound_files
+
+    if sound_files == ["No sound files found"]:
+        sound_files = []
+
+    pips_options = [
+        filename
+        for filename in sound_files
+        if "pip" in filename.lower()
+    ]
+
+    siren_options = [
+        filename
+        for filename in sound_files
+        if "siren" in filename.lower()
+    ]
+
+    # Remove old saved values such as "Default", or selections that
+    # do not match the required filename rule.
+    if app.pips_var.get() not in pips_options:
+        app.pips_var.set(
+            pips_options[0] if pips_options else ""
+        )
+
+    if app.siren_var.get() not in siren_options:
+        app.siren_var.set(
+            siren_options[0] if siren_options else ""
+        )
+
+    def open_sounds_folder():
+        """Open the same assets folder that the program scans."""
+        sounds_folder = resource_path("assets")
+
+        try:
+            os.makedirs(sounds_folder, exist_ok=True)
+            os.startfile(sounds_folder)
+
+        except OSError as e:
+            messagebox.showerror(
+                "Open Sounds Folder",
+                f"Could not open the sounds folder:\n{e}"
+            )
     
     # Row 0, column 0: Save Settings button
     save_btn = tk.Button(sounds_widget, text="Save Settings", font=("Arial", 11), command=app.save_sound_settings_method)
@@ -150,6 +192,19 @@ def create_sounds_tab(app):
     pips_vol_slider.bind("<Button-1>", on_pips_slider_interaction)
     pips_vol_slider.bind("<B1-Motion>", on_pips_slider_interaction)
     pips_vol_slider.bind("<ButtonRelease-1>", on_pips_slider_interaction)
+        # Row 4: open the folder containing the available sound files.
+    open_sounds_folder_btn = tk.Button(
+        sounds_widget,
+        text="Open Sounds Folder",
+        font=("Arial", 11),
+        command=open_sounds_folder
+    )
+    open_sounds_folder_btn.grid(
+        row=4,
+        column=1,
+        columnspan=2,
+        pady=6
+    )
 
     # Row 5, column 0: "Siren"
     tk.Label(sounds_widget, text="Siren", font=("Arial", 12)).grid(row=5, column=0, sticky="nsew")
