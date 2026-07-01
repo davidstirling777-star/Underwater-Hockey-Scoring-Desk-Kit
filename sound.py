@@ -65,7 +65,34 @@ def _get_value(value):
 
 
 def _normalise_volume(volume):
-    return max(0.0, min(100.0, float(volume))) / 100.0
+    """Convert a 0-100 value to pygame's 0.0-1.0 range."""
+    try:
+        numeric_volume = float(_get_value(volume))
+    except (TypeError, ValueError):
+        numeric_volume = 0.0
+
+    return max(0.0, min(100.0, numeric_volume)) / 100.0
+
+
+def _normalise_filename(filename):
+    """Return a stripped filename string, or an empty string."""
+    return str(filename).strip() if filename is not None else ""
+
+
+def _is_valid_sound_selection(filename):
+    """
+    Return True only for an actual selected sound filename.
+
+    An empty selection means "do not play". "Default" is still ignored
+    for compatibility with older saved settings.
+    """
+    filename = _normalise_filename(filename)
+
+    return (
+        bool(filename)
+        and filename.lower()
+        not in {"default", "no sound files found"}
+    )
 
 
 def check_audio_device_available(enable_sound):
@@ -154,9 +181,14 @@ def get_sound_files():
 
         if os.path.exists(assets_dir):
             for filename in os.listdir(assets_dir):
-                if any(
-                    filename.lower().endswith(ext)
-                    for ext in supported_extensions
+                file_path = os.path.join(assets_dir, filename)
+
+                if (
+                    os.path.isfile(file_path)
+                    and any(
+                        filename.lower().endswith(ext)
+                        for ext in supported_extensions
+                    )
                 ):
                     sound_files.append(filename)
 
@@ -199,10 +231,13 @@ def preload_sounds():
 
 
 def _play_sound_sync(filename, enable_sound):
+    """Play a sound once without changing volume."""
     if not enable_sound:
         return
 
-    if filename in ("No sound files found", "Default"):
+    filename = _normalise_filename(filename)
+
+    if not _is_valid_sound_selection(filename):
         print(f"Sound Test: Cannot play '{filename}' - not a valid sound file")
         return
 
@@ -210,7 +245,10 @@ def _play_sound_sync(filename, enable_sound):
         file_path = resource_path(os.path.join("assets", filename))
 
         if not os.path.exists(file_path):
-            print(f"Sound Error: Sound file '{filename}' not found at {file_path}")
+            print(
+                f"Sound Error: Sound file '{filename}' "
+                f"not found at {file_path}"
+            )
             return
 
         if PYGAME_INITIALIZED and filename in _preloaded_sounds:
@@ -223,14 +261,12 @@ def _play_sound_sync(filename, enable_sound):
                     file_path,
                     winsound.SND_FILENAME | winsound.SND_ASYNC
                 )
-
             elif filename.lower().endswith(".mp3"):
                 print("Error: Windows requires pygame to play MP3 files.")
 
         elif IS_LINUX:
             if filename.lower().endswith(".wav"):
                 subprocess.Popen(["aplay", "-q", file_path])
-
             elif filename.lower().endswith(".mp3"):
                 subprocess.Popen(
                     ["omxplayer", "-o", "local", file_path],
@@ -241,9 +277,13 @@ def _play_sound_sync(filename, enable_sound):
     except Exception as e:
         print(f"Unexpected error executing sound sync: {e}")
 
-
 def play_sound(filename, enable_sound):
+    """Play a sound once in a background thread."""
     sound_enabled = _get_value(enable_sound)
+    filename = _normalise_filename(filename)
+
+    if not sound_enabled or not _is_valid_sound_selection(filename):
+        return
 
     sound_thread = threading.Thread(
         target=_play_sound_sync,
@@ -251,7 +291,6 @@ def play_sound(filename, enable_sound):
         daemon=True
     )
     sound_thread.start()
-
 
 def play_sound_with_volume(
     filename,
@@ -263,7 +302,12 @@ def play_sound_with_volume(
     water_volume,
     siren_duration
 ):
+    """Play a selected pip or siren sound in a background thread."""
     sound_enabled = _get_value(enable_sound)
+    filename = _normalise_filename(filename)
+
+    if not sound_enabled or not _is_valid_sound_selection(filename):
+        return
 
     if sound_type == "pips":
         volume = _get_value(pips_volume)
@@ -287,7 +331,6 @@ def play_sound_with_volume(
     )
     sound_thread.start()
 
-
 def _play_sound_with_volume_sync(
     filename,
     sound_type,
@@ -297,21 +340,29 @@ def _play_sound_with_volume_sync(
     water_volume,
     siren_duration
 ):
+    """Play a pip once or a siren for the configured duration."""
     if not enable_sound:
         return
 
-    if filename in ("No sound files found", "Default"):
+    filename = _normalise_filename(filename)
+
+    if not _is_valid_sound_selection(filename):
         return
 
     try:
         file_path = resource_path(os.path.join("assets", filename))
 
         if not os.path.exists(file_path):
-            print(f"Sound Error: Sound file '{filename}' not found at {file_path}")
+            print(
+                f"Sound Error: Sound file '{filename}' "
+                f"not found at {file_path}"
+            )
             return
 
-        duration_seconds = _get_value(siren_duration)
-        duration_ms = int(float(duration_seconds) * 1000)
+        try:
+            duration_seconds = float(_get_value(siren_duration))
+        except (TypeError, ValueError):
+            duration_seconds = 0.0
 
         if PYGAME_INITIALIZED and filename in _preloaded_sounds:
             sound_obj = _preloaded_sounds[filename]
@@ -321,6 +372,7 @@ def _play_sound_with_volume_sync(
                 sound_length_ms = int(sound_obj.get_length() * 1000)
 
                 if sound_length_ms > 0:
+                    duration_ms = int(duration_seconds * 1000)
                     loops = max(0, (duration_ms // sound_length_ms) - 1)
                     sound_obj.play(loops=loops)
                 else:
@@ -336,11 +388,12 @@ def _play_sound_with_volume_sync(
                     file_path,
                     winsound.SND_FILENAME | winsound.SND_ASYNC
                 )
+            elif filename.lower().endswith(".mp3"):
+                print("Error: Windows requires pygame to play MP3 files.")
 
         elif IS_LINUX:
             if filename.lower().endswith(".wav"):
                 subprocess.Popen(["aplay", "-q", file_path])
-
             elif filename.lower().endswith(".mp3"):
                 subprocess.Popen(
                     ["omxplayer", "-o", "local", file_path],
@@ -350,7 +403,6 @@ def _play_sound_with_volume_sync(
 
     except Exception as e:
         print(f"Error in sound playback with volume: {e}")
-
 
 def start_looping_sound_with_volume(
     filename,
@@ -363,14 +415,13 @@ def start_looping_sound_with_volume(
     Start a looping sound and return the pygame Channel object.
 
     Used for Arduino press-and-hold siren playback.
-    Caller is responsible for storing the returned channel and stopping it.
+    The caller is responsible for storing the returned channel and
+    stopping it with stop_looping_sound().
     """
     sound_enabled = _get_value(enable_sound)
+    filename = _normalise_filename(filename)
 
-    if not sound_enabled:
-        return None
-
-    if filename in ("No sound files found", "Default"):
+    if not sound_enabled or not _is_valid_sound_selection(filename):
         return None
 
     if sound_type == "pips":
@@ -384,7 +435,10 @@ def start_looping_sound_with_volume(
         file_path = resource_path(os.path.join("assets", filename))
 
         if not os.path.exists(file_path):
-            print(f"Sound Error: Sound file '{filename}' not found at {file_path}")
+            print(
+                f"Sound Error: Sound file '{filename}' "
+                f"not found at {file_path}"
+            )
             return None
 
         if PYGAME_INITIALIZED and filename in _preloaded_sounds:
@@ -404,7 +458,6 @@ def start_looping_sound_with_volume(
     except Exception as e:
         print(f"Error starting looping sound: {e}")
         return None
-
 
 def stop_looping_sound(channel):
     """
