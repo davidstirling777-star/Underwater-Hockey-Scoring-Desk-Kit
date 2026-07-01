@@ -330,6 +330,39 @@ class GameManagementApp:
             self.zigbee_controller.handle_hardware_siren_event("ON")
         except Exception:
             pass
+
+    def add_to_zigbee_log(self, message):
+        """
+        Safe Zigbee logger.
+
+        It works during startup before the Zigbee tab and its log box
+        have been created, then writes to the on-screen log afterwards.
+        """
+        print(f"Zigbee: {message}")
+
+        log_text = getattr(self, "log_text", None)
+
+        if log_text is None:
+            return
+
+        def write_to_log():
+            try:
+                timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+                log_text.config(state=tk.NORMAL)
+                log_text.insert(
+                    tk.END,
+                    f"[{timestamp}] {message}\n"
+                )
+                log_text.see(tk.END)
+                log_text.config(state=tk.DISABLED)
+
+            except tk.TclError:
+                pass
+
+        try:
+            self.master.after(0, write_to_log)
+        except (AttributeError, tk.TclError):
+            pass
     
     def __init__(self, master):
         self.master = master
