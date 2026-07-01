@@ -123,7 +123,12 @@ def handle_no_audio_device_warning(
     enable_sound,
     audio_device_warning_shown
 ):
-    sound_enabled = _get_value(enable_sound)
+    """Warn once when no audio device is available and clear selection."""
+    sound_enabled = (
+        enable_sound.get()
+        if hasattr(enable_sound, "get")
+        else enable_sound
+    )
 
     if not sound_enabled:
         return audio_device_warning_shown
@@ -131,14 +136,14 @@ def handle_no_audio_device_warning(
     if not audio_device_warning_shown:
         messagebox.showwarning(
             "Audio Device Warning",
-            f"No audio device detected. Cannot play {sound_type} sounds.\n"
-            "Sound selection will be reset to 'Default'."
+            f"No audio device detected. Cannot play "
+            f"{sound_type} sounds.\n\n"
+            f"The sound selection has been cleared."
         )
         audio_device_warning_shown = True
 
-    sound_var.set("Default")
+    sound_var.set("")
     return audio_device_warning_shown
-
 
 def get_sound_files():
     sound_files = []
