@@ -506,7 +506,7 @@ def create_settings_tab(app):
     widget4.grid_columnconfigure(0, weight=0)
     widget4.grid_columnconfigure(1, weight=1)
     widget4.grid_columnconfigure(2, weight=0)
-    widget4.grid_columnconfigure(3, weight=0)
+    widget4.grid_columnconfigure(3, weight=0, minsize=55)
     widget4.grid_columnconfigure(4, weight=0)
 
     widget4.grid_rowconfigure(0, weight=0)
@@ -535,11 +535,11 @@ def create_settings_tab(app):
         font=(default_font.cget("family"), default_font.cget("size")),
         anchor="w"
     ).grid(
-        row=1,
-        column=0,
-        sticky="w",
-        padx=8,
-        pady=2
+        row=2,
+        column=1,
+        sticky="e",
+        padx=(0, 4),
+        pady=(8, 2)
     )
 
     csv_files = app.get_csv_files()
@@ -625,9 +625,9 @@ def create_settings_tab(app):
     )
     app.court_game_mode_dropdown.grid(
         row=2,
-        column=3,
+        column=2,
         sticky="w",
-        padx=4,
+        padx=(4, 0),
         pady=(8, 2)
     )
     app.court_game_mode_dropdown.bind(
