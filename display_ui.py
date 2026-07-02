@@ -32,11 +32,13 @@ def create_display_window(app):
     for row in range(11):
         tab.grid_rowconfigure(row, weight=1)
 
+    # Initial layout. Actual widths are copied from the main Scoreboard
+    # tab once both layouts have been calculated.
     for column in range(9):
         tab.grid_columnconfigure(
             column,
             weight=1,
-            uniform="scoreboard_cols"
+            minsize=1
         )
 
     # Keep team-name and centre-information rows stable.
@@ -155,7 +157,8 @@ def create_display_window(app):
         font=app.display_fonts["team"],
         bg="white",
         fg="black",
-        anchor="center"
+        anchor="center",
+        width=1
     )
     app.display_white_team_name_widget.grid(
         row=3,
@@ -172,7 +175,8 @@ def create_display_window(app):
         font=app.display_fonts["team"],
         bg="black",
         fg="white",
-        anchor="center"
+        anchor="center",
+        width=1
     )
     app.display_black_team_name_widget.grid(
         row=3,
@@ -275,14 +279,91 @@ def create_display_window(app):
         sticky="nsew"
     )
     app.display_referee_timeout_timer_label.grid_remove()
+    def match_main_scoreboard_columns(event=None):
+        """
+        Copy the current nine calculated column widths from the main
+        Scoreboard tab, scaled to fit the Display Window width.
+        """
+        try:
+            source_tab = getattr(app, "scoreboard_tab", None)
 
+            if (
+                source_tab is None
+                or not source_tab.winfo_exists()
+                or not tab.winfo_exists()
+            ):
+                return
+
+            source_tab.update_idletasks()
+            tab.update_idletasks()
+
+            source_widths = []
+
+            for column in range(9):
+                _, _, width, _ = source_tab.grid_bbox(
+                    column,
+                    0,
+                    column,
+                    10
+                )
+                source_widths.append(width)
+
+            source_total = sum(source_widths)
+            display_width = tab.winfo_width()
+
+            if source_total <= 0 or display_width <= 0:
+                return
+
+            new_widths = []
+            remaining_width = display_width
+
+            for column, source_width in enumerate(source_widths):
+                if column == 8:
+                    width = max(1, remaining_width)
+                else:
+                    width = max(
+                        1,
+                        round(
+                            display_width
+                            * source_width
+                            / source_total
+                        )
+                    )
+                    remaining_width -= width
+
+                new_widths.append(width)
+
+            if (
+                getattr(app, "_display_column_widths", None)
+                == new_widths
+            ):
+                return
+
+            app._display_column_widths = new_widths
+
+            for column, width in enumerate(new_widths):
+                tab.grid_columnconfigure(
+                    column,
+                    minsize=width,
+                    weight=0,
+                    uniform=""
+                )
+
+        except tk.TclError:
+            pass
     app.display_window.bind(
         "<Configure>",
         app.scale_display_fonts
     )
+    app.display_window.bind(
+        "<Configure>",
+        match_main_scoreboard_columns,
+        add="+"
+    )
 
     # Calculate dimensions only after widgets have been laid out.
     app.display_window.update_idletasks()
+    match_main_scoreboard_columns()
 
     app.display_initial_width = max(
         app.display_window.winfo_width(),
