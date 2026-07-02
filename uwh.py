@@ -539,11 +539,38 @@ class GameManagementApp:
         splash.resizable(False, False)
         
         # Position splash screen
+        # Position the splash relative to the main window, rather than
+        # the primary monitor. This keeps it on the same display screen.
+        master.update_idletasks()
         splash.update_idletasks()
-        x = (splash.winfo_screenwidth() - splash_width) // 2
-        y = splash.winfo_screenheight() // 5
-        
-        splash.geometry(f"{splash_width}x{splash_height}+{x}+{y}")
+
+        main_x = master.winfo_rootx()
+        main_y = master.winfo_rooty()
+
+        main_width = max(
+            master.winfo_width(),
+            master.winfo_reqwidth()
+        )
+        main_height = max(
+            master.winfo_height(),
+            master.winfo_reqheight()
+        )
+
+        splash_width = splash.winfo_width()
+        splash_height = splash.winfo_height()
+
+        x = main_x + max(
+            0,
+            (main_width - splash_width) // 2
+        )
+
+        # Position in the upper third of the Game Management window.
+        y = main_y + max(
+            20,
+            (main_height // 5) - (splash_height // 2)
+        )
+
+        splash.geometry(f"+{x}+{y}")
 
         splash_title = tk.Label(
             splash,
