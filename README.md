@@ -28,7 +28,7 @@ Here, six buttons are located where commonly used settings can be stored.  Holdi
 
 **Tournament List**
 A sample CSV file is included with the distribution of this app.
-This has a dropdown list where a CSV file can be selected that contains the draw for a Tournament or a list of games. The team names listed in the 'White' and 'Black' columns will appear on the Scoreboard Tab (and not on the 'Display Window' Screen (If the teams don't know who they are, they are in trouble).
+This has a dropdown list where a CSV file can be selected that contains the draw for a Tournament or a list of games. The team names listed in the 'White' and 'Black' columns will appear on the Scoreboard Tab and ,if selected, on the 'Display Window' Screen.
 The CSV File dropdown automatically refreshes when clicked. New Tournament CSV files copied into the application folder can be selected without restarting the application.
 Expected CSV headers: date,#,White,WScore,Black,BScore,Referees,Penalties,Comments. where # is the Game Number [but this can actually also be 'game', 'game#' or 'game_number'].
 THIS CSV FILE GETS MODIFIED as the games progress as the app stores the scores, what Cap Numbers were penalised (into the 'Penalties' column), and if the 'Record Scorers Cap Number' checkbox is selected, the Cap Numbers' to which goals were attributed (into the 'Comments' column).
