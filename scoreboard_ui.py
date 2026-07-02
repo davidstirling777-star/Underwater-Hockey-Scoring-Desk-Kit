@@ -4,6 +4,7 @@ from tkinter import ttk
 
 def create_scoreboard_tab(app):
     tab = ttk.Frame(app.notebook)
+    app.scoreboard_tab = tab
     app.notebook.add(tab, text="Scoreboard")
 
     for i in range(11):
