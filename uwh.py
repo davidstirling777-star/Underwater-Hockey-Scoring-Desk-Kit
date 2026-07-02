@@ -443,6 +443,9 @@ class GameManagementApp:
         
         # Tournament List tracking
         self.current_game_index = 0  # Index in self.game_numbers list
+        self.all_game_numbers = []
+        self.game_numbers = []
+        self.court_game_mode_var = tk.StringVar(value="consecutive")
         
         self.engine.start_timer()
         self.engine.set_timer_seconds(0)
@@ -1148,6 +1151,12 @@ class GameManagementApp:
 
     def on_csv_file_changed(self, event=None):
         return game_flow.on_csv_file_changed(
+            self,
+            event
+        )
+
+    def on_court_game_mode_changed(self, event=None):
+        return game_flow.on_court_game_mode_changed(
             self,
             event
         )
