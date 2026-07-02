@@ -506,6 +506,8 @@ def create_settings_tab(app):
     widget4.grid_columnconfigure(0, weight=0)
     widget4.grid_columnconfigure(1, weight=1)
     widget4.grid_columnconfigure(2, weight=0)
+    widget4.grid_columnconfigure(3, weight=0)
+    widget4.grid_columnconfigure(4, weight=0)
 
     widget4.grid_rowconfigure(0, weight=0)
     widget4.grid_rowconfigure(1, weight=0)
@@ -521,7 +523,7 @@ def create_settings_tab(app):
     tournament_header.grid(
         row=0,
         column=0,
-        columnspan=3,
+        columnspan=5,
         padx=8,
         pady=(10, 8),
         sticky="ew"
@@ -532,9 +534,16 @@ def create_settings_tab(app):
         text="CSV File:",
         font=(default_font.cget("family"), default_font.cget("size")),
         anchor="w"
-    ).grid(row=1, column=0, sticky="w", padx=8, pady=2)
+    ).grid(
+        row=1,
+        column=0,
+        sticky="w",
+        padx=8,
+        pady=2
+    )
 
     csv_files = app.get_csv_files()
+
     app.csv_var = tk.StringVar(
         value=csv_files[0] if csv_files else "No CSV files found"
     )
@@ -550,12 +559,11 @@ def create_settings_tab(app):
     app.csv_dropdown.grid(
         row=1,
         column=1,
-        columnspan=2,
+        columnspan=4,
         sticky="ew",
         padx=8,
         pady=2
     )
-
     app.csv_dropdown.bind(
         "<<ComboboxSelected>>",
         app.on_csv_file_changed
@@ -566,9 +574,14 @@ def create_settings_tab(app):
         text="Starting Game #:",
         font=(default_font.cget("family"), default_font.cget("size")),
         anchor="w"
-    ).grid(row=2, column=0, sticky="w", padx=8, pady=(8, 2))
+    ).grid(
+        row=2,
+        column=0,
+        sticky="w",
+        padx=8,
+        pady=(8, 2)
+    )
 
-    app.game_numbers = []
     app.starting_game_var = tk.StringVar(value="")
 
     app.starting_game_dropdown = ttk.Combobox(
@@ -585,6 +598,42 @@ def create_settings_tab(app):
         padx=8,
         pady=(8, 2)
     )
+    app.starting_game_dropdown.bind(
+        "<<ComboboxSelected>>",
+        app.on_game_selection_changed
+    )
+
+    tk.Label(
+        widget4,
+        text="This court uses:",
+        font=(default_font.cget("family"), default_font.cget("size")),
+        anchor="w"
+    ).grid(
+        row=2,
+        column=2,
+        sticky="w",
+        padx=(12, 4),
+        pady=(8, 2)
+    )
+
+    app.court_game_mode_dropdown = ttk.Combobox(
+        widget4,
+        textvariable=app.court_game_mode_var,
+        values=("even", "odd", "consecutive"),
+        state="readonly",
+        width=12
+    )
+    app.court_game_mode_dropdown.grid(
+        row=2,
+        column=3,
+        sticky="w",
+        padx=4,
+        pady=(8, 2)
+    )
+    app.court_game_mode_dropdown.bind(
+        "<<ComboboxSelected>>",
+        app.on_court_game_mode_changed
+    )
 
     open_folder_btn = tk.Button(
         widget4,
@@ -598,15 +647,10 @@ def create_settings_tab(app):
     )
     open_folder_btn.grid(
         row=2,
-        column=2,
+        column=4,
         sticky="e",
         padx=8,
         pady=(8, 2)
-    )
-
-    app.starting_game_dropdown.bind(
-        "<<ComboboxSelected>>",
-        app.on_game_selection_changed
     )
 
     app.on_csv_file_changed()
@@ -627,7 +671,7 @@ def create_settings_tab(app):
     csv_comment.grid(
         row=3,
         column=0,
-        columnspan=3,
+        columnspan=5,
         sticky="nw",
         padx=8,
         pady=(8, 4)
@@ -637,7 +681,7 @@ def create_settings_tab(app):
     display_options_frame.grid(
         row=4,
         column=0,
-        columnspan=3,
+        columnspan=5,
         sticky="w",
         padx=8,
         pady=(4, 8)
