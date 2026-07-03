@@ -14,7 +14,7 @@ The first NeoPixel glows green to show the power is on, the second NeoPixel is y
 <img width="1200" height="1600" alt="WhatsApp Image 2026-06-15 at 10 30 19 AM" src="https://github.com/user-attachments/assets/32d2619e-6fe7-435d-90ee-5eb09509d113" />
 
 
-
+If you are interested, you can get the CAD files from https://docs.arduino.cc/hardware/nano-screw-terminal-adapter/ then check them in Kicad, make them at jlcpcb.com and then populate with https://www.digikey.co.nz/en/products/detail/samtec-inc/HLE-115-02-F-DV/8062779 (CONN RCPT 30POS 0.1 GOLD SMD) and https://www.digikey.co.nz/en/products/detail/phoenix-contact/1984756/950861 (TERM BLK 16P SIDE ENT 3.5MM PCB).  That is what I did.
 
 ## Automatic Hardware Detection
 
