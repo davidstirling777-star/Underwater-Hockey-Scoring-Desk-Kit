@@ -91,9 +91,9 @@ def get_default_unified_settings():
             "enable_logging": True
         },
         "screenSettings": {
-            "show_display_screen": True,
             "show_team_names": True,
-            "display_profile": "Single Standard"
+            "operator_layout": "Standard",
+            "display_layout": "Single Standard"
         },
         "gameSettings": {
             "time_to_start_first_game": "",
