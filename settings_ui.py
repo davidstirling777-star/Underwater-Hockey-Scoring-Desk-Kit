@@ -839,21 +839,46 @@ def create_screen_tab(app):
         style="Large.TCheckbutton"
     ).grid(row=3, column=0, sticky="w", pady=(2, 12))
 
+    button_row = ttk.Frame(outer)
+    button_row.grid(row=4, column=0, sticky="w", pady=(4, 10))
+
     ttk.Button(
-        outer,
+        button_row,
         text="Auto Detect Screens",
         command=app.auto_detect_screens
-    ).grid(row=4, column=0, sticky="w", pady=(4, 6))
+    ).grid(row=0, column=0, sticky="w", padx=(0, 10))
+
+    ttk.Button(
+        button_row,
+        text="Test Displays",
+        command=app.test_displays
+    ).grid(row=0, column=1, sticky="w")
+
+    detected_frame = ttk.LabelFrame(outer, text="These screens were detected", padding=12)
+    detected_frame.grid(row=5, column=0, sticky="ew", pady=(0, 10))
+    detected_frame.grid_columnconfigure(0, weight=1)
+
+    app.detected_screens_var = tk.StringVar(value=app.get_detected_screens_text())
+    tk.Label(
+        detected_frame,
+        textvariable=app.detected_screens_var,
+        justify="left",
+        anchor="nw",
+        font=("Consolas", default_font.cget("size")),
+        wraplength=900,
+    ).grid(row=0, column=0, sticky="ew")
 
     tk.Label(
         outer,
         text=(
-            "Auto Detect uses the Windows monitor list. On Linux it uses xrandr when available; "
-            "otherwise it falls back to Tk's single virtual desktop and leaves the selected layout unchanged."
+            "Auto Detect uses the native Windows monitor list. On Linux/X11 it uses xrandr. "
+            "Under Wayland, detection depends on whether the desktop exposes monitor information; "
+            "otherwise the current manual selection remains available. Test Displays labels every "
+            "screen for eight seconds and can be closed by clicking or pressing Esc."
         ),
         justify="left",
         anchor="nw",
-        wraplength=820,
+        wraplength=900,
         font=(default_font.cget("family"), default_font.cget("size"))
-    ).grid(row=5, column=0, sticky="w", pady=(4, 0))
+    ).grid(row=6, column=0, sticky="w", pady=(4, 0))
 
