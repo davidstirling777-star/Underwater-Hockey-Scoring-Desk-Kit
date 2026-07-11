@@ -208,6 +208,21 @@ class GameManagementApp:
     def _on_display_window_close(self):
         """Handle any external display window being closed."""
         self.close_all_display_windows()
+    
+        try:
+            # Untick the currently selected display-screen option.
+            if hasattr(self, "display_layout_check_vars"):
+                for check_var in self.display_layout_check_vars.values():
+                    check_var.set(False)
+    
+            # Clear the saved display selection so clicking an option reopens it.
+            if hasattr(self, "display_layout_var"):
+                self.display_layout_var.set("")
+    
+            self.save_screen_settings()
+    
+        except tk.TclError:
+            pass
 
     def close_all_display_windows(self):
         """Close every profile-managed external display window."""
