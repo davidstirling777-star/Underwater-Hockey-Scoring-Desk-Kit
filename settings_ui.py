@@ -677,37 +677,6 @@ def create_settings_tab(app):
         pady=(8, 4)
     )
 
-    display_options_frame = ttk.Frame(widget4)
-    display_options_frame.grid(
-        row=4,
-        column=0,
-        columnspan=5,
-        sticky="w",
-        padx=8,
-        pady=(4, 8)
-    )
-
-    show_display_checkbox = ttk.Checkbutton(
-        display_options_frame,
-        text="Show Display Screen",
-        variable=app.show_display_screen_var,
-        command=app.toggle_display_screen,
-        style="Large.TCheckbutton"
-    )
-    show_display_checkbox.pack(side="left")
-
-    show_team_names_checkbox = ttk.Checkbutton(
-        display_options_frame,
-        text="Show Team Names",
-        variable=app.show_display_team_names_var,
-        command=app.toggle_display_team_names,
-        style="Large.TCheckbutton"
-    )
-    show_team_names_checkbox.pack(
-        side="left",
-        padx=(20, 0)
-    )
-
     # ------------------------------------------------------------
     # Widget 3 - Game Sequence
     # ------------------------------------------------------------
@@ -760,3 +729,88 @@ def create_settings_tab(app):
     )
 
     app.update_overtime_variables_state()
+
+
+def create_screen_tab(app):
+    """Create the Screen tab and its display-profile controls."""
+    tab = ttk.Frame(app.notebook)
+    app.screen_tab = tab
+    app.notebook.add(tab, text="Screen")
+
+    tab.grid_columnconfigure(0, weight=1)
+    tab.grid_rowconfigure(0, weight=1)
+
+    outer = ttk.Frame(tab, borderwidth=1, relief="solid", padding=18)
+    outer.grid(row=0, column=0, sticky="nsew", padx=12, pady=12)
+    outer.grid_columnconfigure(1, weight=1)
+
+    default_font = font.nametofont("TkDefaultFont")
+    title_font = (default_font.cget("family"), default_font.cget("size") + 4, "bold")
+    label_font = (default_font.cget("family"), default_font.cget("size") + 2, "bold")
+
+    tk.Label(outer, text="External Screen Configuration", font=title_font).grid(
+        row=0, column=0, columnspan=2, sticky="w", pady=(0, 18)
+    )
+
+    ttk.Checkbutton(
+        outer,
+        text="Show Display Screen",
+        variable=app.show_display_screen_var,
+        command=app.toggle_display_screen,
+        style="Large.TCheckbutton"
+    ).grid(row=1, column=0, columnspan=2, sticky="w", pady=6)
+
+    ttk.Checkbutton(
+        outer,
+        text="Show Team Names",
+        variable=app.show_display_team_names_var,
+        command=lambda: (app.toggle_display_team_names(), app.save_screen_settings()),
+        style="Large.TCheckbutton"
+    ).grid(row=2, column=0, columnspan=2, sticky="w", pady=6)
+
+    tk.Label(outer, text="Display Profile:", font=label_font).grid(
+        row=3, column=0, sticky="w", padx=(0, 14), pady=(18, 6)
+    )
+
+    profiles = [
+        "Single Standard",
+        "Dual Standard",
+        "Operator Ultrawide",
+        "Public Single",
+        "Public Dual",
+        "Auto",
+    ]
+    profile_combo = ttk.Combobox(
+        outer,
+        textvariable=app.display_profile_var,
+        values=profiles,
+        state="readonly",
+        width=28,
+        font=(default_font.cget("family"), default_font.cget("size") + 1)
+    )
+    profile_combo.grid(row=3, column=1, sticky="w", pady=(18, 6))
+    profile_combo.bind("<<ComboboxSelected>>", app.apply_display_profile)
+
+    descriptions = (
+        "Single Standard — one complete 16:9 scoreboard window.\n"
+        "Dual Standard — two complete 16:9 scoreboard windows.\n"
+        "Operator Ultrawide — one complete layout sized for a 21:9 operator monitor.\n"
+        "Public Single — one simplified public/player scoreboard.\n"
+        "Public Dual — two simplified public/player scoreboards.\n"
+        "Auto — chooses Public Dual when two external screens are available, "
+        "Public Single for one external screen, otherwise Single Standard."
+    )
+    tk.Label(
+        outer,
+        text=descriptions,
+        justify="left",
+        anchor="nw",
+        wraplength=780,
+        font=(default_font.cget("family"), default_font.cget("size") + 1)
+    ).grid(row=4, column=0, columnspan=2, sticky="nw", pady=(18, 8))
+
+    ttk.Button(
+        outer,
+        text="Apply Profile",
+        command=app.apply_display_profile
+    ).grid(row=5, column=0, columnspan=2, sticky="w", pady=(12, 0))
