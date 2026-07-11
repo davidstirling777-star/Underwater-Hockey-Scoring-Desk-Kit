@@ -17,6 +17,9 @@ def create_display_window(app):
         app.display_window = None
 
     app.display_window = tk.Toplevel(app.master)
+    if not hasattr(app, "display_windows"):
+        app.display_windows = []
+    app.display_windows.append(app.display_window)
     app.display_window.title("Display Window")
     app.display_window.geometry("1200x800")
     app.display_window.protocol(
@@ -394,3 +397,187 @@ def create_display_window(app):
     refresh_display_team_names()
     app.master.after(250, refresh_display_team_names)
     app.master.after(750, refresh_display_team_names)
+
+
+
+def _get_monitor_geometries(app):
+    """Return monitor work areas as (x, y, width, height), using Win32 when available."""
+    geometries = []
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        MONITORINFOF_PRIMARY = 1
+
+        class MONITORINFO(ctypes.Structure):
+            _fields_ = [
+                ("cbSize", wintypes.DWORD),
+                ("rcMonitor", wintypes.RECT),
+                ("rcWork", wintypes.RECT),
+                ("dwFlags", wintypes.DWORD),
+            ]
+
+        callback_type = ctypes.WINFUNCTYPE(
+            ctypes.c_int,
+            wintypes.HMONITOR,
+            wintypes.HDC,
+            ctypes.POINTER(wintypes.RECT),
+            wintypes.LPARAM,
+        )
+
+        def callback(hmonitor, hdc, rect, data):
+            info = MONITORINFO()
+            info.cbSize = ctypes.sizeof(MONITORINFO)
+            if ctypes.windll.user32.GetMonitorInfoW(hmonitor, ctypes.byref(info)):
+                r = info.rcWork
+                geometries.append((r.left, r.top, r.right-r.left, r.bottom-r.top, bool(info.dwFlags & MONITORINFOF_PRIMARY)))
+            return 1
+
+        ctypes.windll.user32.EnumDisplayMonitors(0, 0, callback_type(callback), 0)
+    except Exception:
+        pass
+
+    if not geometries:
+        geometries = [(0, 0, app.master.winfo_screenwidth(), app.master.winfo_screenheight(), True)]
+
+    # Put non-primary screens first because external windows should prefer them.
+    geometries.sort(key=lambda item: item[4])
+    return [(x, y, w, h) for x, y, w, h, _ in geometries]
+
+
+def close_all_display_windows(app):
+    windows = list(getattr(app, "display_windows", []))
+    primary = getattr(app, "display_window", None)
+    if primary is not None and primary not in windows:
+        windows.append(primary)
+    for window in windows:
+        try:
+            if window is not None and window.winfo_exists():
+                window.destroy()
+        except tk.TclError:
+            pass
+    app.display_windows = []
+    app.simple_display_name_labels = []
+    app.display_window = None
+
+
+def _place_window(window, geometry, fallback_size=None):
+    x, y, width, height = geometry
+    if fallback_size:
+        fw, fh = fallback_size
+        width = min(width, fw)
+        height = min(height, fh)
+    window.geometry(f"{width}x{height}+{x}+{y}")
+
+
+def _create_simple_public_window(app, title, geometry, standard=False):
+    """Create a lightweight display that binds directly to the live Tk variables."""
+    window = tk.Toplevel(app.master)
+    window.title(title)
+    window.configure(bg="lightgrey")
+    window.protocol("WM_DELETE_WINDOW", app._on_display_window_close)
+    app.display_windows.append(window)
+    _place_window(window, geometry)
+
+    root = tk.Frame(window, bg="lightgrey")
+    root.pack(fill="both", expand=True)
+    for col in range(3):
+        root.grid_columnconfigure(col, weight=1)
+    root.grid_rowconfigure(0, weight=1)
+    root.grid_rowconfigure(1, weight=2)
+    root.grid_rowconfigure(2, weight=7)
+
+    period = tk.Label(root, textvariable=app.half_label_var, bg="lightcoral", font=("Arial", 30, "bold"))
+    period.grid(row=0, column=0, columnspan=3, sticky="nsew", padx=1, pady=1)
+
+    white_name = tk.Label(root, bg="white", fg="black", font=("Arial", 26, "bold"))
+    white_name.grid(row=1, column=0, sticky="nsew", padx=1, pady=1)
+    timer = tk.Label(root, textvariable=app.timer_var, bg="lightgrey", fg="black", font=("Arial", 72, "bold"))
+    timer.grid(row=1, column=1, sticky="nsew", padx=1, pady=1)
+    black_name = tk.Label(root, bg="black", fg="white", font=("Arial", 26, "bold"))
+    black_name.grid(row=1, column=2, sticky="nsew", padx=1, pady=1)
+    if not hasattr(app, "simple_display_name_labels"):
+        app.simple_display_name_labels = []
+    app.simple_display_name_labels.append((white_name, black_name))
+
+    white_score = tk.Label(root, textvariable=app.white_score_var, bg="white", fg="black", font=("Arial", 180, "bold"))
+    white_score.grid(row=2, column=0, sticky="nsew", padx=1, pady=1)
+    centre = tk.Label(root, textvariable=app.game_number_var, bg="lightgrey", fg="black", font=("Arial", 28, "bold"))
+    centre.grid(row=2, column=1, sticky="nsew", padx=1, pady=1)
+    black_score = tk.Label(root, textvariable=app.black_score_var, bg="black", fg="white", font=("Arial", 180, "bold"))
+    black_score.grid(row=2, column=2, sticky="nsew", padx=1, pady=1)
+
+    def refresh_names(*_):
+        if app.show_display_team_names_var.get():
+            white_name.config(text=getattr(app, "white_team_name_widget", white_name).cget("text") or app.white_team_var.get())
+            black_name.config(text=getattr(app, "black_team_name_widget", black_name).cget("text") or app.black_team_var.get())
+        else:
+            white_name.config(text=app.white_team_var.get())
+            black_name.config(text=app.black_team_var.get())
+
+    def scale(event=None):
+        h = max(400, root.winfo_height())
+        w = max(700, root.winfo_width())
+        timer.config(font=("Arial", max(32, int(min(h*0.13, w*0.07))), "bold"))
+        white_score.config(font=("Arial", max(80, int(min(h*0.36, w*0.18))), "bold"))
+        black_score.config(font=("Arial", max(80, int(min(h*0.36, w*0.18))), "bold"))
+        white_name.config(font=("Arial", max(18, int(min(h*0.055, w*0.025))), "bold"))
+        black_name.config(font=("Arial", max(18, int(min(h*0.055, w*0.025))), "bold"))
+
+    window.bind("<Configure>", scale)
+    refresh_names()
+    window.after(250, refresh_names)
+    window.after(750, refresh_names)
+    return window
+
+
+def _resolve_auto_profile(app, monitors):
+    # The main application normally occupies one screen. Remaining screens are external.
+    external_count = max(0, len(monitors) - 1)
+    if external_count >= 2:
+        return "Public Dual"
+    if external_count == 1:
+        return "Public Single"
+    return "Single Standard"
+
+
+def apply_display_profile(app):
+    """Create the windows for the selected display profile."""
+    close_all_display_windows(app)
+    monitors = _get_monitor_geometries(app)
+    profile = app.display_profile_var.get() or "Single Standard"
+    effective_profile = _resolve_auto_profile(app, monitors) if profile == "Auto" else profile
+    app.active_display_profile = effective_profile
+
+    # Prefer non-primary monitors; if there are not enough, reuse the available work area.
+    targets = monitors if monitors else [(0, 0, 1200, 800)]
+
+    if effective_profile in ("Single Standard", "Operator Ultrawide"):
+        create_display_window(app)
+        target = targets[0]
+        if effective_profile == "Operator Ultrawide":
+            _place_window(app.display_window, target, fallback_size=(2560, 1080))
+        else:
+            _place_window(app.display_window, target)
+        return
+
+    if effective_profile == "Dual Standard":
+        create_display_window(app)
+        _place_window(app.display_window, targets[0])
+        second_target = targets[1] if len(targets) > 1 else targets[0]
+        _create_simple_public_window(app, "Display Window 2", second_target, standard=True)
+        return
+
+    if effective_profile == "Public Single":
+        app.display_window = _create_simple_public_window(app, "Public Display", targets[0])
+        return
+
+    if effective_profile == "Public Dual":
+        app.display_window = _create_simple_public_window(app, "Public Display 1", targets[0])
+        second_target = targets[1] if len(targets) > 1 else targets[0]
+        _create_simple_public_window(app, "Public Display 2", second_target)
+        return
+
+    # Defensive fallback.
+    create_display_window(app)
+    _place_window(app.display_window, targets[0])
