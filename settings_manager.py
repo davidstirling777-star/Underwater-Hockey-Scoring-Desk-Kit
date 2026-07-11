@@ -90,6 +90,11 @@ def get_default_unified_settings():
             "reconnect_delay": 5,
             "enable_logging": True
         },
+        "screenSettings": {
+            "show_display_screen": True,
+            "show_team_names": True,
+            "display_profile": "Single Standard"
+        },
         "gameSettings": {
             "time_to_start_first_game": "",
             "start_first_game_in": 1,
