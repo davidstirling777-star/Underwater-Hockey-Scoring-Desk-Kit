@@ -208,40 +208,29 @@ class GameManagementApp:
     def _on_display_window_close(self):
         """Handle any external display window being closed."""
         self.close_all_display_windows()
-        try:
-            self.show_display_screen_var.set(False)
-        except tk.TclError:
-            pass
 
     def close_all_display_windows(self):
         """Close every profile-managed external display window."""
         return display_ui.close_all_display_windows(self)
 
-    def toggle_display_screen(self):
-        """Open or close the external windows selected by Display Profile."""
-        if self.show_display_screen_var.get():
-            self.apply_display_profile()
-        else:
-            self.close_all_display_windows()
-        self.save_screen_settings()
-
-    def apply_display_profile(self, *args):
-        """Rebuild external display windows for the selected profile."""
-        if not self.show_display_screen_var.get():
-            self.close_all_display_windows()
-            self.save_screen_settings()
-            return
-        display_ui.apply_display_profile(self)
+    def apply_screen_configuration(self, *args):
+        """Apply the selected operator and display screen layouts."""
+        display_ui.apply_screen_configuration(self)
         self.update_penalty_display()
         self.toggle_display_team_names()
+        self.save_screen_settings()
+
+    def auto_detect_screens(self):
+        """Detect attached monitors and choose suitable operator/display layouts."""
+        display_ui.auto_detect_and_apply(self)
         self.save_screen_settings()
 
     def save_screen_settings(self):
         settings = self.load_unified_settings()
         settings["screenSettings"] = {
-            "show_display_screen": bool(self.show_display_screen_var.get()),
             "show_team_names": bool(self.show_display_team_names_var.get()),
-            "display_profile": self.display_profile_var.get(),
+            "operator_layout": self.operator_layout_var.get(),
+            "display_layout": self.display_layout_var.get(),
         }
         self.save_unified_settings(settings)
 
@@ -468,14 +457,29 @@ class GameManagementApp:
         self.overtime_allowed_var = tk.BooleanVar(value=self.variables["overtime_allowed"]["default"])
         self.record_scorers_cap_number_var = tk.BooleanVar(value=self.variables["record_scorers_cap_number"]["default"])
         screen_settings = load_unified_settings().get("screenSettings", {})
-        self.show_display_screen_var = tk.BooleanVar(
-            value=screen_settings.get("show_display_screen", True)
-        )
         self.show_display_team_names_var = tk.BooleanVar(
             value=screen_settings.get("show_team_names", True)
         )
-        self.display_profile_var = tk.StringVar(
-            value=screen_settings.get("display_profile", "Single Standard")
+        legacy_profile = screen_settings.get("display_profile", "Single Standard")
+        self.operator_layout_var = tk.StringVar(
+            value=screen_settings.get(
+                "operator_layout",
+                "Widescreen" if legacy_profile == "Operator Ultrawide" else "Standard"
+            )
+        )
+        legacy_display_map = {
+            "Single Standard": "Single Standard",
+            "Dual Standard": "Dual Standard",
+            "Public Single": "Single Standard",
+            "Public Dual": "Dual Standard",
+            "Operator Ultrawide": "Single Standard",
+            "Auto": "Single Standard",
+        }
+        self.display_layout_var = tk.StringVar(
+            value=screen_settings.get(
+                "display_layout",
+                legacy_display_map.get(legacy_profile, "Single Standard")
+            )
         )
         self.display_windows = []
         self.referee_timeout_active = False
@@ -753,12 +757,9 @@ class GameManagementApp:
         self.scale_fonts(None)
         splash_report("Display scaling initialized", True)
 
-        # Display window configurations
-        if self.show_display_screen_var.get():
-            self.apply_display_profile()
-            splash_report("External display profile applied", True)
-        else:
-            splash_report("External displays disabled", True)
+        # Screen configurations
+        self.apply_screen_configuration()
+        splash_report("Screen configuration applied", True)
 
         self.start_penalty_display_updates()
         self.sync_penalty_display_to_external()
