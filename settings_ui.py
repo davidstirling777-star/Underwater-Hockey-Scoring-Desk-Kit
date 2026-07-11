@@ -732,33 +732,104 @@ def create_settings_tab(app):
 
 
 def create_screen_tab(app):
-    """Create the Screen tab and its display-profile controls."""
+    """Create the Screens tab and its operator/display layout controls."""
     tab = ttk.Frame(app.notebook)
     app.screen_tab = tab
-    app.notebook.add(tab, text="Screen")
+    app.notebook.add(tab, text="Screens")
 
     tab.grid_columnconfigure(0, weight=1)
     tab.grid_rowconfigure(0, weight=1)
 
-    outer = ttk.Frame(tab, borderwidth=1, relief="solid", padding=18)
+    outer = ttk.Frame(tab, padding=18)
     outer.grid(row=0, column=0, sticky="nsew", padx=12, pady=12)
-    outer.grid_columnconfigure(1, weight=1)
+    outer.grid_columnconfigure(0, weight=1)
 
     default_font = font.nametofont("TkDefaultFont")
     title_font = (default_font.cget("family"), default_font.cget("size") + 4, "bold")
     label_font = (default_font.cget("family"), default_font.cget("size") + 2, "bold")
 
-    tk.Label(outer, text="External Screen Configuration", font=title_font).grid(
-        row=0, column=0, columnspan=2, sticky="w", pady=(0, 18)
+    tk.Label(outer, text="Screen Configuration", font=title_font).grid(
+        row=0, column=0, sticky="w", pady=(0, 14)
     )
 
+    operator_frame = ttk.LabelFrame(outer, text="Operator Screen", padding=12)
+    operator_frame.grid(row=1, column=0, sticky="ew", pady=(0, 12))
+    operator_frame.grid_columnconfigure(0, weight=1)
+
+    display_frame = ttk.LabelFrame(outer, text="Display Screen Options", padding=12)
+    display_frame.grid(row=2, column=0, sticky="ew", pady=(0, 12))
+    display_frame.grid_columnconfigure(0, weight=1)
+
+    app.operator_standard_check_var = tk.BooleanVar(
+        value=app.operator_layout_var.get() == "Standard"
+    )
+    app.operator_widescreen_check_var = tk.BooleanVar(
+        value=app.operator_layout_var.get() == "Widescreen"
+    )
+
+    def choose_operator(value):
+        app.operator_layout_var.set(value)
+        app.operator_standard_check_var.set(value == "Standard")
+        app.operator_widescreen_check_var.set(value == "Widescreen")
+        app.apply_screen_configuration()
+
     ttk.Checkbutton(
-        outer,
-        text="Show Display Screen",
-        variable=app.show_display_screen_var,
-        command=app.toggle_display_screen,
+        operator_frame,
+        text="Standard (16:9)",
+        variable=app.operator_standard_check_var,
+        command=lambda: choose_operator("Standard"),
         style="Large.TCheckbutton"
-    ).grid(row=1, column=0, columnspan=2, sticky="w", pady=6)
+    ).grid(row=0, column=0, sticky="w", pady=5)
+
+    ttk.Checkbutton(
+        operator_frame,
+        text="Widescreen (21:9)",
+        variable=app.operator_widescreen_check_var,
+        command=lambda: choose_operator("Widescreen"),
+        style="Large.TCheckbutton"
+    ).grid(row=1, column=0, sticky="w", pady=5)
+
+    display_options = [
+        "Single Standard",
+        "Single Widescreen",
+        "Dual Standard",
+        "Dual Widescreen",
+    ]
+    app.display_layout_check_vars = {
+        option: tk.BooleanVar(value=app.display_layout_var.get() == option)
+        for option in display_options
+    }
+
+    def choose_display(value):
+        app.display_layout_var.set(value)
+        for option, var in app.display_layout_check_vars.items():
+            var.set(option == value)
+        app.apply_screen_configuration()
+
+    descriptions = {
+        "Single Standard": "One complete 16:9 scoreboard on one external display.",
+        "Single Widescreen": "One complete scoreboard sized for one 21:9 external display.",
+        "Dual Standard": "Two identical complete scoreboards on two 16:9 external displays.",
+        "Dual Widescreen": "Two identical complete scoreboards on two 21:9 external displays.",
+    }
+
+    for row, option in enumerate(display_options):
+        line = ttk.Frame(display_frame)
+        line.grid(row=row, column=0, sticky="ew", pady=4)
+        line.grid_columnconfigure(1, weight=1)
+        ttk.Checkbutton(
+            line,
+            text=option,
+            variable=app.display_layout_check_vars[option],
+            command=lambda value=option: choose_display(value),
+            style="Large.TCheckbutton"
+        ).grid(row=0, column=0, sticky="w")
+        tk.Label(
+            line,
+            text=descriptions[option],
+            justify="left",
+            anchor="w"
+        ).grid(row=0, column=1, sticky="w", padx=(14, 0))
 
     ttk.Checkbutton(
         outer,
@@ -766,51 +837,23 @@ def create_screen_tab(app):
         variable=app.show_display_team_names_var,
         command=lambda: (app.toggle_display_team_names(), app.save_screen_settings()),
         style="Large.TCheckbutton"
-    ).grid(row=2, column=0, columnspan=2, sticky="w", pady=6)
-
-    tk.Label(outer, text="Display Profile:", font=label_font).grid(
-        row=3, column=0, sticky="w", padx=(0, 14), pady=(18, 6)
-    )
-
-    profiles = [
-        "Single Standard",
-        "Dual Standard",
-        "Operator Ultrawide",
-        "Public Single",
-        "Public Dual",
-        "Auto",
-    ]
-    profile_combo = ttk.Combobox(
-        outer,
-        textvariable=app.display_profile_var,
-        values=profiles,
-        state="readonly",
-        width=28,
-        font=(default_font.cget("family"), default_font.cget("size") + 1)
-    )
-    profile_combo.grid(row=3, column=1, sticky="w", pady=(18, 6))
-    profile_combo.bind("<<ComboboxSelected>>", app.apply_display_profile)
-
-    descriptions = (
-        "Single Standard — one complete 16:9 scoreboard window.\n"
-        "Dual Standard — two complete 16:9 scoreboard windows.\n"
-        "Operator Ultrawide — one complete layout sized for a 21:9 operator monitor.\n"
-        "Public Single — one simplified public/player scoreboard.\n"
-        "Public Dual — two simplified public/player scoreboards.\n"
-        "Auto — chooses Public Dual when two external screens are available, "
-        "Public Single for one external screen, otherwise Single Standard."
-    )
-    tk.Label(
-        outer,
-        text=descriptions,
-        justify="left",
-        anchor="nw",
-        wraplength=780,
-        font=(default_font.cget("family"), default_font.cget("size") + 1)
-    ).grid(row=4, column=0, columnspan=2, sticky="nw", pady=(18, 8))
+    ).grid(row=3, column=0, sticky="w", pady=(2, 12))
 
     ttk.Button(
         outer,
-        text="Apply Profile",
-        command=app.apply_display_profile
-    ).grid(row=5, column=0, columnspan=2, sticky="w", pady=(12, 0))
+        text="Auto Detect Screens",
+        command=app.auto_detect_screens
+    ).grid(row=4, column=0, sticky="w", pady=(4, 6))
+
+    tk.Label(
+        outer,
+        text=(
+            "Auto Detect uses the Windows monitor list. On Linux it uses xrandr when available; "
+            "otherwise it falls back to Tk's single virtual desktop and leaves the selected layout unchanged."
+        ),
+        justify="left",
+        anchor="nw",
+        wraplength=820,
+        font=(default_font.cget("family"), default_font.cget("size"))
+    ).grid(row=5, column=0, sticky="w", pady=(4, 0))
+
