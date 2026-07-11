@@ -412,12 +412,13 @@ def _get_monitor_geometries(app):
 
         MONITORINFOF_PRIMARY = 1
 
-        class MONITORINFO(ctypes.Structure):
+        class MONITORINFOEXW(ctypes.Structure):
             _fields_ = [
                 ("cbSize", wintypes.DWORD),
                 ("rcMonitor", wintypes.RECT),
                 ("rcWork", wintypes.RECT),
                 ("dwFlags", wintypes.DWORD),
+                ("szDevice", wintypes.WCHAR * 32),
             ]
 
         callback_type = ctypes.WINFUNCTYPE(
@@ -429,8 +430,8 @@ def _get_monitor_geometries(app):
         )
 
         def callback(hmonitor, hdc, rect, data):
-            info = MONITORINFO()
-            info.cbSize = ctypes.sizeof(MONITORINFO)
+            info = MONITORINFOEXW()
+            info.cbSize = ctypes.sizeof(MONITORINFOEXW)
             if ctypes.windll.user32.GetMonitorInfoW(hmonitor, ctypes.byref(info)):
                 r = info.rcWork
                 monitors.append({
@@ -439,6 +440,7 @@ def _get_monitor_geometries(app):
                     "width": r.right - r.left,
                     "height": r.bottom - r.top,
                     "primary": bool(info.dwFlags & MONITORINFOF_PRIMARY),
+                    "name": info.szDevice or "Windows display",
                 })
             return 1
 
@@ -465,12 +467,14 @@ def _get_monitor_geometries(app):
                 if not match:
                     continue
                 width, height, x, y = map(int, match.groups())
+                monitor_name = line.split()[0] if line.split() else "Linux display"
                 monitors.append({
                     "x": x,
                     "y": y,
                     "width": width,
                     "height": height,
                     "primary": " connected primary " in line,
+                    "name": monitor_name,
                 })
         except Exception:
             pass
@@ -482,6 +486,7 @@ def _get_monitor_geometries(app):
             "width": app.master.winfo_screenwidth(),
             "height": app.master.winfo_screenheight(),
             "primary": True,
+            "name": "Tk virtual desktop",
         }]
 
     # Keep the primary/operator screen first, then sort the external screens by position.
@@ -736,4 +741,104 @@ def auto_detect_and_apply(app):
         pass
 
     apply_screen_configuration(app)
+    update_detected_screens_text(app)
 
+
+
+def describe_detected_screens(app):
+    """Return a readable summary of the currently detected screens."""
+    monitors = _get_monitor_geometries(app)
+    operator = _operator_monitor(app, monitors)
+    lines = []
+    for index, monitor in enumerate(monitors, start=1):
+        role = "Operator" if monitor is operator else "Display"
+        ratio = monitor["width"] / max(monitor["height"], 1)
+        aspect = "21:9 widescreen" if ratio >= 2.05 else "16:9 standard"
+        name = monitor.get("name", f"Screen {index}")
+        primary = ", primary" if monitor.get("primary") else ""
+        lines.append(
+            f"Screen {index}: {name} — {monitor['width']} × {monitor['height']} "
+            f"({role}, {aspect}{primary})"
+        )
+    return "\n".join(lines) if lines else "No screens detected."
+
+
+def update_detected_screens_text(app):
+    """Refresh the detected-screen text shown on the Screens tab."""
+    text = describe_detected_screens(app)
+    try:
+        app.detected_screens_var.set(text)
+    except (AttributeError, tk.TclError):
+        pass
+    return text
+
+
+def test_displays(app, duration_ms=8000):
+    """Identify every detected screen with a temporary labelled test window."""
+    monitors = _get_monitor_geometries(app)
+    operator = _operator_monitor(app, monitors)
+    update_detected_screens_text(app)
+
+    old_windows = getattr(app, "display_test_windows", [])
+    for window in old_windows:
+        try:
+            if window.winfo_exists():
+                window.destroy()
+        except tk.TclError:
+            pass
+
+    windows = []
+
+    def close_tests(event=None):
+        for test_window in list(windows):
+            try:
+                if test_window.winfo_exists():
+                    test_window.destroy()
+            except tk.TclError:
+                pass
+        app.display_test_windows = []
+
+    for index, monitor in enumerate(monitors, start=1):
+        role = "OPERATOR SCREEN" if monitor is operator else "DISPLAY SCREEN"
+        name = monitor.get("name", f"Screen {index}")
+        window = tk.Toplevel(app.master)
+        window.title(f"Screen Test {index}")
+        window.configure(bg="black")
+        window.overrideredirect(True)
+        window.geometry(
+            f"{monitor['width']}x{monitor['height']}+{monitor['x']}+{monitor['y']}"
+        )
+        window.attributes("-topmost", True)
+
+        frame = tk.Frame(window, bg="black", highlightbackground="white", highlightthickness=8)
+        frame.pack(fill="both", expand=True)
+        tk.Label(
+            frame,
+            text=f"SCREEN {index}",
+            bg="black",
+            fg="white",
+            font=("Arial", 72, "bold"),
+        ).pack(expand=True, pady=(80, 10))
+        tk.Label(
+            frame,
+            text=role,
+            bg="black",
+            fg="white",
+            font=("Arial", 38, "bold"),
+        ).pack(pady=10)
+        tk.Label(
+            frame,
+            text=f"{name}\n{monitor['width']} × {monitor['height']}\n"
+                 "Click anywhere or press Esc to close",
+            bg="black",
+            fg="white",
+            font=("Arial", 24),
+            justify="center",
+        ).pack(expand=True, pady=(10, 80))
+
+        window.bind("<Button-1>", close_tests)
+        window.bind("<Escape>", close_tests)
+        window.after(duration_ms, close_tests)
+        windows.append(window)
+
+    app.display_test_windows = windows
