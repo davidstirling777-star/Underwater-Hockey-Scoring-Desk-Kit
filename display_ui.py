@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+import display_manager
 
 def create_display_window(app):
     """Create or bring forward the external scoreboard display window."""
@@ -401,8 +402,10 @@ def create_display_window(app):
 
 
 def _get_monitor_geometries(app):
-    """Return monitor work areas as (x, y, width, height), using Win32 when available."""
-    geometries = []
+    """Return monitor work areas as dictionaries, preferring native OS APIs."""
+    monitors = []
+
+    # Windows: reliable per-monitor work areas and primary flag.
     try:
         import ctypes
         from ctypes import wintypes
@@ -430,19 +433,60 @@ def _get_monitor_geometries(app):
             info.cbSize = ctypes.sizeof(MONITORINFO)
             if ctypes.windll.user32.GetMonitorInfoW(hmonitor, ctypes.byref(info)):
                 r = info.rcWork
-                geometries.append((r.left, r.top, r.right-r.left, r.bottom-r.top, bool(info.dwFlags & MONITORINFOF_PRIMARY)))
+                monitors.append({
+                    "x": r.left,
+                    "y": r.top,
+                    "width": r.right - r.left,
+                    "height": r.bottom - r.top,
+                    "primary": bool(info.dwFlags & MONITORINFOF_PRIMARY),
+                })
             return 1
 
         ctypes.windll.user32.EnumDisplayMonitors(0, 0, callback_type(callback), 0)
     except Exception:
         pass
 
-    if not geometries:
-        geometries = [(0, 0, app.master.winfo_screenwidth(), app.master.winfo_screenheight(), True)]
+    # Linux/X11: xrandr gives connected monitor geometry. Wayland may not expose it.
+    if not monitors:
+        try:
+            import re
+            import subprocess
+            output = subprocess.check_output(
+                ["xrandr", "--query"],
+                text=True,
+                stderr=subprocess.DEVNULL,
+                timeout=2,
+            )
+            pattern = re.compile(
+                r"^\S+ connected(?: primary)? (\d+)x(\d+)\+(-?\d+)\+(-?\d+)"
+            )
+            for line in output.splitlines():
+                match = pattern.search(line)
+                if not match:
+                    continue
+                width, height, x, y = map(int, match.groups())
+                monitors.append({
+                    "x": x,
+                    "y": y,
+                    "width": width,
+                    "height": height,
+                    "primary": " connected primary " in line,
+                })
+        except Exception:
+            pass
 
-    # Put non-primary screens first because external windows should prefer them.
-    geometries.sort(key=lambda item: item[4])
-    return [(x, y, w, h) for x, y, w, h, _ in geometries]
+    if not monitors:
+        monitors = [{
+            "x": 0,
+            "y": 0,
+            "width": app.master.winfo_screenwidth(),
+            "height": app.master.winfo_screenheight(),
+            "primary": True,
+        }]
+
+    # Keep the primary/operator screen first, then sort the external screens by position.
+    monitors.sort(key=lambda m: (not m["primary"], m["x"], m["y"]))
+    return monitors
 
 
 def close_all_display_windows(app):
@@ -458,126 +502,238 @@ def close_all_display_windows(app):
             pass
     app.display_windows = []
     app.simple_display_name_labels = []
+    app.display_mirror_bundles = []
     app.display_window = None
 
 
-def _place_window(window, geometry, fallback_size=None):
-    x, y, width, height = geometry
-    if fallback_size:
-        fw, fh = fallback_size
-        width = min(width, fw)
-        height = min(height, fh)
-    window.geometry(f"{width}x{height}+{x}+{y}")
+def _place_window(window, monitor, aspect=None):
+    x = monitor["x"]
+    y = monitor["y"]
+    width = monitor["width"]
+    height = monitor["height"]
+
+    if aspect:
+        target = aspect[0] / aspect[1]
+        available = width / max(height, 1)
+        if available > target:
+            fitted_width = int(height * target)
+            x += (width - fitted_width) // 2
+            width = fitted_width
+        else:
+            fitted_height = int(width / target)
+            y += (height - fitted_height) // 2
+            height = fitted_height
+
+    window.geometry(f"{max(640, width)}x{max(360, height)}+{x}+{y}")
 
 
-def _create_simple_public_window(app, title, geometry, standard=False):
-    """Create a lightweight display that binds directly to the live Tk variables."""
+def _operator_monitor(app, monitors):
+    try:
+        root_x = app.master.winfo_rootx()
+        root_y = app.master.winfo_rooty()
+        for monitor in monitors:
+            if (
+                monitor["x"] <= root_x < monitor["x"] + monitor["width"]
+                and monitor["y"] <= root_y < monitor["y"] + monitor["height"]
+            ):
+                return monitor
+    except tk.TclError:
+        pass
+    return next((m for m in monitors if m["primary"]), monitors[0])
+
+
+def _external_monitors(app, monitors):
+    operator = _operator_monitor(app, monitors)
+    return [m for m in monitors if m is not operator]
+
+
+def _apply_operator_layout(app, monitor):
+    aspect = (21, 9) if app.operator_layout_var.get() == "Widescreen" else (16, 9)
+    _place_window(app.master, monitor, aspect=aspect)
+    try:
+        app.master.update_idletasks()
+        app.initial_width = max(1, app.master.winfo_width())
+        app.scale_fonts(None)
+    except (tk.TclError, AttributeError):
+        pass
+
+
+def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
+    """Create a second full scoreboard window that mirrors the normal display."""
     window = tk.Toplevel(app.master)
     window.title(title)
-    window.configure(bg="lightgrey")
     window.protocol("WM_DELETE_WINDOW", app._on_display_window_close)
     app.display_windows.append(window)
-    _place_window(window, geometry)
+    _place_window(window, monitor, aspect=aspect)
 
-    root = tk.Frame(window, bg="lightgrey")
-    root.pack(fill="both", expand=True)
-    for col in range(3):
-        root.grid_columnconfigure(col, weight=1)
-    root.grid_rowconfigure(0, weight=1)
-    root.grid_rowconfigure(1, weight=2)
-    root.grid_rowconfigure(2, weight=7)
+    tab = ttk.Frame(window)
+    tab.pack(fill="both", expand=True)
+    for row in range(11):
+        tab.grid_rowconfigure(row, weight=1)
+    for column in range(9):
+        tab.grid_columnconfigure(column, weight=1, uniform="mirror_cols")
+    tab.grid_rowconfigure(2, minsize=58)
+    tab.grid_rowconfigure(3, minsize=58)
 
-    period = tk.Label(root, textvariable=app.half_label_var, bg="lightcoral", font=("Arial", 30, "bold"))
-    period.grid(row=0, column=0, columnspan=3, sticky="nsew", padx=1, pady=1)
+    widgets = {}
+    widgets["court"] = tk.Label(tab, textvariable=app.court_time_var, bg="lightgrey")
+    widgets["court"].grid(row=0, column=0, columnspan=9, sticky="nsew", padx=1, pady=1)
+    widgets["half"] = tk.Label(tab, textvariable=app.half_label_var, bg="lightcoral", font=("Arial", 36, "bold"))
+    widgets["half"].grid(row=1, column=0, columnspan=9, sticky="nsew", padx=1, pady=1)
+    widgets["white_colour"] = tk.Label(tab, textvariable=app.white_team_var, bg="white", fg="black", anchor="center")
+    widgets["white_colour"].grid(row=2, column=0, columnspan=3, sticky="nsew", padx=1, pady=1)
+    widgets["black_colour"] = tk.Label(tab, textvariable=app.black_team_var, bg="black", fg="white", anchor="center")
+    widgets["black_colour"].grid(row=2, column=6, columnspan=3, sticky="nsew", padx=1, pady=1)
 
-    white_name = tk.Label(root, bg="white", fg="black", font=("Arial", 26, "bold"))
-    white_name.grid(row=1, column=0, sticky="nsew", padx=1, pady=1)
-    timer = tk.Label(root, textvariable=app.timer_var, bg="lightgrey", fg="black", font=("Arial", 72, "bold"))
-    timer.grid(row=1, column=1, sticky="nsew", padx=1, pady=1)
-    black_name = tk.Label(root, bg="black", fg="white", font=("Arial", 26, "bold"))
-    black_name.grid(row=1, column=2, sticky="nsew", padx=1, pady=1)
-    if not hasattr(app, "simple_display_name_labels"):
-        app.simple_display_name_labels = []
-    app.simple_display_name_labels.append((white_name, black_name))
+    penalty_area = tk.Frame(tab, bg="lightgrey")
+    penalty_area.grid(row=2, column=3, columnspan=3, sticky="nsew", padx=1, pady=1)
+    penalty_area.grid_columnconfigure(0, weight=1)
+    penalty_area.grid_columnconfigure(1, weight=1)
+    penalty_labels = [
+        tk.Label(penalty_area, bg="lightgrey", fg="black", anchor="center")
+        for _ in range(6)
+    ]
+    for index, label in enumerate(penalty_labels):
+        label.grid(row=index % 3, column=index // 3, sticky="nsew")
+        penalty_area.grid_rowconfigure(index % 3, weight=1)
 
-    white_score = tk.Label(root, textvariable=app.white_score_var, bg="white", fg="black", font=("Arial", 180, "bold"))
-    white_score.grid(row=2, column=0, sticky="nsew", padx=1, pady=1)
-    centre = tk.Label(root, textvariable=app.game_number_var, bg="lightgrey", fg="black", font=("Arial", 28, "bold"))
-    centre.grid(row=2, column=1, sticky="nsew", padx=1, pady=1)
-    black_score = tk.Label(root, textvariable=app.black_score_var, bg="black", fg="white", font=("Arial", 180, "bold"))
-    black_score.grid(row=2, column=2, sticky="nsew", padx=1, pady=1)
+    widgets["white_name"] = tk.Label(tab, bg="white", fg="black", anchor="center")
+    widgets["white_name"].grid(row=3, column=0, columnspan=3, sticky="nsew", padx=1, pady=1)
+    widgets["game"] = tk.Label(tab, textvariable=app.game_number_var, bg="lightgrey", fg="black", anchor="center")
+    widgets["game"].grid(row=3, column=3, columnspan=3, sticky="nsew", padx=1, pady=1)
+    widgets["black_name"] = tk.Label(tab, bg="black", fg="white", anchor="center")
+    widgets["black_name"].grid(row=3, column=6, columnspan=3, sticky="nsew", padx=1, pady=1)
+    widgets["white_score"] = tk.Label(tab, textvariable=app.white_score_var, bg="white", fg="black", anchor="center")
+    widgets["white_score"].grid(row=4, column=0, rowspan=7, columnspan=3, sticky="nsew", padx=1, pady=1)
+    widgets["timer"] = tk.Label(tab, textvariable=app.timer_var, bg="lightgrey", fg="black", anchor="center")
+    widgets["timer"].grid(row=4, column=3, rowspan=7, columnspan=3, sticky="nsew", padx=1, pady=1)
+    widgets["black_score"] = tk.Label(tab, textvariable=app.black_score_var, bg="black", fg="white", anchor="center")
+    widgets["black_score"].grid(row=4, column=6, rowspan=7, columnspan=3, sticky="nsew", padx=1, pady=1)
+    widgets["ref"] = tk.Label(tab, textvariable=app.referee_timeout_timer_var, bg="red", fg="white", anchor="center")
+    widgets["ref"].grid(row=10, column=3, columnspan=3, sticky="nsew", pady=1)
+    widgets["ref"].grid_remove()
 
-    def refresh_names(*_):
-        if app.show_display_team_names_var.get():
-            white_name.config(text=getattr(app, "white_team_name_widget", white_name).cget("text") or app.white_team_var.get())
-            black_name.config(text=getattr(app, "black_team_name_widget", black_name).cget("text") or app.black_team_var.get())
-        else:
-            white_name.config(text=app.white_team_var.get())
-            black_name.config(text=app.black_team_var.get())
+    bundle = {"window": window, "widgets": widgets, "penalty_labels": penalty_labels}
+    if not hasattr(app, "display_mirror_bundles"):
+        app.display_mirror_bundles = []
+    app.display_mirror_bundles.append(bundle)
+
+    def refresh():
+        try:
+            if not window.winfo_exists():
+                return
+            show_names = app.show_display_team_names_var.get()
+            white_name = app.white_team_var.get()
+            black_name = app.black_team_var.get()
+            if show_names:
+                try:
+                    white_name = app.white_team_name_widget.cget("text") or white_name
+                    black_name = app.black_team_name_widget.cget("text") or black_name
+                except (AttributeError, tk.TclError):
+                    pass
+            widgets["white_name"].config(text=white_name)
+            widgets["black_name"].config(text=black_name)
+            try:
+                widgets["half"].config(bg=app.half_label.cget("bg"))
+            except (AttributeError, tk.TclError):
+                pass
+
+            active = sorted(
+                list(getattr(app.engine, "active_penalties", [])),
+                key=lambda item: app._penalty_sort_key(item)
+            )[:6]
+            for index, label in enumerate(penalty_labels):
+                if index < len(active):
+                    label.config(text=display_manager.format_penalty_label(active[index]))
+                else:
+                    label.config(text="")
+
+            try:
+                if app.referee_timeout_timer_label.winfo_ismapped():
+                    widgets["ref"].grid()
+                else:
+                    widgets["ref"].grid_remove()
+            except (AttributeError, tk.TclError):
+                pass
+            window.after(250, refresh)
+        except tk.TclError:
+            pass
 
     def scale(event=None):
-        h = max(400, root.winfo_height())
-        w = max(700, root.winfo_width())
-        timer.config(font=("Arial", max(32, int(min(h*0.13, w*0.07))), "bold"))
-        white_score.config(font=("Arial", max(80, int(min(h*0.36, w*0.18))), "bold"))
-        black_score.config(font=("Arial", max(80, int(min(h*0.36, w*0.18))), "bold"))
-        white_name.config(font=("Arial", max(18, int(min(h*0.055, w*0.025))), "bold"))
-        black_name.config(font=("Arial", max(18, int(min(h*0.055, w*0.025))), "bold"))
+        h = max(360, tab.winfo_height())
+        w = max(640, tab.winfo_width())
+        widgets["court"].config(font=("Arial", max(18, int(h * 0.045))))
+        widgets["half"].config(font=("Arial", max(20, int(h * 0.05)), "bold"))
+        for key in ("white_colour", "black_colour", "white_name", "black_name"):
+            widgets[key].config(font=("Arial", max(18, int(min(h * 0.045, w * 0.027))), "bold"))
+        widgets["game"].config(font=("Arial", max(15, int(h * 0.03))))
+        widgets["timer"].config(font=("Arial", max(50, int(min(h * 0.22, w * 0.105))), "bold"))
+        widgets["white_score"].config(font=("Arial", max(90, int(min(h * 0.42, w * 0.19))), "bold"))
+        widgets["black_score"].config(font=("Arial", max(90, int(min(h * 0.42, w * 0.19))), "bold"))
+        widgets["ref"].config(font=("Arial", max(16, int(h * 0.03)), "bold"))
+        for label in penalty_labels:
+            label.config(font=("Arial", max(11, int(h * 0.018)), "bold"))
 
     window.bind("<Configure>", scale)
-    refresh_names()
-    window.after(250, refresh_names)
-    window.after(750, refresh_names)
+    refresh()
+    scale()
     return window
 
 
-def _resolve_auto_profile(app, monitors):
-    # The main application normally occupies one screen. Remaining screens are external.
-    external_count = max(0, len(monitors) - 1)
-    if external_count >= 2:
-        return "Public Dual"
-    if external_count == 1:
-        return "Public Single"
-    return "Single Standard"
-
-
-def apply_display_profile(app):
-    """Create the windows for the selected display profile."""
-    close_all_display_windows(app)
+def apply_screen_configuration(app):
+    """Apply the operator aspect and create the selected external display windows."""
     monitors = _get_monitor_geometries(app)
-    profile = app.display_profile_var.get() or "Single Standard"
-    effective_profile = _resolve_auto_profile(app, monitors) if profile == "Auto" else profile
-    app.active_display_profile = effective_profile
+    operator = _operator_monitor(app, monitors)
+    _apply_operator_layout(app, operator)
 
-    # Prefer non-primary monitors; if there are not enough, reuse the available work area.
-    targets = monitors if monitors else [(0, 0, 1200, 800)]
-
-    if effective_profile in ("Single Standard", "Operator Ultrawide"):
-        create_display_window(app)
-        target = targets[0]
-        if effective_profile == "Operator Ultrawide":
-            _place_window(app.display_window, target, fallback_size=(2560, 1080))
-        else:
-            _place_window(app.display_window, target)
+    close_all_display_windows(app)
+    external = _external_monitors(app, monitors)
+    if not external:
+        # Permit testing on one monitor without opening over the operator controls.
         return
 
-    if effective_profile == "Dual Standard":
-        create_display_window(app)
-        _place_window(app.display_window, targets[0])
-        second_target = targets[1] if len(targets) > 1 else targets[0]
-        _create_simple_public_window(app, "Display Window 2", second_target, standard=True)
-        return
+    layout = app.display_layout_var.get() or "Single Standard"
+    widescreen = "Widescreen" in layout
+    dual = layout.startswith("Dual")
+    aspect = (21, 9) if widescreen else (16, 9)
 
-    if effective_profile == "Public Single":
-        app.display_window = _create_simple_public_window(app, "Public Display", targets[0])
-        return
-
-    if effective_profile == "Public Dual":
-        app.display_window = _create_simple_public_window(app, "Public Display 1", targets[0])
-        second_target = targets[1] if len(targets) > 1 else targets[0]
-        _create_simple_public_window(app, "Public Display 2", second_target)
-        return
-
-    # Defensive fallback.
     create_display_window(app)
-    _place_window(app.display_window, targets[0])
+    _place_window(app.display_window, external[0], aspect=aspect)
+
+    if dual and len(external) >= 2:
+        _create_full_mirror_window(
+            app,
+            "Display Window 2",
+            external[1],
+            aspect=aspect,
+        )
+
+
+def auto_detect_and_apply(app):
+    """Choose layouts from detected monitor aspect ratios and apply them."""
+    monitors = _get_monitor_geometries(app)
+    operator = _operator_monitor(app, monitors)
+    external = _external_monitors(app, monitors)
+
+    operator_ratio = operator["width"] / max(operator["height"], 1)
+    app.operator_layout_var.set("Widescreen" if operator_ratio >= 2.05 else "Standard")
+
+    if external:
+        use_wide = all(
+            monitor["width"] / max(monitor["height"], 1) >= 2.05
+            for monitor in external[:2]
+        )
+        prefix = "Dual" if len(external) >= 2 else "Single"
+        app.display_layout_var.set(f"{prefix} {'Widescreen' if use_wide else 'Standard'}")
+
+    # Update the mutually-exclusive checkboxes if the Screens tab exists.
+    try:
+        app.operator_standard_check_var.set(app.operator_layout_var.get() == "Standard")
+        app.operator_widescreen_check_var.set(app.operator_layout_var.get() == "Widescreen")
+        for option, var in app.display_layout_check_vars.items():
+            var.set(option == app.display_layout_var.get())
+    except (AttributeError, tk.TclError):
+        pass
+
+    apply_screen_configuration(app)
+
