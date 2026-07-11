@@ -225,6 +225,18 @@ class GameManagementApp:
         display_ui.auto_detect_and_apply(self)
         self.save_screen_settings()
 
+    def get_detected_screens_text(self):
+        """Return a readable list of screens detected by the operating system."""
+        return display_ui.describe_detected_screens(self)
+
+    def refresh_detected_screens_text(self):
+        """Refresh the detected-screen list on the Screens tab."""
+        return display_ui.update_detected_screens_text(self)
+
+    def test_displays(self):
+        """Temporarily identify every connected display."""
+        return display_ui.test_displays(self)
+
     def save_screen_settings(self):
         settings = self.load_unified_settings()
         settings["screenSettings"] = {
@@ -482,6 +494,7 @@ class GameManagementApp:
             )
         )
         self.display_windows = []
+        self.display_test_windows = []
         self.referee_timeout_active = False
         self.referee_timeout_elapsed = 0
         self.referee_timeout_default_bg = "red"
