@@ -206,53 +206,44 @@ def load_preset_settings(self):
 class GameManagementApp:
 
     def _on_display_window_close(self):
-        """Handle Display Window being closed by the window X button."""
+        """Handle any external display window being closed."""
+        self.close_all_display_windows()
         try:
-            if hasattr(self, "display_window") and self.display_window is not None:
-                if self.display_window.winfo_exists():
-                    self.display_window.destroy()
-        except tk.TclError:
-            pass
-    
-        self.display_window = None
-    
-        try:
-            if hasattr(self, "show_display_screen_var"):
-                self.show_display_screen_var.set(False)
+            self.show_display_screen_var.set(False)
         except tk.TclError:
             pass
 
+    def close_all_display_windows(self):
+        """Close every profile-managed external display window."""
+        return display_ui.close_all_display_windows(self)
+
     def toggle_display_screen(self):
-        """Open or close the main Display Window from the Game Variables checkbox."""
+        """Open or close the external windows selected by Display Profile."""
         if self.show_display_screen_var.get():
-            try:
-                if (
-                    hasattr(self, "display_window")
-                    and self.display_window is not None
-                    and self.display_window.winfo_exists()
-                ):
-                    self.display_window.lift()
-                    self.display_window.focus_force()
-                    return
-            except tk.TclError:
-                self.display_window = None
-    
-            self.create_display_window()
-            self.update_penalty_display()
-            self.toggle_display_team_names()
-    
+            self.apply_display_profile()
         else:
-            try:
-                if (
-                    hasattr(self, "display_window")
-                    and self.display_window is not None
-                    and self.display_window.winfo_exists()
-                ):
-                    self.display_window.destroy()
-            except tk.TclError:
-                pass
-    
-            self.display_window = None
+            self.close_all_display_windows()
+        self.save_screen_settings()
+
+    def apply_display_profile(self, *args):
+        """Rebuild external display windows for the selected profile."""
+        if not self.show_display_screen_var.get():
+            self.close_all_display_windows()
+            self.save_screen_settings()
+            return
+        display_ui.apply_display_profile(self)
+        self.update_penalty_display()
+        self.toggle_display_team_names()
+        self.save_screen_settings()
+
+    def save_screen_settings(self):
+        settings = self.load_unified_settings()
+        settings["screenSettings"] = {
+            "show_display_screen": bool(self.show_display_screen_var.get()),
+            "show_team_names": bool(self.show_display_team_names_var.get()),
+            "display_profile": self.display_profile_var.get(),
+        }
+        self.save_unified_settings(settings)
 
     def toggle_display_team_names(self):
         """Show or hide team-name text on the external display window."""
@@ -282,7 +273,14 @@ class GameManagementApp:
     
             if hasattr(self, "display_black_team_name_widget"):
                 self.display_black_team_name_widget.config(text=black_name)
-    
+
+            for white_label, black_label in getattr(self, "simple_display_name_labels", []):
+                try:
+                    white_label.config(text=white_name or self.white_team_var.get())
+                    black_label.config(text=black_name or self.black_team_var.get())
+                except tk.TclError:
+                    pass
+
         except tk.TclError:
             pass
 
@@ -469,8 +467,17 @@ class GameManagementApp:
         self.team_timeouts_allowed_var = tk.BooleanVar(value=self.variables["team_timeouts_allowed"]["default"])
         self.overtime_allowed_var = tk.BooleanVar(value=self.variables["overtime_allowed"]["default"])
         self.record_scorers_cap_number_var = tk.BooleanVar(value=self.variables["record_scorers_cap_number"]["default"])
-        self.show_display_screen_var = tk.BooleanVar(value=True)
-        self.show_display_team_names_var = tk.BooleanVar(value=True)
+        screen_settings = load_unified_settings().get("screenSettings", {})
+        self.show_display_screen_var = tk.BooleanVar(
+            value=screen_settings.get("show_display_screen", True)
+        )
+        self.show_display_team_names_var = tk.BooleanVar(
+            value=screen_settings.get("show_team_names", True)
+        )
+        self.display_profile_var = tk.StringVar(
+            value=screen_settings.get("display_profile", "Single Standard")
+        )
+        self.display_windows = []
         self.referee_timeout_active = False
         self.referee_timeout_elapsed = 0
         self.referee_timeout_default_bg = "red"
@@ -698,6 +705,9 @@ class GameManagementApp:
         self.create_settings_tab()
         splash_report("Settings tab created", True)
 
+        self.create_screen_tab()
+        splash_report("Screen tab created", True)
+
         self.create_sounds_tab()
         splash_report("Sounds tab created", True)
 
@@ -744,8 +754,11 @@ class GameManagementApp:
         splash_report("Display scaling initialized", True)
 
         # Display window configurations
-        self.create_display_window()
-        splash_report("External display window created", True)
+        if self.show_display_screen_var.get():
+            self.apply_display_profile()
+            splash_report("External display profile applied", True)
+        else:
+            splash_report("External displays disabled", True)
 
         self.start_penalty_display_updates()
         self.sync_penalty_display_to_external()
@@ -1131,6 +1144,9 @@ class GameManagementApp:
         
     def create_settings_tab(self):
         return settings_ui.create_settings_tab(self)
+
+    def create_screen_tab(self):
+        return settings_ui.create_screen_tab(self)
 
     def get_csv_files(self):
         return csv_ui.get_csv_files(
