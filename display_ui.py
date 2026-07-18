@@ -693,9 +693,60 @@ def apply_screen_configuration(app):
 
     close_all_display_windows(app)
     external = _external_monitors(app, monitors)
+    
+    layout = app.display_layout_var.get() or "Single Standard"
+    widescreen = "Widescreen" in layout
+    dual = layout.startswith("Dual")
+    aspect = (21, 9) if widescreen else (16, 9)
+    
+    #
+    # SINGLE MONITOR
+    #
     if not external:
-        # Permit testing on one monitor without opening over the operator controls.
+    
+        create_display_window(app)
+    
+        # Put the display beside the main window for development/testing.
+        try:
+            app.master.update_idletasks()
+    
+            root_x = app.master.winfo_x()
+            root_y = app.master.winfo_y()
+            root_w = app.master.winfo_width()
+    
+            display_x = root_x + root_w + 20
+            display_y = root_y
+    
+            screen_w = app.master.winfo_screenwidth()
+    
+            # If there isn't enough room on the right,
+            # place it on the left.
+            if display_x + 900 > screen_w:
+                display_x = max(0, root_x - 920)
+    
+            app.display_window.geometry(
+                f"900x600+{display_x}+{display_y}"
+            )
+    
+        except Exception:
+            pass
+    
         return
+    
+    #
+    # MULTIPLE MONITORS
+    #
+    
+    create_display_window(app)
+    _place_window(app.display_window, external[0], aspect=aspect)
+    
+    if dual and len(external) >= 2:
+        _create_full_mirror_window(
+            app,
+            "Display Window 2",
+            external[1],
+            aspect=aspect,
+        )
 
     layout = app.display_layout_var.get() or "Single Standard"
     widescreen = "Widescreen" in layout
