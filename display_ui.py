@@ -31,23 +31,30 @@ def create_display_window(app):
     tab = ttk.Frame(app.display_window)
     tab.pack(fill="both", expand=True)
 
-    # Match the main Scoreboard tab:
-    # 9 equal columns, making White / Centre / Black equal thirds.
+    # Presentation layout:
+    #
+    # Row 0: White / penalties or Next Game / Black
+    # Row 1: White team name / game number / Black team name
+    # Row 2: Full-width period banner
+    # Rows 3-10: White score / timer / Black score
+    #
+    # Twelve equal grid columns allow:
+    #     4 + 4 + 4 = three equal top blocks
+    #     3 + 6 + 3 = 25% score / 50% timer / 25% score
     for row in range(11):
         tab.grid_rowconfigure(row, weight=1)
 
-    # Initial layout. Actual widths are copied from the main Scoreboard
-    # tab once both layouts have been calculated.
-    for column in range(9):
+    for column in range(12):
         tab.grid_columnconfigure(
             column,
             weight=1,
-            minsize=1
+            uniform="presentation_columns"
         )
 
-    # Keep team-name and centre-information rows stable.
-    tab.grid_rowconfigure(2, minsize=58)
-    tab.grid_rowconfigure(3, minsize=58)
+    # Keep the three information rows stable.
+    tab.grid_rowconfigure(0, minsize=58)
+    tab.grid_rowconfigure(1, minsize=58)
+    tab.grid_rowconfigure(2, minsize=68)
 
     # Current period label.
     app.display_half_label = tk.Label(
@@ -57,9 +64,9 @@ def create_display_window(app):
         bg="lightcoral"
     )
     app.display_half_label.grid(
-        row=1,
+        row=2,
         column=0,
-        columnspan=9,
+        columnspan=12,
         padx=1,
         pady=1,
         sticky="nsew"
@@ -74,10 +81,11 @@ def create_display_window(app):
         fg="black",
         anchor="center"
     )
+    
     app.display_white_label.grid(
-        row=2,
+        row=0,
         column=0,
-        columnspan=3,
+        columnspan=4,
         padx=1,
         pady=1,
         sticky="nsew"
@@ -91,10 +99,11 @@ def create_display_window(app):
         fg="white",
         anchor="center"
     )
+    
     app.display_black_label.grid(
-        row=2,
-        column=6,
-        columnspan=3,
+        row=0,
+        column=8,
+        columnspan=4,
         padx=1,
         pady=1,
         sticky="nsew"
@@ -107,14 +116,16 @@ def create_display_window(app):
         bd=0,
         highlightthickness=0
     )
+    
     app.display_penalty_area_frame.grid(
-        row=2,
-        column=3,
-        columnspan=3,
+        row=0,
+        column=4,
+        columnspan=4,
         padx=1,
         pady=1,
         sticky="nsew"
     )
+    
     app.display_penalty_area_frame.grid_rowconfigure(
         0,
         weight=1
@@ -149,9 +160,9 @@ def create_display_window(app):
         width=1
     )
     app.display_white_team_name_widget.grid(
-        row=3,
+        row=1,
         column=0,
-        columnspan=3,
+        columnspan=4,
         padx=1,
         pady=1,
         sticky="nsew"
@@ -167,9 +178,9 @@ def create_display_window(app):
         width=1
     )
     app.display_black_team_name_widget.grid(
-        row=3,
-        column=6,
-        columnspan=3,
+        row=1,
+        column=8,
+        columnspan=4,
         padx=1,
         pady=1,
         sticky="nsew"
@@ -185,9 +196,9 @@ def create_display_window(app):
         anchor="center"
     )
     app.display_game_label.grid(
-        row=3,
-        column=3,
-        columnspan=3,
+        row=1,
+        column=4,
+        columnspan=4,
         padx=1,
         pady=1,
         sticky="nsew"
@@ -200,12 +211,13 @@ def create_display_window(app):
         font=app.display_fonts["score"],
         bg="white",
         fg="black",
-        anchor="center"
+        anchor="center",
+        width=1
     )
     app.display_white_score.grid(
-        row=4,
+        row=3,
         column=0,
-        rowspan=7,
+        rowspan=8,
         columnspan=3,
         padx=1,
         pady=1,
@@ -218,12 +230,13 @@ def create_display_window(app):
         font=app.display_fonts["score"],
         bg="black",
         fg="white",
-        anchor="center"
+        anchor="center",
+        width=1
     )
     app.display_black_score.grid(
-        row=4,
-        column=6,
-        rowspan=7,
+        row=3,
+        column=9,
+        rowspan=8,
         columnspan=3,
         padx=1,
         pady=1,
@@ -237,13 +250,14 @@ def create_display_window(app):
         font=app.display_fonts["timer"],
         bg="lightgrey",
         fg="black",
-        anchor="center"
+        anchor="center",
+        width=1
     )
     app.display_timer_label.grid(
-        row=4,
+        row=3,
         column=3,
-        rowspan=7,
-        columnspan=3,
+        rowspan=8,
+        columnspan=6,
         padx=1,
         pady=1,
         sticky="nsew"
@@ -261,88 +275,15 @@ def create_display_window(app):
     app.display_referee_timeout_timer_label.grid(
         row=10,
         column=3,
-        columnspan=3,
+        columnspan=6,
         padx=0,
         pady=1,
         sticky="nsew"
     )
     app.display_referee_timeout_timer_label.grid_remove()
-    def match_main_scoreboard_columns(event=None):
-        """
-        Copy the current nine calculated column widths from the main
-        Scoreboard tab, scaled to fit the Display Window width.
-        """
-        try:
-            source_tab = getattr(app, "scoreboard_tab", None)
 
-            if (
-                source_tab is None
-                or not source_tab.winfo_exists()
-                or not tab.winfo_exists()
-            ):
-                return
-
-            source_tab.update_idletasks()
-            tab.update_idletasks()
-
-            source_widths = []
-
-            for column in range(9):
-                _, _, width, _ = source_tab.grid_bbox(
-                    column,
-                    0,
-                    column,
-                    10
-                )
-                source_widths.append(width)
-
-            source_total = sum(source_widths)
-            display_width = tab.winfo_width()
-
-            if source_total <= 0 or display_width <= 0:
-                return
-
-            new_widths = []
-            remaining_width = display_width
-
-            for column, source_width in enumerate(source_widths):
-                if column == 8:
-                    width = max(1, remaining_width)
-                else:
-                    width = max(
-                        1,
-                        round(
-                            display_width
-                            * source_width
-                            / source_total
-                        )
-                    )
-                    remaining_width -= width
-
-                new_widths.append(width)
-
-            if (
-                getattr(app, "_display_column_widths", None)
-                == new_widths
-            ):
-                return
-
-            app._display_column_widths = new_widths
-
-            for column, width in enumerate(new_widths):
-                tab.grid_columnconfigure(
-                    column,
-                    minsize=width,
-                    weight=0,
-                    uniform=""
-                )
-
-        except tk.TclError:
+    
             pass
-    app.display_window.bind(
-        "<Configure>",
-        app.scale_display_fonts
-    )
     app.display_window.bind(
         "<Configure>",
         match_main_scoreboard_columns,
@@ -351,7 +292,6 @@ def create_display_window(app):
 
     # Calculate dimensions only after widgets have been laid out.
     app.display_window.update_idletasks()
-    match_main_scoreboard_columns()
 
     app.display_initial_width = max(
         app.display_window.winfo_width(),
@@ -555,52 +495,231 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
     app.display_windows.append(window)
     _place_window(window, monitor, aspect=aspect)
 
+
     tab = ttk.Frame(window)
     tab.pack(fill="both", expand=True)
+
     for row in range(11):
         tab.grid_rowconfigure(row, weight=1)
-    for column in range(9):
-        tab.grid_columnconfigure(column, weight=1, uniform="mirror_cols")
-    tab.grid_rowconfigure(2, minsize=58)
-    tab.grid_rowconfigure(3, minsize=58)
+
+    for column in range(12):
+        tab.grid_columnconfigure(
+            column,
+            weight=1,
+            uniform="mirror_presentation_columns"
+        )
+
+    tab.grid_rowconfigure(0, minsize=58)
+    tab.grid_rowconfigure(1, minsize=58)
+    tab.grid_rowconfigure(2, minsize=68)
 
     widgets = {}
-    widgets["court"] = tk.Label(tab, textvariable=app.court_time_var, bg="lightgrey")
-    widgets["court"].grid(row=0, column=0, columnspan=9, sticky="nsew", padx=1, pady=1)
-    widgets["half"] = tk.Label(tab, textvariable=app.half_label_var, bg="lightcoral", font=("Arial", 36, "bold"))
-    widgets["half"].grid(row=1, column=0, columnspan=9, sticky="nsew", padx=1, pady=1)
-    widgets["white_colour"] = tk.Label(tab, textvariable=app.white_team_var, bg="white", fg="black", anchor="center")
-    widgets["white_colour"].grid(row=2, column=0, columnspan=3, sticky="nsew", padx=1, pady=1)
-    widgets["black_colour"] = tk.Label(tab, textvariable=app.black_team_var, bg="black", fg="white", anchor="center")
-    widgets["black_colour"].grid(row=2, column=6, columnspan=3, sticky="nsew", padx=1, pady=1)
 
-    penalty_area = tk.Frame(tab, bg="lightgrey")
-    penalty_area.grid(row=2, column=3, columnspan=3, sticky="nsew", padx=1, pady=1)
+    # White / Black colour labels.
+    widgets["white_colour"] = tk.Label(
+        tab,
+        textvariable=app.white_team_var,
+        bg="white",
+        fg="black",
+        anchor="center"
+    )
+    widgets["white_colour"].grid(
+        row=0,
+        column=0,
+        columnspan=4,
+        sticky="nsew",
+        padx=1,
+        pady=1
+    )
+
+    widgets["black_colour"] = tk.Label(
+        tab,
+        textvariable=app.black_team_var,
+        bg="black",
+        fg="white",
+        anchor="center"
+    )
+    widgets["black_colour"].grid(
+        row=0,
+        column=8,
+        columnspan=4,
+        sticky="nsew",
+        padx=1,
+        pady=1
+    )
+
+    # Penalties / Next Game centre block.
+    penalty_area = tk.Frame(
+        tab,
+        bg="lightgrey"
+    )
+    penalty_area.grid(
+        row=0,
+        column=4,
+        columnspan=4,
+        sticky="nsew",
+        padx=1,
+        pady=1
+    )
     penalty_area.grid_columnconfigure(0, weight=1)
     penalty_area.grid_columnconfigure(1, weight=1)
+
     penalty_labels = [
-        tk.Label(penalty_area, bg="lightgrey", fg="black", anchor="center")
+        tk.Label(
+            penalty_area,
+            bg="lightgrey",
+            fg="black",
+            anchor="center"
+        )
         for _ in range(6)
     ]
-    for index, label in enumerate(penalty_labels):
-        label.grid(row=index % 3, column=index // 3, sticky="nsew")
-        penalty_area.grid_rowconfigure(index % 3, weight=1)
 
-    widgets["white_name"] = tk.Label(tab, bg="white", fg="black", anchor="center")
-    widgets["white_name"].grid(row=3, column=0, columnspan=3, sticky="nsew", padx=1, pady=1)
-    widgets["game"] = tk.Label(tab, textvariable=app.game_number_var, bg="lightgrey", fg="black", anchor="center")
-    widgets["game"].grid(row=3, column=3, columnspan=3, sticky="nsew", padx=1, pady=1)
-    widgets["black_name"] = tk.Label(tab, bg="black", fg="white", anchor="center")
-    widgets["black_name"].grid(row=3, column=6, columnspan=3, sticky="nsew", padx=1, pady=1)
-    widgets["white_score"] = tk.Label(tab, textvariable=app.white_score_var, bg="white", fg="black", anchor="center")
-    widgets["white_score"].grid(row=4, column=0, rowspan=7, columnspan=3, sticky="nsew", padx=1, pady=1)
-    widgets["timer"] = tk.Label(tab, textvariable=app.timer_var, bg="lightgrey", fg="black", anchor="center")
-    widgets["timer"].grid(row=4, column=3, rowspan=7, columnspan=3, sticky="nsew", padx=1, pady=1)
-    widgets["black_score"] = tk.Label(tab, textvariable=app.black_score_var, bg="black", fg="white", anchor="center")
-    widgets["black_score"].grid(row=4, column=6, rowspan=7, columnspan=3, sticky="nsew", padx=1, pady=1)
-    widgets["ref"] = tk.Label(tab, textvariable=app.referee_timeout_timer_var, bg="red", fg="white", anchor="center")
-    widgets["ref"].grid(row=10, column=3, columnspan=3, sticky="nsew", pady=1)
+    for index, label in enumerate(penalty_labels):
+        label.grid(
+            row=index % 3,
+            column=index // 3,
+            sticky="nsew"
+        )
+        penalty_area.grid_rowconfigure(
+            index % 3,
+            weight=1
+        )
+
+    # Team names and game number.
+    widgets["white_name"] = tk.Label(
+        tab,
+        bg="white",
+        fg="black",
+        anchor="center"
+    )
+    widgets["white_name"].grid(
+        row=1,
+        column=0,
+        columnspan=4,
+        sticky="nsew",
+        padx=1,
+        pady=1
+    )
+
+    widgets["game"] = tk.Label(
+        tab,
+        textvariable=app.game_number_var,
+        bg="lightgrey",
+        fg="black",
+        anchor="center"
+    )
+    widgets["game"].grid(
+        row=1,
+        column=4,
+        columnspan=4,
+        sticky="nsew",
+        padx=1,
+        pady=1
+    )
+
+    widgets["black_name"] = tk.Label(
+        tab,
+        bg="black",
+        fg="white",
+        anchor="center"
+    )
+    widgets["black_name"].grid(
+        row=1,
+        column=8,
+        columnspan=4,
+        sticky="nsew",
+        padx=1,
+        pady=1
+    )
+
+    # Full-width Period banner.
+    widgets["half"] = tk.Label(
+        tab,
+        textvariable=app.half_label_var,
+        bg="lightcoral",
+        font=("Arial", 36, "bold")
+    )
+    widgets["half"].grid(
+        row=2,
+        column=0,
+        columnspan=12,
+        sticky="nsew",
+        padx=1,
+        pady=1
+    )
+
+    # Scores and timer.
+    widgets["white_score"] = tk.Label(
+        tab,
+        textvariable=app.white_score_var,
+        bg="white",
+        fg="black",
+        anchor="center",
+        width=1
+    )
+    widgets["white_score"].grid(
+        row=3,
+        column=0,
+        rowspan=8,
+        columnspan=3,
+        sticky="nsew",
+        padx=1,
+        pady=1
+    )
+
+    widgets["timer"] = tk.Label(
+        tab,
+        textvariable=app.timer_var,
+        bg="lightgrey",
+        fg="black",
+        anchor="center",
+        width=1
+    )
+    widgets["timer"].grid(
+        row=3,
+        column=3,
+        rowspan=8,
+        columnspan=6,
+        sticky="nsew",
+        padx=1,
+        pady=1
+    )
+
+    widgets["black_score"] = tk.Label(
+        tab,
+        textvariable=app.black_score_var,
+        bg="black",
+        fg="white",
+        anchor="center",
+        width=1
+    )
+    widgets["black_score"].grid(
+        row=3,
+        column=9,
+        rowspan=8,
+        columnspan=3,
+        sticky="nsew",
+        padx=1,
+        pady=1
+    )
+
+    # Referee timeout overlay.
+    widgets["ref"] = tk.Label(
+        tab,
+        textvariable=app.referee_timeout_timer_var,
+        bg="red",
+        fg="white",
+        anchor="center"
+    )
+    widgets["ref"].grid(
+        row=10,
+        column=3,
+        columnspan=6,
+        sticky="nsew",
+        pady=1
+    )
     widgets["ref"].grid_remove()
+    
 
     bundle = {"window": window, "widgets": widgets, "penalty_labels": penalty_labels}
     if not hasattr(app, "display_mirror_bundles"):
@@ -648,25 +767,65 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
         except tk.TclError:
             pass
 
-    def scale(event=None):
-        h = max(360, tab.winfo_height())
-        w = max(640, tab.winfo_width())
-        widgets["court"].config(font=("Arial", max(18, int(h * 0.045))))
-        widgets["half"].config(font=("Arial", max(20, int(h * 0.05)), "bold"))
-        for key in ("white_colour", "black_colour", "white_name", "black_name"):
-            widgets[key].config(font=("Arial", max(18, int(min(h * 0.045, w * 0.027))), "bold"))
-        widgets["game"].config(font=("Arial", max(15, int(h * 0.03))))
-        widgets["timer"].config(font=("Arial", max(50, int(min(h * 0.22, w * 0.105))), "bold"))
-        widgets["white_score"].config(font=("Arial", max(90, int(min(h * 0.42, w * 0.19))), "bold"))
-        widgets["black_score"].config(font=("Arial", max(90, int(min(h * 0.42, w * 0.19))), "bold"))
-        widgets["ref"].config(font=("Arial", max(16, int(h * 0.03)), "bold"))
-        for label in penalty_labels:
-            label.config(font=("Arial", max(11, int(h * 0.018)), "bold"))
+def apply_screen_configuration(app):
+    """Apply the operator aspect and create the selected display windows."""
+    monitors = _get_monitor_geometries(app)
+    operator = _operator_monitor(app, monitors)
+    _apply_operator_layout(app, operator)
 
-    window.bind("<Configure>", scale)
-    refresh()
-    scale()
-    return window
+    close_all_display_windows(app)
+    external = _external_monitors(app, monitors)
+
+    layout = app.display_layout_var.get() or "Single Standard"
+    widescreen = "Widescreen" in layout
+    dual = layout.startswith("Dual")
+    aspect = (21, 9) if widescreen else (16, 9)
+
+    # Single-monitor development/testing mode.
+    if not external:
+        create_display_window(app)
+
+        try:
+            app.master.update_idletasks()
+
+            root_x = app.master.winfo_x()
+            root_y = app.master.winfo_y()
+            root_w = app.master.winfo_width()
+
+            display_x = root_x + root_w + 20
+            display_y = root_y
+
+            screen_w = app.master.winfo_screenwidth()
+
+            # If there is insufficient space on the right,
+            # place the display to the left of the operator window.
+            if display_x + 900 > screen_w:
+                display_x = max(0, root_x - 920)
+
+            app.display_window.geometry(
+                f"900x600+{display_x}+{display_y}"
+            )
+
+        except (tk.TclError, AttributeError):
+            pass
+
+        return
+
+    # Multiple-monitor tournament mode.
+    create_display_window(app)
+    _place_window(
+        app.display_window,
+        external[0],
+        aspect=aspect
+    )
+
+    if dual and len(external) >= 2:
+        _create_full_mirror_window(
+            app,
+            "Display Window 2",
+            external[1],
+            aspect=aspect
+        )
 
 
 def apply_screen_configuration(app):
