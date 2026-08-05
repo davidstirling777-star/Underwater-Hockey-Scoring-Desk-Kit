@@ -1301,7 +1301,30 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
             width = max(1, tab.winfo_width())
             height = max(1, tab.winfo_height())
 
-if current_size == last_mirror_size:
+            if width < 100 or height < 100:
+                return
+
+            timer_panel_width = widgets["timer"].winfo_width()
+            timer_panel_height = widgets["timer"].winfo_height()
+
+            if (
+                timer_panel_width < 100
+                or timer_panel_height < 100
+            ):
+                return
+
+            current_size = (
+                width,
+                height,
+                timer_panel_width,
+                timer_panel_height
+            )
+
+            if (
+                not force
+                and current_size == last_mirror_size
+            ):
+                return
 
             last_mirror_size = current_size
 
