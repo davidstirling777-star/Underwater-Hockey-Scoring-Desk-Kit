@@ -1260,15 +1260,58 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
         try:
             if not window.winfo_exists():
                 return
-            show_names = app.show_display_team_names_var.get()
-            white_name = app.white_team_var.get()
-            black_name = app.black_team_var.get()
-            if show_names:
+            use_tournament_list = True
+
+            try:
+                if hasattr(
+                    app,
+                    "use_tournament_list_var"
+                ):
+                    use_tournament_list = bool(
+                        app.use_tournament_list_var.get()
+                    )
+
+            except tk.TclError:
+                use_tournament_list = True
+
+            show_names = (
+                use_tournament_list
+                and bool(
+                    app.show_display_team_names_var.get()
+                )
+            )
+
+            if not use_tournament_list:
+                white_name = ""
+                black_name = ""
+
+            elif show_names:
                 try:
-                    white_name = app.white_team_name_widget.cget("text") or white_name
-                    black_name = app.black_team_name_widget.cget("text") or black_name
-                except (AttributeError, tk.TclError):
-                    pass
+                    white_name = (
+                        app.white_team_name_widget.cget(
+                            "text"
+                        )
+                        or ""
+                    )
+                    black_name = (
+                        app.black_team_name_widget.cget(
+                            "text"
+                        )
+                        or ""
+                    )
+
+                except (
+                    AttributeError,
+                    tk.TclError
+                ):
+                    white_name = ""
+                    black_name = ""
+
+            else:
+                # Preserve the existing mirror behaviour when the
+                # Tournament List is enabled but Show Team Names is off.
+                white_name = app.white_team_var.get()
+                black_name = app.black_team_var.get()
             widgets["white_name"].config(
                 text=white_name
             )
