@@ -1,5 +1,4 @@
 import tkinter as tk
-from tkinter import ttk
 import display_manager
 
 DISPLAY_GREY = "#d3d3d3"
@@ -154,6 +153,16 @@ def create_display_window(app):
             is_display=True
         )
     )
+
+    # Keep the penalty-grid background consistent with all other
+    # presentation centre panels.
+    try:
+        app.display_penalty_grid_frame.configure(
+            bg=DISPLAY_GREY
+        )
+    except tk.TclError:
+        pass
+
     app.display_penalty_grid_frame.grid(
         row=0,
         column=0,
@@ -297,6 +306,8 @@ def create_display_window(app):
         pady=1,
         sticky="nsew"
     )
+    app.display_referee_timeout_timer_label.grid_remove()
+
     # Make every presentation label geometry-neutral.
     #
     # The grid controls the sizes. Changing team names, scores,
@@ -835,7 +846,7 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
     )
     widgets["ref"].grid_remove()
     
-        # Prevent mirrored-display text from changing panel widths.
+    # Prevent mirrored-display text from changing panel widths.
     for key in (
         "white_colour",
         "black_colour",
