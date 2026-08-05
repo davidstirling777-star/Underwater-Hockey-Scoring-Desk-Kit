@@ -2,6 +2,8 @@ import tkinter as tk
 from tkinter import ttk
 import display_manager
 
+DISPLAY_GREY = "#d3d3d3"
+
 def create_display_window(app):
     """Create or bring forward the external scoreboard display window."""
     try:
@@ -28,8 +30,17 @@ def create_display_window(app):
         app._on_display_window_close
     )
 
-    tab = ttk.Frame(app.display_window)
+    # Use a Tk frame so the background colour is fully controlled.
+    # Disabling grid propagation prevents team-name text from changing
+    # the requested size of the presentation layout.
+    tab = tk.Frame(
+        app.display_window,
+        bg=DISPLAY_GREY,
+        bd=0,
+        highlightthickness=0
+    )
     tab.pack(fill="both", expand=True)
+    tab.grid_propagate(False)
 
     # Presentation layout:
     #
@@ -48,6 +59,7 @@ def create_display_window(app):
         tab.grid_columnconfigure(
             column,
             weight=1,
+            minsize=1,
             uniform="presentation_columns"
         )
 
@@ -112,7 +124,7 @@ def create_display_window(app):
     # Fixed centre area for penalties / Next Game banner.
     app.display_penalty_area_frame = tk.Frame(
         tab,
-        bg="lightgrey",
+        bg=DISPLAY_GREY,
         bd=0,
         highlightthickness=0
     )
@@ -191,9 +203,12 @@ def create_display_window(app):
         tab,
         textvariable=app.game_number_var,
         font=app.display_fonts["game_no"],
-        bg="lightgrey",
+        bg=DISPLAY_GREY,
         fg="black",
-        anchor="center"
+        anchor="center",
+        width=1,
+        bd=0,
+        highlightthickness=0
     )
     app.display_game_label.grid(
         row=1,
@@ -248,10 +263,12 @@ def create_display_window(app):
         tab,
         textvariable=app.timer_var,
         font=app.display_fonts["timer"],
-        bg="lightgrey",
+        bg=DISPLAY_GREY,
         fg="black",
         anchor="center",
-        width=1
+        width=1,
+        bd=0,
+        highlightthickness=0
     )
     app.display_timer_label.grid(
         row=3,
@@ -280,11 +297,98 @@ def create_display_window(app):
         pady=1,
         sticky="nsew"
     )
-    app.display_referee_timeout_timer_label.grid_remove()
-    
+    # Make every presentation label geometry-neutral.
+    #
+    # The grid controls the sizes. Changing team names, scores,
+    # game numbers or timer text must not alter the grid widths.
+    fixed_size_widgets = (
+        app.display_half_label,
+        app.display_white_label,
+        app.display_black_label,
+        app.display_white_team_name_widget,
+        app.display_game_label,
+        app.display_black_team_name_widget,
+        app.display_white_score,
+        app.display_timer_label,
+        app.display_black_score,
+        app.display_referee_timeout_timer_label,
+    )
+
+    for widget in fixed_size_widgets:
+        widget.configure(width=1)
+
+    last_presentation_size = None
+
+    def scale_presentation_fonts(event=None):
+        """
+        Scale fonts specifically for the presentation layout.
+
+        The timer is intentionally larger than either score.
+        Font sizes only change when the actual window dimensions change.
+        """
+        nonlocal last_presentation_size
+
+        try:
+            width = max(1, tab.winfo_width())
+            height = max(1, tab.winfo_height())
+
+            # Ignore the temporary 1x1 geometry seen while a window
+            # is initially being constructed.
+            if width < 100 or height < 100:
+                return
+
+            current_size = (width, height)
+
+            # Text refreshes can produce Configure events even when
+            # the actual presentation size has not changed.
+            if current_size == last_presentation_size:
+                return
+
+            last_presentation_size = current_size
+
+            scale_factor = min(
+                width / 1200.0,
+                height / 800.0
+            )
+            scale_factor = max(
+                0.55,
+                min(2.0, scale_factor)
+            )
+
+            base_sizes = {
+                "half": 40,
+                "team": 30,
+                "game_no": 22,
+
+                # The timer is deliberately larger than the scores.
+                "score": 145,
+                "timer": 180,
+
+                # Preserve the existing referee-timeout scale.
+                "referee_timeout_timer": 24,
+            }
+
+            for font_name, base_size in base_sizes.items():
+                display_font = app.display_fonts.get(font_name)
+
+                if display_font is not None:
+                    display_font.configure(
+                        size=max(
+                            10,
+                            round(base_size * scale_factor)
+                        )
+                    )
+
+        except (
+            tk.TclError,
+            AttributeError,
+            RuntimeError
+        ):
+            pass
+
     app.display_window.bind(
         "<Configure>",
-        app.scale_display_fonts
+        scale_presentation_fonts
     )
 
     # Calculate dimensions only after widgets have been laid out.
@@ -295,7 +399,7 @@ def create_display_window(app):
         1200
     )
 
-    app.scale_display_fonts(None)
+    scale_presentation_fonts()
     app.sync_display_widgets()
 
     def refresh_display_team_names():
@@ -492,9 +596,14 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
     app.display_windows.append(window)
     _place_window(window, monitor, aspect=aspect)
 
-
-    tab = ttk.Frame(window)
+    tab = tk.Frame(
+        window,
+        bg=DISPLAY_GREY,
+        bd=0,
+        highlightthickness=0
+    )
     tab.pack(fill="both", expand=True)
+    tab.grid_propagate(False)
 
     for row in range(11):
         tab.grid_rowconfigure(row, weight=1)
@@ -503,6 +612,7 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
         tab.grid_columnconfigure(
             column,
             weight=1,
+            minsize=1,
             uniform="mirror_presentation_columns"
         )
 
@@ -548,7 +658,9 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
     # Penalties / Next Game centre block.
     penalty_area = tk.Frame(
         tab,
-        bg="lightgrey"
+        bg=DISPLAY_GREY,
+        bd=0,
+        highlightthickness=0
     )
     penalty_area.grid(
         row=0,
@@ -560,11 +672,12 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
     )
     penalty_area.grid_columnconfigure(0, weight=1)
     penalty_area.grid_columnconfigure(1, weight=1)
+    penalty_area.grid_propagate(False)
 
     penalty_labels = [
         tk.Label(
             penalty_area,
-            bg="lightgrey",
+            bg=DISPLAY_GREY,
             fg="black",
             anchor="center"
         )
@@ -601,9 +714,12 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
     widgets["game"] = tk.Label(
         tab,
         textvariable=app.game_number_var,
-        bg="lightgrey",
+        bg=DISPLAY_GREY,
         fg="black",
-        anchor="center"
+        anchor="center",
+        width=1,
+        bd=0,
+        highlightthickness=0
     )
     widgets["game"].grid(
         row=1,
@@ -667,10 +783,12 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
     widgets["timer"] = tk.Label(
         tab,
         textvariable=app.timer_var,
-        bg="lightgrey",
+        bg=DISPLAY_GREY,
         fg="black",
         anchor="center",
-        width=1
+        width=1,
+        bd=0,
+        highlightthickness=0
     )
     widgets["timer"].grid(
         row=3,
@@ -717,6 +835,20 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
     )
     widgets["ref"].grid_remove()
     
+        # Prevent mirrored-display text from changing panel widths.
+    for key in (
+        "white_colour",
+        "black_colour",
+        "white_name",
+        "game",
+        "black_name",
+        "half",
+        "white_score",
+        "timer",
+        "black_score",
+        "ref",
+    ):
+        widgets[key].configure(width=1)
 
     bundle = {"window": window, "widgets": widgets, "penalty_labels": penalty_labels}
     if not hasattr(app, "display_mirror_bundles"):
@@ -761,91 +893,133 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
             except (AttributeError, tk.TclError):
                 pass
             window.after(250, refresh)
+
         except tk.TclError:
             pass
 
+    last_mirror_size = None
+
     def scale(event=None):
-        h = max(360, tab.winfo_height())
-        w = max(640, tab.winfo_width())
+        """Scale mirrored presentation fonts only when its size changes."""
+        nonlocal last_mirror_size
 
-        widgets["half"].config(
-            font=(
-                "Arial",
-                max(22, int(h * 0.06)),
-                "bold"
+        try:
+            width = max(1, tab.winfo_width())
+            height = max(1, tab.winfo_height())
+
+            if width < 100 or height < 100:
+                return
+
+            current_size = (width, height)
+
+            if current_size == last_mirror_size:
+                return
+
+            last_mirror_size = current_size
+
+            scale_factor = min(
+                width / 1200.0,
+                height / 800.0
             )
-        )
+            scale_factor = max(
+                0.55,
+                min(2.0, scale_factor)
+            )
 
-        for key in (
-            "white_colour",
-            "black_colour",
-            "white_name",
-            "black_name"
+            def scaled_size(base_size):
+                return max(
+                    10,
+                    round(base_size * scale_factor)
+                )
+
+            widgets["half"].config(
+                font=(
+                    "Arial",
+                    scaled_size(40),
+                    "bold"
+                )
+            )
+
+            for key in (
+                "white_colour",
+                "black_colour",
+                "white_name",
+                "black_name"
+            ):
+                widgets[key].config(
+                    font=(
+                        "Arial",
+                        scaled_size(30),
+                        "bold"
+                    )
+                )
+
+            widgets["game"].config(
+                font=(
+                    "Arial",
+                    scaled_size(22)
+                )
+            )
+
+            # Timer is deliberately larger than the scores.
+            widgets["timer"].config(
+                font=(
+                    "Arial",
+                    scaled_size(180),
+                    "bold"
+                )
+            )
+
+            widgets["white_score"].config(
+                font=(
+                    "Arial",
+                    scaled_size(145),
+                    "bold"
+                )
+            )
+
+            widgets["black_score"].config(
+                font=(
+                    "Arial",
+                    scaled_size(145),
+                    "bold"
+                )
+            )
+
+            widgets["ref"].config(
+                font=(
+                    "Arial",
+                    scaled_size(24),
+                    "bold"
+                )
+            )
+
+            for label in penalty_labels:
+                label.config(
+                    font=(
+                        "Arial",
+                        max(9, scaled_size(11)),
+                        "bold"
+                    )
+                )
+
+        except (
+            tk.TclError,
+            AttributeError,
+            RuntimeError
         ):
-            widgets[key].config(
-                font=(
-                    "Arial",
-                    max(
-                        18,
-                        int(min(h * 0.05, w * 0.027))
-                    ),
-                    "bold"
-                )
-            )
+            pass
 
-        widgets["game"].config(
-            font=(
-                "Arial",
-                max(15, int(h * 0.035))
-            )
-        )
-
-        # Make the timer visually dominant.
-        timer_size = max(
-            70,
-            int(min(h * 0.32, w * 0.145))
-        )
-
-        score_size = max(
-            70,
-            int(min(h * 0.28, w * 0.095))
-        )
-
-        widgets["timer"].config(
-            font=("Arial", timer_size, "bold")
-        )
-
-        widgets["white_score"].config(
-            font=("Arial", score_size, "bold")
-        )
-
-        widgets["black_score"].config(
-            font=("Arial", score_size, "bold")
-        )
-
-        widgets["ref"].config(
-            font=(
-                "Arial",
-                max(16, int(h * 0.03)),
-                "bold"
-            )
-        )
-
-        for label in penalty_labels:
-            label.config(
-                font=(
-                    "Arial",
-                    max(11, int(h * 0.018)),
-                    "bold"
-                )
-            )
-
-    window.bind("<Configure>", scale)
+    window.bind(
+        "<Configure>",
+        scale
+    )
 
     refresh()
     scale()
 
     return window
+
 
 def apply_screen_configuration(app):
     """Apply the operator aspect and create the selected display windows."""
