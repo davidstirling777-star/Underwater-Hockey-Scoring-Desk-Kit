@@ -858,22 +858,52 @@ class GameManagementApp:
         The Game Number remains visible in row 3 at all times.
         """
 
-        def place_game_label(label):
+        def place_game_label(
+            label,
+            row=3,
+            column=3,
+            columnspan=3
+        ):
+            """
+            Keep a Game Number label in its intended layout position.
+
+            The operator label uses the default 9-column layout.
+            The presentation label supplies its 12-column position.
+            """
             try:
                 grid_info = label.grid_info()
-                current_row = int(grid_info.get("row", -1))
 
-                if not label.winfo_ismapped() or current_row != 3:
+                current_row = int(
+                    grid_info.get("row", -1)
+                )
+                current_column = int(
+                    grid_info.get("column", -1)
+                )
+                current_columnspan = int(
+                    grid_info.get("columnspan", 1)
+                )
+
+                if (
+                    not label.winfo_ismapped()
+                    or current_row != row
+                    or current_column != column
+                    or current_columnspan != columnspan
+                ):
                     label.grid(
-                        row=3,
-                        column=3,
-                        columnspan=3,
+                        row=row,
+                        column=column,
+                        columnspan=columnspan,
                         padx=1,
                         pady=1,
                         sticky="nsew"
                     )
 
-            except (AttributeError, tk.TclError):
+            except (
+                AttributeError,
+                tk.TclError,
+                TypeError,
+                ValueError
+            ):
                 pass
 
         def place_penalty_grid(grid_frame, area_frame_name):
@@ -1029,7 +1059,12 @@ class GameManagementApp:
                 else:
                     self.display_penalty_grid_frame.grid_remove()
 
-            place_game_label(self.display_game_label)
+            place_game_label(
+                self.display_game_label,
+                row=1,
+                column=4,
+                columnspan=4
+            )
 
         except (AttributeError, tk.TclError):
             pass
