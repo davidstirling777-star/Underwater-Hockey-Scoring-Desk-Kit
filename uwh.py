@@ -262,42 +262,132 @@ class GameManagementApp:
         self.save_unified_settings(settings)
 
     def toggle_display_team_names(self):
-        """Show or hide team-name text on the external display window."""
-    
+        """
+        Show or hide tournament team names on all presentation windows.
+
+        The existing Show Team Names setting still applies, but the
+        Use Tournament List checkbox takes priority.
+        """
         try:
-            if (
-                not hasattr(self, "display_window")
-                or self.display_window is None
-                or not self.display_window.winfo_exists()
-            ):
-                return
-    
-            show_names = self.show_display_team_names_var.get()
-    
+            use_tournament_list = True
+
+            if hasattr(self, "use_tournament_list_var"):
+                use_tournament_list = bool(
+                    self.use_tournament_list_var.get()
+                )
+
+            show_team_names = (
+                use_tournament_list
+                and bool(
+                    self.show_display_team_names_var.get()
+                )
+            )
+
             white_name = ""
             black_name = ""
-    
-            if show_names:
-                if hasattr(self, "white_team_name_widget"):
-                    white_name = self.white_team_name_widget.cget("text")
-    
-                if hasattr(self, "black_team_name_widget"):
-                    black_name = self.black_team_name_widget.cget("text")
-    
-            if hasattr(self, "display_white_team_name_widget"):
-                self.display_white_team_name_widget.config(text=white_name)
-    
-            if hasattr(self, "display_black_team_name_widget"):
-                self.display_black_team_name_widget.config(text=black_name)
 
-            for white_label, black_label in getattr(self, "simple_display_name_labels", []):
+            if show_team_names:
+                if hasattr(self, "white_team_name_widget"):
+                    white_name = (
+                        self.white_team_name_widget.cget(
+                            "text"
+                        )
+                        or ""
+                    )
+
+                if hasattr(self, "black_team_name_widget"):
+                    black_name = (
+                        self.black_team_name_widget.cget(
+                            "text"
+                        )
+                        or ""
+                    )
+
+            # Main presentation Display Window.
+            if hasattr(
+                self,
+                "display_white_team_name_widget"
+            ):
+                self.display_white_team_name_widget.config(
+                    text=white_name
+                )
+
+            if hasattr(
+                self,
+                "display_black_team_name_widget"
+            ):
+                self.display_black_team_name_widget.config(
+                    text=black_name
+                )
+
+            # Any lightweight/simple public display windows.
+            for white_label, black_label in getattr(
+                self,
+                "simple_display_name_labels",
+                []
+            ):
                 try:
-                    white_label.config(text=white_name or self.white_team_var.get())
-                    black_label.config(text=black_name or self.black_team_var.get())
+                    if not use_tournament_list:
+                        simple_white_text = ""
+                        simple_black_text = ""
+
+                    elif show_team_names:
+                        simple_white_text = white_name
+                        simple_black_text = black_name
+
+                    else:
+                        # Preserve the existing behaviour when the
+                        # Tournament List is enabled but the normal
+                        # Show Team Names option is off.
+                        simple_white_text = (
+                            self.white_team_var.get()
+                        )
+                        simple_black_text = (
+                            self.black_team_var.get()
+                        )
+
+                    white_label.config(
+                        text=simple_white_text
+                    )
+                    black_label.config(
+                        text=simple_black_text
+                    )
+
                 except tk.TclError:
                     pass
 
-        except tk.TclError:
+            # Any full mirrored presentation windows.
+            for bundle in getattr(
+                self,
+                "display_mirror_bundles",
+                []
+            ):
+                try:
+                    widgets = bundle.get(
+                        "widgets",
+                        {}
+                    )
+
+                    if "white_name" in widgets:
+                        widgets["white_name"].config(
+                            text=white_name
+                        )
+
+                    if "black_name" in widgets:
+                        widgets["black_name"].config(
+                            text=black_name
+                        )
+
+                except (
+                    AttributeError,
+                    tk.TclError
+                ):
+                    pass
+
+        except (
+            AttributeError,
+            tk.TclError
+        ):
             pass
 
     def handle_hardware_siren_event(self, event_name="ON"):
@@ -1274,15 +1364,76 @@ class GameManagementApp:
     def update_game_number_display(self):
         return game_flow.update_game_number_display(self)
 
+    def on_use_tournament_list_changed(self):
+        """
+        Apply the Use Tournament List checkbox state.
+
+        When disabled:
+        - the tournament CSV dropdown is greyed out;
+        - operator team-name widgets are cleared;
+        - presentation team-name widgets are cleared.
+
+        Re-enabling immediately reloads the selected tournament game.
+        """
+        try:
+            use_tournament_list = bool(
+                self.use_tournament_list_var.get()
+            )
+
+        except (
+            AttributeError,
+            tk.TclError
+        ):
+            use_tournament_list = True
+
+        try:
+            if hasattr(self, "csv_dropdown"):
+                self.csv_dropdown.configure(
+                    state=(
+                        "readonly"
+                        if use_tournament_list
+                        else "disabled"
+                    )
+                )
+
+        except tk.TclError:
+            pass
+
+        self.update_team_names_display()
+
     def update_team_names_display(self):
         """Update team names from the selected tournament game."""
         try:
+            use_tournament_list = True
+
+            if hasattr(self, "use_tournament_list_var"):
+                use_tournament_list = bool(
+                    self.use_tournament_list_var.get()
+                )
+
+            # When the Tournament List is disabled, explicitly clear
+            # both operator team-name widgets and all display names.
+            if not use_tournament_list:
+                if hasattr(self, "white_team_name_widget"):
+                    self.white_team_name_widget.config(
+                        text=""
+                    )
+
+                if hasattr(self, "black_team_name_widget"):
+                    self.black_team_name_widget.config(
+                        text=""
+                    )
+
+                self.toggle_display_team_names()
+                return
+
             current_game = self.get_current_game_number()
 
             # After the final tournament game, deliberately show no teams.
             if not current_game:
                 white_team = ""
                 black_team = ""
+
             else:
                 csv_file = (
                     self.csv_var.get()
@@ -1290,31 +1441,40 @@ class GameManagementApp:
                     else None
                 )
 
-                white_team, black_team = self.parse_csv_team_names(
-                    csv_file,
-                    current_game
+                white_team, black_team = (
+                    self.parse_csv_team_names(
+                        csv_file,
+                        current_game
+                    )
                 )
 
             if hasattr(self, "white_team_name_widget"):
                 self.white_team_name_widget.config(
-                    text=white_team if white_team else ""
+                    text=white_team or ""
                 )
 
             if hasattr(self, "black_team_name_widget"):
                 self.black_team_name_widget.config(
-                    text=black_team if black_team else ""
+                    text=black_team or ""
                 )
 
             self.toggle_display_team_names()
 
-        except Exception as e:
-            print(f"Error updating team names display: {e}")
+        except Exception as error:
+            print(
+                f"Error updating team names display: "
+                f"{error}"
+            )
 
             if hasattr(self, "white_team_name_widget"):
-                self.white_team_name_widget.config(text="")
+                self.white_team_name_widget.config(
+                    text=""
+                )
 
             if hasattr(self, "black_team_name_widget"):
-                self.black_team_name_widget.config(text="")
+                self.black_team_name_widget.config(
+                    text=""
+                )
 
             self.toggle_display_team_names()
                 
