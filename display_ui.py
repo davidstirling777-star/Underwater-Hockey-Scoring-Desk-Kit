@@ -4,7 +4,6 @@ import display_manager
 
 DISPLAY_GREY = "#d3d3d3"
 
-
 def _largest_fitting_font_size(
     widget,
     sample_text,
@@ -66,6 +65,114 @@ def _largest_fitting_font_size(
         ValueError
     ):
         return minimum
+
+
+def _format_presentation_timer_text(raw_text):
+    """
+    Format the presentation timer without unnecessary leading zeros.
+
+    Examples:
+        14:30 -> 14:30
+        03:20 -> 3:20
+        00:59 -> 59
+        00:02 -> 2
+        00:00 -> 0
+    """
+    text = str(raw_text).strip()
+
+    if not text:
+        return "0"
+
+    parts = text.split(":")
+
+    try:
+        numeric_parts = [
+            int(part)
+            for part in parts
+        ]
+    except ValueError:
+        # Preserve unexpected non-time text rather than hiding it.
+        return text
+
+    if len(numeric_parts) == 3:
+        hours, minutes, seconds = numeric_parts
+        total_seconds = (
+            hours * 3600
+            + minutes * 60
+            + seconds
+        )
+
+    elif len(numeric_parts) == 2:
+        minutes, seconds = numeric_parts
+        total_seconds = (
+            minutes * 60
+            + seconds
+        )
+
+    elif len(numeric_parts) == 1:
+        total_seconds = numeric_parts[0]
+
+    else:
+        return text
+
+    total_seconds = max(0, total_seconds)
+    total_minutes, seconds = divmod(
+        total_seconds,
+        60
+    )
+
+    if total_minutes > 0:
+        return f"{total_minutes}:{seconds:02d}"
+
+    return str(seconds)
+
+
+def _presentation_timer_fit_sample(display_text):
+    """
+    Return a stable worst-case sample for the current timer format.
+
+    The fitting size changes only at:
+        10:00
+        1:00
+
+    It does not recalculate to a different size every second.
+    """
+    text = str(display_text).strip()
+
+    if ":" not in text:
+        return "88"
+
+    minute_text = text.split(":", 1)[0]
+
+    if len(minute_text) >= 2:
+        return "88:88"
+
+    return "8:88"
+
+
+def _ensure_presentation_timer_var(app):
+    """Create and initialise the presentation-only timer variable."""
+    presentation_timer_var = getattr(
+        app,
+        "presentation_timer_var",
+        None
+    )
+
+    if presentation_timer_var is None:
+        presentation_timer_var = tk.StringVar(
+            master=app.master
+        )
+        app.presentation_timer_var = (
+            presentation_timer_var
+        )
+
+    presentation_timer_var.set(
+        _format_presentation_timer_text(
+            app.timer_var.get()
+        )
+    )
+
+    return presentation_timer_var
 
 
 def create_display_window(app):
@@ -332,10 +439,18 @@ def create_display_window(app):
         sticky="nsew"
     )
 
+    # Presentation-only timer text.
+    #
+    # This removes unnecessary leading zeros without changing
+    # the timer shown in the operator window.
+    presentation_timer_var = (
+        _ensure_presentation_timer_var(app)
+    )
+
     # Main countdown timer.
     app.display_timer_label = tk.Label(
         tab,
-        textvariable=app.timer_var,
+        textvariable=presentation_timer_var,
         font=app.display_fonts["timer"],
         bg=DISPLAY_GREY,
         fg="black",
@@ -395,7 +510,10 @@ def create_display_window(app):
 
     last_presentation_size = None
 
-    def scale_presentation_fonts(event=None):
+    def scale_presentation_fonts(
+        event=None,
+        force=False
+    ):
         """
         Scale fonts specifically for the presentation layout.
 
@@ -408,16 +526,40 @@ def create_display_window(app):
             width = max(1, tab.winfo_width())
             height = max(1, tab.winfo_height())
 
-            # Ignore the temporary 1x1 geometry seen while a window
-            # is initially being constructed.
+            # Ignore temporary geometries seen while the window and
+            # its grid cells are still being constructed.
             if width < 100 or height < 100:
                 return
 
-            current_size = (width, height)
+            timer_panel_width = (
+                app.display_timer_label.winfo_width()
+            )
+            timer_panel_height = (
+                app.display_timer_label.winfo_height()
+            )
+
+            # The outer frame can reach its final dimensions before
+            # the timer label receives its final grid allocation.
+            # Do not cache a scale result based on a tiny timer cell.
+            if (
+                timer_panel_width < 100
+                or timer_panel_height < 100
+            ):
+                return
+
+            current_size = (
+                width,
+                height,
+                timer_panel_width,
+                timer_panel_height
+            )
 
             # Text refreshes can produce Configure events even when
             # the actual presentation size has not changed.
-            if current_size == last_presentation_size:
+            if (
+                not force
+                and current_size == last_presentation_size
+            ):
                 return
 
             last_presentation_size = current_size
@@ -460,9 +602,15 @@ def create_display_window(app):
             timer_font = app.display_fonts.get("timer")
 
             if timer_font is not None:
+                timer_sample = (
+                    _presentation_timer_fit_sample(
+                        presentation_timer_var.get()
+                    )
+                )
+
                 timer_size = _largest_fitting_font_size(
                     widget=app.display_timer_label,
-                    sample_text="88:88",
+                    sample_text=timer_sample,
                     font_options=timer_font.actual(),
                     width_fraction=0.95,
                     height_fraction=0.82,
@@ -473,6 +621,67 @@ def create_display_window(app):
                 timer_font.configure(
                     size=timer_size
                 )
+
+        except (
+            tk.TclError,
+            AttributeError,
+            RuntimeError
+        ):
+            pass
+
+    last_timer_fit_sample = None
+
+    def refresh_presentation_timer():
+        """
+        Keep the presentation timer synchronised with app.timer_var.
+
+        Font fitting is forced only when the timer changes between:
+            two-digit minutes,
+            one-digit minutes,
+            seconds only.
+        """
+        nonlocal last_timer_fit_sample
+
+        try:
+            if (
+                app.display_window is None
+                or not app.display_window.winfo_exists()
+            ):
+                return
+
+            formatted_text = (
+                _format_presentation_timer_text(
+                    app.timer_var.get()
+                )
+            )
+
+            fit_sample = (
+                _presentation_timer_fit_sample(
+                    formatted_text
+                )
+            )
+
+            if (
+                presentation_timer_var.get()
+                != formatted_text
+            ):
+                presentation_timer_var.set(
+                    formatted_text
+                )
+
+            if fit_sample != last_timer_fit_sample:
+                last_timer_fit_sample = fit_sample
+
+                app.display_window.after_idle(
+                    lambda: scale_presentation_fonts(
+                        force=True
+                    )
+                )
+
+            app.display_window.after(
+                100,
+                refresh_presentation_timer
+            )
 
         except (
             tk.TclError,
@@ -494,8 +703,51 @@ def create_display_window(app):
         1200
     )
 
-    scale_presentation_fonts()
     app.sync_display_widgets()
+    refresh_presentation_timer()
+
+    def force_presentation_rescale():
+        """
+        Refit the presentation after Tk has finished allocating
+        the final grid-cell dimensions.
+        """
+        try:
+            if (
+                app.display_window is not None
+                and app.display_window.winfo_exists()
+            ):
+                app.display_window.update_idletasks()
+
+                scale_presentation_fonts(
+                    force=True
+                )
+
+        except (
+            tk.TclError,
+            AttributeError,
+            RuntimeError
+        ):
+            pass
+
+    # The first call handles normal creation. The delayed calls cover
+    # final monitor placement and later startup data refreshes.
+    force_presentation_rescale()
+
+    app.display_window.after_idle(
+        force_presentation_rescale
+    )
+    app.display_window.after(
+        100,
+        force_presentation_rescale
+    )
+    app.display_window.after(
+        300,
+        force_presentation_rescale
+    )
+    app.display_window.after(
+        800,
+        force_presentation_rescale
+    )
 
     def refresh_display_team_names():
         """Refresh names after CSV and tournament settings are ready."""
@@ -875,9 +1127,13 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
         pady=1
     )
 
+    presentation_timer_var = (
+        _ensure_presentation_timer_var(app)
+    )
+
     widgets["timer"] = tk.Label(
         tab,
-        textvariable=app.timer_var,
+        textvariable=presentation_timer_var,
         bg=DISPLAY_GREY,
         fg="black",
         anchor="center",
@@ -950,7 +1206,11 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
         app.display_mirror_bundles = []
     app.display_mirror_bundles.append(bundle)
 
+    last_mirror_timer_sample = None
+
     def refresh():
+        nonlocal last_mirror_timer_sample
+
         try:
             if not window.winfo_exists():
                 return
@@ -963,8 +1223,44 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
                     black_name = app.black_team_name_widget.cget("text") or black_name
                 except (AttributeError, tk.TclError):
                     pass
-            widgets["white_name"].config(text=white_name)
-            widgets["black_name"].config(text=black_name)
+            widgets["white_name"].config(
+                text=white_name
+            )
+            widgets["black_name"].config(
+                text=black_name
+            )
+
+            formatted_timer = (
+                _format_presentation_timer_text(
+                    app.timer_var.get()
+                )
+            )
+
+            if (
+                presentation_timer_var.get()
+                != formatted_timer
+            ):
+                presentation_timer_var.set(
+                    formatted_timer
+                )
+
+            current_timer_sample = (
+                _presentation_timer_fit_sample(
+                    formatted_timer
+                )
+            )
+
+            if (
+                current_timer_sample
+                != last_mirror_timer_sample
+            ):
+                last_mirror_timer_sample = (
+                    current_timer_sample
+                )
+
+                window.after_idle(
+                    lambda: scale(force=True)
+                )
             try:
                 widgets["half"].config(bg=app.half_label.cget("bg"))
             except (AttributeError, tk.TclError):
@@ -994,21 +1290,18 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
 
     last_mirror_size = None
 
-    def scale(event=None):
-        """Scale mirrored presentation fonts only when its size changes."""
+    def scale(
+        event=None,
+        force=False
+    ):
+        """Scale mirrored presentation fonts only when needed."""
         nonlocal last_mirror_size
 
         try:
             width = max(1, tab.winfo_width())
             height = max(1, tab.winfo_height())
 
-            if width < 100 or height < 100:
-                return
-
-            current_size = (width, height)
-
-            if current_size == last_mirror_size:
-                return
+if current_size == last_mirror_size:
 
             last_mirror_size = current_size
 
@@ -1057,17 +1350,25 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
             )
 
             # Fit the timer independently to its actual centre panel.
-            mirror_timer_size = _largest_fitting_font_size(
-                widget=widgets["timer"],
-                sample_text="88:88",
-                font_options={
-                    "family": "Arial",
-                    "weight": "bold"
-                },
-                width_fraction=0.95,
-                height_fraction=0.82,
-                minimum=40,
-                maximum=420
+            mirror_timer_sample = (
+                _presentation_timer_fit_sample(
+                    presentation_timer_var.get()
+                )
+            )
+
+            mirror_timer_size = (
+                _largest_fitting_font_size(
+                    widget=widgets["timer"],
+                    sample_text=mirror_timer_sample,
+                    font_options={
+                        "family": "Arial",
+                        "weight": "bold"
+                    },
+                    width_fraction=0.95,
+                    height_fraction=0.82,
+                    minimum=40,
+                    maximum=420
+                )
             )
 
             widgets["timer"].config(
@@ -1123,8 +1424,32 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
         scale
     )
 
+    def force_mirror_rescale():
+        try:
+            if window.winfo_exists():
+                window.update_idletasks()
+                scale(force=True)
+
+        except (
+            tk.TclError,
+            RuntimeError
+        ):
+            pass
+
     refresh()
-    scale()
+    force_mirror_rescale()
+
+    window.after_idle(
+        force_mirror_rescale
+    )
+    window.after(
+        100,
+        force_mirror_rescale
+    )
+    window.after(
+        300,
+        force_mirror_rescale
+    )
 
     return window
 
