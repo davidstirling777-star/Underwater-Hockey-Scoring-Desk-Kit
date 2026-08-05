@@ -281,13 +281,10 @@ def create_display_window(app):
         sticky="nsew"
     )
     app.display_referee_timeout_timer_label.grid_remove()
-
     
-            pass
     app.display_window.bind(
         "<Configure>",
-        match_main_scoreboard_columns,
-        add="+"
+        app.scale_display_fonts
     )
 
     # Calculate dimensions only after widgets have been laid out.
@@ -767,6 +764,89 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
         except tk.TclError:
             pass
 
+    def scale(event=None):
+        h = max(360, tab.winfo_height())
+        w = max(640, tab.winfo_width())
+
+        widgets["half"].config(
+            font=(
+                "Arial",
+                max(22, int(h * 0.06)),
+                "bold"
+            )
+        )
+
+        for key in (
+            "white_colour",
+            "black_colour",
+            "white_name",
+            "black_name"
+        ):
+            widgets[key].config(
+                font=(
+                    "Arial",
+                    max(
+                        18,
+                        int(min(h * 0.05, w * 0.027))
+                    ),
+                    "bold"
+                )
+            )
+
+        widgets["game"].config(
+            font=(
+                "Arial",
+                max(15, int(h * 0.035))
+            )
+        )
+
+        # Make the timer visually dominant.
+        timer_size = max(
+            70,
+            int(min(h * 0.32, w * 0.145))
+        )
+
+        score_size = max(
+            70,
+            int(min(h * 0.28, w * 0.095))
+        )
+
+        widgets["timer"].config(
+            font=("Arial", timer_size, "bold")
+        )
+
+        widgets["white_score"].config(
+            font=("Arial", score_size, "bold")
+        )
+
+        widgets["black_score"].config(
+            font=("Arial", score_size, "bold")
+        )
+
+        widgets["ref"].config(
+            font=(
+                "Arial",
+                max(16, int(h * 0.03)),
+                "bold"
+            )
+        )
+
+        for label in penalty_labels:
+            label.config(
+                font=(
+                    "Arial",
+                    max(11, int(h * 0.018)),
+                    "bold"
+                )
+            )
+
+    window.bind("<Configure>", scale)
+
+    refresh()
+    scale()
+
+    return window
+
 def apply_screen_configuration(app):
     """Apply the operator aspect and create the selected display windows."""
     monitors = _get_monitor_geometries(app)
@@ -826,87 +906,6 @@ def apply_screen_configuration(app):
             external[1],
             aspect=aspect
         )
-
-
-def apply_screen_configuration(app):
-    """Apply the operator aspect and create the selected external display windows."""
-    monitors = _get_monitor_geometries(app)
-    operator = _operator_monitor(app, monitors)
-    _apply_operator_layout(app, operator)
-
-    close_all_display_windows(app)
-    external = _external_monitors(app, monitors)
-    
-    layout = app.display_layout_var.get() or "Single Standard"
-    widescreen = "Widescreen" in layout
-    dual = layout.startswith("Dual")
-    aspect = (21, 9) if widescreen else (16, 9)
-    
-    #
-    # SINGLE MONITOR
-    #
-    if not external:
-    
-        create_display_window(app)
-    
-        # Put the display beside the main window for development/testing.
-        try:
-            app.master.update_idletasks()
-    
-            root_x = app.master.winfo_x()
-            root_y = app.master.winfo_y()
-            root_w = app.master.winfo_width()
-    
-            display_x = root_x + root_w + 20
-            display_y = root_y
-    
-            screen_w = app.master.winfo_screenwidth()
-    
-            # If there isn't enough room on the right,
-            # place it on the left.
-            if display_x + 900 > screen_w:
-                display_x = max(0, root_x - 920)
-    
-            app.display_window.geometry(
-                f"900x600+{display_x}+{display_y}"
-            )
-    
-        except Exception:
-            pass
-    
-        return
-    
-    #
-    # MULTIPLE MONITORS
-    #
-    
-    create_display_window(app)
-    _place_window(app.display_window, external[0], aspect=aspect)
-    
-    if dual and len(external) >= 2:
-        _create_full_mirror_window(
-            app,
-            "Display Window 2",
-            external[1],
-            aspect=aspect,
-        )
-
-    layout = app.display_layout_var.get() or "Single Standard"
-    widescreen = "Widescreen" in layout
-    dual = layout.startswith("Dual")
-    aspect = (21, 9) if widescreen else (16, 9)
-
-    create_display_window(app)
-    _place_window(app.display_window, external[0], aspect=aspect)
-
-    if dual and len(external) >= 2:
-        _create_full_mirror_window(
-            app,
-            "Display Window 2",
-            external[1],
-            aspect=aspect,
-        )
-
 
 def auto_detect_and_apply(app):
     """Choose layouts from detected monitor aspect ratios and apply them."""
