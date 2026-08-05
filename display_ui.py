@@ -49,22 +49,6 @@ def create_display_window(app):
     tab.grid_rowconfigure(2, minsize=58)
     tab.grid_rowconfigure(3, minsize=58)
 
-    # Court time.
-    app.display_court_time_label = tk.Label(
-        tab,
-        textvariable=app.court_time_var,
-        font=app.display_fonts["court_time"],
-        bg="lightgrey"
-    )
-    app.display_court_time_label.grid(
-        row=0,
-        column=0,
-        columnspan=9,
-        padx=1,
-        pady=1,
-        sticky="nsew"
-    )
-
     # Current period label.
     app.display_half_label = tk.Label(
         tab,
