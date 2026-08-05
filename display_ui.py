@@ -1,7 +1,72 @@
 import tkinter as tk
+import tkinter.font as tkfont
 import display_manager
 
 DISPLAY_GREY = "#d3d3d3"
+
+
+def _largest_fitting_font_size(
+    widget,
+    sample_text,
+    font_options,
+    width_fraction=0.95,
+    height_fraction=0.82,
+    minimum=20,
+    maximum=420
+):
+    """
+    Return the largest font size that fits within a widget.
+
+    sample_text should represent the widest expected value. For the
+    countdown timer, '88:88' is wider than ordinary timer values.
+    """
+    try:
+        available_width = max(
+            1,
+            int(widget.winfo_width() * width_fraction)
+        )
+        available_height = max(
+            1,
+            int(widget.winfo_height() * height_fraction)
+        )
+
+        options = dict(font_options)
+        options["size"] = minimum
+
+        probe_font = tkfont.Font(
+            root=widget,
+            **options
+        )
+
+        low = minimum
+        high = maximum
+        best = minimum
+
+        while low <= high:
+            candidate = (low + high) // 2
+            probe_font.configure(size=candidate)
+
+            text_width = probe_font.measure(sample_text)
+            text_height = probe_font.metrics("linespace")
+
+            if (
+                text_width <= available_width
+                and text_height <= available_height
+            ):
+                best = candidate
+                low = candidate + 1
+            else:
+                high = candidate - 1
+
+        return best
+
+    except (
+        tk.TclError,
+        TypeError,
+        ValueError
+    ):
+        return minimum
+
 
 def create_display_window(app):
     """Create or bring forward the external scoreboard display window."""
@@ -366,14 +431,13 @@ def create_display_window(app):
                 min(2.0, scale_factor)
             )
 
+            # These presentation fonts continue to scale from the
+            # overall window dimensions.
             base_sizes = {
                 "half": 40,
                 "team": 30,
                 "game_no": 22,
-
-                # The timer is deliberately larger than the scores.
                 "score": 145,
-                "timer": 180,
 
                 # Preserve the existing referee-timeout scale.
                 "referee_timeout_timer": 24,
@@ -389,6 +453,26 @@ def create_display_window(app):
                             round(base_size * scale_factor)
                         )
                     )
+
+            # Fit the timer independently to its actual 50%-wide panel.
+            # This allows it to become much larger on a full display
+            # while still fitting in the 900x600 development window.
+            timer_font = app.display_fonts.get("timer")
+
+            if timer_font is not None:
+                timer_size = _largest_fitting_font_size(
+                    widget=app.display_timer_label,
+                    sample_text="88:88",
+                    font_options=timer_font.actual(),
+                    width_fraction=0.95,
+                    height_fraction=0.82,
+                    minimum=40,
+                    maximum=420
+                )
+
+                timer_font.configure(
+                    size=timer_size
+                )
 
         except (
             tk.TclError,
@@ -972,11 +1056,24 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
                 )
             )
 
-            # Timer is deliberately larger than the scores.
+            # Fit the timer independently to its actual centre panel.
+            mirror_timer_size = _largest_fitting_font_size(
+                widget=widgets["timer"],
+                sample_text="88:88",
+                font_options={
+                    "family": "Arial",
+                    "weight": "bold"
+                },
+                width_fraction=0.95,
+                height_fraction=0.82,
+                minimum=40,
+                maximum=420
+            )
+
             widgets["timer"].config(
                 font=(
                     "Arial",
-                    scaled_size(180),
+                    mirror_timer_size,
                     "bold"
                 )
             )
