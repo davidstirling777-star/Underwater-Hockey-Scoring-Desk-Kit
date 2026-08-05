@@ -447,27 +447,7 @@ def create_display_window(app):
         _ensure_presentation_timer_var(app)
     )
 
-    # Main countdown timer.
-    app.display_timer_label = tk.Label(
-        tab,
-        textvariable=presentation_timer_var,
-        font=app.display_fonts["timer"],
-        bg=DISPLAY_GREY,
-        fg="black",
-        anchor="center",
-        width=1,
-        bd=0,
-        highlightthickness=0
-    )
-    app.display_timer_label.grid(
-        row=3,
-        column=3,
-        rowspan=8,
-        columnspan=6,
-        padx=1,
-        pady=1,
-        sticky="nsew"
-    )
+# Main countdown timer.
 
     # Referee time-out overlay.
     app.display_referee_timeout_timer_label = tk.Label(
@@ -500,7 +480,6 @@ def create_display_window(app):
         app.display_game_label,
         app.display_black_team_name_widget,
         app.display_white_score,
-        app.display_timer_label,
         app.display_black_score,
         app.display_referee_timeout_timer_label,
     )
@@ -532,10 +511,10 @@ def create_display_window(app):
                 return
 
             timer_panel_width = (
-                app.display_timer_label.winfo_width()
+                app.display_timer_panel.winfo_width()
             )
             timer_panel_height = (
-                app.display_timer_label.winfo_height()
+                app.display_timer_panel.winfo_height()
             )
 
             # The outer frame can reach its final dimensions before
@@ -599,28 +578,25 @@ def create_display_window(app):
             # Fit the timer independently to its actual 50%-wide panel.
             # This allows it to become much larger on a full display
             # while still fitting in the 900x600 development window.
-            timer_font = app.display_fonts.get("timer")
-
-            if timer_font is not None:
-                timer_sample = (
-                    _presentation_timer_fit_sample(
-                        presentation_timer_var.get()
-                    )
+            timer_sample = (
+                _presentation_timer_fit_sample(
+                    presentation_timer_var.get()
                 )
+            )
 
-                timer_size = _largest_fitting_font_size(
-                    widget=app.display_timer_label,
-                    sample_text=timer_sample,
-                    font_options=timer_font.actual(),
-                    width_fraction=0.95,
-                    height_fraction=0.82,
-                    minimum=40,
-                    maximum=420
-                )
+            timer_size = _largest_fitting_font_size(
+                widget=app.display_timer_panel,
+                sample_text=timer_sample,
+                font_options=presentation_timer_font.actual(),
+                width_fraction=0.95,
+                height_fraction=0.82,
+                minimum=40,
+                maximum=420
+            )
 
-                timer_font.configure(
-                    size=timer_size
-                )
+            presentation_timer_font.configure(
+                size=timer_size
+            )
 
         except (
             tk.TclError,
@@ -1131,17 +1107,14 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
         _ensure_presentation_timer_var(app)
     )
 
-    widgets["timer"] = tk.Label(
+    # Fixed centre panel for the mirrored timer.
+    widgets["timer_panel"] = tk.Frame(
         tab,
-        textvariable=presentation_timer_var,
         bg=DISPLAY_GREY,
-        fg="black",
-        anchor="center",
-        width=1,
         bd=0,
         highlightthickness=0
     )
-    widgets["timer"].grid(
+    widgets["timer_panel"].grid(
         row=3,
         column=3,
         rowspan=8,
@@ -1149,6 +1122,31 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
         sticky="nsew",
         padx=1,
         pady=1
+    )
+    widgets["timer_panel"].grid_propagate(False)
+
+    mirror_timer_font = tkfont.Font(
+        root=window,
+        family="Arial",
+        size=40,
+        weight="bold"
+    )
+
+    widgets["timer"] = tk.Label(
+        widgets["timer_panel"],
+        textvariable=presentation_timer_var,
+        font=mirror_timer_font,
+        bg=DISPLAY_GREY,
+        fg="black",
+        anchor="center",
+        bd=0,
+        highlightthickness=0
+    )
+    widgets["timer"].place(
+        x=0,
+        y=0,
+        relwidth=1.0,
+        relheight=1.0
     )
 
     widgets["black_score"] = tk.Label(
@@ -1195,7 +1193,6 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
         "black_name",
         "half",
         "white_score",
-        "timer",
         "black_score",
         "ref",
     ):
@@ -1304,8 +1301,12 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
             if width < 100 or height < 100:
                 return
 
-            timer_panel_width = widgets["timer"].winfo_width()
-            timer_panel_height = widgets["timer"].winfo_height()
+            timer_panel_width = (
+                widgets["timer_panel"].winfo_width()
+            )
+            timer_panel_height = (
+                widgets["timer_panel"].winfo_height()
+            )
 
             if (
                 timer_panel_width < 100
@@ -1381,12 +1382,9 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
 
             mirror_timer_size = (
                 _largest_fitting_font_size(
-                    widget=widgets["timer"],
+                    widget=widgets["timer_panel"],
                     sample_text=mirror_timer_sample,
-                    font_options={
-                        "family": "Arial",
-                        "weight": "bold"
-                    },
+                    font_options=mirror_timer_font.actual(),
                     width_fraction=0.95,
                     height_fraction=0.82,
                     minimum=40,
@@ -1394,12 +1392,8 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
                 )
             )
 
-            widgets["timer"].config(
-                font=(
-                    "Arial",
-                    mirror_timer_size,
-                    "bold"
-                )
+            mirror_timer_font.configure(
+                size=mirror_timer_size
             )
 
             widgets["white_score"].config(
