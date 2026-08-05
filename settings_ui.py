@@ -541,11 +541,44 @@ def create_settings_tab(app):
         padx=(0, 4),
         pady=(8, 2)
     )
+    # ------------------------------------------------------------
+    # Tournament-list enable/disable control
+    # ------------------------------------------------------------
+    #
+    # This deliberately defaults to True each time the application
+    # starts. The checkbox controls whether tournament team names are
+    # used, but does not prevent the CSV folder from being opened.
+    app.use_tournament_list_var = tk.BooleanVar(
+        master=app.master,
+        value=True
+    )
 
+    use_tournament_list_checkbox = ttk.Checkbutton(
+        widget4,
+        text="Use Tournament List?",
+        variable=app.use_tournament_list_var,
+        command=app.on_use_tournament_list_changed
+    )
+    use_tournament_list_checkbox.grid(
+        row=1,
+        column=0,
+        sticky="w",
+        padx=(8, 4),
+        pady=2
+    )
+
+    # ------------------------------------------------------------
+    # Tournament-draw CSV dropdown
+    # ------------------------------------------------------------
     csv_files = app.get_csv_files()
 
     app.csv_var = tk.StringVar(
-        value=csv_files[0] if csv_files else "No CSV files found"
+        master=app.master,
+        value=(
+            csv_files[0]
+            if csv_files
+            else "No CSV files found"
+        )
     )
 
     app.csv_dropdown = ttk.Combobox(
@@ -553,15 +586,15 @@ def create_settings_tab(app):
         textvariable=app.csv_var,
         values=csv_files,
         state="readonly",
-        width=20,
+        width=16,
         postcommand=app.refresh_csv_dropdown
     )
     app.csv_dropdown.grid(
         row=1,
         column=1,
-        columnspan=4,
+        columnspan=3,
         sticky="ew",
-        padx=8,
+        padx=(4, 4),
         pady=2
     )
     app.csv_dropdown.bind(
@@ -569,10 +602,37 @@ def create_settings_tab(app):
         app.on_csv_file_changed
     )
 
+    # ------------------------------------------------------------
+    # Open Folder button — promoted to the tournament CSV line
+    # ------------------------------------------------------------
+    open_folder_btn = tk.Button(
+        widget4,
+        text="Open Folder",
+        font=(
+            default_font.cget("family"),
+            default_font.cget("size")
+        ),
+        command=app.open_csv_folder,
+        width=12
+    )
+    open_folder_btn.grid(
+        row=1,
+        column=4,
+        sticky="e",
+        padx=(4, 8),
+        pady=2
+    )
+
+    # ------------------------------------------------------------
+    # Starting game number
+    # ------------------------------------------------------------
     tk.Label(
         widget4,
         text="Starting Game #:",
-        font=(default_font.cget("family"), default_font.cget("size")),
+        font=(
+            default_font.cget("family"),
+            default_font.cget("size")
+        ),
         anchor="w"
     ).grid(
         row=2,
@@ -582,7 +642,10 @@ def create_settings_tab(app):
         pady=(8, 2)
     )
 
-    app.starting_game_var = tk.StringVar(value="")
+    app.starting_game_var = tk.StringVar(
+        master=app.master,
+        value=""
+    )
 
     app.starting_game_dropdown = ttk.Combobox(
         widget4,
@@ -595,7 +658,7 @@ def create_settings_tab(app):
         row=2,
         column=1,
         sticky="w",
-        padx=8,
+        padx=(4, 8),
         pady=(8, 2)
     )
     app.starting_game_dropdown.bind(
@@ -603,15 +666,21 @@ def create_settings_tab(app):
         app.on_game_selection_changed
     )
 
+    # ------------------------------------------------------------
+    # Court CSV numbering mode
+    # ------------------------------------------------------------
     tk.Label(
         widget4,
-        text="This court uses:",
-        font=(default_font.cget("family"), default_font.cget("size")),
+        text="CSV File:",
+        font=(
+            default_font.cget("family"),
+            default_font.cget("size")
+        ),
         anchor="w"
     ).grid(
         row=2,
         column=2,
-        sticky="w",
+        sticky="e",
         padx=(12, 4),
         pady=(8, 2)
     )
@@ -619,15 +688,19 @@ def create_settings_tab(app):
     app.court_game_mode_dropdown = ttk.Combobox(
         widget4,
         textvariable=app.court_game_mode_var,
-        values=("even", "odd", "consecutive"),
+        values=(
+            "even",
+            "odd",
+            "consecutive"
+        ),
         state="readonly",
         width=12
     )
     app.court_game_mode_dropdown.grid(
         row=2,
-        column=2,
+        column=3,
         sticky="w",
-        padx=(4, 0),
+        padx=(4, 8),
         pady=(8, 2)
     )
     app.court_game_mode_dropdown.bind(
@@ -635,25 +708,9 @@ def create_settings_tab(app):
         app.on_court_game_mode_changed
     )
 
-    open_folder_btn = tk.Button(
-        widget4,
-        text="Open Folder",
-        font=(
-            default_font.cget("family"),
-            default_font.cget("size")
-        ),
-        command=app.open_csv_folder,
-        width=12
-    )
-    open_folder_btn.grid(
-        row=2,
-        column=4,
-        sticky="e",
-        padx=8,
-        pady=(8, 2)
-    )
-
+    # Load the selected CSV and then apply the initial checkbox state.
     app.on_csv_file_changed()
+    app.on_use_tournament_list_changed()
 
     csv_comment = tk.Label(
         widget4,
