@@ -447,7 +447,56 @@ def create_display_window(app):
         _ensure_presentation_timer_var(app)
     )
 
-# Main countdown timer.
+    # Fixed timer panel.
+    #
+    # The panel is managed by the presentation grid. The timer label
+    # is placed inside the panel, so changing its font size cannot
+    # resize any rows, columns, scores or neighbouring widgets.
+    app.display_timer_panel = tk.Frame(
+        tab,
+        bg=DISPLAY_GREY,
+        bd=0,
+        highlightthickness=0
+    )
+    app.display_timer_panel.grid(
+        row=3,
+        column=3,
+        rowspan=8,
+        columnspan=6,
+        padx=1,
+        pady=1,
+        sticky="nsew"
+    )
+    app.display_timer_panel.grid_propagate(False)
+
+    # Give the presentation timer its own font object. Changing this
+    # font cannot affect the operator timer or any other display widget.
+    presentation_timer_font_options = (
+        app.display_fonts["timer"].actual()
+    )
+    presentation_timer_font_options["size"] = 40
+
+    presentation_timer_font = tkfont.Font(
+        root=app.display_window,
+        **presentation_timer_font_options
+    )
+
+    app.display_timer_label = tk.Label(
+        app.display_timer_panel,
+        textvariable=presentation_timer_var,
+        font=presentation_timer_font,
+        bg=DISPLAY_GREY,
+        fg="black",
+        anchor="center",
+        bd=0,
+        highlightthickness=0
+    )
+    app.display_timer_label.place(
+        x=0,
+        y=0,
+        relwidth=1.0,
+        relheight=1.0
+    )
 
     # Referee time-out overlay.
     app.display_referee_timeout_timer_label = tk.Label(
