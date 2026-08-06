@@ -663,13 +663,21 @@ class GameManagementApp:
         splash.title("Initializing UWH Scoring Desk")
         splash_width = 620
 
-        # Use almost all of the available screen height. On a 1080p
-        # display this produces a 1000-pixel-high startup window; on
-        # taller displays it can grow to nearly twice the old height.
+        # Use about three quarters of the available screen height.
+        # This keeps the complete self-test visible without making the
+        # startup window dominate the screen.
         screen_height = master.winfo_screenheight()
-        splash_height = max(
+        available_height = max(
             400,
-            min(1400, screen_height - 80)
+            screen_height - 80
+        )
+        splash_height = max(
+            560,
+            int(available_height * 0.75)
+        )
+        splash_height = min(
+            splash_height,
+            available_height
         )
 
         splash.geometry(
