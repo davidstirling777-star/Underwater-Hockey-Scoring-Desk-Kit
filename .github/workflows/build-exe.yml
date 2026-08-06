@@ -1,4 +1,3 @@
-
 name: Build and Release Windows EXE
 
 on:
@@ -63,11 +62,14 @@ jobs:
             -DestinationPath "release\UnderwaterHockeyScoringDesk-v${{ env.RELEASE_SERIES }}.${{ github.run_number }}-Windows.zip" `
             -Force
 
+      # Upload the uncompressed PyInstaller folder as the Actions artifact.
+      # GitHub automatically packages an Actions artifact as a ZIP download,
+      # so uploading the folder avoids a ZIP file inside another ZIP file.
       - name: Upload build artifact
         uses: actions/upload-artifact@v7.0.1
         with:
           name: UWH-Scoring-Desk-v${{ env.RELEASE_SERIES }}.${{ github.run_number }}-Windows
-          path: release/UnderwaterHockeyScoringDesk-v${{ env.RELEASE_SERIES }}.${{ github.run_number }}-Windows.zip
+          path: dist/UnderwaterHockeyScoringDesk/
           if-no-files-found: error
 
       - name: Create GitHub Release
