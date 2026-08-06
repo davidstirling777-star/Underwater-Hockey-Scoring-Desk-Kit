@@ -90,7 +90,7 @@ def show_penalties(app, trigger_button=None):
 
     tk.Radiobutton(
         radio_frame,
-        text="Rest of the match",
+        text="Total Dismissal",
         variable=radio_variable,
         value="Rest of the match",
         tristatevalue="__tristate__"
@@ -119,7 +119,7 @@ def show_penalties(app, trigger_button=None):
 
         for penalty in app.engine.active_penalties:
             if penalty["is_rest_of_match"]:
-                time_str = "REST OF MATCH"
+                time_str = "TOTAL DISMISSAL"
             else:
                 mins, secs = divmod(penalty["seconds_remaining"], 60)
                 time_str = f"{int(mins):02d}:{int(secs):02d}"
