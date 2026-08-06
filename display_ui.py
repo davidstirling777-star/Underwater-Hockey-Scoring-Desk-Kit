@@ -220,9 +220,10 @@ def create_display_window(app):
     # Row 2: Full-width period banner
     # Rows 3-10: White score / timer / Black score
     #
-    # Twelve equal grid columns allow:
-    #     4 + 4 + 4 = three equal top blocks
-    #     3 + 6 + 3 = 25% score / 50% timer / 25% score
+    # Twelve equal grid columns allow every presentation row to use:
+    #     3 + 6 + 3
+    #     25% White / 50% centre / 25% Black
+    
     for row in range(11):
         tab.grid_rowconfigure(row, weight=1)
 
@@ -268,7 +269,7 @@ def create_display_window(app):
     app.display_white_label.grid(
         row=0,
         column=0,
-        columnspan=4,
+        columnspan=3,
         padx=1,
         pady=1,
         sticky="nsew"
@@ -285,8 +286,8 @@ def create_display_window(app):
     
     app.display_black_label.grid(
         row=0,
-        column=8,
-        columnspan=4,
+        column=9,
+        columnspan=3,
         padx=1,
         pady=1,
         sticky="nsew"
@@ -302,8 +303,8 @@ def create_display_window(app):
     
     app.display_penalty_area_frame.grid(
         row=0,
-        column=4,
-        columnspan=4,
+        column=3,
+        columnspan=6,
         padx=1,
         pady=1,
         sticky="nsew"
@@ -355,7 +356,7 @@ def create_display_window(app):
     app.display_white_team_name_widget.grid(
         row=1,
         column=0,
-        columnspan=4,
+        columnspan=3,
         padx=1,
         pady=1,
         sticky="nsew"
@@ -372,8 +373,8 @@ def create_display_window(app):
     )
     app.display_black_team_name_widget.grid(
         row=1,
-        column=8,
-        columnspan=4,
+        column=9,
+        columnspan=3,
         padx=1,
         pady=1,
         sticky="nsew"
@@ -393,8 +394,8 @@ def create_display_window(app):
     )
     app.display_game_label.grid(
         row=1,
-        column=4,
-        columnspan=4,
+        column=3,
+        columnspan=6,
         padx=1,
         pady=1,
         sticky="nsew"
@@ -607,7 +608,10 @@ def create_display_window(app):
                 "half": 40,
                 "team": 30,
                 "game_no": 22,
-                "score": 145,
+
+                # Scores can only reach two digits, so they can use
+                # substantially more of their fixed 25% panels.
+                "score": 190,
 
                 # Preserve the existing referee-timeout scale.
                 "referee_timeout_timer": 24,
@@ -1005,7 +1009,7 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
     widgets["white_colour"].grid(
         row=0,
         column=0,
-        columnspan=4,
+        columnspan=3,
         sticky="nsew",
         padx=1,
         pady=1
@@ -1020,8 +1024,8 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
     )
     widgets["black_colour"].grid(
         row=0,
-        column=8,
-        columnspan=4,
+        column=9,
+        columnspan=3,
         sticky="nsew",
         padx=1,
         pady=1
@@ -1036,8 +1040,8 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
     )
     penalty_area.grid(
         row=0,
-        column=4,
-        columnspan=4,
+        column=3,
+        columnspan=6,
         sticky="nsew",
         padx=1,
         pady=1
@@ -1077,7 +1081,7 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
     widgets["white_name"].grid(
         row=1,
         column=0,
-        columnspan=4,
+        columnspan=3,
         sticky="nsew",
         padx=1,
         pady=1
@@ -1095,8 +1099,8 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
     )
     widgets["game"].grid(
         row=1,
-        column=4,
-        columnspan=4,
+        column=3,
+        columnspan=6,
         sticky="nsew",
         padx=1,
         pady=1
@@ -1110,8 +1114,8 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
     )
     widgets["black_name"].grid(
         row=1,
-        column=8,
-        columnspan=4,
+        column=9,
+        columnspan=3,
         sticky="nsew",
         padx=1,
         pady=1
@@ -1491,7 +1495,7 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
             widgets["white_score"].config(
                 font=(
                     "Arial",
-                    scaled_size(145),
+                    scaled_size(190),
                     "bold"
                 )
             )
@@ -1499,7 +1503,7 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
             widgets["black_score"].config(
                 font=(
                     "Arial",
-                    scaled_size(145),
+                    scaled_size(190),
                     "bold"
                 )
             )
