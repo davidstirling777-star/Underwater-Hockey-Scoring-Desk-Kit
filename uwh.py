@@ -668,7 +668,7 @@ class GameManagementApp:
         # taller displays it can grow to nearly twice the old height.
         screen_height = master.winfo_screenheight()
         splash_height = max(
-            600,
+            400,
             min(1400, screen_height - 80)
         )
 
