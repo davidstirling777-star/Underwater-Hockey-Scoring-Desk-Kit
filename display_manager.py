@@ -32,7 +32,7 @@ def format_penalty_label(p):
         # CMAS terminology for a penalty lasting for the remainder
         # of the match. The line break keeps the text readable in
         # the narrow penalty cells used on the display windows.
-        return f"{cap_str}  TOTAL\nDISMISSAL"
+        return f"{cap_str}  TOTAL DISMISSAL"
 
     mins, secs = divmod(
         p["seconds_remaining"],
