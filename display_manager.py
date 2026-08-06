@@ -15,16 +15,29 @@ def sync_penalty_display_to_external(app):
         if getattr(app, "DEBUG_MODE", False):
             print(f"Penalty display sync error: {e}")
 
+
 def penalty_sort_key(p):
-    return p["seconds_remaining"] if not p["is_rest_of_match"] else 999999
+    return (
+        p["seconds_remaining"]
+        if not p["is_rest_of_match"]
+        else 999999
+    )
+
 
 def format_penalty_label(p):
+    """Return the penalty text shown on operator and display screens."""
     cap_str = f"#{p['cap']}"
 
     if p["is_rest_of_match"]:
-        time_str = "rest"
-    else:
-        mins, secs = divmod(p["seconds_remaining"], 60)
-        time_str = f"{mins}:{secs:02d}"
+        # CMAS terminology for a penalty lasting for the remainder
+        # of the match. The line break keeps the text readable in
+        # the narrow penalty cells used on the display windows.
+        return f"{cap_str}  TOTAL\nDISMISSAL"
+
+    mins, secs = divmod(
+        p["seconds_remaining"],
+        60
+    )
+    time_str = f"{mins}:{secs:02d}"
 
     return f"{cap_str}  {time_str}"
