@@ -529,18 +529,6 @@ def create_settings_tab(app):
         sticky="ew"
     )
 
-    tk.Label(
-        widget4,
-        text="CSV File:",
-        font=(default_font.cget("family"), default_font.cget("size")),
-        anchor="w"
-    ).grid(
-        row=2,
-        column=1,
-        sticky="e",
-        padx=(0, 4),
-        pady=(8, 2)
-    )
     # ------------------------------------------------------------
     # Tournament-list enable/disable control
     # ------------------------------------------------------------
@@ -671,7 +659,7 @@ def create_settings_tab(app):
     # ------------------------------------------------------------
     tk.Label(
         widget4,
-        text="CSV File:",
+        text="This court uses numbers:",
         font=(
             default_font.cget("family"),
             default_font.cget("size")
@@ -681,10 +669,9 @@ def create_settings_tab(app):
         row=2,
         column=2,
         sticky="e",
-        padx=(12, 4),
+        padx=(16, 4),
         pady=(8, 2)
     )
-
     app.court_game_mode_dropdown = ttk.Combobox(
         widget4,
         textvariable=app.court_game_mode_var,
