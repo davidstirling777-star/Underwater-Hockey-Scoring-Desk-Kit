@@ -1288,25 +1288,20 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
         try:
             if not window.winfo_exists():
                 return
+
             use_tournament_list = True
 
             try:
-                if hasattr(
-                    app,
-                    "use_tournament_list_var"
-                ):
+                if hasattr(app, "use_tournament_list_var"):
                     use_tournament_list = bool(
                         app.use_tournament_list_var.get()
                     )
-
             except tk.TclError:
                 use_tournament_list = True
 
             show_names = (
                 use_tournament_list
-                and bool(
-                    app.show_display_team_names_var.get()
-                )
+                and bool(app.show_display_team_names_var.get())
             )
 
             if not use_tournament_list:
@@ -1316,90 +1311,93 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
             elif show_names:
                 try:
                     white_name = (
-                        app.white_team_name_widget.cget(
-                            "text"
-                        )
-                        or ""
+                        app.white_team_name_widget.cget("text") or ""
                     )
                     black_name = (
-                        app.black_team_name_widget.cget(
-                            "text"
-                        )
-                        or ""
+                        app.black_team_name_widget.cget("text") or ""
                     )
-
-                except (
-                    AttributeError,
-                    tk.TclError
-                ):
+                except (AttributeError, tk.TclError):
                     white_name = ""
                     black_name = ""
 
             else:
-                # Preserve the existing mirror behaviour when the
-                # Tournament List is enabled but Show Team Names is off.
+                # Preserve existing mirror behaviour.
                 white_name = app.white_team_var.get()
                 black_name = app.black_team_var.get()
-            widgets["white_name"].config(
-                text=white_name
-            )
-            widgets["black_name"].config(
-                text=black_name
-            )
 
-            formatted_timer = (
-                _format_presentation_timer_text(
-                    app.timer_var.get()
-                )
-            )
+            # Update team names only when they change.
+            if widgets["white_name"].cget("text") != white_name:
+                widgets["white_name"].config(text=white_name)
 
-            if (
-                presentation_timer_var.get()
-                != formatted_timer
-            ):
-                presentation_timer_var.set(
-                    formatted_timer
-                )
+            if widgets["black_name"].cget("text") != black_name:
+                widgets["black_name"].config(text=black_name)
 
-            current_timer_sample = (
-                _presentation_timer_fit_sample(
-                    formatted_timer
-                )
+            # The timer text is shared with the primary presentation.
+            # Retain this check as a fallback, but avoid redundant writes.
+            formatted_timer = _format_presentation_timer_text(
+                app.timer_var.get()
             )
 
-            if (
-                current_timer_sample
-                != last_mirror_timer_sample
-            ):
-                last_mirror_timer_sample = (
-                    current_timer_sample
-                )
+            if presentation_timer_var.get() != formatted_timer:
+                presentation_timer_var.set(formatted_timer)
+
+            # Refit the mirror timer only when its format changes.
+            current_timer_sample = _presentation_timer_fit_sample(
+                formatted_timer
+            )
+
+            if current_timer_sample != last_mirror_timer_sample:
+                last_mirror_timer_sample = current_timer_sample
 
                 window.after_idle(
                     lambda: scale(force=True)
                 )
+
+            # Update the period background only if necessary.
             try:
-                widgets["half"].config(bg=app.half_label.cget("bg"))
+                background = app.half_label.cget("bg")
+
+                if widgets["half"].cget("bg") != background:
+                    widgets["half"].config(bg=background)
+
             except (AttributeError, tk.TclError):
                 pass
 
+            # Update penalty labels only when their text changes.
             active = sorted(
                 list(getattr(app.engine, "active_penalties", [])),
                 key=lambda item: app._penalty_sort_key(item)
             )[:6]
+
             for index, label in enumerate(penalty_labels):
                 if index < len(active):
-                    label.config(text=display_manager.format_penalty_label(active[index]))
+                    label_text = display_manager.format_penalty_label(
+                        active[index]
+                    )
                 else:
-                    label.config(text="")
+                    label_text = ""
 
+                if label.cget("text") != label_text:
+                    label.config(text=label_text)
+
+            # Change referee time-out visibility only when needed.
             try:
-                if app.referee_timeout_timer_label.winfo_ismapped():
+                should_show = (
+                    app.referee_timeout_timer_label.winfo_ismapped()
+                )
+
+                is_shown = bool(widgets["ref"].grid_info())
+
+                if should_show and not is_shown:
                     widgets["ref"].grid()
-                else:
+
+                elif not should_show and is_shown:
                     widgets["ref"].grid_remove()
+
             except (AttributeError, tk.TclError):
                 pass
+
+            # Keep the existing refresh interval for now.
             window.after(250, refresh)
 
         except tk.TclError:
