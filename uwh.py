@@ -613,6 +613,7 @@ class GameManagementApp:
         self.reset_timer_button = None
         self.in_timeout = False
         self.pending_timeout = None
+        self.team_timeout_saved_state = None
         self.sudden_death_timer_job = None
         self.next_game_transition_job = None
         self.next_game_preview_job = None
@@ -2932,8 +2933,15 @@ class GameManagementApp:
         prev_active_team = self.engine.active_timeout_team
         self.engine.end_timeout()
         self.court_time_paused = False
+        # Restart the court-time callback if it was cancelled,
+        # for example during an intervening referee time-out.
+        if self.court_time_job is None:
+            self.court_time_job = self.master.after(
+                1000,
+                self.update_court_time
+            )
         self.resume_all_penalty_timers()
-        state = self.engine.saved_state
+        state = self.team_timeout_saved_state
 
         self.engine.timer_running = state["timer_running"]
         self.engine.timer_seconds = state["timer_seconds"]
@@ -2991,7 +2999,7 @@ class GameManagementApp:
 
     def save_timer_state(self):
     
-        self.engine.saved_state = {
+        self.team_timeout_saved_state = {
             "timer_running": self.engine.timer_running,
             "timer_seconds": self.engine.timer_seconds,
             "current_index": self.engine.current_index,
