@@ -1896,45 +1896,45 @@ class GameManagementApp:
     def check_connection_status(self):
         return zigbee_control.check_connection_status(self)
 
-def update_zigbee_status(self, connected: bool, message: str = ""):
-    """
-    Receive Zigbee status changes from any thread.
-
-    Do not touch Tkinter here.  The MQTT/Zigbee controller can call this
-    method from a worker thread, so place the update in a thread-safe queue.
-    """
-    self.zigbee_status_queue.put(
-        (connected, message)
-    )
-
-def process_zigbee_status_queue(self):
-    """
-    Process queued Zigbee status updates from the Tkinter main thread.
-    """
-    try:
-        while True:
-            connected, message = self.zigbee_status_queue.get_nowait()
-
-            zigbee_control.update_zigbee_status(
-                self,
-                connected,
-                message
-            )
-
-    except queue.Empty:
-        pass
-
-    except tk.TclError:
-        # Application is closing.
-        return
-
-    try:
-        self._zigbee_status_queue_job = self.master.after(
-            100,
-            self.process_zigbee_status_queue
+    def update_zigbee_status(self, connected: bool, message: str = ""):
+        """
+        Receive Zigbee status changes from any thread.
+    
+        Do not touch Tkinter here.  The MQTT/Zigbee controller can call this
+        method from a worker thread, so place the update in a thread-safe queue.
+        """
+        self.zigbee_status_queue.put(
+            (connected, message)
         )
-    except tk.TclError:
-        pass
+    
+    def process_zigbee_status_queue(self):
+        """
+        Process queued Zigbee status updates from the Tkinter main thread.
+        """
+        try:
+            while True:
+                connected, message = self.zigbee_status_queue.get_nowait()
+    
+                zigbee_control.update_zigbee_status(
+                    self,
+                    connected,
+                    message
+                )
+    
+        except queue.Empty:
+            pass
+    
+        except tk.TclError:
+            # Application is closing.
+            return
+    
+        try:
+            self._zigbee_status_queue_job = self.master.after(
+                100,
+                self.process_zigbee_status_queue
+            )
+        except tk.TclError:
+            pass
 
     def update_usb_dongle_status(self, force_rescan=False):
         return zigbee_hardware_ui.update_usb_dongle_status(
