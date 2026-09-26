@@ -1070,30 +1070,51 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
         padx=1,
         pady=1
     )
+    penalty_area.grid_rowconfigure(0, weight=1)
     penalty_area.grid_columnconfigure(0, weight=1)
-    penalty_area.grid_columnconfigure(1, weight=1)
     penalty_area.grid_propagate(False)
 
-    penalty_labels = [
-        tk.Label(
+    # Use the same three-row White/Black penalty grid as Display Window 1.
+    penalty_grid_frame, penalty_labels_by_row = (
+        app.create_penalty_grid_widget(
             penalty_area,
-            bg=DISPLAY_GREY,
-            fg="black",
-            anchor="center"
+            is_display=True
         )
-        for _ in range(6)
+    )
+    penalty_grid_frame.configure(bg=DISPLAY_GREY)
+    penalty_grid_frame.grid(
+        row=0,
+        column=0,
+        sticky="nsew"
+    )
+    penalty_grid_frame.grid_remove()
+
+    # Column-major order for the mirror's existing font-scaling loop.
+    # White occupies indices 0-2 and Black occupies indices 3-5.
+    penalty_labels = [
+        penalty_labels_by_row[row][column]
+        for column in range(2)
+        for row in range(3)
     ]
 
-    for index, label in enumerate(penalty_labels):
-        label.grid(
-            row=index % 3,
-            column=index // 3,
-            sticky="nsew"
-        )
-        penalty_area.grid_rowconfigure(
-            index % 3,
-            weight=1
-        )
+    # The primary display replaces penalties with a Next Game banner.
+    # Give the mirror the same behaviour and preserve grid geometry.
+    widgets["next_game"] = tk.Label(
+        penalty_area,
+        text="Next Game",
+        bg=DISPLAY_GREY,
+        fg="black",
+        anchor="center",
+        width=1,
+        bd=0,
+        highlightthickness=0
+    )
+    widgets["next_game"].grid(
+        row=0,
+        column=0,
+        sticky="nsew"
+    )
+    widgets["next_game"].grid_remove()
 
     # Team names and game number.
     widgets["white_name"] = tk.Label(
@@ -1363,22 +1384,67 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
             except (AttributeError, tk.TclError):
                 pass
 
-            # Update penalty labels only when their text changes.
-            active = sorted(
-                list(getattr(app.engine, "active_penalties", [])),
-                key=lambda item: app._penalty_sort_key(item)
-            )[:6]
+            # Match the primary display's separate White/Black columns.
+            white_penalties = sorted(
+                [
+                    p for p in app.engine.active_penalties
+                    if p["team"] == "White"
+                ],
+                key=app._penalty_sort_key
+            )[:3]
+            black_penalties = sorted(
+                [
+                    p for p in app.engine.active_penalties
+                    if p["team"] == "Black"
+                ],
+                key=app._penalty_sort_key
+            )[:3]
 
-            for index, label in enumerate(penalty_labels):
-                if index < len(active):
-                    label_text = display_manager.format_penalty_label(
-                        active[index]
+            for column, team_penalties in enumerate(
+                (white_penalties, black_penalties)
+            ):
+                for row in range(3):
+                    label = penalty_labels[column * 3 + row]
+                    label_text = (
+                        display_manager.format_penalty_label(
+                            team_penalties[row]
+                        )
+                        if row < len(team_penalties)
+                        else ""
                     )
-                else:
-                    label_text = ""
+                    if label.cget("text") != label_text:
+                        label.config(text=label_text)
 
-                if label.cget("text") != label_text:
-                    label.config(text=label_text)
+            # Show the same penalty grid / Next Game / empty state as
+            # the primary display. Avoid redundant geometry updates.
+            show_next_game = bool(
+                getattr(app, "next_game_notice_active", False)
+            )
+            show_penalties = bool(
+                app.engine.active_penalties
+                or app.engine.stored_penalties
+            )
+
+            if show_next_game:
+                try:
+                    banner_bg = app.half_label.cget("bg")
+                    if widgets["next_game"].cget("bg") != banner_bg:
+                        widgets["next_game"].config(bg=banner_bg)
+                except (AttributeError, tk.TclError):
+                    pass
+
+                if penalty_grid_frame.winfo_manager():
+                    penalty_grid_frame.grid_remove()
+                if not widgets["next_game"].winfo_manager():
+                    widgets["next_game"].grid()
+            else:
+                if widgets["next_game"].winfo_manager():
+                    widgets["next_game"].grid_remove()
+                if show_penalties:
+                    if not penalty_grid_frame.winfo_manager():
+                        penalty_grid_frame.grid()
+                elif penalty_grid_frame.winfo_manager():
+                    penalty_grid_frame.grid_remove()
 
             # Change referee time-out visibility only when needed.
             try:
@@ -1485,6 +1551,12 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
                 )
 
             widgets["game"].config(
+                font=(
+                    "Arial",
+                    scaled_size(22)
+                )
+            )
+            widgets["next_game"].config(
                 font=(
                     "Arial",
                     scaled_size(22)
