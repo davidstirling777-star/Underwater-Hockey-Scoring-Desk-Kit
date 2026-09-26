@@ -219,7 +219,48 @@ class GameManagementApp:
     
         except tk.TclError:
             pass
+    def request_exit(self, event=None):
+        """Confirm and cleanly close the complete UWH application."""
+        try:
+            confirmed = messagebox.askyesno(
+                "Exit UWH Scoring Desk",
+                "Close the Underwater Hockey Scoring Desk?",
+                parent=self.master
+            )
+        except tk.TclError:
+            confirmed = True
 
+        if not confirmed:
+            return "break"
+
+        try:
+            self.stop_connection_watchdog()
+        except Exception as e:
+            print(f"Error stopping connection watchdog: {e}")
+
+        try:
+            controller = getattr(
+                self,
+                "zigbee_controller",
+                None
+            )
+            if controller is not None:
+                controller.stop()
+        except Exception as e:
+            print(f"Error stopping Zigbee controller: {e}")
+
+        try:
+            self.close_all_display_windows()
+        except Exception as e:
+            print(f"Error closing display windows: {e}")
+
+        try:
+            self.master.destroy()
+        except tk.TclError:
+            pass
+
+        return "break"
+        
     def close_all_display_windows(self):
         """Close every profile-managed external display window."""
         return display_ui.close_all_display_windows(self)
@@ -470,6 +511,12 @@ class GameManagementApp:
         self.master.geometry('1200x800')
         self.notebook = ttk.Notebook(master)
         self.notebook.pack(expand=True, fill='both',)
+
+        # Ctrl+Q always provides a way out of the application.
+        self.master.bind_all(
+            "<Control-q>",
+            self.request_exit
+        )
 
         # --- Variable and font setup ---
         self.variables = {
@@ -3530,17 +3577,9 @@ if __name__ == "__main__":
     root = tk.Tk()
     app = GameManagementApp(root)
     
-    def on_closing():
-        """Handle application shutdown."""
-        try:
-            # Stop connection watchdog
-            app.stop_connection_watchdog()
-            # Stop Zigbee controller
-            app.zigbee_controller.stop()
-        except Exception as e:
-            print(f"Error during cleanup: {e}")
-        finally:
-            root.destroy()
-    
-    root.protocol("WM_DELETE_WINDOW", on_closing)
-    root.mainloop()
+    # The title-bar close button, Exit Program button and Ctrl+Q
+    # all use the same clean shutdown path.
+    root.protocol(
+        "WM_DELETE_WINDOW",
+        app.request_exit
+    )
