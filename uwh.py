@@ -1,3 +1,5 @@
+#!/home/uwh/Downloads/Underwater-Hockey-Scoring-Desk-Kit-main/.venv/bin/python
+
 import csv_export
 import startup_selftest
 import csv_helpers
