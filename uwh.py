@@ -979,8 +979,7 @@ class GameManagementApp:
         splash_report("Screen configuration applied", True)
 
         self.start_penalty_display_updates()
-        self.sync_penalty_display_to_external()
-        splash_report("Penalty display synchronization started", True)
+        splash_report("Penalty display updates started", True)
 
         self.reset_timer()
         splash_report("Timer initialized", True)
@@ -1096,26 +1095,35 @@ class GameManagementApp:
                 pass
 
         def place_penalty_grid(grid_frame, area_frame_name):
-            """Put a penalty grid in its normal main/display location."""
-            area_frame = getattr(self, area_frame_name, None)
+            """Show the penalty grid only if it is not already shown."""
 
-            if area_frame is not None:
-                grid_frame.grid(
-                    row=0,
-                    column=0,
-                    padx=0,
-                    pady=0,
-                    sticky="nsew"
-                )
-            else:
-                grid_frame.grid(
-                    row=2,
-                    column=3,
-                    columnspan=3,
-                    padx=1,
-                    pady=1,
-                    sticky="nsew"
-                )
+            try:
+                # Avoid repeating the same grid operation every second.
+                if grid_frame.winfo_manager() == "grid":
+                    return
+
+                area_frame = getattr(self, area_frame_name, None)
+
+                if area_frame is not None:
+                    grid_frame.grid(
+                        row=0,
+                        column=0,
+                        padx=0,
+                        pady=0,
+                        sticky="nsew"
+                    )
+                else:
+                    grid_frame.grid(
+                        row=2,
+                        column=3,
+                        columnspan=3,
+                        padx=1,
+                        pady=1,
+                        sticky="nsew"
+                    )
+
+            except (AttributeError, tk.TclError):
+                pass
 
         def show_next_game_banner(
             banner_attribute,
