@@ -90,6 +90,7 @@ import datetime
 import re
 import time
 import threading
+import queue
 import subprocess
 import json
 import webbrowser
@@ -901,6 +902,12 @@ class GameManagementApp:
         self.connection_watchdog_max_attempts = 3
         self.connection_watchdog_job = None
         self.user_initiated_action = False
+        
+        # Thread-safe handoff from the Zigbee/MQTT worker thread
+        # to the Tkinter main thread.
+        self.zigbee_status_queue = queue.Queue()
+        self._zigbee_status_queue_job = None
+        
         splash_report("GUI tracking variables initialized", True)
 
         # 2. INITIALIZE ZIGBEE CONTROLLER NOW THAT STATUS VARS EXIST
@@ -1889,18 +1896,45 @@ class GameManagementApp:
     def check_connection_status(self):
         return zigbee_control.check_connection_status(self)
 
-    def update_zigbee_status(self, connected: bool, message: str = ""):
-        try:
-            self.master.after(
-                0,
-                lambda: zigbee_control.update_zigbee_status(
-                    self,
-                    connected,
-                    message
-                )
+def update_zigbee_status(self, connected: bool, message: str = ""):
+    """
+    Receive Zigbee status changes from any thread.
+
+    Do not touch Tkinter here.  The MQTT/Zigbee controller can call this
+    method from a worker thread, so place the update in a thread-safe queue.
+    """
+    self.zigbee_status_queue.put(
+        (connected, message)
+    )
+
+def process_zigbee_status_queue(self):
+    """
+    Process queued Zigbee status updates from the Tkinter main thread.
+    """
+    try:
+        while True:
+            connected, message = self.zigbee_status_queue.get_nowait()
+
+            zigbee_control.update_zigbee_status(
+                self,
+                connected,
+                message
             )
-        except Exception as e:
-            print(f"Error scheduling Zigbee status update: {e}")
+
+    except queue.Empty:
+        pass
+
+    except tk.TclError:
+        # Application is closing.
+        return
+
+    try:
+        self._zigbee_status_queue_job = self.master.after(
+            100,
+            self.process_zigbee_status_queue
+        )
+    except tk.TclError:
+        pass
 
     def update_usb_dongle_status(self, force_rescan=False):
         return zigbee_hardware_ui.update_usb_dongle_status(
@@ -3619,7 +3653,12 @@ if __name__ == "__main__":
         debug_root_destroy,
         add="+"
     )
-
+    # Start processing Zigbee worker-thread status messages once
+    # Tkinter's event loop begins.
+    root.after(
+        0,
+        app.process_zigbee_status_queue
+    )
     print("DEBUG: ABOUT TO ENTER TK MAINLOOP")
     root.mainloop()
     print("DEBUG: TK MAINLOOP RETURNED")
