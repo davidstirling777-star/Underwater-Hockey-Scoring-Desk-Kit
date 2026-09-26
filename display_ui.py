@@ -1615,7 +1615,6 @@ def _create_full_mirror_window(app, title, monitor, aspect=(16, 9)):
                     font=(
                         "Arial",
                         max(9, scaled_size(11)),
-                        "bold"
                     )
                 )
 
