@@ -730,6 +730,7 @@ def create_settings_tab(app):
     widget3.grid_columnconfigure(0, weight=1)
     widget3.grid_rowconfigure(0, weight=0)
     widget3.grid_rowconfigure(1, weight=1)
+    widget3.grid_rowconfigure(2, weight=0)
 
     explanation_header = tk.Label(
         widget3,
@@ -771,6 +772,29 @@ def create_settings_tab(app):
         pady=(2, 4),
         sticky="nsew"
     )
+
+    # Exit control is deliberately kept on the Game Variables tab,
+    # away from the normal match controls.
+    exit_frame = ttk.Frame(widget3)
+    exit_frame.grid(
+        row=2,
+        column=0,
+        sticky="e",
+        padx=8,
+        pady=(2, 8)
+    )
+
+    app.exit_program_button = tk.Button(
+        exit_frame,
+        text="Exit Program",
+        bg="red",
+        fg="white",
+        activebackground="darkred",
+        activeforeground="white",
+        command=app.request_exit,
+        width=14
+    )
+    app.exit_program_button.pack()
 
     app.update_overtime_variables_state()
 
