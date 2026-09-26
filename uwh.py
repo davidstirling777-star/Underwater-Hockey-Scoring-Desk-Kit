@@ -223,6 +223,10 @@ class GameManagementApp:
             pass
     def request_exit(self, event=None):
         """Confirm and cleanly close the complete UWH application."""
+        print(
+            "DEBUG: request_exit() WAS CALLED",
+            f"event={event!r}"
+        )
         try:
             confirmed = messagebox.askyesno(
                 "Exit UWH Scoring Desk",
@@ -814,10 +818,33 @@ class GameManagementApp:
                 splash_report("Startup complete - opening application", True)
         
                 def finish_startup():
+                    print(
+                        "DEBUG: finish_startup() starting"
+                    )
+
                     splash.destroy()
-        
+
+                    print(
+                        "DEBUG: startup splash destroyed"
+                    )
+
+                    try:
+                        print(
+                            "DEBUG: main root exists:",
+                            self.master.winfo_exists()
+                        )
+                    except Exception as e:
+                        print(
+                            "DEBUG: unable to check root:",
+                            e
+                        )
+
                     self.master.lift()
                     self.master.focus_force()
+
+                    print(
+                        "DEBUG: finish_startup() completed"
+                    )
         
                 splash.after(2000, finish_startup)
         
@@ -3581,7 +3608,18 @@ if __name__ == "__main__":
     
     # The title-bar close button, Exit Program button and Ctrl+Q
     # all use the same clean shutdown path.
-    root.protocol(
-        "WM_DELETE_WINDOW",
-        app.request_exit
+    root.protocol("WM_DELETE_WINDOW", app.request_exit)
+
+    def debug_root_destroy(event):
+        if event.widget == root:
+            print("DEBUG: ROOT WINDOW IS BEING DESTROYED")
+
+    root.bind(
+        "<Destroy>",
+        debug_root_destroy,
+        add="+"
     )
+
+    print("DEBUG: ABOUT TO ENTER TK MAINLOOP")
+    root.mainloop()
+    print("DEBUG: TK MAINLOOP RETURNED")
