@@ -2952,19 +2952,42 @@ class GameManagementApp:
         # when timer_seconds == 1, before display changes to 00:00.
         # Do not play it here or it will be late / double-trigger.
 
-        # If a pending timeout exists, start it now
-        if self.pending_timeout is not None:
-            if self.pending_timeout == "white" and self.engine.white_timeouts_this_half < 1:
-                self.pending_timeout = None
-                self.white_team_timeout(preserve_saved_state=True)
-            elif self.pending_timeout == "black" and self.engine.black_timeouts_this_half < 1:
-                self.pending_timeout = None
-                self.black_team_timeout(preserve_saved_state=True)
-            else:
-                self.pending_timeout = None
+        # Start a queued second team time-out, if permitted.
+        pending = self.pending_timeout
+        self.pending_timeout = None
 
-        elif self.engine.timer_running:
-            self.timer_job = self.master.after(1000, self.countdown_timer)
+        if (
+            pending == "white"
+            and self.engine.white_timeouts_this_half < 1
+        ):
+            self.white_team_timeout(preserve_saved_state=True)
+            if self.in_timeout:
+                return
+
+        elif (
+            pending == "black"
+            and self.engine.black_timeouts_this_half < 1
+        ):
+            self.black_team_timeout(preserve_saved_state=True)
+            if self.in_timeout:
+                return
+
+        # No second time-out started. Restore the original game clock,
+        # but only if it was running before the time-out.
+        if self.engine.timer_running:
+            self.timer_job = self.master.after(
+                1000,
+                self.countdown_timer
+            )
+
+        print(
+            "TEAM TIMEOUT END:",
+            f"running={self.engine.timer_running}",
+            f"seconds={self.engine.timer_seconds}",
+            f"job={self.timer_job}",
+            f"pending={pending}",
+            flush=True
+        )
 
     def save_timer_state(self):
     
