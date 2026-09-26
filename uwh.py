@@ -2168,19 +2168,45 @@ class GameManagementApp:
         return display_ui.create_display_window(self)
     
     def sync_display_widgets(self):
-        """Safely sync display window background colors."""
-        def sync_backgrounds():
+        """
+        Synchronise presentation period backgrounds only when needed.
+
+        Called when the period background changes or when a
+        presentation window is first created. No polling.
+        """
+        try:
+            background = self.half_label.cget("bg")
+        except (AttributeError, tk.TclError):
+            return
+
+        # Primary presentation window.
+        labels = [
+            getattr(self, "display_half_label", None)
+        ]
+
+        # Additional mirrored presentation windows, if present.
+        for bundle in getattr(
+            self,
+            "display_mirror_bundles",
+            []
+        ):
+            labels.append(
+                bundle.get("widgets", {}).get("half")
+            )
+
+        for label in labels:
+            if label is None:
+                continue
+
             try:
-                # Check if display window still exists before updating
-                if self.display_window.winfo_exists():
-                    self.display_half_label.config(bg=self.half_label.cget("bg"))
-                    self.master.after(200, sync_backgrounds)
-                # If window is closed, the loop stops automatically
-            except (tk.TclError, AttributeError, RuntimeError):
-                # Silently stop if widgets are destroyed
+                if (
+                    label.winfo_exists()
+                    and label.cget("bg") != background
+                ):
+                    label.config(bg=background)
+
+            except (AttributeError, tk.TclError):
                 pass
-        
-        sync_backgrounds()
     
     def reset_timer(self):
         self.white_score_var.set(0)
@@ -2915,6 +2941,7 @@ class GameManagementApp:
 
         self.half_label_var.set(state["half_label"])
         self.half_label.config(bg=state["half_label_bg"])
+        self.sync_display_widgets()
         self.update_timer_display()
 
         if self.timer_job:
@@ -2982,10 +3009,17 @@ class GameManagementApp:
             "black_team_time-out"
         }
         internal_name = period_name.lower().replace(" ", "_")
+
         if "time_out" in internal_name or internal_name in red_periods:
-            self.half_label.config(bg="red")
+            background = "red"
         else:
-            self.half_label.config(bg="lightblue")
+            background = "lightblue"
+
+        if self.half_label.cget("bg") != background:
+            self.half_label.config(bg=background)
+
+        # Event-driven update of presentation backgrounds.
+        self.sync_display_widgets()
 
     def convert_duration_to_seconds(self, duration):
         if duration == "1 minute":
@@ -3285,6 +3319,7 @@ class GameManagementApp:
 
             self.half_label_var.set("Ref Time-Out")
             self.half_label.config(bg="red")
+            self.sync_display_widgets()
 
             self.referee_timeout_timer_label.grid()
 
@@ -3342,6 +3377,7 @@ class GameManagementApp:
             self.half_label.config(
                 bg=self.engine.saved_state["half_label_bg"]
             )
+            self.sync_display_widgets()
 
             self.court_time_paused = self.engine.saved_state.get(
                 "court_time_paused",
