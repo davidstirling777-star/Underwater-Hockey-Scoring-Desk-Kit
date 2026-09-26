@@ -660,7 +660,7 @@ def create_display_window(app):
 
     last_timer_fit_sample = None
 
-    def refresh_presentation_timer():
+    def refresh_presentation_timer(*_args):
         """
         Keep the presentation timer synchronised with app.timer_var.
 
@@ -707,10 +707,6 @@ def create_display_window(app):
                     )
                 )
 
-            app.display_window.after(
-                100,
-                refresh_presentation_timer
-            )
 
         except (
             tk.TclError,
@@ -722,6 +718,34 @@ def create_display_window(app):
     app.display_window.bind(
         "<Configure>",
         scale_presentation_fonts
+    )
+    # Update the presentation timer whenever the operator's
+    # timer StringVar changes. No continuous polling.
+    presentation_window = app.display_window
+
+    timer_trace_id = app.timer_var.trace_add(
+        "write",
+        refresh_presentation_timer
+    )
+
+    # Remove the callback when this presentation window closes.
+    # This prevents duplicate callbacks if the window is reopened.
+    def detach_presentation_timer_trace(event):
+        if event.widget is not presentation_window:
+            return
+
+        try:
+            app.timer_var.trace_remove(
+                "write",
+                timer_trace_id
+            )
+        except tk.TclError:
+            pass
+
+    presentation_window.bind(
+        "<Destroy>",
+        detach_presentation_timer_trace,
+        add="+"
     )
 
     # Calculate dimensions only after widgets have been laid out.
