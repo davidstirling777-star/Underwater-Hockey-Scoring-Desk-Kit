@@ -1,9 +1,19 @@
 # Hardware Setup and Detection Guide
 
 Example hardware:
-Inital setup uses a MINIX Fanless MiniPC Z150-0dB Intel N150 8G/256GB.  Why? Because it runs on 12 V and runs Windows 11.
+Inital setup uses a MINIX Fanless MiniPC Z150-0dB Intel N150 8G/256GB.  Why? Because it runs on 12-1 V and runs Windows 11.  
+The app runs well (see caveat below) on a Raspberry Pi 5 using Bookworm.
 Two MSI Pro MP273A 27" FHD 100Hz Business Monitors or similar.  Why? Because a lot of MSI monitors runs on 12 V.
 The assumption is that both the computer and screens are powered from a battery that is being contantly charged.
+
+If you are using a Raspberry Pi 5, it is important to use X11 rather than Wayland.  Sometimes 1980s tech beats 2008 tech. Wayland is the direction Linux desktop development is moving, but X11 remains a perfectly usable option.  Maybe they will fix it one day.  
+
+Open a terminal.
+Enter:
+sudo raspi-config
+Navigate to 6 Advanced Options → A7 Wayland.
+Select W1 X11.
+Select Finish and reboot the Pi.
 
 Siren is triggered manually using an Arduino Nano Every (with headers) plugged into an Arduino Nano Screw Terminal Adapter.  Connect a pull-up resistor between Pin A4 (Pin 18) and +5V (or 3V3 for the nano).  Connect a Normally Open (NO) momentary switch between Ground (GND) and Pin A4 (Pin 18). In the photo, is attached an absolutely optional Adafruit NeoPixel stick to D2, 5V and GND (two wires).
 
