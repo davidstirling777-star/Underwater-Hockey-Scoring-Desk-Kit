@@ -942,9 +942,28 @@ def _place_window(window, monitor, aspect=None):
     width = monitor["width"]
     height = monitor["height"]
 
+    # Raspberry Pi / Linux:
+    # Reserve room for the desktop panel and native title bar.
+    # Windows retains the existing full-monitor placement.
+    if window.tk.call("tk", "windowingsystem") == "x11":
+        side_margin = 12
+        top_margin = 52
+        bottom_margin = 48
+
+        x += side_margin
+        y += top_margin
+        width -= 2 * side_margin
+        height -= top_margin + bottom_margin
+
+        # Keep the normal window-manager decorations.
+        window.overrideredirect(False)
+        window.attributes("-fullscreen", False)
+
+    # Preserve the selected presentation aspect ratio.
     if aspect:
         target = aspect[0] / aspect[1]
         available = width / max(height, 1)
+
         if available > target:
             fitted_width = int(height * target)
             x += (width - fitted_width) // 2
@@ -954,7 +973,9 @@ def _place_window(window, monitor, aspect=None):
             y += (height - fitted_height) // 2
             height = fitted_height
 
-    window.geometry(f"{max(640, width)}x{max(360, height)}+{x}+{y}")
+    window.geometry(
+        f"{max(640, width)}x{max(360, height)}+{x}+{y}"
+    )
 
 
 def _operator_monitor(app, monitors):
