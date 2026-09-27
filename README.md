@@ -112,7 +112,9 @@ Presentation Display is missing or opens on the wrong monitor	Check Show Display
 Zigbee siren unavailable	Consult `ZIGBEE_SETUP.md`; a detected USB/COM port is not proof that the Zigbee button is paired or communicating.
 Need to check OS package updates	Run `sudo apt update` followed by `apt list --upgradable`. An empty list means no upgrades are offered by the configured repositories, not that you are on the newest major OS release.
 
+
 Game Variables tab
+
 Here, you can set most of the parameters of the games, select if Team Time-Outs, Overtime and Sudden Death aspects of the game are allowed.  All value boxes accept decimal time e.g. 1.5 (or 1,5) = 1 minute and 30 seconds.
 Time to Start First Game allows early setup of the system ensuring the first game starts at a particular time.  This is reliant on the Local Computer Time being correct.  The format is HH:mm (no leading zero and 24 hour format) there is a validation to ensure the time is correctly entered.
 First Game Starts In: is another way to set when the first game starts, but this time in 'minutes from now'.  Entering a value in here will wipe the time from 'Time to Start First Game'.
@@ -130,7 +132,9 @@ Record Scorers Cap Number enables a popup dialogue box to appear when a goal is 
 Crib Time: has both a checkbox that when selected, enables the program to shorten the 'Between Game Break' by this value until the Court Time is aligned with the Local Computer Time, and a value box, in seconds, of the magnitude to crib (or claw back).  This value cannot make the 'Between Game Break' less than 31 seconds (more on that later).
 Reset Timer transfers the entered values to the program and starts the timer again with the new values.
 
+
 Presets
+
 Here, six buttons are located where commonly used settings can be stored.  Holding down the button for >4 seconds allows the name of the button to be altered and all the settings changed.  Click the save button and these settings will be saved in the JSON file (stored in the same file directory location as the app itself).  A single click on these preset buttons will transfer these settings to the corresponding settings in the 'Game Variables' tab.
 Tournament List
 A sample CSV file is included with the distribution of this app.
@@ -142,8 +146,11 @@ When the 'Between Game Break' timer reached 30 seconds after the last game, the 
 The 'Starting Game #' will show a list of Game Numbers in the CSV file selected above. This could be useful if the app crashes and the games need to be restarted, or if multiple days' games are in the CSV file.
 At the completion of each game, the application automatically advances to the next game number in the selected Tournament CSV file and updates the displayed team names.  There is a drop down box to select only the even, odd or consecutive (this is the default) game numbers in the list.  This could be useful if there is one CSV file but odd games are on one court and even games are on another court.
 
+
 Game Sequence
+
 This is a description of how the app progresses through the various stages of the game parts.
+
 
 Sounds tab
 Save Settings is a button that stores the user selected sound files to the JSON file (stored in the same location as the app itself).
@@ -155,7 +162,9 @@ Pips play at pre-determined periods
 Siren play at pre-determined periods and also when the Chief Referee activates the button to stop or start play.
 Number of seconds to play Siren is a value box to alter how long the Siren sounds at the pre-determined periods.  If the sound file is shorter than the value, it will automatically loop until the selected minimum is reached.
 
+
 Sound timing table
+
 The system automatically plays audio cues during different periods:
 Period Type	Period Name	30s Remaining	10s-1s Remaining	0s (End)
 Break Periods	First Game Starts In:	1 Pip (at 30s)	1 Pip per second (at 10s-1s)	Siren (at 0s)
@@ -169,6 +178,8 @@ Game Periods	First Half	-	-	Siren (at 0s)
 	Overtime First Half	-	-	Siren (at 0s)
 	Overtime Second Half	-	-	Siren (at 0s)
 	Sudden Death	-	-	-
+
+
 Notes:
 Pip sounds use the "Pips" sound file and, if it is a Linux system, volume settings from the Sounds tab
 Siren sounds use the "Siren" sound file and, if it is a Linux system, volume settings from the Sounds tab
@@ -176,7 +187,10 @@ Siren Minimum Duration: All siren sounds play for a minimum period to ensure aud
 Audio channels (Air/Water) use their respective volume settings
 Game periods (halves) only play siren at the end, no countdown pips
 Sudden Death periods have no automatic audio cues.  The Sudden Death timer counts upwards from 00:00. A goal scored during Sudden Death immediately ends the game. Sudden Death Start and Sudden Death End are recorded in file UWH_Game_Data.txt.
+
+
 Scoreboard tab
+
 Court Time: In this tab, which can be maximised to fit the screen, is the Court Time.  This is synchronised to the 'Local Computer Time' when the app first opens.  If the 'Crib Time' is selected, the Court Time, which may have been extended by 'Ref' or 'Team' 'Time Outs' will try and move back to the 'Local Computer Time' by shortening the 'Between Game Break'.
 Game Sequence: The next row is where the Game Sequence is announced.  Breaks are 'Red', Play is 'Light Coral Blue'.
 Game Number: Under that is the Game Number, picked up from the CSV file.
@@ -192,7 +206,9 @@ Penalty timers
 When Referee Time-Out is released, the interrupted period(s) resumes from the exact point at which it was paused, including Sudden Death periods.
 Penalties is enabled during play but greyed out for breaks (as you cannot award a Penalty when play cannot be stopped [section 17.1.1 of CMAS rules]) but if the 'Referee Time-Out' button is pushed, the 'Penalties' button is enabled (This is for you KD.  You know who you are).  When the 'Penalties' button is pushed, a popup dialogue box appears that enables the selection of cap colour, Cap number and penalty time period.  YOU MUST SELECT START PENALTY to record the penalty. These penalties are written to the CSV file when the 'Between Game Break' timer reaches 30 seconds.  The penalties are also displayed on both screens along with the time remaining to serve.  When this time reaches zero, the penalty is removed from the list.  Penalties can be removed in case the wrong details were entered.
 
+
 Other game behaviour
+
 Coping with Errors (like when a goal is scored right on the buzzer!)
 Summary of what happens when goals are added during the three "break" periods:
 Goals added during breaks
@@ -206,9 +222,14 @@ Sudden Death Game Break	Even	Remain in Sudden Death Game Break. Proceed to Sudde
 	Uneven	Progress directly to Between Game Break. (Skips Sudden Death period.)
 This logic ensures the correct flow for tournament progression based on goals scored during break periods.
 
+
 Zigbee2MQTT wireless siren control
-The application includes Zigbee siren integration. Raspberry Pi/Linux MQTT and Windows operation require separate setup and end-to-end testing. The earlier README described full Windows support but also said it was not yet working; treat Windows wireless siren operation as experimental until confirmed on your equipment.
+
+The application includes Zigbee siren integration. Raspberry Pi/Linux MQTT and Windows operation require separate setup and end-to-end testing. treat Windows wireless siren operation as experimental until confirmed on your equipment.
+
+
 Platform support
+
 Linux (Raspberry Pi): MQTT/Zigbee2MQTT integration is provided; configure and test it using `ZIGBEE_SETUP.md`.
 Windows: Zigbee2MQTT with a Mosquitto MQTT broker is documented, but not verified here as a complete working installation.
 Features and implementation status
