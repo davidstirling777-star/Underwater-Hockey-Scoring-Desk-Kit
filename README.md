@@ -1,5 +1,5 @@
 
-Underwater Hockey Scoring Desk Kit
+# Underwater Hockey Scoring Desk Kit
 
 A project to allow the use of a computer, modern computer languages and readily available Arduino hardware to make a scoring and siren system for Underwater Hockey. Example hardware is described in `HARDWARE_SETUP.md`.
 
