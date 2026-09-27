@@ -15,6 +15,7 @@ Other installation and packaging notes
 Raspberry Pi 5: tested configuration (September 2026)
 
 Known working setup: Raspberry Pi 5, Raspberry Pi OS Desktop based on Debian 12 Bookworm (now listed as Raspberry Pi OS Legacy), Python 3.11, and the X11 desktop session. Two maximised displays, mouse movement, game timers and score updates were tested successfully on this setup.
+
 Why X11 matters for this application: On the tested Pi 5, moving the pointer over Game Variables checkboxes under Wayland caused GPU utilisation to reach about 98% and the mouse became jerky. A separate 20-checkbox Tkinter test reproduced high GPU use (88%; 82% with the Clam theme). Under X11, both independent checkbox tests fell to about 1%, and UWH's Game Variables test peaked at approximately 10% with smooth mouse movement. These are observations on one system, not a claim that Wayland is universally slow or that Trixie has the same problem. The exact graphics-stack cause has not been isolated.
 
 > [!IMPORTANT]
@@ -101,6 +102,7 @@ Desktop icon appears but program does not start	Run `.venv/bin/python uwh.py` fr
 Presentation Display is missing or opens on the wrong monitor	Check Show Display Screen and position the window on the intended display.
 Zigbee siren unavailable	Consult `ZIGBEE_SETUP.md`; a detected USB/COM port is not proof that the Zigbee button is paired or communicating.
 Need to check OS package updates	Run `sudo apt update` followed by `apt list --upgradable`. An empty list means no upgrades are offered by the configured repositories, not that you are on the newest major OS release.
+
 Game Variables tab
 Here, you can set most of the parameters of the games, select if Team Time-Outs, Overtime and Sudden Death aspects of the game are allowed.  All value boxes accept decimal time e.g. 1.5 (or 1,5) = 1 minute and 30 seconds.
 Time to Start First Game allows early setup of the system ensuring the first game starts at a particular time.  This is reliant on the Local Computer Time being correct.  The format is HH:mm (no leading zero and 24 hour format) there is a validation to ensure the time is correctly entered.
