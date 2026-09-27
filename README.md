@@ -1,5 +1,6 @@
 
-##Underwater Hockey Scoring Desk Kit
+#Underwater Hockey Scoring Desk Kit
+
 A project to allow the use of a computer, modern computer languages and readily available Arduino hardware to make a scoring and siren system for Underwater Hockey. Example hardware is described in `HARDWARE_SETUP.md`.
 
 The software has an operator-facing Underwater Hockey Game Management App and a player-facing Display Window. The operator window opens on Game Variables, with three other tabs: Sounds, Zigbee Siren and Scoreboard. Both windows can be maximised. The Display Window can be shown or hidden in the Tournament List section.
