@@ -1,5 +1,5 @@
 
-Underwater Hockey Scoring Desk Kit
+##Underwater Hockey Scoring Desk Kit
 A project to allow the use of a computer, modern computer languages and readily available Arduino hardware to make a scoring and siren system for Underwater Hockey. Example hardware is described in `HARDWARE_SETUP.md`.
 
 The software has an operator-facing Underwater Hockey Game Management App and a player-facing Display Window. The operator window opens on Game Variables, with three other tabs: Sounds, Zigbee Siren and Scoreboard. Both windows can be maximised. The Display Window can be shown or hidden in the Tournament List section.
@@ -14,7 +14,7 @@ Zigbee2MQTT wireless siren control
 Other installation and packaging notes
 Raspberry Pi 5: tested configuration (September 2026)
 
-Known working setups:
+##Known working setups:
 
 Windows 11,
 
@@ -35,7 +35,7 @@ After reboot, run:
    ```
 It should print `x11`. If it prints `wayland`, check the selection and reboot again. To switch back later, use W2 Labwc in the same menu.
 
-Download and install on a Raspberry Pi 5
+##Download and install on a Raspberry Pi 5
 These instructions are for a new installation from the Python source, not a standalone executable. A keyboard, mouse and Raspberry Pi OS Desktop are needed; the Lite edition does not include the graphical desktop required by UWH. The example folder names below match the current GitHub ZIP download used on the tested Pi. If GitHub names your ZIP or extracted folder differently, use its actual name in the commands.
 
 1. Prepare Raspberry Pi OS
@@ -98,12 +98,15 @@ EOF
 chmod +x "$HOME/Desktop/UWH-Scoring-Desk.desktop"
 ```
 If the desktop asks you to Allow Launching or mark the shortcut as trusted, do so. If your project was extracted anywhere other than `~/Downloads/Underwater-Hockey-Scoring-Desk-Kit-main`, adjust both paths on the `Exec=` line and the `Path=` line. `Path=` matters because the program stores and reads files relative to its application folder.
+
 6. Updating an existing installation safely
 A GitHub Download ZIP is a snapshot: it does not update itself. To obtain newer code, download a new ZIP and extract it into a separate directory, or back up the existing directory before replacing files.
 In particular, keep copies of your own `settings.json`, tournament CSV files, sound files added under `assets/`, and game logs such as `UWH_Game_Data.txt` if present. The application writes results back into the selected tournament CSV; never treat that file as a disposable example. Avoid uploading private tournament data to a public GitHub repository.
 After copying a fresh version into its intended location, install that version's dependencies into its `.venv` and test it from Terminal before changing the desktop shortcut. Do not copy a `.venv` from one OS/Python version to another; create it again if necessary. Before a tournament, test the two displays, siren audio, time-outs and CSV saving.
 Raspberry Pi troubleshooting
-Symptom	Check
+
+##Symptom	Check
+
 Jerky mouse when passing over Game Variables checkboxes	Run `echo $XDG_SESSION_TYPE`. If it shows `wayland`, test the X11 option described above.
 `ModuleNotFoundError` at startup	Check that `.venv/bin/python -m pip install -r requirements.txt` completed successfully, and that you launch with `.venv/bin/python uwh.py`.
 `No module named tkinter`	Install `python3-tk` using APT and recreate/test the virtual environment as necessary.
@@ -113,7 +116,7 @@ Zigbee siren unavailable	Consult `ZIGBEE_SETUP.md`; a detected USB/COM port is n
 Need to check OS package updates	Run `sudo apt update` followed by `apt list --upgradable`. An empty list means no upgrades are offered by the configured repositories, not that you are on the newest major OS release.
 
 
-Game Variables tab
+##Game Variables tab
 
 Here, you can set most of the parameters of the games, select if Team Time-Outs, Overtime and Sudden Death aspects of the game are allowed.  All value boxes accept decimal time e.g. 1.5 (or 1,5) = 1 minute and 30 seconds.
 Time to Start First Game allows early setup of the system ensuring the first game starts at a particular time.  This is reliant on the Local Computer Time being correct.  The format is HH:mm (no leading zero and 24 hour format) there is a validation to ensure the time is correctly entered.
@@ -133,7 +136,7 @@ Crib Time: has both a checkbox that when selected, enables the program to shorte
 Reset Timer transfers the entered values to the program and starts the timer again with the new values.
 
 
-Presets
+##Presets
 
 Here, six buttons are located where commonly used settings can be stored.  Holding down the button for >4 seconds allows the name of the button to be altered and all the settings changed.  Click the save button and these settings will be saved in the JSON file (stored in the same file directory location as the app itself).  A single click on these preset buttons will transfer these settings to the corresponding settings in the 'Game Variables' tab.
 Tournament List
@@ -147,12 +150,13 @@ The 'Starting Game #' will show a list of Game Numbers in the CSV file selected 
 At the completion of each game, the application automatically advances to the next game number in the selected Tournament CSV file and updates the displayed team names.  There is a drop down box to select only the even, odd or consecutive (this is the default) game numbers in the list.  This could be useful if there is one CSV file but odd games are on one court and even games are on another court.
 
 
-Game Sequence
+##Game Sequence
 
 This is a description of how the app progresses through the various stages of the game parts.
 
 
-Sounds tab
+##Sounds tab
+
 Save Settings is a button that stores the user selected sound files to the JSON file (stored in the same location as the app itself).
 Pips is a dropdown box where a sound file can be selected. Any .MP3 or .WAV file can be placed in the 'assets' folder and these will appear in the 'Pips' dropdown box.
 Siren is a dropdown box where a sound file can be selected. Any .MP3 or .WAV file can be placed in the'assets' folder and these will also appear in the 'Siren' dropdown box.
@@ -163,7 +167,7 @@ Siren play at pre-determined periods and also when the Chief Referee activates t
 Number of seconds to play Siren is a value box to alter how long the Siren sounds at the pre-determined periods.  If the sound file is shorter than the value, it will automatically loop until the selected minimum is reached.
 
 
-Sound timing table
+##Sound timing table
 
 The system automatically plays audio cues during different periods:
 Period Type	Period Name	30s Remaining	10s-1s Remaining	0s (End)
@@ -189,7 +193,7 @@ Game periods (halves) only play siren at the end, no countdown pips
 Sudden Death periods have no automatic audio cues.  The Sudden Death timer counts upwards from 00:00. A goal scored during Sudden Death immediately ends the game. Sudden Death Start and Sudden Death End are recorded in file UWH_Game_Data.txt.
 
 
-Scoreboard tab
+##Scoreboard tab
 
 Court Time: In this tab, which can be maximised to fit the screen, is the Court Time.  This is synchronised to the 'Local Computer Time' when the app first opens.  If the 'Crib Time' is selected, the Court Time, which may have been extended by 'Ref' or 'Team' 'Time Outs' will try and move back to the 'Local Computer Time' by shortening the 'Between Game Break'.
 Game Sequence: The next row is where the Game Sequence is announced.  Breaks are 'Red', Play is 'Light Coral Blue'.
@@ -207,10 +211,11 @@ When Referee Time-Out is released, the interrupted period(s) resumes from the ex
 Penalties is enabled during play but greyed out for breaks (as you cannot award a Penalty when play cannot be stopped [section 17.1.1 of CMAS rules]) but if the 'Referee Time-Out' button is pushed, the 'Penalties' button is enabled (This is for you KD.  You know who you are).  When the 'Penalties' button is pushed, a popup dialogue box appears that enables the selection of cap colour, Cap number and penalty time period.  YOU MUST SELECT START PENALTY to record the penalty. These penalties are written to the CSV file when the 'Between Game Break' timer reaches 30 seconds.  The penalties are also displayed on both screens along with the time remaining to serve.  When this time reaches zero, the penalty is removed from the list.  Penalties can be removed in case the wrong details were entered.
 
 
-Other game behaviour
+##Other game behaviour
 
 Coping with Errors (like when a goal is scored right on the buzzer!)
 Summary of what happens when goals are added during the three "break" periods:
+
 Goals added during breaks
 This table explains the results and progression rules when a goal is added during a break period:
 Break Period	Scores After Goal is Added	What Happens
@@ -223,17 +228,18 @@ Sudden Death Game Break	Even	Remain in Sudden Death Game Break. Proceed to Sudde
 This logic ensures the correct flow for tournament progression based on goals scored during break periods.
 
 
-Zigbee2MQTT wireless siren control
+##Zigbee2MQTT wireless siren control
 
-The application includes Zigbee siren integration. Raspberry Pi/Linux MQTT and Windows operation require separate setup and end-to-end testing. treat Windows wireless siren operation as experimental until confirmed on your equipment.
+The application includes Zigbee siren integration. Raspberry Pi/Linux MQTT and Windows operation require separate setup and end-to-end testing. Treat Windows wireless siren operation as experimental until confirmed on your equipment.
 
 
-Platform support
+##Platform support
 
 Linux (Raspberry Pi): MQTT/Zigbee2MQTT integration is provided; configure and test it using `ZIGBEE_SETUP.md`.
 Windows: Zigbee2MQTT with a Mosquitto MQTT broker is documented, but not verified here as a complete working installation.
 Features and implementation status
 Wireless Chief Referee Controls: Use Zigbee buttons to trigger sirens remotely
+
 Dual Connection Methods:
 MQTT Integration: Zigbee2MQTT/MQTT communication and reconnection logic are implemented; confirm reliability on the actual Linux or Windows installation.
 Serial Communication: The code describes a Windows serial option, but its end-to-end behaviour has not been confirmed; do not assume an arbitrary Zigbee USB radio works merely because a COM port appears.
@@ -244,12 +250,17 @@ Robust Error Handling: The application includes reconnect/fallback logic; verify
 Real-time Logging: Activity monitoring and troubleshooting tools
 Fallback Logic: MQTT/serial fallback is an intended feature; check it on the target hardware.
 Windows serial mode: verification required
-The previous README suggested that plugging in a Zigbee USB dongle and installing `pyserial` was sufficient. This is not a verified installation procedure. A visible serial port alone does not establish that the app and dongle use a compatible Zigbee protocol. Follow `ZIGBEE_SETUP.md` and verify that pressing the physical button really activates the siren.
+
+Plugging in a Zigbee USB dongle and installing `pyserial` may be sufficient. This is not a verified installation procedure. A visible serial port alone does not establish that the app and dongle use a compatible Zigbee protocol. Follow `ZIGBEE_SETUP.md` and verify that pressing the physical button really activates the siren.
+
 Adapter compatibility: CC2531, CC2652 and CC2538 refer to Zigbee hardware families. CP210x, FTDI and CH340/CH341 refer to USB/serial interface chips, not proof of Zigbee support. Verify the actual radio adapter and firmware against `ZIGBEE_SETUP.md`.
 Intended Zigbee button behaviour: When configured and working, physical Zigbee button presses trigger a single siren playback for the duration configured in the Sounds tab ("Number of seconds to play Siren"). This duration setting affects both app-initiated sirens and Zigbee button triggers.
 See `ZIGBEE_SETUP.md` for complete installation and configuration instructions.
 Other installation and packaging notes
-Running on other systems
+
+
+##Running on other systems
+
 The source is a Python/Tkinter program. Install the Python version and dependencies appropriate to your operating system, then launch `uwh.py`. The Pi 5 instructions above are the configuration actually tested in this README; compatibility of every Windows, Trixie or other Linux environment is not implied.
 On Raspberry Pi OS Bookworm, use the project virtual environment rather than a system-wide `pip install`. For additional Python packages, use:
 ```bash
