@@ -1,7 +1,9 @@
 
 Underwater Hockey Scoring Desk Kit
 A project to allow the use of a computer, modern computer languages and readily available Arduino hardware to make a scoring and siren system for Underwater Hockey. Example hardware is described in `HARDWARE_SETUP.md`.
+
 The software has an operator-facing Underwater Hockey Game Management App and a player-facing Display Window. The operator window opens on Game Variables, with three other tabs: Sounds, Zigbee Siren and Scoreboard. Both windows can be maximised. The Display Window can be shown or hidden in the Tournament List section.
+
 Contents
 Raspberry Pi 5: tested configuration
 Download and install on a Raspberry Pi 5
@@ -11,10 +13,13 @@ Scoreboard tab
 Zigbee2MQTT wireless siren control
 Other installation and packaging notes
 Raspberry Pi 5: tested configuration (September 2026)
+
 Known working setup: Raspberry Pi 5, Raspberry Pi OS Desktop based on Debian 12 Bookworm (now listed as Raspberry Pi OS Legacy), Python 3.11, and the X11 desktop session. Two maximised displays, mouse movement, game timers and score updates were tested successfully on this setup.
 Why X11 matters for this application: On the tested Pi 5, moving the pointer over Game Variables checkboxes under Wayland caused GPU utilisation to reach about 98% and the mouse became jerky. A separate 20-checkbox Tkinter test reproduced high GPU use (88%; 82% with the Clam theme). Under X11, both independent checkbox tests fell to about 1%, and UWH's Game Variables test peaked at approximately 10% with smooth mouse movement. These are observations on one system, not a claim that Wayland is universally slow or that Trixie has the same problem. The exact graphics-stack cause has not been isolated.
+
 > [!IMPORTANT]
 > **Recommended Pi 5 configuration:** Stay with **Bookworm + X11** until a different combination has been tested with UWH. Raspberry Pi recommends Wayland generally, but X11 was demonstrably better for this particular workload. There is no need to modify UWH's timer code, GPU memory allocation or checkbox rendering to obtain the tested result.
+> 
 Select X11 on Raspberry Pi OS
 Open Terminal and run `sudo raspi-config`.
 Select 6 Advanced Options → A7 Wayland → W1 X11.
@@ -24,6 +29,7 @@ After reboot, run:
    echo $XDG_SESSION_TYPE
    ```
 It should print `x11`. If it prints `wayland`, check the selection and reboot again. To switch back later, use W2 Labwc in the same menu.
+
 Download and install on a Raspberry Pi 5
 These instructions are for a new installation from the Python source, not a standalone executable. A keyboard, mouse and Raspberry Pi OS Desktop are needed; the Lite edition does not include the graphical desktop required by UWH. The example folder names below match the current GitHub ZIP download used on the tested Pi. If GitHub names your ZIP or extracted folder differently, use its actual name in the commands.
 1. Prepare Raspberry Pi OS
