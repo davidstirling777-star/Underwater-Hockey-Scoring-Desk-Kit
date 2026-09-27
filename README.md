@@ -1,5 +1,14 @@
 A project to allow the use of a computer, modern computer languages and readily available Arduino hardware to make a scoring and siren system for Underwater Hockey.
 
+If you are using a Raspberry Pi 5, it is important to use X11 rather than Wayland.  Sometimes 1980s tech beats 2008 tech. Wayland is the direction Linux desktop development is moving, but X11 remains a perfectly usable option.  Maybe they will fix it one day.
+
+Open a terminal.
+Enter:
+sudo raspi-config
+Navigate to 6 Advanced Options → A7 Wayland.
+Select W1 X11.
+Select Finish and reboot the Pi.
+
 The Software has a user interface that is accessible, logical and easily understood by novices.  Example Hardware can be found in HARDWARE_SETUP.md
 
 The App opens with two windows.  One, called the Display Window, is designed for facing towards the players so they can see the time and score.  The second, called Underwater Hockey Game Management App, opens with the tab 'Game Variables' visible. There are three other tabs, Sounds, Zigbee Siren and Scoreboard. Both windows are able to be maximised to the screen size.
