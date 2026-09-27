@@ -37,6 +37,7 @@ It should print `x11`. If it prints `wayland`, check the selection and reboot ag
 
 Download and install on a Raspberry Pi 5
 These instructions are for a new installation from the Python source, not a standalone executable. A keyboard, mouse and Raspberry Pi OS Desktop are needed; the Lite edition does not include the graphical desktop required by UWH. The example folder names below match the current GitHub ZIP download used on the tested Pi. If GitHub names your ZIP or extracted folder differently, use its actual name in the commands.
+
 1. Prepare Raspberry Pi OS
 For a new Pi 5 installation based on the tested setup, select Raspberry Pi OS (Legacy, 64-bit) with desktop in Raspberry Pi Imager. As of September 2026 this is the Bookworm-based image; the standard, newer image is based on Trixie and has not been tested here for this specific mouse issue. Do not re-image an already-working Pi just to install this application. Creating a new OS image erases the selected target storage device.
 After booting into the desktop, select X11 using the instructions above. Open Terminal and install the prerequisites:
@@ -45,6 +46,7 @@ sudo apt update
 sudo apt install python3-venv python3-tk python3-pip unzip
 ```
 Raspberry Pi OS Bookworm includes Python 3.11. Python 3.12 is not a requirement for the configuration tested here. `python3-tk` supplies the Tkinter desktop toolkit; `python3-venv` allows dependencies to be installed without changing the system Python.
+
 2. Download the program from GitHub
 Open Chromium (or another browser) on the Raspberry Pi.
 Open the GitHub repository containing this README. This document does not include a verified repository-owner URL, so please use the project's existing GitHub link rather than a guessed address.
@@ -59,6 +61,7 @@ cd Underwater-Hockey-Scoring-Desk-Kit-main
 ```
 > [!WARNING]
 > **Do not overwrite an existing installation without a backup.** It may contain your saved `settings.json`, edited tournament CSV files, custom sounds and other game records. Back it up first, or extract the new ZIP into a separate folder.
+> 
 3. Install the Python dependencies
 Open Terminal in the extracted project directory (or use `cd` as shown above). Run:
 ```bash
@@ -68,6 +71,7 @@ python3 -m venv .venv
 ```
 A `.venv` is a private Python environment inside the project folder. This is important on Bookworm: do not use `sudo pip install` or `pip install --break-system-packages` to install this project's dependencies. Use the project's own Python as shown above. Install any new Python packages in this same environment.
 The contents of `requirements.txt` may change between versions; use the file in the ZIP you downloaded as the source of truth. The application includes optional audio and Zigbee features that may need additional hardware or configuration beyond installing Python packages.
+
 4. Run UWH
 Still in Terminal, run:
 ```bash
@@ -76,6 +80,7 @@ cd ~/Downloads/Underwater-Hockey-Scoring-Desk-Kit-main
 ```
 The startup self-test should run, followed by the operator interface. Use the Show Display Screen checkbox in Game Variables → Tournament List if you need to open the player-facing window. Position each window on its intended monitor and maximise it. On the tested system the app was run under the desktop user account, not with `sudo`.
 If startup fails, launch with the Terminal command above rather than a desktop shortcut. The last lines printed to Terminal are usually much more useful than the last startup self-test message.
+
 5. Optional: create a desktop shortcut
 Once the Terminal launch works, the following commands create a shortcut on the Pi user's desktop, using the folder shown in these instructions. Paste the complete block into Terminal:
 ```bash
