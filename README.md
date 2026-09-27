@@ -15,7 +15,9 @@ Other installation and packaging notes
 Raspberry Pi 5: tested configuration (September 2026)
 
 Known working setups:
+
 Windows 11,
+
 Raspberry Pi 5, Raspberry Pi OS Desktop based on Debian 12 Bookworm (now listed as Raspberry Pi OS Legacy), Python 3.11, and the X11 desktop session. Two maximised displays, mouse movement, game timers and score updates were tested successfully on this setup.
 
 Why X11 matters for this application: On the tested Pi 5, moving the pointer over Game Variables checkboxes under Wayland caused GPU utilisation to reach about 98% and the mouse became jerky. A separate 20-checkbox Tkinter test reproduced high GPU use (88%; 82% with the Clam theme). Under X11, both independent checkbox tests fell to about 1%, and UWH's Game Variables test peaked at approximately 10% with smooth mouse movement. These are observations on one system, not a claim that Wayland is universally slow or that Trixie has the same problem. The exact graphics-stack cause has not been isolated.
