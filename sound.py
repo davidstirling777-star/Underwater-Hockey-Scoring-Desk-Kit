@@ -469,3 +469,44 @@ def stop_looping_sound(channel):
 
     except Exception as e:
         print(f"Error stopping looping sound: {e}")
+
+
+def start_timed_siren_with_volume(filename, enable_sound, siren_volume, duration_seconds):
+    """Play one wireless siren for at most the selected duration.
+
+    Must be called from the Tkinter/UI thread when passed Tk variables.
+    Returns the pygame channel so UWH can also stop it immediately.
+    A 30-second upper bound prevents a malformed setting from leaving a siren on.
+    The Arduino press-and-hold helper is intentionally unchanged.
+    """
+    import math
+
+    if not _get_value(enable_sound):
+        return None
+
+    filename = _normalise_filename(filename)
+    if not _is_valid_sound_selection(filename):
+        return None
+
+    try:
+        seconds = float(_get_value(duration_seconds))
+        if not math.isfinite(seconds) or seconds <= 0:
+            print("Wireless siren not started: duration must be a positive number.")
+            return None
+        duration_ms = max(1, min(30_000, int(seconds * 1000)))
+
+        if not PYGAME_INITIALIZED or filename not in _preloaded_sounds:
+            print("Wireless siren requires pygame.mixer and a preloaded sound.")
+            return None
+
+        sound_obj = _preloaded_sounds[filename]
+        normalized_volume = _normalise_volume(siren_volume)
+        sound_obj.set_volume(normalized_volume)
+        # maxtime independently stops this sound even if Tk's event loop stalls.
+        channel = sound_obj.play(loops=-1, maxtime=duration_ms)
+        if channel is not None:
+            channel.set_volume(normalized_volume)
+        return channel
+    except Exception as e:
+        print(f"Error starting timed wireless siren: {e}")
+        return None
