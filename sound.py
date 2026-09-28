@@ -374,12 +374,16 @@ def _play_sound_with_volume_sync(
                 if sound_length_ms > 0:
                     duration_ms = int(duration_seconds * 1000)
                     loops = max(0, (duration_ms // sound_length_ms) - 1)
-                    sound_obj.play(loops=loops)
+                    channel = sound_obj.play(loops=loops)
                 else:
-                    sound_obj.play()
+                    channel = sound_obj.play()
             else:
-                sound_obj.play()
+                channel = sound_obj.play()
 
+            # Sound volume is already set above. A mixer channel may retain
+            # the attenuation from an earlier playback; reset it to unity.
+            if channel is not None:
+                channel.set_volume(1.0)
             return
 
         if IS_WINDOWS:
@@ -447,8 +451,9 @@ def start_looping_sound_with_volume(
 
             channel = sound_obj.play(loops=-1)
 
-            if channel:
-                channel.set_volume(normalized_volume)
+            if channel is not None:
+                # Do not apply the same volume twice (Sound * Channel).
+                channel.set_volume(1.0)
 
             return channel
 
@@ -505,7 +510,9 @@ def start_timed_siren_with_volume(filename, enable_sound, siren_volume, duration
         # maxtime independently stops this sound even if Tk's event loop stalls.
         channel = sound_obj.play(loops=-1, maxtime=duration_ms)
         if channel is not None:
-            channel.set_volume(normalized_volume)
+            # The Sound already has the requested volume. Channel volume is
+            # multiplicative, so applying it here again made Zigbee quieter.
+            channel.set_volume(1.0)
         return channel
     except Exception as e:
         print(f"Error starting timed wireless siren: {e}")
