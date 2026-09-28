@@ -1688,9 +1688,15 @@ def apply_screen_configuration(app):
     _apply_operator_layout(app, operator)
 
     close_all_display_windows(app)
-    external = _external_monitors(app, monitors)
 
-    layout = app.display_layout_var.get() or "Single Standard"
+    # An empty display selection is intentional (the user unticked the
+    # option or closed the window using X). Keep the operator layout but
+    # do not reopen a presentation window.
+    layout = app.display_layout_var.get()
+    if not layout:
+        return
+
+    external = _external_monitors(app, monitors)
     widescreen = "Widescreen" in layout
     dual = layout.startswith("Dual")
     aspect = (21, 9) if widescreen else (16, 9)
