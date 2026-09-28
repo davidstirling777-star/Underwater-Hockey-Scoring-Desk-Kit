@@ -37,6 +37,7 @@ from typing import Optional, Callable, Dict, Any
 # Instead, it should notify uwh.py through callbacks:
 # - siren_callback("ON")
 # - siren_callback("OFF")
+# - siren_callback("PULSE") for momentary wireless button actions
 # - gui_log_callback(message)
 # - connection_status_callback(connected, message)
 #
@@ -51,6 +52,7 @@ from typing import Optional, Callable, Dict, Any
 # Hardware event names sent back to uwh.py
 SIREN_EVENT_ON = "ON"
 SIREN_EVENT_OFF = "OFF"
+SIREN_EVENT_PULSE = "PULSE"
 SIREN_EVENT_TEST = "TEST"
 
 try:
@@ -416,7 +418,9 @@ class ZigbeeSirenController:
                 )
 
             if str(action).lower() in ["single", "press", "click", "on", "1"]:
-                self._trigger_siren()
+                # A momentary Zigbee press has no matching OFF/release event.
+                # UWH must play it for its configured duration, not indefinitely.
+                self._trigger_siren(SIREN_EVENT_PULSE)
 
         except Exception as e:
             self.logger.error(f"Error processing button event: {e}")
