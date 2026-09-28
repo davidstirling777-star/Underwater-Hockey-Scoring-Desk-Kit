@@ -2,7 +2,7 @@
 
 A project to allow the use of a computer, modern computer languages and readily available Arduino hardware to make a scoring and siren system for Underwater Hockey. Example hardware is described in `HARDWARE_SETUP.md`.
 
-The software has an operator-facing Underwater Hockey Game Management App and a player-facing Display Window. The operator window opens on Game Variables, with three other tabs: Sounds, Zigbee Siren and Scoreboard.
+The software has an operator-facing Underwater Hockey Game Management App and a player-facing Display Window. The operator window opens on the second tab, Game Variables, with four other tabs: Scoreboard, Screens, Sounds, and Zigbee Siren.
 
 Contents
 - [Raspberry Pi 5: tested configuration](#raspberry-pi-5-tested-configuration-september-2026)
@@ -19,7 +19,7 @@ Contents
 ## Windows 11: tested configuration (September 2026)
 
 #### Windows 11
-App works fine under Windows, Zigbee wireless sirens wo.
+App works fine under Windows, Zigbee wireless sirens work with testing of: the UWH application, the Arduino siren, Zigbee2MQTT and the Zigbee wireless button.
 
 ## Raspberry Pi 5: tested configuration (September 2026)
 
@@ -69,7 +69,7 @@ The extracted folder contains `UnderwaterHockeyScoringDesk.exe` and its supporti
 2. Double-click `UnderwaterHockeyScoringDesk.exe`.
 3. The startup self-test will run before the application opens.
 4. The Game Management window will appear.
-5. Enable **Show Display Screen** on the Game Variables tab to open the player-facing display, if required.
+5. If you want a second or third screen, Enable **Single Standard** or another option on the Screens tab to open the player-facing or crowd-facing display(s), if required. Selecting a Display Screen option opens the relevant window(s), selecting it again closes it, and the open/closed state is remembered in settings.json. Closing the window with X also saves the closed state.
 
 You can create a desktop shortcut by right-clicking the executable and selecting **Show more options → Send to → Desktop (create shortcut)**.
 
@@ -138,7 +138,7 @@ cd ~/Downloads/Underwater-Hockey-Scoring-Desk-Kit-main
 .venv/bin/python uwh.py
 ```
 
-The startup self-test should run, followed by the operator interface. Use the **Show Display Screen** checkbox in **Game Variables → Tournament List** if you need to open the player-facing window. Position both windows on their respective monitors.
+The startup self-test should run, followed by the operator interface. If you want a second or third screen, Enable **Single Standard** or another option on the Screens tab to open the player-facing or crowd-facing display(s), if required. Selecting a Display Screen option opens the relevant window(s), selecting it again closes it, and the open/closed state is remembered in settings.json. Closing the window with X also saves the closed state. Position all windows on their respective monitors.
 
 If startup fails, launch with the Terminal command above rather than a desktop shortcut. The last lines printed to Terminal are usually much more useful than the last startup self-test message.
 
@@ -223,7 +223,7 @@ All value boxes accept decimal time, e.g. `1.5` (or `1,5`) = 1 minute and 30 sec
 
 Here, six buttons are located where commonly used settings can be stored. Holding down the button for >4 seconds allows the name of the button to be altered and all the settings changed. Click the stored button to load those settings back into the Game Variables.
 
-## Tournament List
+### Tournament List
 
 A sample CSV file is included with the distribution of this app. This has a dropdown list where a CSV file can be selected that contains the draw for a Tournament or a list of games. The team names listed in the 'White' and 'Black' columns will appear on the Scoreboard.
 
@@ -246,6 +246,18 @@ At the completion of each game, the application automatically advances to the ne
 
 This section describes how the app progresses through the various stages of the game.
 
+## Screens Tab
+
+Here the **Operator Screen** choices reside, with the options of standard or widescreen screens.
+
+**Display Screen Options**: Single/Dual Display Screen choices with Standard or Widescreen options and automatic monitor detection (for trouble shooting). These settings are saved in the JSON setting file.
+
+**Show Team Names** is a check box that toggles whether the team names are show on the Operator and Display Screens.
+
+**Auto Detect Screens** refreshes The screensdetected and listed in **These screens were detected** section.
+
+**Test Displays** labels every screen detected for eight seconds and can be closed by clicking or pressing ESC.
+
 ## Sounds tab
 
 **Save Settings** is a button that stores the user-selected sound files to the JSON file (stored in the same location as the app itself).
@@ -256,13 +268,17 @@ This section describes how the app progresses through the various stages of the 
 
 The **Open Sounds Folder** button opens the 'assets' folder, where sound files can be added.
 
-The **Air** and **Water** controls are intended for separate above-water and underwater audio channels. Their effectiveness depends on the operating system, audio device and playback backend; check both channels work with your hardware.
+The **Air** and **Water** controls are intended for separate above-water and underwater audio channels. Their effectiveness depends on the operating system (they only work in Linux-based systems), audio device and playback backend; check both channels work with your hardware.
 
 **Pips** play at pre-determined periods.
 
 **Siren** play at pre-determined periods and also when the Chief Referee activates the button to stop or start play.
 
 **Number of seconds to play Siren** is a value box to alter how long the Siren sounds at the pre-determined periods. If the sound file is shorter than the value, it will automatically loop until the selected duration is complete.
+
+**Hardwired button via Arduino and Serial connection** The Arduino push button has press-hold-and-release behaviour where the siren will sound for as long as the button is held down.
+
+**Zigbee buttons*** A single push of the Zigbee button cycles the siren for duration listed in the **Number of seconds to play Siren** value box.  If your zigbee device supports a double click, this sounds the siren for twice the **Number of seconds to play Siren** value box.
 
 ### Sound timing table
 
@@ -346,7 +362,7 @@ The application includes Zigbee siren integration. Raspberry Pi/Linux MQTT and W
 
 **Linux (Raspberry Pi):** MQTT/Zigbee2MQTT integration is provided; configure and test it using `ZIGBEE_SETUP.md`.
 
-**Windows:** Zigbee2MQTT with a Mosquitto MQTT broker is documented, but not verified here as a complete working installation.
+**Windows:** Zigbee2MQTT with a Mosquitto MQTT broker is documented in `ZIGBEE_SETUP.md`.
 
 ### Features and implementation status
 
@@ -357,7 +373,7 @@ The application includes Zigbee siren integration. Raspberry Pi/Linux MQTT and W
 - **Serial Communication:** The code describes a Windows serial option, but its end-to-end behaviour has not been confirmed; do not assume an arbitrary Zigbee USB radio works merely because a COM port appears.
 - **Auto-Detection:** USB/COM-port detection may identify a connected adapter; confirm that the Zigbee radio actually communicates.
 
-**Configuration UI:** Dedicated "Zigbee Siren" tab for easy setup and monitoring
+**Configuration UI:** Dedicated "Zigbee Siren" tab for setup, monitoring and trouble shooting.
 
 **Seamless Integration:** Uses existing sound files, volume controls, and audio channels
 
@@ -381,7 +397,7 @@ See `ZIGBEE_SETUP.md` for complete installation and configuration instructions.
 
 ### Running on other systems
 
-The source is a Python/Tkinter program. Install the Python version and dependencies appropriate to your operating system, then launch `uwh.py`. The Pi 5 instructions above are the configuration actually tested; other operating systems and Python versions are not verified here.
+The source is a Python/Tkinter program. Install the Python version and dependencies appropriate to your operating system, then launch `uwh.py`. RPi 5 and Windows 11 are the configurations actually tested; other operating systems and Python versions are not verified here.
 
 On Raspberry Pi OS Bookworm, use the project virtual environment rather than a system-wide `pip install`. For additional Python packages, use:
 
@@ -395,7 +411,7 @@ Optional modules mentioned in earlier documentation include `paho-mqtt` (MQTT), 
 
 A PyInstaller build can package the application, but builds and bundled resources must be checked for each platform. These notes describe the project's existing build approach; they have not been extensively tested.
 
-**Windows:** If the GitHub repository offers a prepared Windows executable under Releases, download the appropriate release asset and follow its accompanying instructions. Otherwise, build from source using PyInstaller.
+**Windows:** If the GitHub repository offers a prepared Windows executable under Releases, download the appropriate release asset and follow its accompanying instructions. Otherwise, build from source using PyInstaller (good luck doing that).
 
 **Linux:** If `build_exe.sh` exists in the checkout, the earlier build workflow was:
 
