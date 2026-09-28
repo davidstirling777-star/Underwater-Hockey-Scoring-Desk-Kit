@@ -836,10 +836,15 @@ def create_screen_tab(app):
     )
 
     def choose_operator(value):
+        # A selected operator checkbox cannot be unticked: one operator
+        # layout must remain selected. Clicking it again is not a request
+        # to rebuild or reopen the external display window.
+        changed = app.operator_layout_var.get() != value
         app.operator_layout_var.set(value)
         app.operator_standard_check_var.set(value == "Standard")
         app.operator_widescreen_check_var.set(value == "Widescreen")
-        app.apply_screen_configuration()
+        if changed:
+            app.apply_screen_configuration()
 
     ttk.Checkbutton(
         operator_frame,
@@ -869,9 +874,14 @@ def create_screen_tab(app):
     }
 
     def choose_display(value):
-        app.display_layout_var.set(value)
+        # Tkinter updates the clicked checkbox *before* its command runs.
+        # Unticking the active layout means no external display; ticking
+        # another layout selects it exclusively.
+        selected = app.display_layout_check_vars[value].get()
+        chosen = value if selected else ""
+        app.display_layout_var.set(chosen)
         for option, var in app.display_layout_check_vars.items():
-            var.set(option == value)
+            var.set(option == chosen)
         app.apply_screen_configuration()
 
     descriptions = {
