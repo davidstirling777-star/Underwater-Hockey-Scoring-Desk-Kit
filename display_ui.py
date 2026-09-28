@@ -873,7 +873,7 @@ def _get_monitor_geometries(app):
     except Exception:
         pass
 
-    # Linux/X11: xrandr gives connected monitor geometry. Wayland may not expose it.
+    # Linux/X11: use xrandr to detect connected monitors and their geometry.
     if not monitors:
         try:
             import re
