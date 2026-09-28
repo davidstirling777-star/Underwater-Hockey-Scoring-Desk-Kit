@@ -420,8 +420,9 @@ class ZigbeeSirenController:
                 )
 
             action_name = str(action).strip().lower()
-            if action_name in ["single", "press", "click", "on", "1"]:
-                # A momentary press has no matching OFF/release event.
+            if action_name in ["single", "press", "click", "on", "1", "hold"]:
+                # A single press or a completed long hold has no matching OFF
+                # event. Both use the same duration-limited siren playback.
                 self._trigger_siren(SIREN_EVENT_PULSE)
             elif action_name == "double":
                 # Play two bounded siren blasts, with the UI controlling timing.
