@@ -949,10 +949,11 @@ def create_screen_tab(app):
     tk.Label(
         outer,
         text=(
-            "Auto Detect uses the native Windows monitor list. On Linux/X11 it uses xrandr. "
-            "Under Wayland, detection depends on whether the desktop exposes monitor information; "
-            "otherwise the current manual selection remains available. Test Displays labels every "
-            "screen for eight seconds and can be closed by clicking or pressing Esc."
+            "Auto Detect uses the native Windows monitor list. "
+            "On Raspberry Pi OS Bookworm/X11, it uses xrandr. "
+            "If automatic detection is unavailable, select the screen layout manually. "
+            "Test Displays labels every screen for eight seconds and can be closed "
+            "by clicking or pressing Esc."
         ),
         justify="left",
         anchor="nw",
