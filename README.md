@@ -13,12 +13,15 @@ Contents
 - [Zigbee2MQTT wireless siren control](#zigbee2mqtt-wireless-siren-control)
 - [Other installation and packaging notes](#other-installation-and-packaging-notes)
 
-## Raspberry Pi 5: tested configuration (September 2026)
 
 ### Known working setups:
 
+## Windows 11: tested configuration (September 2026)
+
 #### Windows 11
-App works fine under Windows, the wireless sirens don't work yet.
+App works fine under Windows, Zigbee wireless sirens wo.
+
+## Raspberry Pi 5: tested configuration (September 2026)
 
 #### Raspberry Pi 5
 Raspberry Pi OS Desktop based on Debian 12 Bookworm (now listed as Raspberry Pi OS Legacy), Python 3.11, and the X11 desktop session. Two maximised displays, mouse movement, game timers and score updates work well on this combination.
@@ -337,7 +340,7 @@ This logic ensures the correct flow for tournament progression based on goals sc
 
 ## Zigbee2MQTT wireless siren control
 
-The application includes Zigbee siren integration. Raspberry Pi/Linux MQTT and Windows operation require separate setup and end-to-end testing. Treat Windows wireless siren operation as experimental until verified.
+The application includes Zigbee siren integration. Raspberry Pi/Linux MQTT and Windows operation require separate setup and end-to-end testing.
 
 ## Platform support
 
