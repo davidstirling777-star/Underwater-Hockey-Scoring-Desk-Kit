@@ -836,15 +836,10 @@ def create_screen_tab(app):
     )
 
     def choose_operator(value):
-        # A selected operator checkbox cannot be unticked: one operator
-        # layout must remain selected. Clicking it again is not a request
-        # to rebuild or reopen the external display window.
-        changed = app.operator_layout_var.get() != value
         app.operator_layout_var.set(value)
         app.operator_standard_check_var.set(value == "Standard")
         app.operator_widescreen_check_var.set(value == "Widescreen")
-        if changed:
-            app.apply_screen_configuration()
+        app.apply_screen_configuration()
 
     ttk.Checkbutton(
         operator_frame,
@@ -869,19 +864,24 @@ def create_screen_tab(app):
         "Dual Widescreen",
     ]
     app.display_layout_check_vars = {
-        option: tk.BooleanVar(value=app.display_layout_var.get() == option)
+        option: tk.BooleanVar(
+            value=(app.show_display_screen_var.get()
+                   and app.display_layout_var.get() == option)
+        )
         for option in display_options
     }
 
     def choose_display(value):
-        # Tkinter updates the clicked checkbox *before* its command runs.
-        # Unticking the active layout means no external display; ticking
-        # another layout selects it exclusively.
-        selected = app.display_layout_check_vars[value].get()
-        chosen = value if selected else ""
-        app.display_layout_var.set(chosen)
+        # Tkinter has already toggled the clicked checkbox at this point.
+        # Clicking the selected (ticked) layout again therefore turns it OFF.
+        enabled = app.display_layout_check_vars[value].get()
+        app.show_display_screen_var.set(enabled)
+        if enabled:
+            app.display_layout_var.set(value)
+        # Keep the previously selected layout when disabled so it can be
+        # restored next time without having to reconfigure the display.
         for option, var in app.display_layout_check_vars.items():
-            var.set(option == chosen)
+            var.set(enabled and option == app.display_layout_var.get())
         app.apply_screen_configuration()
 
     descriptions = {
