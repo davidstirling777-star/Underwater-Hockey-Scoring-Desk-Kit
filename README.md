@@ -15,13 +15,15 @@ Zigbee2MQTT wireless siren control
 Other installation and packaging notes
 Raspberry Pi 5: tested configuration (September 2026)
 
-##Known working setups:
+## Known working setups:
 
-Windows 11,
+### Windows 11
+App works fine under Windows, the wireless sirens don't work yet.
 
-Raspberry Pi 5, Raspberry Pi OS Desktop based on Debian 12 Bookworm (now listed as Raspberry Pi OS Legacy), Python 3.11, and the X11 desktop session. Two maximised displays, mouse movement, game timers and score updates were tested successfully on this setup.
+### Raspberry Pi 5
+Raspberry Pi OS Desktop based on Debian 12 Bookworm (now listed as Raspberry Pi OS Legacy), Python 3.11, and the X11 desktop session. Two maximised displays, mouse movement, game timers and score updates were tested successfully on this setup.
 
-Why X11 matters for this application: On the tested Pi 5, moving the pointer over Game Variables checkboxes under Wayland caused GPU utilisation to reach about 98% and the mouse became jerky. A separate 20-checkbox Tkinter test reproduced high GPU use (88%; 82% with the Clam theme). Under X11, both independent checkbox tests fell to about 1%, and UWH's Game Variables test peaked at approximately 10% with smooth mouse movement. These are observations on one system, not a claim that Wayland is universally slow or that Trixie has the same problem. The exact graphics-stack cause has not been isolated.
+Why X11 matters for this application: On the tested Pi 5, moving the pointer over Game Variables checkboxes under Wayland caused GPU utilisation to reach about 98% and the mouse became jerky. A separate 20-checkbox Tkinter test reproduced high GPU use (88%; 82% with the Clam theme). Under X11, both independent checkbox tests fell to about 1% GPU, and UWH's Game Variables test peaked at approximately 10% GPU with smooth mouse movement. These are observations on one system, not a claim that Wayland is universally slow or that Trixie has the same problem. The exact graphics-stack cause has not been isolated.
 
 > [!IMPORTANT]
 > **Recommended Pi 5 configuration:** Stay with **Bookworm + X11** until a different combination has been tested with UWH. Raspberry Pi recommends Wayland generally, but X11 was demonstrably better for this particular workload. There is no need to modify UWH's timer code, GPU memory allocation or checkbox rendering to obtain the tested result.
@@ -36,7 +38,43 @@ After reboot, run:
    ```
 It should print `x11`. If it prints `wayland`, check the selection and reboot again. To switch back later, use W2 Labwc in the same menu.
 
-##Download and install on a Raspberry Pi 5
+
+## Downloading and installing UWH on Windows
+### Download the program
+1. Open the UWH Scoring Desk Kit repository on GitHub.
+2. On the right-hand side of the repository page, find Releases.
+3. Click Releases, then select the latest release.
+4. Scroll down to the Assets section.
+5. Click the Windows ZIP file. Its name will resemble:
+UnderwaterHockeyScoringDesk-v1.2.123-Windows.zip
+The version and build numbers will vary.
+6. The ZIP file will download to your computer, normally into your Downloads folder.
+   
+```Important: Do not select Source code (zip) or use the green Code → Download ZIP button. Those download the Python source code, not the ready-to-run Windows application.```
+
+### Extract the program
+1. Open Windows File Explorer and navigate to Downloads.
+2. Right-click the downloaded ZIP file.
+3. Select Extract All...
+4. Choose a permanent folder, such as Documents\UWH Scoring Desk.
+5. Click Extract.
+The extracted folder contains UnderwaterHockeyScoringDesk.exe and its supporting files. Keep these together.
+
+### Run the application
+1. Open the extracted folder.
+2. Double-click UnderwaterHockeyScoringDesk.exe.
+3. The startup self-test will run before the application opens.
+4. The Game Management window will appear.
+5. Enable Show Display Screen on the Game Variables tab to open the player-facing display, if required.
+You can create a desktop shortcut by right-clicking the executable and selecting Show more options → Send to → Desktop (create shortcut).
+
+### Installing future updates
+When a newer version is released, repeat the download and extraction process.
+
+```Important: Before replacing an existing installation, back up your settings.json file and tournament CSV files. These can contain your customised settings, game results and tournament information.  The new version should be tested before using it during a competition.```
+
+
+## Downloading and installing UWH on a Raspberry Pi 5
 These instructions are for a new installation from the Python source, not a standalone executable. A keyboard, mouse and Raspberry Pi OS Desktop are needed; the Lite edition does not include the graphical desktop required by UWH. The example folder names below match the current GitHub ZIP download used on the tested Pi. If GitHub names your ZIP or extracted folder differently, use its actual name in the commands.
 
 1. Prepare Raspberry Pi OS
@@ -106,9 +144,9 @@ In particular, keep copies of your own `settings.json`, tournament CSV files, so
 After copying a fresh version into its intended location, install that version's dependencies into its `.venv` and test it from Terminal before changing the desktop shortcut. Do not copy a `.venv` from one OS/Python version to another; create it again if necessary. Before a tournament, test the two displays, siren audio, time-outs and CSV saving.
 Raspberry Pi troubleshooting
 
-##Symptom	Check
+### Symptom	Check
 
-Jerky mouse when passing over Game Variables checkboxes	Run `echo $XDG_SESSION_TYPE`. If it shows `wayland`, test the X11 option described above.
+If you notice Jerky mouse when passing over Game Variables checkboxes	Run `echo $XDG_SESSION_TYPE`. If it shows `wayland`, test the X11 option described above.
 `ModuleNotFoundError` at startup	Check that `.venv/bin/python -m pip install -r requirements.txt` completed successfully, and that you launch with `.venv/bin/python uwh.py`.
 `No module named tkinter`	Install `python3-tk` using APT and recreate/test the virtual environment as necessary.
 Desktop icon appears but program does not start	Run `.venv/bin/python uwh.py` from Terminal; check the `Exec=` and `Path=` entries in the desktop shortcut.
@@ -117,46 +155,71 @@ Zigbee siren unavailable	Consult `ZIGBEE_SETUP.md`; a detected USB/COM port is n
 Need to check OS package updates	Run `sudo apt update` followed by `apt list --upgradable`. An empty list means no upgrades are offered by the configured repositories, not that you are on the newest major OS release.
 
 
-##Game Variables tab
+## Game Variables tab
 
-Here, you can set most of the parameters of the games, select if Team Time-Outs, Overtime and Sudden Death aspects of the game are allowed.  All value boxes accept decimal time e.g. 1.5 (or 1,5) = 1 minute and 30 seconds.
+Here, you can set most of the parameters of the games, select if Team Time-Outs, Overtime and Sudden Death aspects of the game are allowed.
+
+All value boxes accept decimal time e.g. 1.5 (or 1,5) = 1 minute and 30 seconds.
+
 Time to Start First Game allows early setup of the system ensuring the first game starts at a particular time.  This is reliant on the Local Computer Time being correct.  The format is HH:mm (no leading zero and 24 hour format) there is a validation to ensure the time is correctly entered.
+
 First Game Starts In: is another way to set when the first game starts, but this time in 'minutes from now'.  Entering a value in here will wipe the time from 'Time to Start First Game'.
+
 Team time-outs allowed? is a check box that when selected, enables the Team Time-Out buttons in the Scoreboard tab and also makes the 'Team Timeout Period' value box able to accept a value.
+
 Team Time-Out Period is the value in minutes allowed for the 'Team Time-out'
+
 Half Period: The time in minutes of the first and second halves.
+
 Half Time Break: The time in minutes of the half time break.
+
 Overtime allowed? is a check box that when selected, enables the program to enter Overtime if the scores are tied at the end of normal play.  It also enables/disables the 'Overtime Game Break:', 'Overtime Half Period:'
+
 Overtime Game Break: The time in minutes of the break between the end of the second half and the start of Overtime.
+
 Overtime Half Period: The time in minutes of the Overtime halves.
+
 Overtime Half Time Break: The time in minutes of the Overtime half time break.
+
 Sudden Death Game Break: has both a checkbox that when selected, enables the program to enter Sudden Death if the scores are tied at the end of Overtime play, and a value box where the time in minutes of the break between the end of the Overtime and the start of Sudden Death.
+
 Between Game Break:  The time in minutes of the break between the end of the game and the start of the next game.  This time came be shortened by "Crib Time" (see below).
-Record Scorers Cap Number enables a popup dialogue box to appear when a goal is scored, where the cap number of the player scoring the goal can be entered.  There is also the option of 'Unknown' and 'Penalty Goal'.  The cap number data are stored in the CSV file selected in the 'Tournament List' widget (section). More on that later.
+
+Record Scorers Cap Number: enables a popup dialogue box to appear when a goal is scored, where the cap number of the player scoring the goal can be entered.  There is also the option of 'Unknown' and 'Penalty Goal'.  The cap number data are stored in the CSV file selected in the 'Tournament List' widget (section). More on that later.
+
 Crib Time: has both a checkbox that when selected, enables the program to shorten the 'Between Game Break' by this value until the Court Time is aligned with the Local Computer Time, and a value box, in seconds, of the magnitude to crib (or claw back).  This value cannot make the 'Between Game Break' less than 31 seconds (more on that later).
+
 Reset Timer transfers the entered values to the program and starts the timer again with the new values.
 
 
-##Presets
+### Presets
 
 Here, six buttons are located where commonly used settings can be stored.  Holding down the button for >4 seconds allows the name of the button to be altered and all the settings changed.  Click the save button and these settings will be saved in the JSON file (stored in the same file directory location as the app itself).  A single click on these preset buttons will transfer these settings to the corresponding settings in the 'Game Variables' tab.
-Tournament List
+
+## Tournament List
+
 A sample CSV file is included with the distribution of this app.
 This has a dropdown list where a CSV file can be selected that contains the draw for a Tournament or a list of games. The team names listed in the 'White' and 'Black' columns will appear on the Scoreboard Tab and ,if selected, on the 'Display Window' Screen.
+
 The CSV File dropdown automatically refreshes when clicked. New Tournament CSV files copied into the application folder can be selected without restarting the application.
+
 Expected CSV headers: date,#,White,WScore,Black,BScore,Referees,Penalties,Comments. Where # is the Game Number [but this can actually also be 'game', 'game#' or 'game_number'].
-IMPORTANT: The selected CSV file is modified as the games progress as the app stores the scores, what Cap Numbers were penalised (into the 'Penalties' column), and if the 'Record Scorers Cap Number' checkbox is selected, the Cap Numbers' to which goals were attributed (into the 'Comments' column).
+
+``` IMPORTANT: The selected CSV file is modified as the games progress as the app stores the scores, what Cap Numbers were penalised (into the 'Penalties' column), and if the 'Record Scorers Cap Number' checkbox is selected, the Cap Numbers' to which goals were attributed (into the 'Comments' column).```
+
 When the 'Between Game Break' timer reached 30 seconds after the last game, the penalties and cap numbers of the goal scorers from the previous game are written to the selected CSV file and the penalties remaining on the screens are cleared.  This is the reason the 'Between Game Break' can not be less than 31 seconds.
+
 The 'Starting Game #' will show a list of Game Numbers in the CSV file selected above. This could be useful if the app crashes and the games need to be restarted, or if multiple days' games are in the CSV file.
+
 At the completion of each game, the application automatically advances to the next game number in the selected Tournament CSV file and updates the displayed team names.  There is a drop down box to select only the even, odd or consecutive (this is the default) game numbers in the list.  This could be useful if there is one CSV file but odd games are on one court and even games are on another court.
 
 
-##Game Sequence
+### Game Sequence
 
 This is a description of how the app progresses through the various stages of the game parts.
 
 
-##Sounds tab
+## Sounds tab
 
 Save Settings is a button that stores the user selected sound files to the JSON file (stored in the same location as the app itself).
 Pips is a dropdown box where a sound file can be selected. Any .MP3 or .WAV file can be placed in the 'assets' folder and these will appear in the 'Pips' dropdown box.
@@ -168,7 +231,7 @@ Siren play at pre-determined periods and also when the Chief Referee activates t
 Number of seconds to play Siren is a value box to alter how long the Siren sounds at the pre-determined periods.  If the sound file is shorter than the value, it will automatically loop until the selected minimum is reached.
 
 
-##Sound timing table
+### Sound timing table
 
 The system automatically plays audio cues during different periods:
 Period Type	Period Name	30s Remaining	10s-1s Remaining	0s (End)
@@ -194,12 +257,16 @@ Game periods (halves) only play siren at the end, no countdown pips
 Sudden Death periods have no automatic audio cues.  The Sudden Death timer counts upwards from 00:00. A goal scored during Sudden Death immediately ends the game. Sudden Death Start and Sudden Death End are recorded in file UWH_Game_Data.txt.
 
 
-##Scoreboard tab
+## Scoreboard tab
 
-Court Time: In this tab, which can be maximised to fit the screen, is the Court Time.  This is synchronised to the 'Local Computer Time' when the app first opens.  If the 'Crib Time' is selected, the Court Time, which may have been extended by 'Ref' or 'Team' 'Time Outs' will try and move back to the 'Local Computer Time' by shortening the 'Between Game Break'.
+Court Time: In this widget is the Court Time.  This is synchronised to the 'Local Computer Time' when the app first opens.  If the 'Crib Time' is selected, the Court Time, which may have been extended by 'Ref' or 'Team' 'Time Outs' will try and move back to the 'Local Computer Time' by shortening the 'Between Game Break'.
+
 Game Sequence: The next row is where the Game Sequence is announced.  Breaks are 'Red', Play is 'Light Coral Blue'.
-Game Number: Under that is the Game Number, picked up from the CSV file.
-Team names: Then are the Team names, picked up from the CSV file.
+
+Game Number: Under that is the Game Number, picked up from the CSV file (if this is selected from the Tournament list).
+
+Team names: Then are the Team names, picked up from the CSV file (if this is selected from the Tournament list).
+
 Scores: The Scores, which will get written to the CSV file when the 'Between Game Break' timer reaches 30 seconds after a game ends, are displayed next.
 If the 'Team time-outs allowed?' check box is selected, the Team Time-Out buttons are selectable.  Only one team time-out per half, no team time-outs are permitted in Overtime or Sudden Death according to the application documentation referencing CMAS rules as of October 2025; confirm current competition rules separately.
 Add Goal White adds a goal to white and if the 'Record Scorers Cap Number' check box is ticked, a popup dialogue box where the cap number of the player scoring the goal can be entered.  Unknown and Penalty Goal are also options.
@@ -212,7 +279,7 @@ When Referee Time-Out is released, the interrupted period(s) resumes from the ex
 Penalties is enabled during play but greyed out for breaks (as you cannot award a Penalty when play cannot be stopped [section 17.1.1 of CMAS rules]) but if the 'Referee Time-Out' button is pushed, the 'Penalties' button is enabled (This is for you KD.  You know who you are).  When the 'Penalties' button is pushed, a popup dialogue box appears that enables the selection of cap colour, Cap number and penalty time period.  YOU MUST SELECT START PENALTY to record the penalty. These penalties are written to the CSV file when the 'Between Game Break' timer reaches 30 seconds.  The penalties are also displayed on both screens along with the time remaining to serve.  When this time reaches zero, the penalty is removed from the list.  Penalties can be removed in case the wrong details were entered.
 
 
-##Other game behaviour
+## Other game behaviour
 
 Coping with Errors (like when a goal is scored right on the buzzer!)
 Summary of what happens when goals are added during the three "break" periods:
@@ -229,12 +296,12 @@ Sudden Death Game Break	Even	Remain in Sudden Death Game Break. Proceed to Sudde
 This logic ensures the correct flow for tournament progression based on goals scored during break periods.
 
 
-##Zigbee2MQTT wireless siren control
+## Zigbee2MQTT wireless siren control
 
 The application includes Zigbee siren integration. Raspberry Pi/Linux MQTT and Windows operation require separate setup and end-to-end testing. Treat Windows wireless siren operation as experimental until confirmed on your equipment.
 
 
-##Platform support
+## Platform support
 
 Linux (Raspberry Pi): MQTT/Zigbee2MQTT integration is provided; configure and test it using `ZIGBEE_SETUP.md`.
 Windows: Zigbee2MQTT with a Mosquitto MQTT broker is documented, but not verified here as a complete working installation.
@@ -260,7 +327,7 @@ See `ZIGBEE_SETUP.md` for complete installation and configuration instructions.
 Other installation and packaging notes
 
 
-##Running on other systems
+## Running on other systems
 
 The source is a Python/Tkinter program. Install the Python version and dependencies appropriate to your operating system, then launch `uwh.py`. The Pi 5 instructions above are the configuration actually tested in this README; compatibility of every Windows, Trixie or other Linux environment is not implied.
 On Raspberry Pi OS Bookworm, use the project virtual environment rather than a system-wide `pip install`. For additional Python packages, use:
