@@ -1689,14 +1689,13 @@ def apply_screen_configuration(app):
 
     close_all_display_windows(app)
 
-    # An empty display selection is intentional (the user unticked the
-    # option or closed the window using X). Keep the operator layout but
-    # do not reopen a presentation window.
-    layout = app.display_layout_var.get()
-    if not layout:
+    # Changing the operator layout must never reopen a hidden Display Screen.
+    # This also applies when applying saved settings at application startup.
+    if not app.show_display_screen_var.get():
         return
 
     external = _external_monitors(app, monitors)
+    layout = app.display_layout_var.get() or "Single Standard"
     widescreen = "Widescreen" in layout
     dual = layout.startswith("Dual")
     aspect = (21, 9) if widescreen else (16, 9)
@@ -1769,7 +1768,10 @@ def auto_detect_and_apply(app):
         app.operator_standard_check_var.set(app.operator_layout_var.get() == "Standard")
         app.operator_widescreen_check_var.set(app.operator_layout_var.get() == "Widescreen")
         for option, var in app.display_layout_check_vars.items():
-            var.set(option == app.display_layout_var.get())
+            var.set(
+                app.show_display_screen_var.get()
+                and option == app.display_layout_var.get()
+            )
     except (AttributeError, tk.TclError):
         pass
 
