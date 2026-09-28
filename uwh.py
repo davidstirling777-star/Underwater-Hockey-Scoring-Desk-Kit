@@ -444,7 +444,8 @@ class GameManagementApp:
         self.hardware_siren_event_queue.put(event_name)
 
     def _stop_wireless_siren(self):
-        """Stop just the wireless siren and cancel its UI-side stop timer."""
+        """Cancel a wireless siren sequence, including a pending second blast."""
+        self._wireless_siren_cycles_remaining = 0
         stop_job = getattr(self, "_wireless_siren_stop_job", None)
         self._wireless_siren_stop_job = None
         if stop_job is not None:
@@ -457,9 +458,10 @@ class GameManagementApp:
         self._wireless_siren_channel = None
         sound.stop_looping_sound(channel)
 
-    def _play_wireless_siren_once(self):
-        """Play a momentary Zigbee press for the configured siren duration."""
-        # Never stack sirens if a second press arrives before the first ends.
+    def _play_wireless_siren_once(self, cycles=1):
+        """Start one or two identical, duration-limited Zigbee siren blasts."""
+        # Cancel the previous blast and any pending second blast. New wireless
+        # events replace the sequence rather than stacking sound channels.
         self._stop_wireless_siren()
         if not self.enable_sound.get():
             return
@@ -468,22 +470,59 @@ class GameManagementApp:
             duration_seconds = float(self.siren_duration.get())
             if not 0 < duration_seconds < float("inf"):
                 return
-            duration_ms = max(1, min(30_000, int(duration_seconds * 1000)))
+
+            # Bound EACH blast to 30 seconds, matching the sound helper.
+            self._wireless_siren_cycle_duration = min(duration_seconds, 30.0)
+            self._wireless_siren_cycles_remaining = 2 if cycles == 2 else 1
+            self._play_next_wireless_siren_cycle()
+        except Exception as e:
+            self._stop_wireless_siren()
+            print(f"Timed wireless siren failed: {e}")
+
+    def _play_next_wireless_siren_cycle(self):
+        """Start one blast; the next starts after this one has stopped."""
+        self._wireless_siren_stop_job = None
+        if (
+            not self.enable_sound.get()
+            or self._wireless_siren_cycles_remaining <= 0
+        ):
+            self._stop_wireless_siren()
+            return
+
+        try:
+            duration = self._wireless_siren_cycle_duration
+            duration_ms = max(1, int(duration * 1000))
             self._wireless_siren_channel = sound.start_timed_siren_with_volume(
                 self.siren_var.get(),
                 self.enable_sound.get(),
                 self.siren_volume.get(),
-                duration_seconds,
+                duration,
             )
-            if self._wireless_siren_channel is not None:
-                # Secondary guard: the pygame maxtime already enforces this
-                # limit, even if Tk is briefly unresponsive.
-                self._wireless_siren_stop_job = self.master.after(
-                    duration_ms + 100, self._stop_wireless_siren
-                )
+            if self._wireless_siren_channel is None:
+                self._stop_wireless_siren()
+                return
+
+            self._wireless_siren_cycles_remaining -= 1
+            # Pygame's maxtime independently bounds playback even if Tk stalls.
+            self._wireless_siren_stop_job = self.master.after(
+                duration_ms, self._finish_wireless_siren_cycle
+            )
         except Exception as e:
             self._stop_wireless_siren()
-            print(f"Timed wireless siren failed: {e}")
+            print(f"Wireless siren cycle failed: {e}")
+
+    def _finish_wireless_siren_cycle(self):
+        """End this blast and start the next immediately, with no pause."""
+        self._wireless_siren_stop_job = None
+        channel = self._wireless_siren_channel
+        self._wireless_siren_channel = None
+        sound.stop_looping_sound(channel)
+
+        if self._wireless_siren_cycles_remaining and self.enable_sound.get():
+            # No scheduled delay: two duration-limited blasts play back-to-back.
+            self._play_next_wireless_siren_cycle()
+        else:
+            self._wireless_siren_cycles_remaining = 0
 
     def _stop_arduino_siren(self):
         channel = getattr(self, "arduino_siren_channel", None)
@@ -506,6 +545,10 @@ class GameManagementApp:
         """Handle siren events ONLY on the Tk main thread."""
         if event_name == "PULSE":
             self._play_wireless_siren_once()
+            return
+
+        if event_name == "DOUBLE_PULSE":
+            self._play_wireless_siren_once(cycles=2)
             return
 
         if event_name == "OFF":
@@ -972,6 +1015,7 @@ class GameManagementApp:
         self.arduino_siren_channel = None
         self._wireless_siren_channel = None
         self._wireless_siren_stop_job = None
+        self._wireless_siren_cycles_remaining = 0
         self.hardware_siren_event_queue = queue.Queue()
         self.enable_sound.trace_add(
             "write", lambda *_: self._on_enable_sound_changed()
