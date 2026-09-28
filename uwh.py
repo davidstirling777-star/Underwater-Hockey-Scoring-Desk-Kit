@@ -1,3 +1,4 @@
+
 #!/home/uwh/Downloads/Underwater-Hockey-Scoring-Desk-Kit-main/.venv/bin/python
 
 import csv_export
@@ -241,6 +242,12 @@ class GameManagementApp:
             return "break"
 
         try:
+            self._stop_wireless_siren()
+            self._stop_arduino_siren()
+        except Exception as e:
+            print(f"Error stopping siren during exit: {e}")
+
+        try:
             self.stop_connection_watchdog()
         except Exception as e:
             print(f"Error stopping connection watchdog: {e}")
@@ -435,41 +442,100 @@ class GameManagementApp:
             pass
 
     def handle_hardware_siren_event(self, event_name="ON"):
+        """Thread-safe input from MQTT and the Arduino serial listener.
 
-        if event_name == "OFF":
+        Worker threads must never read Tk variables or call pygame here. The
+        existing Tk status queue poller processes hardware events on the UI thread.
+        """
+        self.hardware_siren_event_queue.put(event_name)
+
+    def _stop_wireless_siren(self):
+        """Stop just the wireless siren and cancel its UI-side stop timer."""
+        stop_job = getattr(self, "_wireless_siren_stop_job", None)
+        self._wireless_siren_stop_job = None
+        if stop_job is not None:
             try:
-                if hasattr(self, "arduino_siren_channel") and self.arduino_siren_channel:
-                    self.arduino_siren_channel.stop()
-                    self.arduino_siren_channel = None
-            except Exception:
+                self.master.after_cancel(stop_job)
+            except tk.TclError:
                 pass
 
+        channel = getattr(self, "_wireless_siren_channel", None)
+        self._wireless_siren_channel = None
+        sound.stop_looping_sound(channel)
+
+    def _play_wireless_siren_once(self):
+        """Play a momentary Zigbee press for the configured siren duration."""
+        # Never stack sirens if a second press arrives before the first ends.
+        self._stop_wireless_siren()
+        if not self.enable_sound.get():
+            return
+
+        try:
+            duration_seconds = float(self.siren_duration.get())
+            if not 0 < duration_seconds < float("inf"):
+                return
+            duration_ms = max(1, min(30_000, int(duration_seconds * 1000)))
+            self._wireless_siren_channel = sound.start_timed_siren_with_volume(
+                self.siren_var.get(),
+                self.enable_sound.get(),
+                self.siren_volume.get(),
+                duration_seconds,
+            )
+            if self._wireless_siren_channel is not None:
+                # Secondary guard: the pygame maxtime already enforces this
+                # limit, even if Tk is briefly unresponsive.
+                self._wireless_siren_stop_job = self.master.after(
+                    duration_ms + 100, self._stop_wireless_siren
+                )
+        except Exception as e:
+            self._stop_wireless_siren()
+            print(f"Timed wireless siren failed: {e}")
+
+    def _stop_arduino_siren(self):
+        channel = getattr(self, "arduino_siren_channel", None)
+        self.arduino_siren_channel = None
+        sound.stop_looping_sound(channel)
+
+    def _on_enable_sound_changed(self):
+        """Unticking Enable Sound is an immediate audio stop as well as a mute."""
+        if not self.enable_sound.get():
+            self._stop_wireless_siren()
+            self._stop_arduino_siren()
+            # Also stop any currently playing score/timer siren or pip.
+            try:
+                if sound.PYGAME_INITIALIZED:
+                    sound.pygame.mixer.stop()
+            except Exception as e:
+                print(f"Could not stop mixer on mute: {e}")
+
+    def _process_hardware_siren_event(self, event_name):
+        """Handle siren events ONLY on the Tk main thread."""
+        if event_name == "PULSE":
+            self._play_wireless_siren_once()
+            return
+
+        if event_name == "OFF":
+            self._stop_arduino_siren()
             try:
                 self.zigbee_controller.handle_hardware_siren_event("OFF")
             except Exception:
                 pass
-
             return
 
+        # Preserve the existing Arduino press-and-hold ON/OFF behaviour.
+        # Unlike a Zigbee PULSE, this channel stays on until release.
+        if not self.enable_sound.get():
+            return
         try:
-            import sound
-
             track = self.siren_var.get()
             volume = self.siren_volume.get()
-
             normalized_volume = max(0.0, min(100.0, volume)) / 100.0
 
-            if hasattr(sound, "_preloaded_sounds") and track in sound._preloaded_sounds:
+            if track in sound._preloaded_sounds:
                 sound_obj = sound._preloaded_sounds[track]
                 sound_obj.set_volume(normalized_volume)
-
-                # Stop previous Arduino loop if one somehow exists
-                if hasattr(self, "arduino_siren_channel") and self.arduino_siren_channel:
-                    self.arduino_siren_channel.stop()
-
-                # Let pygame choose the channel, same general path as normal playback
+                self._stop_arduino_siren()
                 self.arduino_siren_channel = sound_obj.play(loops=-1)
-
         except Exception as e:
             if DEBUG_MODE:
                 print(f"Hardware siren local audio failed: {e}")
@@ -898,6 +964,12 @@ class GameManagementApp:
         self.zigbee_status_var = tk.StringVar(value="Connecting...")
         self.siren_loop_active = False
         self.arduino_siren_channel = None
+        self._wireless_siren_channel = None
+        self._wireless_siren_stop_job = None
+        self.hardware_siren_event_queue = queue.Queue()
+        self.enable_sound.trace_add(
+            "write", lambda *_: self._on_enable_sound_changed()
+        )
         self.connection_watchdog_active = False
         self.connection_watchdog_attempts = 0
         self.connection_watchdog_max_attempts = 3
@@ -1936,7 +2008,19 @@ class GameManagementApp:
         except tk.TclError:
             # Application is closing.
             return
-    
+
+        # MQTT and serial events enter through a Queue, never Tk from a worker.
+        # Bound each pass so a burst of presses cannot starve the UI.
+        for _ in range(32):
+            try:
+                event_name = self.hardware_siren_event_queue.get_nowait()
+            except queue.Empty:
+                break
+            try:
+                self._process_hardware_siren_event(event_name)
+            except Exception as e:
+                print(f"Error processing hardware siren event: {e}")
+
         try:
             self._zigbee_status_queue_job = self.master.after(
                 100,
