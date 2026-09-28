@@ -1,4 +1,3 @@
-
 #!/home/uwh/Downloads/Underwater-Hockey-Scoring-Desk-Kit-main/.venv/bin/python
 
 import csv_export
@@ -536,6 +535,9 @@ class GameManagementApp:
                 sound_obj.set_volume(normalized_volume)
                 self._stop_arduino_siren()
                 self.arduino_siren_channel = sound_obj.play(loops=-1)
+                if self.arduino_siren_channel is not None:
+                    # Avoid inheriting a lower volume from a reused channel.
+                    self.arduino_siren_channel.set_volume(1.0)
         except Exception as e:
             if DEBUG_MODE:
                 print(f"Hardware siren local audio failed: {e}")
