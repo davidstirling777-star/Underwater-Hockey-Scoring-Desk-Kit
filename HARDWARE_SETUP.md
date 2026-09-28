@@ -3,6 +3,7 @@
 Example hardware:
 Inital setup uses a MINIX Fanless MiniPC Z150-0dB Intel N150 8G/256GB.  Why? Because it runs on 12-1 V and runs Windows 11.  
 The app runs well (see caveat below) on a Raspberry Pi 5 using Bookworm.
+
 Two MSI Pro MP273A 27" FHD 100Hz Business Monitors or similar.  Why? Because a lot of MSI monitors runs on 12 V.
 The assumption is that both the computer and screens are powered from a battery that is being contantly charged.
 
