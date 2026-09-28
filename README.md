@@ -2,29 +2,31 @@
 
 A project to allow the use of a computer, modern computer languages and readily available Arduino hardware to make a scoring and siren system for Underwater Hockey. Example hardware is described in `HARDWARE_SETUP.md`.
 
-The software has an operator-facing Underwater Hockey Game Management App and a player-facing Display Window. The operator window opens on the second tab, Game Variables, with four other tabs: Scoreboard, Screens, Sounds, and Zigbee Siren.
+The software has an operator-facing Underwater Hockey Game Management App and a player-facing or spectator-facting Display Window(s). The operator window opens on the second tab, Game Variables, with four other tabs: Scoreboard, Screens, Sounds, and Zigbee Siren.
 
-Contents
+## Contents
+
+- [Windows 11: tested configuration](#windows-11-tested-configuration-september-2026)
 - [Raspberry Pi 5: tested configuration](#raspberry-pi-5-tested-configuration-september-2026)
-- [Download and install on a Raspberry Pi 5](#downloading-and-installing-uwh-on-a-raspberry-pi-5)
+- [Downloading and installing UWH on Windows](#downloading-and-installing-uwh-on-windows)
+- [Downloading and installing UWH on a Raspberry Pi 5](#downloading-and-installing-uwh-on-a-raspberry-pi-5)
 - [Game Variables tab](#game-variables-tab)
+- [Tournament List](#tournament-list)
+- [Screens tab](#screens-tab)
 - [Sounds tab](#sounds-tab)
 - [Scoreboard tab](#scoreboard-tab)
 - [Zigbee2MQTT wireless siren control](#zigbee2mqtt-wireless-siren-control)
 - [Other installation and packaging notes](#other-installation-and-packaging-notes)
 
-
-### Known working setups:
+## Known working setups
 
 ## Windows 11: tested configuration (September 2026)
 
-#### Windows 11
-App works fine under Windows, Zigbee wireless sirens work with testing of: the UWH application, the Arduino siren, Zigbee2MQTT and the Zigbee wireless button.
+The Windows 11 UWH application, wired Arduino siren, Mosquitto MQTT broker, Zigbee2MQTT, and **two** independently named Zigbee buttons have been tested together. Both buttons can sound the same local siren. Verified button actions are `single` (triggering one timed siren cycle), `double` (triggering two consecutive timed siren cycles, without a deliberately inserted pause), and `hold` (triggering one timed siren cycle on release). Zigbee2MQTT was also confirmed to restart through PM2 and Windows Task Scheduler after a Windows reboot. See [ZIGBEE_SETUP.md](ZIGBEE_SETUP.md) for reproducible installation details. Actively avoid joining the same button to two different Zigbee coordinators simultaneously. Mayhem will ensue.
 
 ## Raspberry Pi 5: tested configuration (September 2026)
 
-#### Raspberry Pi 5
-Raspberry Pi OS Desktop based on Debian 12 Bookworm (now listed as Raspberry Pi OS Legacy), Python 3.11, and the X11 desktop session. Two maximised displays, mouse movement, game timers and score updates work well on this combination.
+Raspberry Pi OS Desktop based on Debian 12 Bookworm (listed as Raspberry Pi OS Legacy), Python 3.11, and the X11 desktop session. Two maximised displays, mouse movement, game timers and score updates have been tested on this combination. A complete Raspberry Pi Zigbee2MQTT/Mosquitto installation has **not** been independently verified in the same way as the Windows setup.
 
 Why X11 matters for this application: On the tested Pi 5, moving the pointer over Game Variables checkboxes under Wayland caused GPU utilisation to reach about 98% and the mouse became jerky. A separate note: Raspberry Pi recommends Wayland generally, but X11 was demonstrably better for this GUI.
 
@@ -69,15 +71,18 @@ The extracted folder contains `UnderwaterHockeyScoringDesk.exe` and its supporti
 2. Double-click `UnderwaterHockeyScoringDesk.exe`.
 3. The startup self-test will run before the application opens.
 4. The Game Management window will appear.
-5. If you want a second or third screen, Enable **Single Standard** or another option on the Screens tab to open the player-facing or crowd-facing display(s), if required. Selecting a Display Screen option opens the relevant window(s), selecting it again closes it, and the open/closed state is remembered in settings.json. Closing the window with X also saves the closed state.
+5. Use the **Screens** tab's **Display Screen Options** to open a player-facing or crowd-facing display, if required. Choose a supported Standard or Widescreen layout. Closing a Display Window with its **X** closes it and saves that closed state in `settings.json`. Check your monitor assignments with **Auto Detect Screens** and **Test Displays**.
 
 You can create a desktop shortcut by right-clicking the executable and selecting **Show more options → Send to → Desktop (create shortcut)**.
 
 ### Installing future updates
-When a newer version is released, repeat the download and extraction process.
 
-> [!IMPORTANT]
-> Before replacing an existing installation, back up your `settings.json` file and tournament CSV files. These can contain your customised settings, game results and tournament information.
+Download the newer release and extract it into a **separate folder** first. Do not overwrite a working installation without a backup.
+
+> [!WARNING]
+> **Back up `settings.json` before every update.** It includes your **Zigbee button-name list** (for example, `siren_button, siren_button_2`), MQTT settings, sound preferences, screen layout and the remembered Display Window open/closed state. Back up tournament CSVs, custom sounds under `assets/`, and game logs too. Replacing UWH's settings can remove the second button from UWH without unpairing it from Zigbee2MQTT.
+
+After updating, confirm the **Zigbee Siren → Button Device Names** field and test both buttons before using the system at a match. Do not blindly replace a new-format `settings.json` with a very old version; compare and carry forward your customised values where the format has changed. Zigbee2MQTT has a **separate** `data/` directory that should be backed up before Zigbee2MQTT updates; see [ZIGBEE_SETUP.md](ZIGBEE_SETUP.md).
 
 ## Downloading and installing UWH on a Raspberry Pi 5
 
@@ -138,7 +143,7 @@ cd ~/Downloads/Underwater-Hockey-Scoring-Desk-Kit-main
 .venv/bin/python uwh.py
 ```
 
-The startup self-test should run, followed by the operator interface. If you want a second or third screen, Enable **Single Standard** or another option on the Screens tab to open the player-facing or crowd-facing display(s), if required. Selecting a Display Screen option opens the relevant window(s), selecting it again closes it, and the open/closed state is remembered in settings.json. Closing the window with X also saves the closed state. Position all windows on their respective monitors.
+The startup self-test should run, followed by the operator interface. Use **Screens → Display Screen Options** to open player-facing or crowd-facing displays. Position each window on its intended monitor. Closing a Display Window with **X** saves its closed state in `settings.json`. Use **Auto Detect Screens** and **Test Displays** to identify the monitors.
 
 If startup fails, launch with the Terminal command above rather than a desktop shortcut. The last lines printed to Terminal are usually much more useful than the last startup self-test message.
 
@@ -167,9 +172,9 @@ If the desktop asks you to **Allow Launching** or **mark the shortcut as trusted
 
 A GitHub Download ZIP is a snapshot: it does not update itself. To obtain newer code, download a new ZIP and extract it into a separate directory, or back up the existing directory before replacing files.
 
-In particular, keep copies of your own `settings.json`, tournament CSV files, sound files added under `assets/`, and game logs such as `UWH_Game_Data.txt` if present. The application writes results back to the CSV file during tournaments.
+In particular, keep copies of `settings.json` (including the Zigbee `siren_button_devices` list, MQTT broker, sounds and screen visibility), tournament CSV files, sound files added under `assets/`, and game logs such as `UWH_Game_Data.txt` if present. The application writes results back to the CSV file during tournaments. A missing UWH `settings.json` does not unpair a button, but UWH can lose its name and stop responding to it.
 
-After copying a fresh version into its intended location, install that version's dependencies into its `.venv` and test it from Terminal before changing the desktop shortcut. Do not copy a `.venv` from an old installation.
+After copying a fresh version into its intended location, install that version's dependencies into its `.venv` and test it from Terminal before changing the desktop shortcut. Do not copy a `.venv` from an old installation. Verify the **Zigbee Siren** button-name list after restoring settings; the Raspberry Pi and Windows MQTT setup instructions are in [ZIGBEE_SETUP.md](ZIGBEE_SETUP.md).
 
 ### Raspberry Pi troubleshooting
 
@@ -179,7 +184,7 @@ After copying a fresh version into its intended location, install that version's
 | `ModuleNotFoundError` at startup | Check that `.venv/bin/python -m pip install -r requirements.txt` completed successfully, and that you launch with `.venv/bin/python uwh.py`. |
 | `No module named tkinter` | Install `python3-tk` using APT and recreate/test the virtual environment as necessary. |
 | Desktop icon appears but program does not start | Run `.venv/bin/python uwh.py` from Terminal; check the `Exec=` and `Path=` entries in the desktop shortcut. |
-| Presentation Display is missing or opens on the wrong monitor | Check **Show Display Screen** and position the window on the intended display. |
+| Display Window is missing or opens on the wrong monitor | Check **Screens → Display Screen Options**, run **Auto Detect Screens** and **Test Displays**, and position the window on the intended monitor. Closing the window with **X** saves its closed state. |
 | Zigbee siren unavailable | Consult `ZIGBEE_SETUP.md`; a detected USB/COM port is not proof that the Zigbee button is paired or communicating. |
 | Need to check OS package updates | Run `sudo apt update` followed by `apt list --upgradable`. An empty list means no upgrades are offered by the configured repositories, not that you are on the newest version. |
 
@@ -234,9 +239,9 @@ The CSV File dropdown automatically refreshes when clicked. New Tournament CSV f
 Where `#` is the Game Number (but this can also be `game`, `game#` or `game_number`).
 
 > [!IMPORTANT]
-> The selected CSV file is modified as the games progress, as the app stores the scores, what Cap Numbers were penalised (into the 'Penalties' column), and if the 'Record Scorers Cap Number' check box is ticked, the cap numbers of the goal scorers from the selected 'White' and 'Black' columns.
+> The selected CSV file is modified as the games progress, as the app stores the scores, what Cap Numbers were penalised (into the 'Penalties' column), and if the 'Record Scorers Cap Number' checkbox is ticked, the cap numbers of the goal scorers from the selected 'White' and 'Black' columns.
 
-When the 'Between Game Break' timer reached 30 seconds after the last game, the penalties and cap numbers of the goal scorers from the previous game are written to the selected CSV file and the penalties cleared.
+When the 'Between Game Break' timer reaches 30 seconds after the last game, the penalties and cap numbers of the goal scorers from the previous game are written to the selected CSV file and the penalties cleared.
 
 The 'Starting Game #' will show a list of Game Numbers in the CSV file selected above. This could be useful if the app crashes and the games need to be restarted, or if multiple days' games are in the same file.
 
@@ -246,17 +251,17 @@ At the completion of each game, the application automatically advances to the ne
 
 This section describes how the app progresses through the various stages of the game.
 
-## Screens Tab
+## Screens tab
 
-Here the **Operator Screen** choices reside, with the options of standard or widescreen screens.
+**Operator Screen** selects the standard or widescreen arrangement of the operator's own window. This is distinct from whether the player/crowd Display Window is currently open.
 
-**Display Screen Options**: Single/Dual Display Screen choices with Standard or Widescreen options and automatic monitor detection (for trouble shooting). These settings are saved in the JSON setting file.
+**Display Screen Options** offers Single/Dual Standard or Widescreen display layouts, subject to the monitors attached to the computer. Use these options to open the player-facing or crowd-facing window(s). **Closing a Display Window with its X** closes that window; the closed state is saved to `settings.json` and should remain closed when UWH is restarted. The selected layout is retained for the next time the display is opened. Do not assume changing the operator layout is an instruction to reopen a deliberately closed display.
 
-**Show Team Names** is a check box that toggles whether the team names are show on the Operator and Display Screens.
+**Show Team Names** controls whether team names are shown on the operator and display screens.
 
-**Auto Detect Screens** refreshes The screensdetected and listed in **These screens were detected** section.
+**Auto Detect Screens** refreshes the monitor information shown under **These screens were detected**. Windows uses the native monitor list; on the tested Raspberry Pi Bookworm/X11 configuration, monitor detection uses `xrandr`. If automatic detection cannot establish a layout, select the required layout manually.
 
-**Test Displays** labels every screen detected for eight seconds and can be closed by clicking or pressing ESC.
+**Test Displays** labels the detected screens for approximately eight seconds. Dismiss the labels by clicking or pressing **Esc**. The controls and screen placement should be tested on the actual monitors before a match.
 
 ## Sounds tab
 
@@ -268,17 +273,17 @@ Here the **Operator Screen** choices reside, with the options of standard or wid
 
 The **Open Sounds Folder** button opens the 'assets' folder, where sound files can be added.
 
-The **Air** and **Water** controls are intended for separate above-water and underwater audio channels. Their effectiveness depends on the operating system (they only work in Linux-based systems), audio device and playback backend; check both channels work with your hardware.
+The **Air** and **Water** controls are intended for separate above-water and underwater audio channels. Channel routing depends on the operating system, audio device and playback backend; test both outputs on the actual hardware. The Windows Zigbee siren was tested using the same selected sound and matched playback volume as the application/Arduino siren, which does **not** by itself establish that independent Air/Water routing is implemented on every Windows audio device.
 
 **Pips** play at pre-determined periods.
 
-**Siren** play at pre-determined periods and also when the Chief Referee activates the button to stop or start play.
+**Siren** plays at pre-determined periods and also when the Chief Referee activates the button to stop or start play.
 
 **Number of seconds to play Siren** is a value box to alter how long the Siren sounds at the pre-determined periods. If the sound file is shorter than the value, it will automatically loop until the selected duration is complete.
 
-**Hardwired button via Arduino and Serial connection** The Arduino push button has press-hold-and-release behaviour where the siren will sound for as long as the button is held down.
+**Hardwired button (Arduino/serial):** the siren sounds while the button is held and stops when it is released. This differs from the timed Zigbee button behaviour.
 
-**Zigbee buttons*** A single push of the Zigbee button cycles the siren for duration listed in the **Number of seconds to play Siren** value box.  If your zigbee device supports a double click, this sounds the siren for twice the **Number of seconds to play Siren** value box.
+**Zigbee buttons (MQTT):** `single` sounds one configured-duration cycle; `double` sounds two consecutive configured-duration cycles **without a programmed pause**; `hold` sounds one configured-duration cycle **when the tested button is released**. At a duration of 1.5 seconds, `double` means two consecutive 1.5-second cycles. Check which action names your model publishes; details are in [ZIGBEE_SETUP.md](ZIGBEE_SETUP.md).
 
 ### Sound timing table
 
@@ -300,8 +305,8 @@ The system automatically plays audio cues during different periods:
 
 #### Notes:
 
-- Pip sounds use the "Pips" sound file and, if it is a Linux system, volume settings from the Sounds tab
-- Siren sounds use the "Siren" sound file and, if it is a Linux system, volume settings from the Sounds tab
+- Pip sounds use the chosen **Pips** file and the playback settings supported by the installed audio backend.
+- Siren sounds use the chosen **Siren** file. Matching application, Arduino and Zigbee playback levels have been tested on the Windows setup; test Air/Water channel routing separately on the target hardware.
 - **Siren Minimum Duration:** All siren sounds play for a minimum period to ensure audibility for officials and players. If the sound file is shorter than the specified period, it will automatically loop until the configured duration is reached.
 - Audio channels (Air/Water) use their respective volume settings
 - Game periods (halves) only play siren at the end, no countdown pips
@@ -321,7 +326,7 @@ The system automatically plays audio cues during different periods:
 
 If the 'Team time-outs allowed?' check box is selected, the Team Time-Out buttons are selectable. Only one team time-out per half, no team time-outs are permitted in Overtime or Sudden Death according to CMAS rules.
 
-**Add Goal White** adds a goal to white and, if the 'Record Scorers Cap Number' check box is ticked, a popup dialogue box where the cap number of the player scoring the goal can be entered. Unknown and Penalty Goal options are provided.
+**Add Goal White** adds a goal to white and, if the 'Record Scorers Cap Number' checkbox is ticked, a popup dialogue box where the cap number of the player scoring the goal can be entered. Unknown and Penalty Goal options are provided.
 
 **Referee Time-Out** pauses:
 - Court Time
@@ -356,48 +361,38 @@ This logic ensures the correct flow for tournament progression based on goals sc
 
 ## Zigbee2MQTT wireless siren control
 
-The application includes Zigbee siren integration. Raspberry Pi/Linux MQTT and Windows operation require separate setup and end-to-end testing.
+UWH receives wireless referee-button actions via **Zigbee2MQTT → Mosquitto (MQTT) → UWH**. Windows 11 has been verified end-to-end, including automatic Zigbee2MQTT startup after reboot. Raspberry Pi 5 MQTT/Zigbee installation instructions are provided but should be tested on the actual Pi before match use.
 
-## Platform support
+### Tested Zigbee button actions
 
-**Linux (Raspberry Pi):** MQTT/Zigbee2MQTT integration is provided; configure and test it using `ZIGBEE_SETUP.md`.
+| Button action in MQTT | Local UWH siren |
+|---|---|
+| `single` | One timed cycle |
+| `double` | Two consecutive timed cycles, no programmed pause |
+| `hold` | One timed cycle, triggered on release for the tested button |
 
-**Windows:** Zigbee2MQTT with a Mosquitto MQTT broker is documented in `ZIGBEE_SETUP.md`.
+All timed cycles use **Sounds → Number of seconds to play Siren**. The Arduino hardware button retains press-and-release control. Buttons may publish different action names by model; the examples above are the actions actually verified.
 
-### Features and implementation status
+### Two paired buttons and configuration backups
 
-**Wireless Chief Referee Controls:** Use Zigbee buttons to trigger sirens remotely
+Two buttons on the **same** Zigbee2MQTT network were verified with friendly names `siren_button` and `siren_button_2`. Enter both in **Zigbee Siren → Button Device Names (comma-separated)**:
 
-**Dual Connection Methods:**
-- **MQTT Integration:** Zigbee2MQTT/MQTT communication and reconnection logic are implemented; confirm reliability on the actual Linux or Windows installation.
-- **Serial Communication:** The code describes a Windows serial option, but its end-to-end behaviour has not been confirmed; do not assume an arbitrary Zigbee USB radio works merely because a COM port appears.
-- **Auto-Detection:** USB/COM-port detection may identify a connected adapter; confirm that the Zigbee radio actually communicates.
+```text
+siren_button, siren_button_2
+```
 
-**Configuration UI:** Dedicated "Zigbee Siren" tab for setup, monitoring and trouble shooting.
+Click **Save Configuration**. The UWH `settings.json` file holds this list. If an update replaces that file, UWH may respond to only the first button even though Zigbee2MQTT still publishes messages for the second. Restoring the button list repairs UWH recognition **without re-pairing** the Zigbee device.
 
-**Seamless Integration:** Uses existing sound files, volume controls, and audio channels
+> [!IMPORTANT]
+> **One Zigbee button cannot ordinarily be paired to two separate Zigbee coordinator networks at the same time.** To use a button with a second UWH computer, connect both UWH applications to the **existing MQTT broker**, rather than pairing the button to a second coordinator. **Both UWH installations may sound their local sirens** when receiving the same button message; choose which computer is authorised to control the live amplifier. Re-pairing to a different Zigbee network can break the original pairing.
 
-**Robust Error Handling:** The application includes reconnect/fallback logic; verify its behaviour before relying on the wireless siren in a match.
-
-**Real-time Logging:** Activity monitoring and troubleshooting tools
-
-**Fallback Logic:** MQTT/serial fallback is an intended feature; check it on the target hardware.
-
-### Windows serial mode: verification required
-
-Plugging in a Zigbee USB dongle and installing `pyserial` may be sufficient. This is not a verified installation procedure. A visible serial port alone does not establish that the app and dongle communicate.
-
-**Adapter compatibility:** CC2531, CC2652 and CC2538 refer to Zigbee hardware families. CP210x, FTDI and CH340/CH341 refer to USB/serial interface chips, not proof of Zigbee support. Verify the actual radio and its drivers on the target platform.
-
-**Intended Zigbee button behaviour:** When configured and working, physical Zigbee button presses trigger a single siren playback for the duration configured in the Sounds tab ("Number of seconds to play Siren").
-
-See `ZIGBEE_SETUP.md` for complete installation and configuration instructions.
+For detailed [Raspberry Pi 5 and Windows setup](ZIGBEE_SETUP.md), native Windows PM2/Task Scheduler startup, pairing, frontend-friendly-name conventions, MQTT broker security and two-computer examples, read **[ZIGBEE_SETUP.md](ZIGBEE_SETUP.md)**. A Windows COM-port detection message by itself does not prove a button is paired; direct Windows serial operation is **not** the verified button-control path here.
 
 ## Other installation and packaging notes
 
 ### Running on other systems
 
-The source is a Python/Tkinter program. Install the Python version and dependencies appropriate to your operating system, then launch `uwh.py`. RPi 5 and Windows 11 are the configurations actually tested; other operating systems and Python versions are not verified here.
+The source is a Python/Tkinter program. Install the Python version and dependencies appropriate to your operating system, then launch `uwh.py`. Windows 11 has been tested end-to-end with Zigbee2MQTT; Raspberry Pi 5 has been tested as a Bookworm/X11 desktop application. The full Pi MQTT/Zigbee setup and other operating systems have not received the same end-to-end verification.
 
 On Raspberry Pi OS Bookworm, use the project virtual environment rather than a system-wide `pip install`. For additional Python packages, use:
 
@@ -405,13 +400,13 @@ On Raspberry Pi OS Bookworm, use the project virtual environment rather than a s
 .venv/bin/python -m pip install PACKAGE_NAME
 ```
 
-Optional modules mentioned in earlier documentation include `paho-mqtt` (MQTT), `pyserial` (serial access) and audio backends. Their presence alone does not establish a working wireless siren or correct audio routing.
+For source installations, `paho-mqtt` is the **Python MQTT client**, not the MQTT broker. Zigbee2MQTT is a separate **Node.js** program. On Bookworm, install Python dependencies inside the UWH virtual environment; a Windows release EXE normally includes its required Python dependencies. `pyserial`/COM-port discovery alone does not establish Zigbee pairing or serial-mode compatibility. See [ZIGBEE_SETUP.md](ZIGBEE_SETUP.md).
 
 ### Standalone executables (advanced)
 
 A PyInstaller build can package the application, but builds and bundled resources must be checked for each platform. These notes describe the project's existing build approach; they have not been extensively tested.
 
-**Windows:** If the GitHub repository offers a prepared Windows executable under Releases, download the appropriate release asset and follow its accompanying instructions. Otherwise, build from source using PyInstaller (good luck doing that).
+**Windows:** Prefer the prepared Windows ZIP under GitHub **Releases → Assets**. Use a source/PyInstaller build only if you need to develop or package UWH yourself. A downloaded source-code ZIP is not the ready-to-run Windows EXE.
 
 **Linux:** If `build_exe.sh` exists in the checkout, the earlier build workflow was:
 
@@ -429,7 +424,7 @@ The earlier spec/build notes refer to `--onefile`, `--windowed`, bundled MP3 fil
 
 ### Startup self-test
 
-The application includes a startup diagnostic window. Earlier documentation lists MQTT broker detection, Zigbee2MQTT detection, MQTT stability checks, Arduino and Zigbee adapter detection, and serial/COM port discovery. Verify the final implementation on your platform.
+The application includes a startup diagnostic window and a Zigbee Siren activity log. Device/COM-port detection is a diagnostic, **not** proof of Zigbee pairing or an audible siren. The Windows MQTT path has been tested by pressing the physical buttons and hearing the local siren; use the same end-to-end test on any new computer.
 
 ### Useful references
 
@@ -437,4 +432,5 @@ The application includes a startup diagnostic window. Earlier documentation list
 - [Raspberry Pi OS documentation](https://www.raspberrypi.com/documentation/computers/os.html) — OS updates and Python virtual environments.
 - [Raspberry Pi desktop configuration](https://www.raspberrypi.com/documentation/computers/configuration.html) — switching between X11 and Wayland using `raspi-config`.
 - [GitHub: downloading files](https://docs.github.com/en/repositories/working-with-files/using-files/downloading-source-code-archives-and-directories) — using Code → Download ZIP.
-- `HARDWARE_SETUP.md` and `ZIGBEE_SETUP.md` in this repository, if supplied with your checkout.
+- [ZIGBEE_SETUP.md](ZIGBEE_SETUP.md) — Mosquitto, Python/Paho, Zigbee2MQTT, pairing, multi-computer warnings and troubleshooting.
+- `HARDWARE_SETUP.md` — wired Arduino/physical hardware, where supplied.
