@@ -425,7 +425,7 @@ def apply_button_data(app, idx):
             )
             widget["checkbox"].set(value)
 
-        else:
+        if widget["entry"] is not None:
             value = app.button_data[idx]["values"].get(
                 var_name,
                 widget["entry"].get()
