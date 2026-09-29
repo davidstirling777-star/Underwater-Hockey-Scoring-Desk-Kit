@@ -53,28 +53,43 @@ class MaintenanceDocumentationTests(unittest.TestCase):
         self.assertIn("Auto-add From Log", guide)
         self.assertIn("five most recent", guide)
 
-    def test_readme_reports_three_individual_tested_buttons(self):
+    def test_readme_reports_up_to_three_tested_working_buttons(self):
         readme = source("README.md")
-        self.assertIn(
-            "**three** independently named Zigbee buttons have been tested",
-            readme,
-        )
+        self.assertIn("**up to three working Zigbee buttons**", readme)
         self.assertIn(
             "siren_button, siren_button_2, siren_button_3",
             readme,
         )
+        self.assertIn("not universal button behaviours", readme)
         self.assertNotIn("### Two paired buttons", readme)
 
-    def test_zigbee_guide_reports_three_individual_tested_buttons(self):
+    def test_zigbee_guide_reports_up_to_three_tested_working_buttons(self):
         guide = source("ZIGBEE_SETUP.md")
-        self.assertIn(
-            "Three individual Zigbee buttons",
-            guide,
-        )
+        self.assertIn("**up to three working Zigbee buttons**", guide)
         self.assertIn(
             '"siren_button_2", "siren_button_3"',
             guide,
         )
+        self.assertIn("individual buttons may publish different actions", guide)
+
+    def test_readme_settings_and_preset_instructions_match_current_code(self):
+        readme = source("README.md")
+        self.assertIn("for **three seconds**", readme)
+        self.assertIn("in **seconds**", readme)
+        self.assertIn("queues the closed state", readme)
+        self.assertIn("or on normal program exit", readme)
+        self.assertIn("Maximum Siren Duration (seconds)", readme)
+        self.assertIn("two-digit hour", readme)
+
+    def test_zigbee_guide_explains_mapping_and_auto_add_safety(self):
+        guide = source("ZIGBEE_SETUP.md")
+        self.assertIn("**Auto-add From Log**", guide)
+        self.assertIn("**Ignore**", guide)
+        self.assertIn("**Save Action Mappings**", guide)
+        self.assertIn("**Save Configuration**", guide)
+        self.assertIn("up to five recent", guide)
+        self.assertIn("**Detected** ports", guide)
+        self.assertIn("`emergency`", guide)
 
     def test_tournament_help_names_the_actual_required_score_columns(self):
         text = source("settings_ui.py")
