@@ -49,6 +49,7 @@ class FakeEngine:
         self.stored_penalties = [{"team": "White", "cap": "7", "duration": 120}]
         self.clear_goal_scorers = Mock()
         self.advance_period = Mock()
+        self.period_end_event_name = Mock(return_value=None)
 
     def get_current_period(self):
         return {"name": "Between Game Break", "type": "break"}
