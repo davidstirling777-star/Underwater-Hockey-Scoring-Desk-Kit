@@ -2924,7 +2924,7 @@ class GameManagementApp:
 
         # This changes only the visible game number and team names.
         # The completed game's scores and penalties remain internally
-        # available for buzzer corrections until the 30-second export.
+        # available for buzzer corrections until 30 seconds remain in the break.
         self.update_game_number_display()
         self.update_penalty_display()
 
