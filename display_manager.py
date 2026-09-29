@@ -1,3 +1,9 @@
+"""Small penalty-label helpers shared by operator and presentation screens.
+
+The Tk widget lifecycle lives in display_ui.py and uwh.py. Keep formatting
+here independent of which physical monitor receives the scoreboard.
+"""
+
 def sync_penalty_display_to_external(app):
     """
     Preserve the original external display sync loop.
