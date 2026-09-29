@@ -1,3 +1,9 @@
+"""Scale fonts independently on the operator and external display windows.
+
+Filter child Configure events: Tk forwards them to toplevel bindings and a
+single resize otherwise triggers repeated expensive recalculations.
+"""
+
 
 def scale_fonts(app, event=None):
     # Binding on a Tk toplevel also receives Configure events from children.
