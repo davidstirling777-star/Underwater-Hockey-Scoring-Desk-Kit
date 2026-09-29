@@ -1,4 +1,5 @@
 import datetime
+import math
 import os
 import tkinter as tk
 from tkinter import messagebox, ttk
@@ -144,7 +145,8 @@ def create_sounds_tab(app):
                 app.siren_volume,
                 app.air_volume,
                 app.water_volume,
-                app.siren_duration
+                app.siren_duration,
+                app.max_siren_duration
             )
 
             app_log(
@@ -422,6 +424,51 @@ def create_sounds_tab(app):
     siren_duration_entry.bind("<FocusOut>", normalize_siren_duration)
     siren_duration_entry.bind("<Return>", normalize_siren_duration)
 
+    # Row 8: Independent safety cutoff for every timed siren blast.
+    tk.Label(
+        sounds_widget,
+        text="Maximum Siren Duration (seconds)",
+        font=("Arial", 11)
+    ).grid(row=8, column=0, sticky="ew")
+
+    max_siren_duration_entry = tk.Entry(
+        sounds_widget,
+        textvariable=app.max_siren_duration,
+        font=("Arial", 11),
+        width=10
+    )
+    max_siren_duration_entry.grid(
+        row=8, column=1, columnspan=2, sticky="w", padx=(0, 10)
+    )
+
+    last_valid_max = [str(app.max_siren_duration.get())]
+
+    def normalize_max_siren_duration(event=None):
+        """Accept 1-30 s; keep a valid value if the user mistypes."""
+        try:
+            seconds = float(
+                str(app.max_siren_duration.get()).strip().replace(",", ".")
+            )
+            if not math.isfinite(seconds) or not 1.0 <= seconds <= 30.0:
+                raise ValueError("Maximum siren duration must be 1-30 seconds.")
+        except (ValueError, TypeError, tk.TclError):
+            messagebox.showerror(
+                "Invalid Maximum Siren Duration",
+                "Enter a number between 1 and 30 seconds."
+            )
+            app.max_siren_duration.set(last_valid_max[0])
+            return
+
+        last_valid_max[0] = f"{seconds:g}"
+        app.max_siren_duration.set(last_valid_max[0])
+
+    max_siren_duration_entry.bind(
+        "<FocusOut>", normalize_max_siren_duration
+    )
+    max_siren_duration_entry.bind(
+        "<Return>", normalize_max_siren_duration
+    )
+
     # Air volume (Linux only)
     air_vol_slider = tk.Scale(
         sounds_widget,
@@ -510,6 +557,20 @@ def create_sounds_tab(app):
 
 def save_sound_settings_method(app):
     """Save current sound settings to the main settings.json file."""
+    try:
+        max_duration = float(
+            str(app.max_siren_duration.get()).strip().replace(",", ".")
+        )
+        if not math.isfinite(max_duration) or not 1.0 <= max_duration <= 30.0:
+            raise ValueError("Maximum siren duration must be 1-30 seconds.")
+    except (ValueError, TypeError, tk.TclError):
+        messagebox.showerror(
+            "Invalid Maximum Siren Duration",
+            "Enter a number between 1 and 30 seconds."
+        )
+        return
+
+    app.max_siren_duration.set(f"{max_duration:g}")
     settings = {
         "pips_sound": app.pips_var.get(),
         "siren_sound": app.siren_var.get(),
@@ -519,6 +580,7 @@ def save_sound_settings_method(app):
         "water_volume": app.water_volume.get(),
         "enable_sound": app.enable_sound.get(),
         "siren_duration": app.siren_duration.get(),
+        "max_siren_duration": max_duration,
     }
 
     try:

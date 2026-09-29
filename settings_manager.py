@@ -176,7 +176,8 @@ def get_default_unified_settings():
             "siren_volume": 50.0,
             "air_volume": 50.0,
             "water_volume": 50.0,
-            "enable_sound": True
+            "enable_sound": True,
+            "max_siren_duration": 10.0
         },
         "zigbeeSettings": {
             "mqtt_broker": "localhost",

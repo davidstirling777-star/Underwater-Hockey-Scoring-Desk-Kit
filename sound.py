@@ -7,6 +7,7 @@ import os
 import sys
 import platform
 import threading
+import math
 from tkinter import messagebox
 
 IS_WINDOWS = platform.system() == "Windows"
@@ -72,6 +73,21 @@ def _normalise_volume(volume):
         numeric_volume = 0.0
 
     return max(0.0, min(100.0, numeric_volume)) / 100.0
+
+
+def normalise_max_siren_duration(value):
+    """Return a safe timed-siren cutoff (default 10 s; allowed 1-30 s).
+
+    An invalid or missing saved value must never remove the safety limit.
+    Call on the GUI thread if value is a Tkinter variable.
+    """
+    try:
+        seconds = float(str(_get_value(value)).strip().replace(",", "."))
+        if math.isfinite(seconds) and 1.0 <= seconds <= 30.0:
+            return seconds
+    except (TypeError, ValueError, OverflowError):
+        pass
+    return 10.0
 
 
 def _normalise_filename(filename):
@@ -300,7 +316,8 @@ def play_sound_with_volume(
     siren_volume,
     air_volume,
     water_volume,
-    siren_duration
+    siren_duration,
+    max_siren_duration=10.0
 ):
     """Play a selected pip or siren sound in a background thread."""
     sound_enabled = _get_value(enable_sound)
@@ -316,6 +333,18 @@ def play_sound_with_volume(
 
     normalized_volume = _normalise_volume(volume)
 
+    # Read Tk variables on the calling/UI thread, before background playback.
+    # In particular, a Tk DoubleVar must not be accessed by the audio thread.
+    if sound_type == "siren":
+        try:
+            duration_seconds = float(_get_value(siren_duration))
+        except (TypeError, ValueError):
+            duration_seconds = 0.0
+        max_duration_seconds = normalise_max_siren_duration(max_siren_duration)
+    else:
+        duration_seconds = 0.0
+        max_duration_seconds = 10.0
+
     sound_thread = threading.Thread(
         target=_play_sound_with_volume_sync,
         args=(
@@ -325,7 +354,8 @@ def play_sound_with_volume(
             normalized_volume,
             air_volume,
             water_volume,
-            siren_duration
+            duration_seconds,
+            max_duration_seconds
         ),
         daemon=True
     )
@@ -338,7 +368,8 @@ def _play_sound_with_volume_sync(
     normalized_volume,
     air_volume,
     water_volume,
-    siren_duration
+    siren_duration,
+    max_siren_duration=10.0
 ):
     """Play a pip once or a siren for the configured duration."""
     if not enable_sound:
@@ -359,25 +390,36 @@ def _play_sound_with_volume_sync(
             )
             return
 
-        try:
-            duration_seconds = float(_get_value(siren_duration))
-        except (TypeError, ValueError):
-            duration_seconds = 0.0
+        # A whole-file loop count cannot match arbitrary durations: it
+        # truncates short clips and overruns when a clip exceeds the requested
+        # duration. pygame's maxtime cuts off at the chosen millisecond,
+        # regardless of the source file's length.
+        if sound_type == "siren":
+            try:
+                duration_seconds = float(siren_duration)
+            except (TypeError, ValueError):
+                duration_seconds = 0.0
+
+            if not math.isfinite(duration_seconds) or duration_seconds <= 0:
+                print("Siren playback skipped: duration must be positive.")
+                return
+
+            # The operator's maximum is enforced independently of the
+            # selected blast duration. A hard 30-second cap remains as a
+            # safeguard against malformed data.
+            max_duration = normalise_max_siren_duration(max_siren_duration)
+            duration_ms = max(
+                1, min(30_000, int(min(duration_seconds, max_duration) * 1000))
+            )
 
         if PYGAME_INITIALIZED and filename in _preloaded_sounds:
             sound_obj = _preloaded_sounds[filename]
             sound_obj.set_volume(normalized_volume)
 
-            if sound_type == "siren" and duration_seconds > 0:
-                sound_length_ms = int(sound_obj.get_length() * 1000)
-
-                if sound_length_ms > 0:
-                    duration_ms = int(duration_seconds * 1000)
-                    loops = max(0, (duration_ms // sound_length_ms) - 1)
-                    channel = sound_obj.play(loops=loops)
-                else:
-                    channel = sound_obj.play()
+            if sound_type == "siren":
+                channel = sound_obj.play(loops=-1, maxtime=duration_ms)
             else:
+                # Countdown pips remain single, complete sound-file plays.
                 channel = sound_obj.play()
 
             # Sound volume is already set above. A mixer channel may retain
@@ -476,12 +518,16 @@ def stop_looping_sound(channel):
         print(f"Error stopping looping sound: {e}")
 
 
-def start_timed_siren_with_volume(filename, enable_sound, siren_volume, duration_seconds):
+def start_timed_siren_with_volume(
+    filename, enable_sound, siren_volume, duration_seconds,
+    max_siren_duration=10.0
+):
     """Play one wireless siren for at most the selected duration.
 
     Must be called from the Tkinter/UI thread when passed Tk variables.
     Returns the pygame channel so UWH can also stop it immediately.
-    A 30-second upper bound prevents a malformed setting from leaving a siren on.
+    The operator-set 10-second default and hard 30-second upper bound
+    prevent malformed settings from leaving a siren on indefinitely.
     The Arduino press-and-hold helper is intentionally unchanged.
     """
     import math
@@ -498,7 +544,11 @@ def start_timed_siren_with_volume(filename, enable_sound, siren_volume, duration
         if not math.isfinite(seconds) or seconds <= 0:
             print("Wireless siren not started: duration must be a positive number.")
             return None
-        duration_ms = max(1, min(30_000, int(seconds * 1000)))
+        duration_ms = max(
+            1, min(30_000, int(min(
+                seconds, normalise_max_siren_duration(max_siren_duration)
+            ) * 1000))
+        )
 
         if not PYGAME_INITIALIZED or filename not in _preloaded_sounds:
             print("Wireless siren requires pygame.mixer and a preloaded sound.")
