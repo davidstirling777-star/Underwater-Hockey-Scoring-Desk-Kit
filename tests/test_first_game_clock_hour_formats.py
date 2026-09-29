@@ -46,6 +46,7 @@ def load_uwh_start_time_methods():
             datetime=FixedDatetime, timedelta=real_datetime.timedelta
         ),
         "re": re,
+        "tk": SimpleNamespace(END="end"),
     }
     exec(compile(code, str(source), "exec"), globals_for_methods)
     return globals_for_methods["StartTimeCallbacks"]
@@ -67,6 +68,7 @@ def load_real_entry_validator(app, errors):
         "app": app,
         "re": re,
         "messagebox": SimpleNamespace(showerror=errors),
+        "tk": SimpleNamespace(END="end"),
     }
     exec(compile(module, str(source), "exec"), namespace)
     return namespace[validator.name]
