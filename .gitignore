@@ -116,3 +116,10 @@ zigbee_siren_tab_screenshot.png
 tournament_list_with_open_folder_button.png
 sounds_tab_screenshot.png
 zigbee_siren_tab_screenshot.png
+
+# Runtime settings are machine-specific and may contain MQTT credentials.
+# The tracked template is assets/settings.json, not this live file.
+/settings.json
+settings_old_*.json
+.settings_new_*.tmp
+.settings_old_*.tmp

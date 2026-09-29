@@ -14,6 +14,7 @@ import queue
 import os
 import sys
 import platform
+import settings_manager
 from typing import Optional, Callable, Dict, Any
 
 # =============================================================================
@@ -306,30 +307,29 @@ class ZigbeeSirenController:
         return default_config
 
     def save_config(self, config: Dict[str, Any]) -> None:
+        """Use the shared, backup-protected settings writer.
+
+        A damaged existing settings.json must not be replaced by an empty
+        document; notify callers if saving failed.
+        """
         try:
-            settings_path = os.path.join(_settings_directory(), SETTINGS_FILE)
-            unified_settings = {}
-
-            if os.path.exists(settings_path):
-                try:
-                    with open(settings_path, "r", encoding="utf-8") as f:
-                        unified_settings = json.load(f)
-                except Exception:
-                    unified_settings = {}
-
+            settings_dir = _settings_directory()
+            unified_settings = settings_manager.load_unified_settings(
+                settings_dir
+            )
             unified_settings.setdefault("zigbeeSettings", {})
             unified_settings.setdefault("soundSettings", {})
             unified_settings.setdefault("gameSettings", {})
-
             unified_settings["zigbeeSettings"] = config
 
-            with open(settings_path, "w", encoding="utf-8") as f:
-                json.dump(unified_settings, f, indent=2)
-
+            settings_manager.save_unified_settings(
+                settings_dir, unified_settings
+            )
             self.config = config
 
-        except Exception as e:
-            self.logger.error(f"Error saving config: {e}")
+        except Exception as error:
+            self.logger.error(f"Error saving config: {error}")
+            raise
 
     def set_siren_callback(self, callback: Callable) -> None:
         self.siren_callback = callback
