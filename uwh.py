@@ -825,6 +825,12 @@ class GameManagementApp:
         self.next_game_transition_job = None
         self.next_game_preview_job = None
         self.next_game_transition_done = False
+        # Preserve a completed game's identity while a failed CSV export awaits retry.
+        self._game_export_pending = False
+        self._pending_export_game_number = None
+        self._game_export_timer_was_running = False
+        self._game_export_dialog = None
+        self._game_export_error_label = None
         self.next_game_preview_active = False
         self.next_game_preview_number = None
         self.next_game_notice_active = False
@@ -2924,30 +2930,123 @@ class GameManagementApp:
         self.update_game_number_display()
         self.update_penalty_display()
 
+    def _show_game_export_error(self, reason):
+        """Keep the finished game intact; offer a non-modal CSV export retry."""
+        if not self._game_export_pending:
+            return
+
+        # A failed export must not allow the break timer to advance into the
+        # next game while its scores still belong to the completed game.
+        self._game_export_timer_was_running |= bool(self.engine.timer_running)
+        self.engine.stop_timer()
+        if self.timer_job is not None:
+            self.master.after_cancel(self.timer_job)
+            self.timer_job = None
+
+        # Preview is cosmetic; reverting it makes the unsaved game unmistakable.
+        self.next_game_preview_active = False
+        self.next_game_preview_number = None
+        self.next_game_notice_active = False
+        self.update_game_number_display()
+        self.update_penalty_display()
+        self.update_timer_display()
+
+        message = (
+            f"Results for game {self._pending_export_game_number or '(unspecified)'} "
+            "were NOT saved. Scores, penalties and goal scorers are intact; "
+            "the break timer is paused.\n\n"
+            f"{reason}\n\n"
+            "Correct the selected tournament CSV or its file permissions, "
+            "then press Retry Export. You can still use the main window "
+            "while this warning is open."
+        )
+        print(f"CSV EXPORT FAILURE: {message}")
+        popup = self._game_export_dialog
+        if popup is None or not popup.winfo_exists():
+            popup = tk.Toplevel(self.master)
+            popup.title("Game results not saved")
+            popup.transient(self.master)
+            popup.resizable(False, False)
+            self._game_export_dialog = popup
+            panel = ttk.Frame(popup, padding=14)
+            panel.pack(fill="both", expand=True)
+            self._game_export_error_label = ttk.Label(
+                panel, justify="left", wraplength=470,
+            )
+            self._game_export_error_label.pack(anchor="w", pady=(0, 12))
+            buttons = ttk.Frame(panel)
+            buttons.pack(fill="x")
+            ttk.Button(
+                buttons, text="Retry Export",
+                command=self.run_next_game_transition,
+            ).pack(side="right", padx=(8, 0))
+            # The dialog is non-modal, so the operator can correct the CSV.
+            # Closing it would otherwise strand the unsaved match without a
+            # visible Retry button, so keep it available until the save works.
+            popup.protocol("WM_DELETE_WINDOW", lambda: popup.lift())
+            self._game_export_error_label.config(text=message)
+
+            # Keep the dialog with its parent, including on a second monitor.
+            popup.update_idletasks()
+            left = self.master.winfo_rootx()
+            width = self.master.winfo_width()
+            popup_width = popup.winfo_reqwidth()
+            x = left + max(10, (width - popup_width) // 2)
+            y = self.master.winfo_rooty() + 90
+            popup.geometry(f"+{x}+{y}")
+
+        self._game_export_error_label.config(text=message)
+        popup.lift()
+
     def run_next_game_transition(self):
-        """Export and reset the completed game 30 seconds after it ends."""
+        """Export the finished game before clearing it or advancing."""
         self.next_game_transition_job = None
 
         cur_period = self.engine.get_current_period()
-
         if not cur_period or cur_period["name"] != "Between Game Break":
             return
-
         if self.next_game_transition_done:
             return
 
-        self.next_game_transition_done = True
+        # A CSV selection might change while the operator resolves an export
+        # error. Never silently substitute the new selection's game number.
+        if not self._game_export_pending:
+            self._game_export_pending = True
+            self._pending_export_game_number = self.get_current_game_number()
 
         try:
-            game_flow.export_and_reset_game_at_break(self)
-
-        except Exception as e:
-            self.next_game_transition_done = False
-            print(f"Error changing to next game: {e}")
+            exported = game_flow.export_and_reset_game_at_break(
+                self, game_number=self._pending_export_game_number
+            )
+        except Exception as error:
+            self._show_game_export_error(str(error))
             return
 
-        # The tournament list has now genuinely advanced to the game
-        # that was being previewed, so return to the normal data path.
+        if not exported:
+            self._show_game_export_error(
+                "The selected CSV is unavailable, missing required columns "
+                "(WScore, BScore, Penalties, Comments), or has no matching "
+                "game-number row."
+            )
+            return
+
+        self.next_game_transition_done = True
+        self._game_export_pending = False
+        self._pending_export_game_number = None
+        popup = self._game_export_dialog
+        self._game_export_dialog = None
+        self._game_export_error_label = None
+        if popup is not None and popup.winfo_exists():
+            popup.destroy()
+
+        # A failed export paused the break. Continue its remaining seconds
+        # only after the CSV has been saved successfully.
+        if self._game_export_timer_was_running:
+            self.engine.start_timer()
+            if self.timer_job is None and self.engine.timer_seconds > 0:
+                self.timer_job = self.master.after(1000, self.countdown_timer)
+        self._game_export_timer_was_running = False
+
         self.next_game_preview_active = False
         self.next_game_preview_number = None
         self.next_game_notice_active = True
@@ -2955,6 +3054,12 @@ class GameManagementApp:
         self.update_penalty_display()
 
     def next_period(self):
+        # Prevent an operator/automatic transition from bypassing a failed
+        # export. The pending results must be saved before the next period.
+        if self._game_export_pending:
+            self.run_next_game_transition()
+            if self._game_export_pending:
+                return
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
