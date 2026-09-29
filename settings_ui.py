@@ -11,6 +11,8 @@ from tkinter import ttk, font, messagebox
 import re
 
 def create_settings_tab(app):
+    """Create the Game Variables, presets and tournament selection widgets.
+    """
     tab = ttk.Frame(app.notebook)
     app.notebook.add(tab, text="Game Variables")
 
