@@ -105,7 +105,7 @@ def load_unified_settings(base_dir):
     settings_path = get_settings_path(base_dir)
     with _SETTINGS_IO_LOCK:
         if os.path.exists(settings_path):
-            with open(settings_path, "r", encoding="utf-8") as settings_file:
+            with open(settings_path, "rb") as settings_file:
                 return _validate_settings_document(
                     settings_file.read(), settings_path
                 )
