@@ -21,7 +21,8 @@ def controller_class():
     isolated = ast.ClassDef(name="Controller", bases=[], keywords=[],
                             body=functions, decorator_list=[])
     top = ast.fix_missing_locations(ast.Module(body=[isolated], type_ignores=[]))
-    namespace = {"json": json, "ACTION_TO_EVENT": {
+    namespace = {"json": json, "Dict": dict, "Any": object,
+                 "ACTION_TO_EVENT": {
         "one_cycle": "PULSE", "two_cycles": "DOUBLE_PULSE"
     }, "queue": __import__("queue")}
     exec(compile(top, str(path), "exec"), namespace)
