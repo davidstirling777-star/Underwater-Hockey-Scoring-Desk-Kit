@@ -118,7 +118,7 @@ class FakeApp(load_callbacks()):
                 self.overtime_allowed_var = cb
                 entry = None
             elif name == "record_scorers_cap_number":
-                cb = Checkbox(False, lambda: self._on_single_variable_change(name))
+                cb = Checkbox(False, lambda name=name: self._on_single_variable_change(name))
                 entry = None
             else:
                 cb = (Checkbox(True, lambda name=name:
