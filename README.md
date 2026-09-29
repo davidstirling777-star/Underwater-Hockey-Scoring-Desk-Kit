@@ -192,9 +192,9 @@ After copying a fresh version into its intended location, install that version's
 
 Here, you can set most of the parameters of the games and select whether Team Time-Outs, Overtime and Sudden Death aspects of the game are allowed.
 
-All value boxes accept decimal time, e.g. `1.5` (or `1,5`) = 1 minute and 30 seconds.
+Most period-duration boxes accept decimal **minutes**, e.g. `1.5` (or `1,5`) = 1 minute and 30 seconds. **Crib Time** is in seconds; **Time to Start First Game** is a 24-hour clock time, not a duration.
 
-**Time to Start First Game** allows early setup of the system, ensuring the first game starts at a particular time. This is reliant on the Local Computer Time being correct. The format is HH:mm (no leading zeros).
+**Time to Start First Game** schedules the first game against the computer's local clock. Enter a 24-hour time with a **two-digit hour**, such as `09:36` or `19:36`. The current entry validator also accepts `9:36`, but the start-time calculation expects `09:36`; use the two-digit form until that inconsistency is fixed.
 
 **First Game Starts In:** is another way to set when the first game starts, in 'minutes from now'. Entering a value here will wipe the time from 'Time to Start First Game'.
 
