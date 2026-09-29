@@ -914,7 +914,9 @@ class GameManagementApp:
         # Separate, user-configurable safety cutoff for timed siren blasts.
         # StringVar keeps an invalid entry editable until validation on save.
         self.max_siren_duration = tk.StringVar(
-            value=str(sound_settings.get("max_siren_duration", 10.0))
+            value=str(sound.normalise_max_siren_duration(
+                sound_settings.get("max_siren_duration", 10.0)
+            ))
         )
         
         # Initialize sound selection variables with auto-selection of first audio file if no saved setting
