@@ -1426,7 +1426,7 @@ class GameManagementApp:
                 )
 
                 if (
-                    not label.winfo_ismapped()
+                    label.winfo_manager() != "grid"
                     or current_row != row
                     or current_column != column
                     or current_columnspan != columnspan
@@ -1526,18 +1526,21 @@ class GameManagementApp:
             except (AttributeError, tk.TclError):
                 between_game_colour = "lightcoral"
 
-            banner.config(
-                text="Next Game",
-                bg=between_game_colour,
-                fg="black"
-            )
-            banner.grid(**grid_options)
+            # Keep the banner's text/foreground set at creation; only the
+            # period colour can change during a running game.
+            if banner.cget("bg") != between_game_colour:
+                banner.config(bg=between_game_colour)
+
+            # A grid operation triggers layout work, so do this once per
+            # visibility transition instead of every one-second refresh.
+            if banner.winfo_manager() != "grid":
+                banner.grid(**grid_options)
 
         def hide_next_game_banner(banner_attribute):
             banner = getattr(self, banner_attribute, None)
 
             try:
-                if banner is not None and banner.winfo_exists():
+                if banner is not None and banner.winfo_manager() == "grid":
                     banner.grid_remove()
             except (AttributeError, tk.TclError):
                 pass
@@ -1553,7 +1556,8 @@ class GameManagementApp:
 
         try:
             if show_next_game:
-                self.penalty_grid_frame.grid_remove()
+                if self.penalty_grid_frame.winfo_manager() == "grid":
+                    self.penalty_grid_frame.grid_remove()
 
                 show_next_game_banner(
                     "next_game_banner",
@@ -1573,7 +1577,8 @@ class GameManagementApp:
                     self.update_penalty_grid()
 
                 else:
-                    self.penalty_grid_frame.grid_remove()
+                    if self.penalty_grid_frame.winfo_manager() == "grid":
+                        self.penalty_grid_frame.grid_remove()
 
             place_game_label(self.game_label)
             self.update_game_number_display()
@@ -1588,7 +1593,8 @@ class GameManagementApp:
             )
 
             if show_next_game:
-                self.display_penalty_grid_frame.grid_remove()
+                if self.display_penalty_grid_frame.winfo_manager() == "grid":
+                    self.display_penalty_grid_frame.grid_remove()
 
                 show_next_game_banner(
                     "display_next_game_banner",
@@ -1608,7 +1614,8 @@ class GameManagementApp:
                     self.update_display_penalty_grid()
 
                 else:
-                    self.display_penalty_grid_frame.grid_remove()
+                    if self.display_penalty_grid_frame.winfo_manager() == "grid":
+                        self.display_penalty_grid_frame.grid_remove()
 
             place_game_label(
                 self.display_game_label,
@@ -1676,9 +1683,6 @@ class GameManagementApp:
     def start_penalty_display_updates(self):
         self.update_penalty_display()
         self.master.after(1000, self.start_penalty_display_updates)
-
-    def sync_penalty_display_to_external(self):
-        return display_manager.sync_penalty_display_to_external(self)
 
     def create_penalty_grid_widget(self, parent, is_display=False):
         # Add internal padding for slightly smaller appearance than the game label
