@@ -1839,7 +1839,7 @@ class GameManagementApp:
                 if event is not None:
                     messagebox.showerror(
                         "Tournament Results",
-                        f"Cannot prepare the results file:\\n{error}",
+                        f"Cannot prepare the results file:\n{error}",
                         parent=self.master
                     )
 
