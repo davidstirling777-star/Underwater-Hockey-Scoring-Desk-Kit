@@ -386,8 +386,9 @@ class GameEngine:
     def should_export_game_results(self, period):
         """
         Kept as a compatibility hook.
-    
-        The application now schedules the end-of-game export exactly
-        30 seconds after Between Game Break begins.
+
+        UWH handles the export within countdown_timer just before its
+        30-second Between Game Break warning pip, rather than scheduling
+        an independent job when the break starts.
         """
         return False
