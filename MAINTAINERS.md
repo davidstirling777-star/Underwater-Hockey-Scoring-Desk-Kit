@@ -41,6 +41,8 @@ operating a match.
 | `preset_manager.py` | Six Game Variables preset buttons and long-hold editor. |
 | `csv_ui.py` | Draw-file dropdown refresh. |
 | `tournament_files.py` | Protect input draw, create/resume results CSV, and seed sample for source installs. |
+| `tournament_sync.py` | Worker: completed local game discovery, 10 s retries, receipts, HTTP client; never touch Tk from worker. |
+| `tournament_results_server.py` | Standalone authenticated third-computer writer, serialised result merges and conflict detection. |
 | `csv_helpers.py` | CSV draw game-number list and team-name retrieval; handles quoted fields. |
 | `csv_export.py` | Tournament result writer, scorer formatting and legacy goal-event helpers. |
 | `game_settings_manager.py` | Translate between Game Variables widgets and the persisted gameSettings section. |
@@ -123,6 +125,34 @@ Scorer comments use `W#7(2)`, `W#PG(1)`, `B#UNK(1)`, etc. The legacy
 `UWH_Game_Data.txt` event format has **no tournament game number**; its
 `get_goal_events_for_game(..., game_number)` helper must not be used as
 reliable per-game attribution without extending and migrating that format.
+
+## Two-court, local-first results sync
+
+The [TOURNAMENT_SYNC.md](TOURNAMENT_SYNC.md) operator guide explains setup,
+the private LAN boundary and RP5/Windows acceptance testing. The draw must
+have identical bytes on the results server and both scoring computers.
+`tournament_sync.completed_game_records` reconstructs every locally
+completed game's fields from the durable court _Results.csv; a missing
+acknowledgement file causes safe idempotent replay, not loss of a game.
+`TournamentSyncWorker` uses its own daemon thread, wake Event and 10-second
+retry; Tk is touched only by polling its status queue. It must never delay
+`game_flow.export_and_reset_game_at_break`: the remote network is not part
+of the local export success gate.
+
+`tournament_results_server.apply_submission` accepts only game-number and
+four result fields plus the full source-draw SHA-256. The HTTP handler
+authenticates and holds one process lock around validation, merge and atomic
+results replacement. All non-result columns are checked against the source
+draw; a different result for an already-saved game is HTTP 409, never a
+last-writer-wins overwrite. The server cannot accept filesystem paths from
+clients, and production clients must authenticate over a protected LAN/VPN.
+Do not use SMB to let two clients overwrite the whole results CSV.
+
+The masked sync token and server URL live in the `tournamentSync` section
+of settings.json, **not** in the draw or receipt file. A masked GUI field
+does not encrypt settings.json: protect filesystem permissions. Default
+mode is Local only; there are no network calls until Save & Sync explicitly
+enables the shared server.
 
 ## Settings and update safety
 
