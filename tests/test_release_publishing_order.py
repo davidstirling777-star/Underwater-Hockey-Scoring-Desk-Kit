@@ -97,7 +97,7 @@ class ReleaseOrderTests(unittest.TestCase):
 
         def api(path, token):
             paths.append(path)
-            return first if "page=1" in path else second
+            return first if path.endswith("&page=1") else second
 
         with patch.object(gate, "github_get", side_effect=api):
             versions = list(gate.published_releases("owner/repo", "token"))
