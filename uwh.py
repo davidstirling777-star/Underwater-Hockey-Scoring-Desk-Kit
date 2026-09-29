@@ -13,6 +13,7 @@ import csv_export
 import startup_selftest
 import csv_helpers
 import csv_ui
+import tournament_files
 import display_manager
 import display_ui
 import game_flow
@@ -88,6 +89,14 @@ if getattr(sys, 'frozen', False):
 
     # Tell Python to check the '_internal' folder for your helper modules
     sys.path.insert(0, internal_dir)
+
+# In a source ZIP the sample draw lives under assets/, not the root
+# scanned by the tournament selector. Seed a working DRAW once on either OS.
+# An existing draw or previously recorded _Results.csv is never replaced.
+try:
+    tournament_files.seed_sample_draw(BASE_DIR)
+except OSError as error:
+    print(f"TOURNAMENT DRAW: Could not install sample: {error}")
 
 # NOW you can safely import your custom helper modules
 import sound
@@ -1812,10 +1821,27 @@ class GameManagementApp:
         return csv_export.sort_cap_key(cap_number)
 
     def on_csv_file_changed(self, event=None):
-        return game_flow.on_csv_file_changed(
-            self,
-            event
-        )
+        # Game selection/team names always come from the ORIGINAL draw.
+        game_flow.on_csv_file_changed(self, event)
+
+        draw_name = self.csv_var.get()
+        if draw_name and draw_name != "No CSV files found":
+            try:
+                # Create only if missing; otherwise validate and reuse the
+                # ongoing tournament results from a previous app session.
+                tournament_files.ensure_results_file(
+                    os.path.join(BASE_DIR, draw_name)
+                )
+            except (OSError, ValueError) as error:
+                print(f"TOURNAMENT RESULTS: {error}")
+                # Avoid a modal dialog during startup, but make a deliberate
+                # operator selection error visible even on a windowed EXE.
+                if event is not None:
+                    messagebox.showerror(
+                        "Tournament Results",
+                        f"Cannot prepare the results file:\\n{error}",
+                        parent=self.master
+                    )
 
     def on_court_game_mode_changed(self, event=None):
         return game_flow.on_court_game_mode_changed(
