@@ -62,6 +62,8 @@ def load_hardware_ports_from_json():
 
 
 def save_hardware_ports_to_json(arduino_port, zigbee_port):
+    """Persist only changes in the detection cache to avoid disk churn.
+    """
     try:
         # Same directory as the active UWH settings; protected central writer.
         settings_dir = os.path.dirname(_settings_path())
@@ -137,6 +139,9 @@ def _is_zigbee_port(port):
 
 
 def detect_hardware_ports(force_scan=False):
+    """Return candidate Arduino/coordinator ports without opening them.
+    Validate saved port identities; never assign the same COM port twice.
+    """
     global _detected_ports
 
     if (
@@ -251,6 +256,8 @@ def get_detected_ports(force_scan=False):
 
 
 def _send_app_siren_event(uwh_app, event_name):
+    """Enqueue events with UWH; never update Tk or pygame here.
+    """
     try:
         uwh_app.handle_hardware_siren_event(event_name)
     except Exception as event_err:
@@ -258,6 +265,10 @@ def _send_app_siren_event(uwh_app, event_name):
 
 
 def serial_listener_thread(uwh_app):
+    """Read only the Arduino's SIREN_ON and SIREN_OFF serial messages.
+    Always emit OFF on an error and then rescan; a port can be detected
+    but still be locked by another Windows program.
+    """
     button_held_down = False
 
     while True:
@@ -335,6 +346,8 @@ def serial_listener_thread(uwh_app):
 
 
 def start_serial_listener(uwh_app):
+    """Start exactly one daemon reader; repeated initialization is safe.
+    """
     global _serial_listener_started
 
     with _serial_listener_lock:
