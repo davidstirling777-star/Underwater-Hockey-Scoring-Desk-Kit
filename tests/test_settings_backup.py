@@ -83,6 +83,8 @@ class SettingsBackupTests(unittest.TestCase):
         self.active.write_bytes(original)
         with self.assertRaisesRegex(ValueError, "not been overwritten"):
             self._save({"version": 2})
+        with self.assertRaisesRegex(ValueError, "not been overwritten"):
+            settings_manager.load_unified_settings(self.directory)
         self.assertEqual(self.active.read_bytes(), original)
 
     def test_existing_valid_non_object_is_never_replaced(self):
