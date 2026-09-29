@@ -292,7 +292,11 @@ class GameManagementApp:
 
         # Local scores/results have already been written. An unfinished
         # network submission remains pending and is replayed after restart.
-        self.tournament_sync.stop()
+        # Fake/headless harnesses may exercise request_exit without building
+        # the whole application. Production always has the worker.
+        sync_worker = getattr(self, "tournament_sync", None)
+        if sync_worker is not None:
+            sync_worker.stop()
 
         try:
             self.close_all_display_windows()
