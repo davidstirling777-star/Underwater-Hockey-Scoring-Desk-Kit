@@ -226,7 +226,7 @@ class TwoCourtTournamentSyncTests(unittest.TestCase):
 
     def test_authentication_is_required_even_for_health_check(self):
         self.export(0, 2, 1, 1)
-        unauthorised = self.sync(0, token="wrong")
+        unauthorised = self.sync(0, token="wrong-but-long-enough")
         self.assertIn("Sync blocked (HTTP 401)", unauthorised._last_status)
         self.assertFalse((self.server_folder / "Tournament_Results.csv").exists())
         request = urllib.request.Request(self.url + "/health")
