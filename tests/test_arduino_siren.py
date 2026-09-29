@@ -90,7 +90,10 @@ class ArduinoRoutingTests(unittest.TestCase):
     def test_release_stops_local_and_mqtt_siren(self):
         self.app._process_hardware_siren_event("ON")
         self.app._process_hardware_siren_event("OFF")
-        self.stop.assert_called_once_with(self.clip.play.return_value)
+        self.assertEqual(
+            [call.args for call in self.stop.call_args_list],
+            [(None,), (self.clip.play.return_value,)],
+        )
         self.controller.stop_siren_continuous.assert_called_once_with()
         self.app.add_to_zigbee_log.assert_called_with(
             "Arduino button: SIREN_OFF received"
@@ -148,7 +151,8 @@ class SerialPortTests(unittest.TestCase):
             "serial_siren_listener.py",
             {"_settings_path", "_is_zigbee_port", "_is_arduino_port",
              "detect_hardware_ports", "_port_exists"},
-            {"os": os, "sys": SimpleNamespace(frozen=False),
+            {"os": os, "__file__": str(ROOT / "serial_siren_listener.py"),
+             "sys": SimpleNamespace(frozen=False),
              "_detected_ports": {"arduino_port": None, "zigbee_port": None},
              "load_hardware_ports_from_json": lambda: (None, None),
              "save_hardware_ports_to_json": Mock(), "_debug": Mock()},
