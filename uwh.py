@@ -446,6 +446,8 @@ class GameManagementApp:
     def _stop_wireless_siren(self):
         """Cancel a wireless siren sequence, including a pending second blast."""
         self._wireless_siren_cycles_remaining = 0
+        self._wireless_continuous_active = False
+        self._wireless_continuous_device = None
         stop_job = getattr(self, "_wireless_siren_stop_job", None)
         self._wireless_siren_stop_job = None
         if stop_job is not None:
@@ -524,6 +526,87 @@ class GameManagementApp:
         else:
             self._wireless_siren_cycles_remaining = 0
 
+    def _start_wireless_continuous(self, device_name):
+        """Start a release-controlled siren with an independent audio cutoff.
+
+        Pygame's maxtime enforces the maximum even if Tk's event loop stalls.
+        The normal Tk after() also stops the sound and updates UI state.
+        """
+        if device_name in self._wireless_continuous_blocked:
+            self.add_to_zigbee_log(
+                f"Safety: repeated press for '{device_name}' blocked "
+                "until a release is received."
+            )
+            return
+        if self._wireless_continuous_active:
+            # Never restart or extend the timer for duplicates, including
+            # presses from another device while an existing hold is active.
+            self.add_to_zigbee_log("Safety: duplicate continuous press ignored.")
+            return
+        if not self.enable_sound.get():
+            return
+
+        try:
+            seconds = float(self.zigbee_controller.config.get(
+                "continuous_siren_max_seconds", 10.0
+            ))
+            if not 1.0 <= seconds <= 30.0:
+                seconds = 10.0
+        except (ValueError, TypeError):
+            seconds = 10.0
+
+        # Replace any timed wireless cycle; the wired Arduino channel remains
+        # untouched. Never stack separate wireless sound channels.
+        self._stop_wireless_siren()
+        channel = sound.start_timed_siren_with_volume(
+            self.siren_var.get(),
+            self.enable_sound.get(),
+            self.siren_volume.get(),
+            seconds,
+        )
+        if channel is None:
+            self.add_to_zigbee_log("Continuous siren could not start: no audio channel.")
+            return
+
+        self._wireless_siren_channel = channel
+        self._wireless_continuous_active = True
+        self._wireless_continuous_device = device_name
+        self._wireless_siren_stop_job = self.master.after(
+            max(1, int(seconds * 1000)), self._wireless_continuous_timeout
+        )
+        self.add_to_zigbee_log(
+            f"Continuous siren started by '{device_name}' "
+            f"(maximum {seconds:g} seconds)."
+        )
+
+    def _stop_wireless_continuous(self, device_name):
+        """A release only stops a hold started by that exact device."""
+        self._wireless_continuous_blocked.discard(device_name)
+        if not self._wireless_continuous_active:
+            return  # A late release must not touch a timed/Arduino siren.
+        if device_name != self._wireless_continuous_device:
+            self.add_to_zigbee_log(
+                f"Safety: release from '{device_name}' ignored; "
+                "another device started the hold."
+            )
+            return
+        self._stop_wireless_siren()
+        self.add_to_zigbee_log(
+            f"Continuous siren stopped by release from '{device_name}'."
+        )
+
+    def _wireless_continuous_timeout(self):
+        """Failsafe: stop even if the MQTT release never reaches the app."""
+        if not self._wireless_continuous_active:
+            return
+        device_name = self._wireless_continuous_device
+        self._stop_wireless_siren()
+        self._wireless_continuous_blocked.add(device_name)
+        self.add_to_zigbee_log(
+            f"Safety: continuous siren from '{device_name}' "
+            "stopped at maximum duration; waiting for release."
+        )
+
     def _stop_arduino_siren(self):
         channel = getattr(self, "arduino_siren_channel", None)
         self.arduino_siren_channel = None
@@ -543,6 +626,24 @@ class GameManagementApp:
 
     def _process_hardware_siren_event(self, event_name):
         """Handle siren events ONLY on the Tk main thread."""
+        if event_name == "WIRELESS_MQTT_DISCONNECT":
+            if self._wireless_continuous_active:
+                device_name = self._wireless_continuous_device
+                self._stop_wireless_siren()
+                self._wireless_continuous_blocked.add(device_name)
+                self.add_to_zigbee_log(
+                    "Safety: MQTT disconnected; continuous siren stopped."
+                )
+            return
+
+        if event_name.startswith("WIRELESS_PRESS:"):
+            self._start_wireless_continuous(event_name.split(":", 1)[1])
+            return
+
+        if event_name.startswith("WIRELESS_RELEASE:"):
+            self._stop_wireless_continuous(event_name.split(":", 1)[1])
+            return
+
         if event_name == "PULSE":
             self._play_wireless_siren_once()
             return
@@ -1016,6 +1117,11 @@ class GameManagementApp:
         self._wireless_siren_channel = None
         self._wireless_siren_stop_job = None
         self._wireless_siren_cycles_remaining = 0
+        self._wireless_continuous_active = False
+        self._wireless_continuous_device = None
+        # After a maximum-duration timeout, require a release before any
+        # repeat press can restart the same wireless continuous siren.
+        self._wireless_continuous_blocked = set()
         self.hardware_siren_event_queue = queue.Queue()
         self.enable_sound.trace_add(
             "write", lambda *_: self._on_enable_sound_changed()
@@ -2098,19 +2204,33 @@ class GameManagementApp:
             for key, widget in self.config_widgets.items():
                 value = widget.get()
                 if key == "mqtt_port":
-                    config[key] = int(value) if value.isdigit() else 1883
+                    port = int(value) if value.isdigit() else 0
+                    if not 1 <= port <= 65535:
+                        raise ValueError("MQTT port must be between 1 and 65535")
+                    config[key] = port
+                elif key == "continuous_siren_max_seconds":
+                    seconds = float(value.strip().replace(",", "."))
+                    if not 1.0 <= seconds <= 30.0:
+                        raise ValueError("Maximum continuous siren must be 1 to 30 seconds")
+                    config[key] = seconds
                 elif key == "siren_button_devices":
                     # Convert comma-separated string to list
                     device_names = [name.strip() for name in value.split(",") if name.strip()]
                     config["siren_button_devices"] = device_names
                     # Also set legacy single device for backward compatibility
-                    config["siren_button_device"] = device_names[0] if device_names else "siren_button"
+                    config["siren_button_device"] = device_names[0] if device_names else ""
                 else:
                     config[key] = value
             
             # Keep other settings from current config
             current_config = self.zigbee_controller.config.copy()
             current_config.update(config)
+            if hasattr(self, "_zigbee_action_mappings_draft"):
+                # The displayed table is part of the configuration: saving
+                # general MQTT settings must never discard unsaved row edits.
+                current_config["action_mappings"] = [
+                    dict(row) for row in self._zigbee_action_mappings_draft
+                ]
             
             # Save to both the Zigbee controller and unified settings
             self.zigbee_controller.save_config(current_config)
@@ -2120,6 +2240,10 @@ class GameManagementApp:
             unified_settings["zigbeeSettings"] = current_config
             save_unified_settings(unified_settings)
             
+            if hasattr(self, "_zigbee_map_dirty"):
+                self._zigbee_map_dirty = False
+            if hasattr(self, "_zigbee_mapping_save_btn"):
+                self._zigbee_mapping_save_btn.config(text="Save Action Mappings")
             self.add_to_zigbee_log("Configuration saved")
             messagebox.showinfo("Configuration", "Zigbee configuration saved successfully!")
         except Exception as e:
