@@ -22,7 +22,7 @@ The software has an operator-facing Underwater Hockey Game Management App and a 
 
 ## Windows 11: tested configuration (September 2026)
 
-The Windows 11 UWH application, wired Arduino siren, Mosquitto MQTT broker, Zigbee2MQTT, and **two** independently named Zigbee buttons have been tested together. Both buttons can sound the same local siren. Verified button actions are `single` (triggering one timed siren cycle), `double` (triggering two consecutive timed siren cycles, without a deliberately inserted pause), and `hold` (triggering one timed siren cycle on release). Zigbee2MQTT was also confirmed to restart through PM2 and Windows Task Scheduler after a Windows reboot. See [ZIGBEE_SETUP.md](ZIGBEE_SETUP.md) for reproducible installation details. Actively avoid joining the same button to two different Zigbee coordinators simultaneously. Mayhem will ensue.
+The Windows 11 UWH application, wired Arduino siren, Mosquitto MQTT broker, Zigbee2MQTT, and **three** independently named Zigbee buttons have been tested together. All three buttons can sound the same local siren. Verified button actions are `single` (triggering one timed siren cycle), `double` (triggering two consecutive timed siren cycles, without a deliberately inserted pause), and `hold` (triggering one timed siren cycle on release). Zigbee2MQTT was also confirmed to restart through PM2 and Windows Task Scheduler after a Windows reboot. See [ZIGBEE_SETUP.md](ZIGBEE_SETUP.md) for reproducible installation details. Actively avoid joining the same button to two different Zigbee coordinators simultaneously. Mayhem will ensue.
 
 ## Raspberry Pi 5: tested configuration (September 2026)
 
@@ -82,7 +82,7 @@ Download the newer release and extract it into a **separate folder** first. Do n
 > [!WARNING]
 > **Back up `settings.json` before every update.** It includes your **Zigbee button-name list** (for example, `siren_button, siren_button_2`), MQTT settings, sound preferences, screen layout and the remembered Display Window open/closed state. Back up tournament CSVs, custom sounds under `assets/`, and game logs too. Replacing UWH's settings can remove the second button from UWH without unpairing it from Zigbee2MQTT.
 
-After updating, confirm the **Zigbee Siren → Button Device Names** field and test both buttons before using the system at a match. Do not blindly replace a new-format `settings.json` with a very old version; compare and carry forward your customised values where the format has changed. Zigbee2MQTT has a **separate** `data/` directory that should be backed up before Zigbee2MQTT updates; see [ZIGBEE_SETUP.md](ZIGBEE_SETUP.md).
+After updating, confirm the **Zigbee Siren → Button Device Names** field and test all three buttons before using the system at a match. Do not blindly replace a new-format `settings.json` with a very old version; compare and carry forward your customised values where the format has changed. Zigbee2MQTT has a **separate** `data/` directory that should be backed up before Zigbee2MQTT updates; see [ZIGBEE_SETUP.md](ZIGBEE_SETUP.md).
 
 ## Downloading and installing UWH on a Raspberry Pi 5
 
@@ -373,12 +373,12 @@ UWH receives wireless referee-button actions via **Zigbee2MQTT → Mosquitto (MQ
 
 All timed cycles use **Sounds → Number of seconds to play Siren**. The Arduino hardware button retains press-and-release control. Buttons may publish different action names by model; the examples above are the actions actually verified.
 
-### Two paired buttons and configuration backups
+### Three paired buttons and configuration backups
 
-Two buttons on the **same** Zigbee2MQTT network were verified with friendly names `siren_button` and `siren_button_2`. Enter both in **Zigbee Siren → Button Device Names (comma-separated)**:
+Three individual buttons on the **same** Zigbee2MQTT network were verified with friendly names `siren_button`, `siren_button_2`, and `siren_button_3`. Enter all three in **Zigbee Siren → Button Device Names (comma-separated)**:
 
 ```text
-siren_button, siren_button_2
+siren_button, siren_button_2, siren_button_3
 ```
 
 Click **Save Configuration**. The UWH `settings.json` file holds this list. If an update replaces that file, UWH may respond to only the first button even though Zigbee2MQTT still publishes messages for the second. Restoring the button list repairs UWH recognition **without re-pairing** the Zigbee device.
