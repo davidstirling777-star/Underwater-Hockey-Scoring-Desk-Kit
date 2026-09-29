@@ -226,13 +226,13 @@ def create_settings_tab(app):
                     return
 
                 if not re.fullmatch(
-                    r"(?:[0-9]|1[0-9]|2[0-3]):[0-5][0-9]",
+                    r"(?:[01]?[0-9]|2[0-3]):[0-5][0-9]",
                     val
                 ):
                     messagebox.showerror(
                         "Input Error",
-                        "Please enter time in HH:MM 24-hour format "
-                        "(e.g., 19:36 or 9:36)."
+                        "Please enter a 24-hour time as H:MM or HH:MM "
+                        "(e.g., 9:36 or 09:36)."
                     )
                     event.widget.focus_set()
                     event.widget.selection_range(0, tk.END)

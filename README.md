@@ -194,7 +194,7 @@ Here, you can set most of the parameters of the games and select whether Team Ti
 
 Most period-duration boxes accept decimal **minutes**, e.g. `1.5` (or `1,5`) = 1 minute and 30 seconds. **Crib Time** is in seconds; **Time to Start First Game** is a 24-hour clock time, not a duration.
 
-**Time to Start First Game** schedules the first game against the computer's local clock. Enter a 24-hour time with a **two-digit hour**, such as `09:36` or `19:36`. The current entry validator also accepts `9:36`, but the start-time calculation expects `09:36`; use the two-digit form until that inconsistency is fixed.
+**Time to Start First Game** schedules the first game against the computer's local clock. Enter a 24-hour time as `H:MM` or `HH:MM`: both `9:36` and `09:36` mean 09:36. The minutes must have two digits (for example, `9:06`). If the selected time has already passed today, the app schedules it for tomorrow.
 
 **First Game Starts In:** is another way to set when the first game starts, in 'minutes from now'. Entering a value here will wipe the time from 'Time to Start First Game'.
 

@@ -1724,7 +1724,7 @@ class GameManagementApp:
         time_val = self.variables.get("time_to_start_first_game", {}).get("value", "")
         game_starts_in_seconds = None
         if time_val:
-            match = re.fullmatch(r"(?:[0-9]|1[0-9]|2[0-3]):[0-5][0-9]", time_val.strip())
+            match = re.fullmatch(r"(?:[01]?[0-9]|2[0-3]):[0-5][0-9]", time_val.strip())
             if match:
                 hh, mm = map(int, time_val.strip().split(":"))
                 target = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
@@ -2104,7 +2104,7 @@ class GameManagementApp:
         self.save_game_settings()
     
     def _update_start_first_game_in(self):
-        """Update only the start_first_game_in calculated field."""
+        """Calculate First Game Starts In for H:MM or HH:MM clock times."""
         time_entry_val = None
         start_first_game_in_widget = None
         
@@ -2119,7 +2119,7 @@ class GameManagementApp:
         now = datetime.datetime.now()
         if time_entry_val:
             try:
-                time_match = re.match(r"^([01][0-9]|2[0-3]):[0-5][0-9]$", time_entry_val)
+                time_match = re.match(r"^(?:[01]?[0-9]|2[0-3]):[0-5][0-9]$", time_entry_val)
                 if time_match:
                     hh, mm = map(int, time_entry_val.split(":"))
                     target = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
@@ -2183,9 +2183,9 @@ class GameManagementApp:
         now = datetime.datetime.now()
         if time_entry_val:
             try:
-                # Allow single or double digit hour, always two digit minute
-                # Use strict 24-hour regex
-                time_match = re.match(r"^([01][0-9]|2[0-3]):[0-5][0-9]$", time_entry_val)
+                # Use the same H:MM / HH:MM 24-hour rule as the input
+                # validator and build_game_sequence; 9:36 and 09:36 are equal.
+                time_match = re.match(r"^(?:[01]?[0-9]|2[0-3]):[0-5][0-9]$", time_entry_val)
                 if time_match:
                     hh, mm = map(int, time_entry_val.split(":"))
                     target = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
