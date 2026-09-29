@@ -141,7 +141,11 @@ class TournamentCSVParsingTests(unittest.TestCase):
         self.assertEqual(
             self.names("6"), ('Wellington, "A"', "Auckland, B")
         )
-        with self.file.open("r", newline="", encoding="utf-8-sig") as stream:
+        # The original draw retains its empty score columns.
+        with self.file.open("r", newline="", encoding="utf-8-sig") as source:
+            self.assertEqual(list(csv.reader(source))[1][3], "")
+        result_file = Path(self.directory) / "Draw_Results.csv"
+        with result_file.open("r", newline="", encoding="utf-8-sig") as stream:
             rows = list(csv.reader(stream))
         self.assertEqual(rows[1][3], "4")
         self.assertEqual(rows[1][5], "3")
