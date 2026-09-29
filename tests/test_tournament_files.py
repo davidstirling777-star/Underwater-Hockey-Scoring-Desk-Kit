@@ -158,7 +158,7 @@ class TournamentFileSeparationTests(unittest.TestCase):
         self.assertEqual(list(self.folder.glob(".uwh_results_*.tmp")), [])
 
     def test_invalid_draw_does_not_create_results(self):
-        self.draw.write_text("wrong,headers\\n1,A\\n", encoding="utf-8")
+        self.draw.write_text("wrong,headers\n1,A\n", encoding="utf-8")
         with self.assertRaisesRegex(ValueError, "game-number"):
             tournament_files.ensure_results_file(self.draw)
         self.assertFalse(self.results.exists())
@@ -167,8 +167,8 @@ class TournamentFileSeparationTests(unittest.TestCase):
         self.assertTrue(self.export(1))
         before = self.results.read_bytes()
         collision = self.folder / "Tournament.csv"
-        collision.write_text("Venue,#,White,WScore,Black,BScore,Penalties,Comments\\n"
-                             "Other,1,X,,Y,,,\\n", encoding="utf-8")
+        collision.write_text("Venue,#,White,WScore,Black,BScore,Penalties,Comments\n"
+                             "Other,1,X,,Y,,,\n", encoding="utf-8")
         # 'Tournament.csv' derives the same output name as 'Tournament_Draw.csv'.
         with self.assertRaisesRegex(ValueError, "does not match"):
             tournament_files.ensure_results_file(collision)
