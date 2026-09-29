@@ -86,10 +86,12 @@ def _edit_mapping_dialog(app, index=None):
     existing = (app._zigbee_action_mappings_draft[index]
                 if index is not None else {})
     dialog = tk.Toplevel(app.master)
+    # Hide the window until its position has been calculated: otherwise Tk may
+    # briefly place it at the top-left of a different monitor.
+    dialog.withdraw()
     dialog.title("Edit Button Action Mapping" if existing else "Add Button Action Mapping")
     dialog.resizable(False, False)
     dialog.transient(app.master)
-    dialog.grab_set()
 
     body = ttk.Frame(dialog, padding=14)
     body.pack(fill="both", expand=True)
@@ -174,7 +176,33 @@ def _edit_mapping_dialog(app, index=None):
     )
     ttk.Button(buttons, text="Apply", command=apply_edit).pack(side="right")
     dialog.bind("<Escape>", lambda _event: dialog.destroy())
+
+    # Both Add and Edit appear immediately ABOVE the corresponding toolbar
+    # button. Screen coordinates come from the button itself, so moving the
+    # main window to a different monitor also moves these popups correctly.
+    anchor = (app._zigbee_mapping_add_btn if index is None
+              else app._zigbee_mapping_edit_btn)
+    dialog.update_idletasks()
+    anchor.update_idletasks()
+    width = dialog.winfo_reqwidth()
+    height = dialog.winfo_reqheight()
+    gap = 10
+    popup_x = anchor.winfo_rootx() + (anchor.winfo_width() - width) // 2
+    popup_y = anchor.winfo_rooty() - height - gap
+
+    # Keep the dialog horizontally within the app window. Do not clamp
+    # against the primary monitor: secondary monitors may use negative or
+    # larger-than-primary desktop coordinates.
+    main_x = app.master.winfo_rootx()
+    main_y = app.master.winfo_rooty()
+    main_width = app.master.winfo_width()
+    popup_x = max(main_x + 10, min(popup_x, main_x + main_width - width - 10))
+    popup_y = max(main_y + 10, popup_y)
+    dialog.geometry(f"+{popup_x}+{popup_y}")
+    dialog.deiconify()
     dialog.wait_visibility()
+    dialog.lift()
+    dialog.grab_set()
     dialog.focus_force()
 
 
@@ -305,7 +333,11 @@ def _create_mapping_table(app, config_frame, config):
     for col, (label, command) in enumerate(buttons):
         button = ttk.Button(toolbar, text=label, command=command)
         button.grid(row=0, column=col, sticky="ew", padx=3)
-        if label == "Save Action Mappings":
+        if label == "Add Mapping":
+            app._zigbee_mapping_add_btn = button
+        elif label == "Edit Mapping":
+            app._zigbee_mapping_edit_btn = button
+        elif label == "Save Action Mappings":
             app._zigbee_mapping_save_btn = button
 
     app._zigbee_mapping_count = ttk.Label(mapping, foreground="#666666")
