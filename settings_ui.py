@@ -490,7 +490,7 @@ def create_settings_tab(app):
 
     instruction2 = tk.Label(
         widget2,
-        text="Press and hold the button for >4 seconds to alter the stored preset values",
+        text="Press and hold a preset for 3 seconds to edit its stored values",
         anchor="w",
         justify="left",
         font=(default_font.cget("family"), default_font.cget("size"))
