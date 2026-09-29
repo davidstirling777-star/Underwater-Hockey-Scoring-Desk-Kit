@@ -2,7 +2,7 @@
 
 A project to allow the use of a computer, modern computer languages and readily available Arduino hardware to make a scoring and siren system for Underwater Hockey. Example hardware is described in `HARDWARE_SETUP.md`.
 
-The software has an operator-facing Underwater Hockey Game Management App and a player-facing or spectator-facting Display Window(s). The operator window opens on the second tab, Game Variables, with four other tabs: Scoreboard, Screens, Sounds, and Zigbee Siren.
+The software has an operator-facing Underwater Hockey Game Management App and a player-facing or spectator-facing Display Window(s). The operator window opens on the second tab, Game Variables, with four other tabs: Scoreboard, Screens, Sounds, and Zigbee Siren.
 
 ## Contents
 
@@ -22,7 +22,7 @@ The software has an operator-facing Underwater Hockey Game Management App and a 
 
 ## Windows 11: tested configuration (September 2026)
 
-The Windows 11 UWH application, wired Arduino siren, Mosquitto MQTT broker, Zigbee2MQTT, and **three** independently named Zigbee buttons have been tested together. All three buttons can sound the same local siren. Verified button actions are `single` (triggering one timed siren cycle), `double` (triggering two consecutive timed siren cycles, without a deliberately inserted pause), and `hold` (triggering one timed siren cycle on release). Zigbee2MQTT was also confirmed to restart through PM2 and Windows Task Scheduler after a Windows reboot. See [ZIGBEE_SETUP.md](ZIGBEE_SETUP.md) for reproducible installation details. Actively avoid joining the same button to two different Zigbee coordinators simultaneously. Mayhem will ensue.
+The Windows 11 UWH application, wired Arduino siren, Mosquitto MQTT broker and Zigbee2MQTT have been tested together with **up to three working Zigbee buttons** on one coordinator. Observed button actions include `single`, `double`, `hold` and `emergency`; **which action each button sends depends on its model**, and UWH's per-button Action Mapping determines the siren response. Zigbee2MQTT was also confirmed to restart through PM2 and Windows Task Scheduler after a Windows reboot. See [ZIGBEE_SETUP.md](ZIGBEE_SETUP.md) for installation and button-mapping instructions. Do not re-pair a working button to a second coordinator just to share it with another UWH computer.
 
 ## Raspberry Pi 5: tested configuration (September 2026)
 
@@ -71,7 +71,7 @@ The extracted folder contains `UnderwaterHockeyScoringDesk.exe` and its supporti
 2. Double-click `UnderwaterHockeyScoringDesk.exe`.
 3. The startup self-test will run before the application opens.
 4. The Game Management window will appear.
-5. Use the **Screens** tab's **Display Screen Options** to open a player-facing or crowd-facing display, if required. Choose a supported Standard or Widescreen layout. Closing a Display Window with its **X** closes it and saves that closed state in `settings.json`. Check your monitor assignments with **Auto Detect Screens** and **Test Displays**.
+5. Use the **Screens** tab's **Display Screen Options** to open a player-facing or crowd-facing display, if required. Choose a supported Standard or Widescreen layout. Closing a Display Window with its **X** closes it and queues the closed state for the next automatic settings save (about one minute after the first change, or on normal program exit). Check your monitor assignments with **Auto Detect Screens** and **Test Displays**.
 
 You can create a desktop shortcut by right-clicking the executable and selecting **Show more options → Send to → Desktop (create shortcut)**.
 
@@ -80,9 +80,9 @@ You can create a desktop shortcut by right-clicking the executable and selecting
 Download the newer release and extract it into a **separate folder** first. Do not overwrite a working installation without a backup.
 
 > [!WARNING]
-> **Back up `settings.json` before every update.** It includes your **Zigbee button-name list** (for example, `siren_button, siren_button_2`), MQTT settings, sound preferences, screen layout and the remembered Display Window open/closed state. Back up tournament CSVs, custom sounds under `assets/`, and game logs too. Replacing UWH's settings can remove the second button from UWH without unpairing it from Zigbee2MQTT.
+> **Back up `settings.json` before every update.** It includes your **Zigbee button-name list** (for example, `siren_button, siren_button_2, siren_button_3`), MQTT settings, sound preferences, screen layout and the remembered Display Window open/closed state. Back up tournament CSVs, custom sounds under `assets/`, and game logs too. Replacing UWH's settings can lose button names **or action mappings**, even though the buttons remain paired to Zigbee2MQTT.
 
-After updating, confirm the **Zigbee Siren → Button Device Names** field and test all three buttons before using the system at a match. Do not blindly replace a new-format `settings.json` with a very old version; compare and carry forward your customised values where the format has changed. Zigbee2MQTT has a **separate** `data/` directory that should be backed up before Zigbee2MQTT updates; see [ZIGBEE_SETUP.md](ZIGBEE_SETUP.md).
+After updating, confirm the **Zigbee Siren → Button Device Names** field and test every configured button and its action mapping before using the system at a match. Do not blindly replace a new-format `settings.json` with a very old version; compare and carry forward your customised values where the format has changed. Zigbee2MQTT has a **separate** `data/` directory that should be backed up before Zigbee2MQTT updates; see [ZIGBEE_SETUP.md](ZIGBEE_SETUP.md).
 
 ## Downloading and installing UWH on a Raspberry Pi 5
 
@@ -104,7 +104,7 @@ Raspberry Pi OS Bookworm includes Python 3.11. Python 3.12 is not a requirement 
 ### 2. Download the program from GitHub
 
 1. Open Chromium (or another browser) on the Raspberry Pi.
-2. Open the GitHub repository containing this README. This document does not include a verified repository-owner URL, so please use the project's existing GitHub link rather than a guessed address.
+2. Open the GitHub repository containing this README. Open the [UWH Scoring Desk Kit repository](https://github.com/davidstirling777-star/Underwater-Hockey-Scoring-Desk-Kit).
 3. Above the list of files, click the green **Code** button and choose **Download ZIP**.
 4. Save the ZIP into your Downloads folder. In the tested installation it was named `Underwater-Hockey-Scoring-Desk-Kit-main.zip`.
 5. Open **File Manager** → **Downloads**. Right-click the ZIP and extract it into Downloads. If the Pi has no internet connection, download the ZIP on another computer and copy it to the Pi using a USB drive from another computer.
@@ -143,7 +143,7 @@ cd ~/Downloads/Underwater-Hockey-Scoring-Desk-Kit-main
 .venv/bin/python uwh.py
 ```
 
-The startup self-test should run, followed by the operator interface. Use **Screens → Display Screen Options** to open player-facing or crowd-facing displays. Position each window on its intended monitor. Closing a Display Window with **X** saves its closed state in `settings.json`. Use **Auto Detect Screens** and **Test Displays** to identify the monitors.
+The startup self-test should run, followed by the operator interface. Use **Screens → Display Screen Options** to open player-facing or crowd-facing displays. Position each window on its intended monitor. Closing a Display Window with **X** queues its closed state for automatic saving (about one minute after the first change, or on normal exit). Use **Auto Detect Screens** and **Test Displays** to identify the monitors.
 
 If startup fails, launch with the Terminal command above rather than a desktop shortcut. The last lines printed to Terminal are usually much more useful than the last startup self-test message.
 
@@ -184,7 +184,7 @@ After copying a fresh version into its intended location, install that version's
 | `ModuleNotFoundError` at startup | Check that `.venv/bin/python -m pip install -r requirements.txt` completed successfully, and that you launch with `.venv/bin/python uwh.py`. |
 | `No module named tkinter` | Install `python3-tk` using APT and recreate/test the virtual environment as necessary. |
 | Desktop icon appears but program does not start | Run `.venv/bin/python uwh.py` from Terminal; check the `Exec=` and `Path=` entries in the desktop shortcut. |
-| Display Window is missing or opens on the wrong monitor | Check **Screens → Display Screen Options**, run **Auto Detect Screens** and **Test Displays**, and position the window on the intended monitor. Closing the window with **X** saves its closed state. |
+| Display Window is missing or opens on the wrong monitor | Check **Screens → Display Screen Options**, run **Auto Detect Screens** and **Test Displays**, and position the window on the intended monitor. Closing the window with **X** queues its closed state for automatic saving or normal exit. |
 | Zigbee siren unavailable | Consult `ZIGBEE_SETUP.md`; a detected USB/COM port is not proof that the Zigbee button is paired or communicating. |
 | Need to check OS package updates | Run `sudo apt update` followed by `apt list --upgradable`. An empty list means no upgrades are offered by the configured repositories, not that you are on the newest version. |
 
@@ -220,13 +220,13 @@ All value boxes accept decimal time, e.g. `1.5` (or `1,5`) = 1 minute and 30 sec
 
 **Record Scorers Cap Number:** enables a popup dialogue box to appear when a goal is scored, where the cap number of the player scoring the goal can be entered. There is also the option of 'Unknown' and 'Penalty Goal'.
 
-**Crib Time:** has both a checkbox that, when selected, enables the program to shorten the 'Between Game Break' by this value until the Court Time is aligned with the Local Computer Time, and a value box where the time in minutes can be entered.
+**Crib Time:** has both a checkbox that, when selected, enables the program to shorten the 'Between Game Break' by this value until Court Time is aligned with Local Computer Time, and a value box where the adjustment is entered in **seconds**.
 
 **Reset Timer** transfers the entered values to the program and starts the timer again with the new values.
 
 ### Presets
 
-Here, six buttons are located where commonly used settings can be stored. Holding down the button for >4 seconds allows the name of the button to be altered and all the settings changed. Click the stored button to load those settings back into the Game Variables.
+Here, six buttons are located where commonly used settings can be stored. Holding a preset button for **three seconds** opens its editor, where the button name and saved settings can be changed. Click the stored button to load those settings back into the Game Variables.
 
 ### Tournament List
 
@@ -239,9 +239,9 @@ The CSV File dropdown automatically refreshes when clicked. New Tournament CSV f
 Where `#` is the Game Number (but this can also be `game`, `game#` or `game_number`).
 
 > [!IMPORTANT]
-> The selected CSV file is modified as the games progress, as the app stores the scores, what Cap Numbers were penalised (into the 'Penalties' column), and if the 'Record Scorers Cap Number' checkbox is ticked, the cap numbers of the goal scorers from the selected 'White' and 'Black' columns.
+> The selected tournament CSV is updated with scores in `WScore` and `BScore`, penalised cap numbers in `Penalties`, and (when **Record Scorers Cap Number** is enabled) scorer information in `Comments`. Scorer entries use forms such as `W#7(2)`, `W#PG(1)` (Penalty Goal) and `B#UNK(1)` (Unknown). The `White` and `Black` columns retain the team names. Team names containing commas or quotes must be properly quoted in CSV.
 
-When the 'Between Game Break' timer reaches 30 seconds after the last game, the penalties and cap numbers of the goal scorers from the previous game are written to the selected CSV file and the penalties cleared.
+During **Between Game Break**, UWH attempts to export the completed game **just before the countdown reaches 00:30**. It writes a complete replacement CSV before swapping it into place. If saving fails, the game remains available for correction and retry: UWH must not discard its scores, penalties or scorer records and advance to the next game.
 
 The 'Starting Game #' will show a list of Game Numbers in the CSV file selected above. This could be useful if the app crashes and the games need to be restarted, or if multiple days' games are in the same file.
 
@@ -255,7 +255,7 @@ This section describes how the app progresses through the various stages of the 
 
 **Operator Screen** selects the standard or widescreen arrangement of the operator's own window. This is distinct from whether the player/crowd Display Window is currently open.
 
-**Display Screen Options** offers Single/Dual Standard or Widescreen display layouts, subject to the monitors attached to the computer. Use these options to open the player-facing or crowd-facing window(s). **Closing a Display Window with its X** closes that window; the closed state is saved to `settings.json` and should remain closed when UWH is restarted. The selected layout is retained for the next time the display is opened. Do not assume changing the operator layout is an instruction to reopen a deliberately closed display.
+**Display Screen Options** offers Single/Dual Standard or Widescreen display layouts, subject to the monitors attached to the computer. Use these options to open the player-facing or crowd-facing window(s). **Closing a Display Window with its X** closes that window; its closed state is queued for automatic saving (about one minute after the first change, or on normal exit) and should remain closed after a normal restart. The selected layout is retained for the next time the display is opened. Do not assume changing the operator layout is an instruction to reopen a deliberately closed display.
 
 **Show Team Names** controls whether team names are shown on the operator and display screens.
 
@@ -279,11 +279,11 @@ The **Air** and **Water** controls are intended for separate above-water and und
 
 **Siren** plays at pre-determined periods and also when the Chief Referee activates the button to stop or start play.
 
-**Number of seconds to play Siren** is a value box to alter how long the Siren sounds at the pre-determined periods. If the sound file is shorter than the value, it will automatically loop until the selected duration is complete.
+**Number of seconds to play Siren** sets the requested duration of timed game and mapped wireless siren cycles. If the selected file is shorter, playback loops as needed. **Maximum Siren Duration (seconds)** independently caps each timed blast (default 10 seconds; allowed 1–30 seconds), including when the requested duration is longer.
 
 **Hardwired button (Arduino/serial):** the siren sounds while the button is held and stops when it is released. This differs from the timed Zigbee button behaviour.
 
-**Zigbee buttons (MQTT):** `single` sounds one configured-duration cycle; `double` sounds two consecutive configured-duration cycles **without a programmed pause**; `hold` sounds one configured-duration cycle **when the tested button is released**. At a duration of 1.5 seconds, `double` means two consecutive 1.5-second cycles. Check which action names your model publishes; details are in [ZIGBEE_SETUP.md](ZIGBEE_SETUP.md).
+**Zigbee buttons (MQTT):** When **Button Action Mapping** assigns them accordingly, `single` sounds one timed cycle and `double` sounds two consecutive timed cycles **without a programmed pause**. On the button tested for `hold`, that action arrives on release and was mapped to one timed cycle. Another tested button publishes `emergency`, which must be mapped separately. These are **observed examples, not universal button behaviours**. See [ZIGBEE_SETUP.md](ZIGBEE_SETUP.md) for setup and Auto-add From Log.
 
 ### Sound timing table
 
@@ -307,7 +307,7 @@ The system automatically plays audio cues during different periods:
 
 - Pip sounds use the chosen **Pips** file and the playback settings supported by the installed audio backend.
 - Siren sounds use the chosen **Siren** file. Matching application, Arduino and Zigbee playback levels have been tested on the Windows setup; test Air/Water channel routing separately on the target hardware.
-- **Siren Minimum Duration:** All siren sounds play for a minimum period to ensure audibility for officials and players. If the sound file is shorter than the specified period, it will automatically loop until the configured duration is reached.
+- **Timed siren playback:** A short sound file loops until the configured duration is reached, subject to **Maximum Siren Duration**. The hardwired Arduino siren instead follows the button's physical press and release.
 - Audio channels (Air/Water) use their respective volume settings
 - Game periods (halves) only play siren at the end, no countdown pips
 - Sudden Death periods have no automatic audio cues. The Sudden Death timer counts upwards from 00:00. A goal scored during Sudden Death immediately ends the game. Sudden Death Start and Sudden Death End messages are logged but do not trigger audio.
@@ -373,15 +373,15 @@ UWH receives wireless referee-button actions via **Zigbee2MQTT → Mosquitto (MQ
 
 All timed cycles use **Sounds → Number of seconds to play Siren**. The Arduino hardware button retains press-and-release control. Buttons may publish different action names by model; the examples above are the actions actually verified.
 
-### Three paired buttons and configuration backups
+### Up to three tested Zigbee buttons and configuration backups
 
-Three individual buttons on the **same** Zigbee2MQTT network were verified with friendly names `siren_button`, `siren_button_2`, and `siren_button_3`. Enter all three in **Zigbee Siren → Button Device Names (comma-separated)**:
+The setup has been tested with **up to three working Zigbee buttons** on the **same Zigbee2MQTT coordinator**, with friendly names `siren_button`, `siren_button_2` and `siren_button_3`. Enter the names of the buttons you actually use in **Zigbee Siren → Button Device Names (comma-separated)**. For the three-button setup:
 
 ```text
 siren_button, siren_button_2, siren_button_3
 ```
 
-Click **Save Configuration**. The UWH `settings.json` file holds this list. If an update replaces that file, UWH may respond to only the first button even though Zigbee2MQTT still publishes messages for the second. Restoring the button list repairs UWH recognition **without re-pairing** the Zigbee device.
+Click **Save Configuration**, then check **Button Action Mapping**. A button can be listed and appear in the Activity Log without sounding the siren if its observed action has no mapping. Press the button, use **Auto-add From Log** for a missing action, edit the new **Ignore** row to your intended UWH action, and click **Save Action Mappings**. Both the button-name list and action mappings live in `settings.json`; restoring them can restore UWH control **without re-pairing** the Zigbee device.
 
 > [!IMPORTANT]
 > **One Zigbee button cannot ordinarily be paired to two separate Zigbee coordinator networks at the same time.** To use a button with a second UWH computer, connect both UWH applications to the **existing MQTT broker**, rather than pairing the button to a second coordinator. **Both UWH installations may sound their local sirens** when receiving the same button message; choose which computer is authorised to control the live amplifier. Re-pairing to a different Zigbee network can break the original pairing.
