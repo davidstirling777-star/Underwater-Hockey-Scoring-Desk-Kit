@@ -6,6 +6,7 @@ export safety to game_flow.py. Period names are shared with that UI.
 """
 
 class GameEngine:
+    """In-memory match rules/state; uwh.py owns Tk and disk I/O."""
     def __init__(self):
         self.white_goal_scorers = {}
         self.black_goal_scorers = {}
@@ -38,6 +39,8 @@ class GameEngine:
     # ------------------------------------------------------------------
 
     def record_goal_scorer(self, team, cap_number):
+        """Count a confirmed goal by cap; None means scorer recording was skipped.
+        """
         if cap_number is None:
             return
 
@@ -52,6 +55,8 @@ class GameEngine:
             )
 
     def clear_goal_scorers(self):
+        """Reset scorer counts only after the previous game was safely exported.
+        """
         self.white_goal_scorers.clear()
         self.black_goal_scorers.clear()
 
@@ -77,6 +82,8 @@ class GameEngine:
         self.black_timeouts_this_half = 0
 
     def start_timeout(self, team):
+        """Mark a team timeout in progress and consume this half's allowance.
+        """
         if team == "White":
             self.active_timeout_team = "white"
             self.white_timeouts_this_half += 1
@@ -93,6 +100,8 @@ class GameEngine:
     # ------------------------------------------------------------------
 
     def mark_sudden_death_goal(self, remaining_time):
+        """Remember when Sudden Death ended so a correction can restore it.
+        """
         self.sudden_death_restore_time = remaining_time
         self.sudden_death_restore_active = True
         self.sudden_death_goal_scored = True
@@ -160,6 +169,9 @@ class GameEngine:
         self.current_index = self.find_period_index(period_name)
 
     def advance_period(self, white_score, black_score):
+        """Choose the next period, skipping overtime when a team leads.
+        The end-of-game export is gated by game_flow, not this state method.
+        """
         if self.current_index >= len(self.full_sequence):
             self.reset_to_between_game_break()
             return True
@@ -333,6 +345,8 @@ class GameEngine:
         return f"{mins:02d}:{secs:02d}"
 
     def should_play_period_end_siren(self, period):
+        """Report whether the tick about to reach 00:00 needs a siren.
+        """
         if not period:
             return False
 
@@ -364,6 +378,9 @@ class GameEngine:
         return False
 
     def should_play_break_countdown_pip(self, period):
+        """Trigger the 30-second pip at 31, then pips at 11 through 2.
+        The actual timer display decrements immediately after the cue.
+        """
         if not period:
             return False
 
