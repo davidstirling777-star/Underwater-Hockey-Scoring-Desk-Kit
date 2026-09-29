@@ -1,3 +1,10 @@
+"""Build the main referee-facing scoreboard widgets.
+
+This module creates controls; GameManagementApp in uwh.py owns the event
+handlers, match state, and presentation updates. Keep callback names in
+sync when moving a handler between modules.
+"""
+
 import tkinter as tk
 from tkinter import ttk
 
