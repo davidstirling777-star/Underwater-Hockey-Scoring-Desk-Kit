@@ -1,3 +1,14 @@
+"""Tournament results export and legacy scorer/event-log helpers.
+
+Only write_game_results_to_csv writes the tournament draw. It checks the
+game-number header, rejects ambiguous IDs, and stages a complete CSV beside
+the original before os.replace. A failed export must leave the live match
+state available for the operator to retry; see game_flow.py.
+
+The goal-event reader near the bottom is legacy: UWH_Game_Data.txt lacks a
+game-number field. Do not use it to infer per-game scorers.
+"""
+
 import csv
 import os
 import stat
