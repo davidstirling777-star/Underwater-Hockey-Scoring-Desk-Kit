@@ -4,6 +4,7 @@ import time
 import serial
 import serial.tools.list_ports
 import threading
+import settings_manager
 
 DEBUG_MODE = False
 SETTINGS_FILE = "settings.json"
@@ -45,24 +46,17 @@ def load_hardware_ports_from_json():
 
 def save_hardware_ports_to_json(arduino_port, zigbee_port):
     try:
-        path = _settings_path()
-        settings = {}
-
-        if os.path.exists(path):
-            try:
-                with open(path, "r", encoding="utf-8") as f:
-                    settings = json.load(f)
-            except Exception:
-                settings = {}
-
+        # Keep the existing directory behaviour for now, but use the
+        # central writer so a port scan cannot truncate the settings file.
+        settings_dir = os.path.dirname(_settings_path())
+        settings = settings_manager.load_unified_settings(settings_dir)
         settings["hardwareDetection"] = {
             "arduino_port": arduino_port,
             "zigbee_port": zigbee_port,
             "last_detected": time.strftime("%Y-%m-%d %H:%M:%S"),
         }
 
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(settings, f, indent=2)
+        settings_manager.save_unified_settings(settings_dir, settings)
 
         _debug(
             f"Saved hardware detection cache: "
