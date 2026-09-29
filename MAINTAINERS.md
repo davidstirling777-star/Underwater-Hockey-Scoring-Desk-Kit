@@ -58,7 +58,8 @@ operating a match.
 ## The three different siren pathways
 
 Do not assume that a visible USB dongle, a working MQTT session and an audible
-siren are the same condition.
+siren are the same condition. Port detection is not the same as a
+successful serial open, and a broker connection is not a mapped button press.
 
 1. **Wired Arduino button:** `serial_siren_listener.py` enumerates and opens
    the *Arduino* serial port at 9600 baud; it puts ON/OFF events into the
