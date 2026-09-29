@@ -1,6 +1,6 @@
 # Zigbee2MQTT Wireless Siren Setup Guide
 
-This guide covers the wireless siren in the **Underwater Hockey Scoring Desk Kit (UWH)**: installation on **Windows 11** or **Raspberry Pi 5 / Raspberry Pi OS Bookworm**, MQTT configuration for Python, pairing and naming buttons, and using more than one computer. The Windows MQTT configuration and the `single`/`double`/`hold` button actions described below have been tested with UWH in September 2026. Three individual Zigbee buttons (`siren_button`, `siren_button_2`, and `siren_button_3`) have also been tested on the same coordinator. The Raspberry Pi 5 **UWH desktop application** has been tested on Bookworm + X11; the full Pi Zigbee/MQTT installation procedure remains a deployment guide to verify on the target Pi.
+This guide covers the wireless siren in the **Underwater Hockey Scoring Desk Kit (UWH)**: installation on **Windows 11** or **Raspberry Pi 5 / Raspberry Pi OS Bookworm**, MQTT configuration for Python, pairing and naming buttons, and using more than one computer. The Windows MQTT setup has been tested with **up to three working Zigbee buttons** on one coordinator (`siren_button`, `siren_button_2` and `siren_button_3`). Observed action values include `single`, `double`, `hold` and `emergency`; **individual buttons may publish different actions**, and the mapping for each action is configured in UWH. The Raspberry Pi 5 **UWH desktop application** has been tested on Bookworm + X11; the full Pi Zigbee/MQTT installation procedure remains a deployment guide to verify on the target Pi.
 
 > [!IMPORTANT]
 > **A button joins one Zigbee network at a time. Do not re-pair an existing match button to another coordinator merely to use a second computer.** A second UWH computer can subscribe to the *same MQTT broker*, receiving events from the original Zigbee2MQTT instance. Re-pairing to a different Zigbee network generally removes the button from the original network and requires a reset and rejoin when moving it back. See [Using two computers](#using-two-computers-with-the-same-buttons).
@@ -44,7 +44,7 @@ Zigbee USB coordinator -- Zigbee2MQTT (Node.js)
 - **Mosquitto** is the MQTT message broker. The broker and Zigbee2MQTT can run on the same computer, or on different computers if properly configured.
 - **Python `paho-mqtt`** is the MQTT *client library* used by a source-code UWH installation. Installing it does **not** install a broker or Zigbee2MQTT.
 - **UWH** subscribes to button messages. The selected *Siren* audio file is played by UWH on its own audio output; a separate Zigbee siren device is **not** needed for this use case.
-- **Arduino hardwired siren** support is independent of MQTT. Its press/hold/release operation remains available.
+- **Arduino hardwired siren:** its local press/hold/release audio path is independent of MQTT. If an optional MQTT siren output is configured, the Arduino can also send ON/OFF commands to that separate output.
 
 For the simple local installation, all three software components run on one machine, and the MQTT broker is `localhost:1883`. For a second UWH computer, set its **MQTT Broker** field to the hostname or LAN IP address of the existing broker; `localhost` would point to the *second* computer, not the first.
 
@@ -261,7 +261,7 @@ Create a Task Scheduler **Create Task...** entry:
 
 Use `where pm2` to find **your actual** `pm2.cmd` path, replacing `YOUR_WINDOWS_USER` (and the entire path if necessary). Leave **“Do not store password”** unchecked if Windows prompts for the account password. Disable **“Stop the task if it runs longer than...”**. In **Services**, keep Mosquitto set to **Automatic**. Only one PM2 instance should control this Zigbee2MQTT process.
 
-**Verify:** reboot Windows, wait about two minutes, then open `http://localhost:8080` **before** manually running PM2. In the tested setup, the frontend and both Zigbee siren functions came back after restarting Windows. A separate sign-in test with a second Windows account has not yet been documented.
+**Verify:** reboot Windows, wait about two minutes, then open `http://localhost:8080` **before** manually running PM2. In the tested setup, the frontend and wireless button reception returned after restarting Windows. A separate sign-in test with a second Windows account has not yet been documented.
 
 ## Pairing and naming buttons in the frontend
 
@@ -271,12 +271,13 @@ These steps apply to **both** platforms and are performed on the **single Zigbee
 2. Use **Permit join** in the frontend (currently in the top navigation area). Current Zigbee2MQTT documentation says this opens joining for **254 seconds**; close it earlier when finished. The timing/UI wording can change with releases.
 3. Put the button into pairing/reset mode **using the instructions for its exact model**. Do not assume a universal hold duration or LED pattern.
 4. Wait for the device to join and finish its interview. If joining fails, follow the model's factory reset instructions and retry nearer the coordinator.
-5. Open the device's page in the frontend and edit its **friendly name** (usually accessible from the device details or rename action). Use simple unique names **without `/`**, e.g. `siren_button` and `siren_button_2`.
+5. Open the device's page in the frontend and edit its **friendly name** (usually accessible from the device details or rename action). Use simple unique names **without `/`**, e.g. `siren_button`, `siren_button_2` and `siren_button_3`.
 6. Close **Permit join**. Press each button and watch its device page or Zigbee2MQTT log. A successful button event produces an MQTT topic corresponding to its friendly name:
 
 ```text
 zigbee2mqtt/siren_button
 zigbee2mqtt/siren_button_2
+zigbee2mqtt/siren_button_3
 ```
 
 Example message payloads:
@@ -299,14 +300,16 @@ Open UWH → **Zigbee Siren**. Configure the application against the broker you 
 | **MQTT Port** | `1883` | Broker's listener port, normally `1883` |
 | **MQTT Username/Password** | Leave empty only if that broker allows local unauthenticated access | Enter the broker credentials (recommended) |
 | **MQTT Topic** | `zigbee2mqtt/+` | Same, if the host publishes the normal base topic |
-| **Button Device Names (comma-separated)** | `siren_button, siren_button_2, siren_button_3` | Names this UWH computer should respond to |
+| **Button Device Names (comma-separated)** | Enter the buttons in use; up to three have been tested together: `siren_button, siren_button_2, siren_button_3` | Names this UWH computer should respond to |
 | **Siren Device Name** | Leave unchanged for ordinary **local audio** triggering | Not the input button-name list |
 
-1. Enter the exact friendly names in **Button Device Names**; separating multiple names with commas is supported.
-2. Click **Save Configuration**, then use the available connection/test controls or restart **UWH** if you changed the settings while it was connected.
+1. Enter the exact friendly names in **Button Device Names**, separated by commas; enter only the buttons in use.
+2. Click **Save Configuration**. If you changed the broker, topic or device names while connected, reconnect or restart UWH so the active connection uses the new configuration.
 3. Click **Test App Siren** to check the selected local sound independently of Zigbee reception.
-4. Press each physical button and check the **Activity Log** for the corresponding name, such as `Button 'siren_button_2' action 'single' received via Zigbee/MQTT.`
-5. Confirm that the siren sounds and stops correctly. Test each action the device supports.
+4. Press each physical button and inspect **Activity Log**. For example, `Button 'siren_button_2' action 'single' received via Zigbee/MQTT.` confirms UWH received that message, **not** that the action is mapped to make sound.
+5. In **Button Action Mapping**, find the row for the exact button name and received action. To add an unfamiliar action, press that configured button and click **Auto-add From Log**. The new row is deliberately set to **Ignore**; select **Edit Mapping** and choose the intended action, such as **One siren cycle**.
+6. Click **Save Action Mappings**. This is distinct from saving the device-name list with **Save Configuration**. Test each button again and confirm its intended response. For a new button, check what it actually publishes; for example, a tested button uses `emergency` rather than `single`.
+7. For a continuous-press mapping, provide the correct release action as a separate **Stop continuous siren** mapping and check the **Maximum hold (s)** cutoff (default 10; allowed 1–30 seconds). Only use that mode after checking the device's actual press/release messages.
 
 UWH stores these values in the **`zigbeeSettings` section of `settings.json`**. A representative extract is:
 
@@ -322,21 +325,22 @@ UWH stores these values in the **`zigbeeSettings` section of `settings.json`**. 
 }
 ```
 
-This is a **partial example**, not a replacement for the complete `settings.json`. The legacy `siren_button_device` entry may coexist with the multi-device list; use the UI to save the full configuration. Keep the **UWH configuration** (`settings.json`) and **Zigbee2MQTT's own `data` directory** backed up separately.
+This is a **partial example**, not a replacement for the complete `settings.json`. The actual file also holds **`action_mappings`**; the list of button names alone does not specify which received actions should sound the siren. The legacy `siren_button_device` entry may coexist with the multi-device list; use the UI to save the full configuration. Keep the **UWH configuration** (`settings.json`) and **Zigbee2MQTT's own `data` directory** backed up separately.
 
 ## Button actions and siren playback
 
-The following behaviour was verified with the Windows UWH/MQTT setup in September 2026:
+The table describes **observed actions and their tested mappings**, not a universal set of button commands. UWH responds only when the device and exact received action have been configured:
 
-| Zigbee2MQTT `action` | UWH response |
+| Observed Zigbee2MQTT `action` | Example UWH mapping |
 |---|---|
-| `single` | One siren cycle of **Number of seconds to play Siren** |
-| `double` | Two consecutive timed cycles, **no intentionally programmed pause** |
-| `hold` | One timed cycle, triggered **on release** for the tested button |
+| `single` | **One siren cycle** of **Number of seconds to play Siren** |
+| `double` | **Two siren cycles**, consecutive, with no deliberately programmed pause |
+| `hold` | **One siren cycle** for the tested button, which sends `hold` on release |
+| `emergency` | A separately configured mapping, such as **One siren cycle**, for a button that publishes `emergency` |
 
-For example, a configured duration of **1.5 seconds** gives approximately 1.5 seconds on `single`/`hold`, and two consecutive 1.5-second cycles on `double`. Actual audio-start/stop overhead may cause a very small transition between cycles. The application also recognises certain alternate simple action values, but do not assume every manufacturer's long-press labels or release events behave the same way.
+For example, a configured duration of **1.5 seconds** gives approximately 1.5 seconds for one timed cycle and two consecutive cycles for a mapped `double`. Actual audio-start/stop overhead may cause a small transition between cycles. Different models publish different long-press and release values: inspect each button's log rather than assuming the table applies automatically.
 
-**Important:** The *physical Zigbee button's hold action* is **not** continuous press-to-sound; the tested device sends `hold` when released. By contrast, the **hardwired Arduino button** sounds while physically held and stops on release. Automatic game sirens and Zigbee timed sirens use the configured siren sound and duration. The **Sounds** tab controls the selected siren file, duration and relevant playback volume settings; confirm Air/Water routing on the actual hardware.
+**Important:** On the tested button, the `hold` action arrives **on release**; mapping that action to **One siren cycle** is not continuous press-to-sound. The Zigbee mapping table also offers **Start continuous siren** and **Stop continuous siren**, but these require actual matching press/release messages and are bounded by the hold timer and audio cutoff. The **hardwired Arduino button** instead sounds locally while physically held and stops on release. Timed game and wireless sirens use the selected **Sounds** file and duration, subject to **Maximum Siren Duration (seconds)** (default 10; allowed 1–30 seconds). Confirm Air/Water routing on the actual hardware.
 
 ## Using two computers with the same buttons
 
@@ -346,6 +350,7 @@ For example, a configured duration of **1.5 seconds** gives approximately 1.5 se
                            ONE Zigbee network
 button 1 -----\
 button 2 ------> Coordinator + Zigbee2MQTT ----> MQTT broker
+button 3 -----/
                                                    |           |
                                      MQTT client A |           | MQTT client B
                                                    v           v
@@ -411,7 +416,7 @@ Restart the **Mosquitto Broker** service using `services.msc`. Configure its cre
 
 Plain MQTT on port **1883 is not encrypted**; use a trusted LAN, or TLS/VPN for less trusted connections. Never publish broker passwords in public GitHub documentation, screenshots or bug reports.
 
-The frontend on port 8080 is **separate from MQTT**. Opening a webpage on PC 2 does not establish an MQTT client connection, and clicking UWH's Windows frontend button still opens `localhost:8080` on **that** PC. Access the host frontend by the host address only when intentionally configured and secured for LAN use.
+The frontend on port 8080 is **separate from MQTT**. Opening a webpage on PC 2 does not establish an MQTT client connection, and UWH's **Open Zigbee2MQTT Frontend** button opens `localhost:8080` on **that** PC. Access the host frontend by the host address only when intentionally configured and secured for LAN use.
 
 ## Updates, backups and troubleshooting
 
@@ -419,7 +424,7 @@ The frontend on port 8080 is **separate from MQTT**. Opening a webpage on PC 2 d
 
 | Item | What it contains | Important distinction |
 |---|---|---|
-| **UWH `settings.json`** | Siren files/duration, MQTT broker, button-name list, display settings and other app preferences | Restoring it can recover `siren_button_2` without re-pairing. Back it up before replacing a UWH ZIP. |
+| **UWH `settings.json`** | Siren files/duration, MQTT broker, button-name list, **action mappings**, display settings and other app preferences | Restoring its names **and mappings** can recover UWH recognition without re-pairing. Back it up before replacing a UWH ZIP; UWH also retains up to five recent `settings_old_*.json` backups. |
 | **UWH tournament CSVs, custom `assets/` sounds, logs** | Tournament/game data and custom audio | A UWH update must not overwrite them. |
 | **Zigbee2MQTT `data/` folder** | Zigbee2MQTT configuration and network/device database | Back up before changing Zigbee2MQTT or moving installations; preserving the coordinator/network data matters for retained pairing. |
 | **PM2 process list on Windows** | Saved Zigbee2MQTT startup process for that Windows user | Run `pm2 save` after setup. A Task Scheduler task alone does not recreate a missing PM2 saved process. |
@@ -429,16 +434,16 @@ The frontend on port 8080 is **separate from MQTT**. Opening a webpage on PC 2 d
 | Observation | What to check |
 |---|---|
 | Frontend does not open at `localhost:8080` | Is Zigbee2MQTT actually running? On Windows, check `pm2 list`, `pm2 logs zigbee2mqtt` and Task Scheduler's **Last Run Result**; on Pi check `systemctl status zigbee2mqtt`. Check frontend enablement and port. |
-| UWH displays **Connected** but no button appears in the activity log | A broker connection alone does not establish pairing. Press button and inspect Zigbee2MQTT's log; compare **friendly name**, MQTT topic (`zigbee2mqtt/+`), and UWH's **Button Device Names** list. |
-| `siren_button` works but `siren_button_2` does not | In UWH enter `siren_button, siren_button_2` and **Save Configuration**. This was observed after an upgrade omitted the original `settings.json`; the second button was still paired. |
-| Zigbee2MQTT publishes `{"battery":...}` but UWH is silent | That message has **no `action`**; it is a status update, not a press. |
+| UWH displays **Connected** but no button appears in the activity log | **Connected** means the MQTT broker session is up, not that a button is paired or mapped. Press the button and inspect Zigbee2MQTT's log; compare the **friendly name**, MQTT topic (`zigbee2mqtt/+`), and **Button Device Names**. UWH's Arduino/USB labels report **Detected** ports, not proof that an Arduino COM port was opened. |
+| One button works but another does not | Check that each button's exact friendly name appears in **Button Device Names** and click **Save Configuration**. Press it and check the **Activity Log**. If it says **Unmapped action**, use **Auto-add From Log**, change **Ignore** to the desired response and **Save Action Mappings**. Missing settings do not necessarily mean the device needs re-pairing. |
+| Zigbee2MQTT publishes `{"battery":...}` but UWH is silent | A battery-only update has **no `action`**; it is device status rather than a button press. |
 | A newly named button stops working | A frontend rename changes the device MQTT topic. Update UWH's exact friendly-name list. |
 | One PC sees the events, the other does not | PC 2 must connect to PC 1's *LAN broker address*, not its own `localhost`. Check Mosquitto listener/authentication, firewall, subnet and MQTT topic. |
 | Both PCs sound their sirens | Both subscribed to the same button; this is expected, not a pairing fault. Configure the standby application's allowed button names or audio routing. |
 | Windows broker works but Zigbee2MQTT does not start after boot | Set Mosquitto **Automatic**; confirm `pm2 save` under the task's Windows account and correct `pm2.cmd`/working directory; inspect Scheduler history. Do not run two PM2 instances. |
 | Pi MQTT fails with `ModuleNotFoundError` | Check `.venv/bin/python -m pip show paho-mqtt`, then run UWH using that same virtual environment. |
 | Frontend says adapter missing / port busy | Find the actual COM port or `/dev/serial/by-id`; confirm adapter type and permissions, and close any other program using the coordinator. |
-| Audible siren works but time/volume is different | Check **Sounds** tab siren file, **Number of seconds to play Siren**, and hardware audio routing. Arduino hold-to-sound differs intentionally from Zigbee timed actions. |
+| Audible siren works but time/volume is different | Check the **Sounds** tab's siren file, **Number of seconds to play Siren**, **Maximum Siren Duration**, and hardware audio routing. Arduino hold-to-sound differs from Zigbee timed actions. |
 
 **Useful diagnostic commands** (use the correct host and authentication options for your broker):
 
@@ -458,7 +463,7 @@ pm2 list
 pm2 logs zigbee2mqtt
 ```
 
-If MQTT authentication is enabled, use authenticated client options or the UWH UI's credentials; do not paste credentials into screenshots or public GitHub issues. If the frontend shows button actions but UWH is silent, verify UWH's sound independently using **Test App Siren**.
+If MQTT authentication is enabled, use authenticated client options or the UWH UI's credentials; do not paste credentials into screenshots or public GitHub issues. If the frontend shows button actions but UWH is silent, verify the sound with **Test App Siren**, then confirm the button is listed **and** its received action has a saved mapping. An Arduino `Access is denied` COM-port error is a separate serial-access problem: close other serial monitors or programs holding that port.
 
 ## Official references
 
