@@ -1,5 +1,49 @@
 import csv
 import os
+import stat
+import tempfile
+
+
+def _write_csv_atomically(csv_file, rows):
+    """Keep the tournament draw intact until a complete replacement is ready.
+
+    The temporary file lives next to the draw, so os.replace is a single
+    filesystem operation on Windows and Linux. A failed write or replace
+    raises to the existing game-export retry screen; it cannot truncate
+    the original CSV.
+    """
+    directory = os.path.dirname(os.path.abspath(csv_file))
+    original_mode = stat.S_IMODE(os.stat(csv_file).st_mode)
+    staged_path = None
+
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8-sig",
+            newline="",
+            dir=directory,
+            prefix=".uwh_draw_",
+            suffix=".tmp",
+            delete=False,
+        ) as staged:
+            staged_path = staged.name
+            csv.writer(staged).writerows(rows)
+            staged.flush()
+            os.fsync(staged.fileno())
+
+        # Preserve the original draw's file mode rather than leaving the
+        # restrictive default permissions of a newly created temp file.
+        os.chmod(staged_path, original_mode)
+        os.replace(staged_path, csv_file)
+        staged_path = None
+    finally:
+        if staged_path is not None:
+            try:
+                os.unlink(staged_path)
+            except FileNotFoundError:
+                pass
+            except OSError as error:
+                print(f"CSV UPDATE: Could not remove temporary file: {error}")
 
 
 def sort_cap_key(cap):
@@ -178,9 +222,7 @@ def write_game_results_to_csv(
             f"W:{white_score} B:{black_score}"
         )
 
-    with open(csv_file, "w", newline="", encoding="utf-8-sig") as f:
-        writer = csv.writer(f)
-        writer.writerows(rows)
+    _write_csv_atomically(csv_file, rows)
 
     if debug_mode:
         print("CSV UPDATE: Success")
