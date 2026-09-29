@@ -1,3 +1,10 @@
+"""Game state, period sequencing and timer/penalty policy.
+
+GameEngine stores mutable match state but does not own Tk widgets or disk
+writes. uwh.py drives the Tk after() clock and delegates transitions and
+export safety to game_flow.py. Period names are shared with that UI.
+"""
+
 class GameEngine:
     def __init__(self):
         self.white_goal_scorers = {}
