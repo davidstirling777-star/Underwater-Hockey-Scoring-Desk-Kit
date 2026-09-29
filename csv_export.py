@@ -73,11 +73,15 @@ def build_scorer_comments(record_scorers, white_goal_scorers, black_goal_scorers
 
     scorer_entries = []
 
+    # The scorer dialog stores these full labels, while the established
+    # scorer-comment notation uses PG and UNK (as in the display formatter).
+    cap_labels = {"Penalty Goal": "PG", "Unknown": "UNK"}
+
     for cap, goals in sorted(white_goal_scorers.items(), key=lambda x: sort_cap_key(x[0])):
-        scorer_entries.append(f"W#{cap}({goals})")
+        scorer_entries.append(f"W#{cap_labels.get(cap, cap)}({goals})")
 
     for cap, goals in sorted(black_goal_scorers.items(), key=lambda x: sort_cap_key(x[0])):
-        scorer_entries.append(f"B#{cap}({goals})")
+        scorer_entries.append(f"B#{cap_labels.get(cap, cap)}({goals})")
 
     return ", ".join(scorer_entries)
 
