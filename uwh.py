@@ -1192,7 +1192,8 @@ class GameManagementApp:
             splash_report=splash_report,
             is_mqtt_available=is_mqtt_available,
             timeout_seconds=30,
-            stable_threshold=3
+            stable_threshold=3,
+            mqtt_config=load_unified_settings().get("zigbeeSettings", {})
         )
 
         # AUTO-DETECT ARDUINO AND ZIGBEE PORTS
