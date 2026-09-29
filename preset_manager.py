@@ -12,6 +12,8 @@ import time
 
 
 def open_button_dialog(app, idx, trigger_button=None):
+    """Show the hold-to-edit preset dialog without changing the saved preset.
+    """
     dialog_width = 400
     dialog_height = 700
     gap = 8
@@ -383,6 +385,8 @@ def open_button_dialog(app, idx, trigger_button=None):
 
 
 def start_button_hold(app, event, idx):
+    """Schedule the preset editor after a three-second press.
+    """
     app._button_hold_start_time = time.time()
     app._button_hold_index = idx
     app._button_hold_widget = event.widget
@@ -397,6 +401,8 @@ def start_button_hold(app, event, idx):
 
 
 def button_release(app, event, idx):
+    """Apply a short press; cancel the delayed editor when released early.
+    """
     if (
         hasattr(app, "_button_hold_timer")
         and app._button_hold_timer is not None
@@ -416,6 +422,8 @@ def button_release(app, event, idx):
 
 
 def apply_button_data(app, idx):
+    """Copy saved preset entries and checkboxes into the live Game Variables.
+    """
     for widget in app.widgets:
         var_name = widget["name"]
 
@@ -506,6 +514,8 @@ def apply_button_data(app, idx):
 
 
 def set_widget2_button_text(app, idx, new_text):
+    """Update the displayed preset caption after it has been saved.
+    """
     if not (0 <= idx < len(app.widget2_buttons)):
         return
 
