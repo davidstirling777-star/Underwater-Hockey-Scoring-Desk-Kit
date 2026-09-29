@@ -3,6 +3,7 @@ import json
 import datetime
 import tempfile
 import threading
+import re
 
 
 # All in-process settings writers share one lock. Each committed settings.json
@@ -100,6 +101,27 @@ def _previous_settings_backup_path(base_dir):
     return path
 
 
+def _trim_settings_backups(base_dir, keep=5):
+    """Keep only the five most recent UWH-created backups."""
+    pattern = re.compile(
+        r"settings_old_\d{4}-\d{2}-\d{2}_"
+        r"\d{2}-\d{2}-\d{2}_\d{6}(?:_\d+)?\.json"
+    )
+    try:
+        names = sorted(
+            name for name in os.listdir(base_dir)
+            if pattern.fullmatch(name)
+            and os.path.isfile(os.path.join(base_dir, name))
+        )
+    except OSError as error:
+        print(f"Could not list old settings backups: {error}")
+        return
+    for name in names[:-keep]:
+        try:
+            os.unlink(os.path.join(base_dir, name))
+        except OSError as error:
+            print(f"Could not remove old settings backup {name}: {error}")
+
 def load_unified_settings(base_dir):
     """Load the active settings; never silently reset unreadable settings."""
     settings_path = get_settings_path(base_dir)
@@ -140,6 +162,7 @@ def save_unified_settings(base_dir, settings):
             # Startup synchronisation and duplicate save calls need not
             # create a new backup when nothing has changed.
             if previous_document == settings:
+                _trim_settings_backups(base_dir)
                 return
 
         staged_new = None
@@ -160,10 +183,21 @@ def save_unified_settings(base_dir, settings):
             # old complete JSON file or the new complete JSON file.
             os.replace(staged_new, settings_path)
             staged_new = None
+            _trim_settings_backups(base_dir)
         finally:
             for staged_path in (staged_new, staged_backup):
                 if staged_path is not None and os.path.exists(staged_path):
                     os.unlink(staged_path)
+
+
+def update_unified_settings(base_dir, sections):
+    """Merge named settings sections while holding the write lock."""
+    if not isinstance(sections, dict):
+        raise TypeError("Updated settings sections must be a dictionary.")
+    with _SETTINGS_IO_LOCK:
+        settings = load_unified_settings(base_dir)
+        settings.update(sections)
+        save_unified_settings(base_dir, settings)
 
 
 def get_default_unified_settings():
