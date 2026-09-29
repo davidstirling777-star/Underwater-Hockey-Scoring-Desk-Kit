@@ -72,7 +72,53 @@ jobs:
           path: dist/UnderwaterHockeyScoringDesk/
           if-no-files-found: error
 
+      # Keep the existing uncompressed Actions artifact for testers.
+      # Also retain the release ZIP so the publish job can run separately.
+      - name: Upload release ZIP for publication
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: UWH-Release-ZIP-${{ github.run_number }}
+          path: release/UnderwaterHockeyScoringDesk-v${{ env.RELEASE_SERIES }}.${{ github.run_number }}-Windows.zip
+          if-no-files-found: error
+
+  # Windows builds can overlap; only publication is serialized. GitHub does
+  # not guarantee concurrency queue ordering, so each job independently
+  # checks main SHA and all existing numeric release versions before posting.
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    concurrency:
+      group: uwh-windows-release-publish
+      queue: max
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout release guard
+        uses: actions/checkout@v6
+
+      - name: Skip outdated or already-published releases
+        id: freshness
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python .github/scripts/release_gate.py
+
+      - name: Download release ZIP
+        if: steps.freshness.outputs.publish == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: UWH-Release-ZIP-${{ github.run_number }}
+          path: release
+
+      # Recheck after download: main can advance while artifacts transfer.
+      - name: Recheck immediately before publishing
+        if: steps.freshness.outputs.publish == 'true'
+        id: final
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python .github/scripts/release_gate.py
+
       - name: Create GitHub Release
+        if: steps.final.outputs.publish == 'true'
         uses: softprops/action-gh-release@v3.0.1
         with:
           tag_name: v${{ env.RELEASE_SERIES }}.${{ github.run_number }}
@@ -87,5 +133,6 @@ jobs:
           fail_on_unmatched_files: true
           draft: false
           prerelease: false
+          make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
