@@ -115,7 +115,7 @@ reliable per-game attribution without extending and migrating that format.
 
 `settings.json` is a single unified document with named sections.
 `settings_manager.py` serializes and stages changes, replaces files
-atomically, and keeps up to five timestamped `settings_old_*.json`
+atomically, and keeps up to the five most recent timestamped `settings_old_*.json`
 backups. The UI coalesces *automatic* Game Variables and screen edits into
 roughly one write per minute; explicit Sounds, Zigbee and preset Save actions
 remain immediate. Normal program exit flushes pending edits.
