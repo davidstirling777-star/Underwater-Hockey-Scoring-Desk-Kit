@@ -473,8 +473,11 @@ class GameManagementApp:
             if not 0 < duration_seconds < float("inf"):
                 return
 
-            # Bound EACH blast to 30 seconds, matching the sound helper.
-            self._wireless_siren_cycle_duration = min(duration_seconds, 30.0)
+            # Each wireless blast respects the operator's safety cutoff.
+            limit = sound.normalise_max_siren_duration(
+                self.max_siren_duration.get()
+            )
+            self._wireless_siren_cycle_duration = min(duration_seconds, limit)
             self._wireless_siren_cycles_remaining = 2 if cycles == 2 else 1
             self._play_next_wireless_siren_cycle()
         except Exception as e:
@@ -499,6 +502,7 @@ class GameManagementApp:
                 self.enable_sound.get(),
                 self.siren_volume.get(),
                 duration,
+                self.max_siren_duration.get(),
             )
             if self._wireless_siren_channel is None:
                 self._stop_wireless_siren()
@@ -555,6 +559,14 @@ class GameManagementApp:
         except (ValueError, TypeError):
             seconds = 10.0
 
+        # The Zigbee continuous limit and Sounds-tab limit both apply.
+        seconds = min(
+            seconds,
+            sound.normalise_max_siren_duration(
+                self.max_siren_duration.get()
+            ),
+        )
+
         # Replace any timed wireless cycle; the wired Arduino channel remains
         # untouched. Never stack separate wireless sound channels.
         self._stop_wireless_siren()
@@ -563,6 +575,7 @@ class GameManagementApp:
             self.enable_sound.get(),
             self.siren_volume.get(),
             seconds,
+            self.max_siren_duration.get(),
         )
         if channel is None:
             self.add_to_zigbee_log("Continuous siren could not start: no audio channel.")
@@ -898,6 +911,11 @@ class GameManagementApp:
         self.water_volume = tk.DoubleVar(value=sound_settings.get("water_volume", 50.0))
         self.enable_sound = tk.BooleanVar(value=sound_settings.get("enable_sound", True))
         self.siren_duration = tk.DoubleVar(value=sound_settings.get("siren_duration", 1.5))
+        # Separate, user-configurable safety cutoff for timed siren blasts.
+        # StringVar keeps an invalid entry editable until validation on save.
+        self.max_siren_duration = tk.StringVar(
+            value=str(sound_settings.get("max_siren_duration", 10.0))
+        )
         
         # Initialize sound selection variables with auto-selection of first audio file if no saved setting
         sound_files = get_sound_files()
@@ -1868,7 +1886,8 @@ class GameManagementApp:
                 self.siren_volume,
                 self.air_volume,
                 self.water_volume,
-                self.siren_duration
+                self.siren_duration,
+                self.max_siren_duration
             )
     
             self.add_to_zigbee_log("App siren sound started")
@@ -3140,7 +3159,8 @@ class GameManagementApp:
                         self.siren_volume,
                         self.air_volume,
                         self.water_volume,
-                        self.siren_duration
+                        self.siren_duration,
+                        self.max_siren_duration
                     )
                 except Exception as e:
                     print(f"Error playing period-end siren: {e}")
@@ -3159,7 +3179,8 @@ class GameManagementApp:
                         self.siren_volume,
                         self.air_volume,
                         self.water_volume,
-                        self.siren_duration
+                        self.siren_duration,
+                        self.max_siren_duration
                     )
                 except Exception as e:
                     print(
@@ -3286,7 +3307,8 @@ class GameManagementApp:
                         self.siren_volume,
                         self.air_volume,
                         self.water_volume,
-                        self.siren_duration
+                        self.siren_duration,
+                        self.max_siren_duration
                     )
                 except Exception as e:
                     print(f"Error playing pip sound at 16s timeout: {e}")
@@ -3305,7 +3327,8 @@ class GameManagementApp:
                         self.siren_volume,
                         self.air_volume,
                         self.water_volume,
-                        self.siren_duration
+                        self.siren_duration,
+                        self.max_siren_duration
                     )
                 except Exception as e:
                     print(f"Error playing siren at 1s timeout: {e}")
