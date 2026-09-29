@@ -1,9 +1,15 @@
-"""
-Zigbee2MQTT Wireless Siren Integration Module
+"""Zigbee2MQTT wireless siren integration and optional MQTT siren output.
 
-serial_siren_listener.py is the lead hardware detector.
-This module does not scan COM ports directly. It references the Zigbee COM
-port discovered/cached by serial_siren_listener when serial fallback needs it.
+Zigbee2MQTT owns the coordinator radio/serial port and publishes per-device
+MQTT actions. This Paho client never opens that port. Only devices listed in
+Button Device Names are accepted; only explicit per-device action mappings
+may create events. Unknown actions are logged and held for Auto-add From Log,
+which starts them as Ignore. Callbacks run on a background thread and must
+queue UI/audio events rather than directly operate Tk or pygame.
+
+The separately named Siren Device is an optional MQTT OUTPUT for hardware
+ON/OFF commands; it is not one of the input referee buttons.
+serial_siren_listener.py is the lead USB-port detector and Arduino reader.
 """
 
 import threading
