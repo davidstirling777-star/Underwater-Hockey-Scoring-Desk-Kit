@@ -271,6 +271,9 @@ def serial_listener_thread(uwh_app):
                     f"Arduino siren serial listener opened {arduino_port} "
                     "at 9600 baud; waiting for SIREN_ON / SIREN_OFF."
                 )
+                _send_app_siren_event(
+                    uwh_app, f"ARDUINO_SERIAL_OPEN:{arduino_port}"
+                )
 
                 while True:
                     try:
@@ -306,6 +309,9 @@ def serial_listener_thread(uwh_app):
             print(
                 f"Serial listener encountered an error on {arduino_port}: {e}. "
                 "Forcing hardware rescan and retrying in 3s..."
+            )
+            _send_app_siren_event(
+                uwh_app, f"ARDUINO_SERIAL_ERROR:{arduino_port}: {e}"
             )
 
             detect_hardware_ports(force_scan=True)
