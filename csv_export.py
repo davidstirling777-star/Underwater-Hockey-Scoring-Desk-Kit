@@ -87,12 +87,25 @@ def write_game_results_to_csv(
         return False
 
     header = [str(h).strip() for h in rows[0]]
+    header_keys = [name.casefold() for name in header]
+
+    # The draw reader already recognises these headers anywhere in the
+    # file. Results must find the SAME game column, not assume row[1].
+    game_col = next(
+        (index for index, name in enumerate(header_keys)
+         if name in ("#", "game", "game#", "game_number")),
+        None,
+    )
+    if game_col is None:
+        if debug_mode:
+            print("CSV UPDATE: Missing game-number column")
+        return False
 
     try:
-        wscore_col = header.index("WScore")
-        bscore_col = header.index("BScore")
-        penalties_col = header.index("Penalties")
-        comments_col = header.index("Comments")
+        wscore_col = header_keys.index("wscore")
+        bscore_col = header_keys.index("bscore")
+        penalties_col = header_keys.index("penalties")
+        comments_col = header_keys.index("comments")
 
         if debug_mode:
             print(
@@ -108,34 +121,62 @@ def write_game_results_to_csv(
             print(f"CSV UPDATE: Missing required column: {e}")
         return False
 
-    game_found = False
+    target = str(game_number).strip()
+    if not target:
+        if debug_mode:
+            print("CSV UPDATE: No game number supplied")
+        return False
 
+    # Like the draw reader, allow numeric game IDs such as 007 to match 7.
+    # Preserve the prior exact-match behavior for nonnumeric IDs.
+    try:
+        target_numeric = int(target)
+    except ValueError:
+        target_numeric = None
+
+    matches = []
     for row in rows[1:]:
-        if len(row) < len(header):
-            row.extend([""] * (len(header) - len(row)))
+        if len(row) <= game_col:
+            continue
+        stored = row[game_col].strip()
+        matched = stored == target
+        if not matched and target_numeric is not None:
+            try:
+                matched = int(stored) == target_numeric
+            except ValueError:
+                pass
+        if matched:
+            matches.append(row)
 
-        game_col = row[1].strip()
-
-        if game_col == str(game_number):
-            row[wscore_col] = str(white_score)
-            row[bscore_col] = str(black_score)
-            row[penalties_col] = penalties_text
-            row[comments_col] = comments_text
-
-            if debug_mode:
-                print("ROW AFTER:", row)
-                print(
-                    f"CSV UPDATE: Game {game_number} "
-                    f"W:{white_score} B:{black_score}"
-                )
-
-            game_found = True
-            break
-
-    if not game_found:
+    if not matches:
         if debug_mode:
             print(f"CSV UPDATE: Game {game_number} not found")
         return False
+
+    # Never guess which row to overwrite when an ID appears twice, including
+    # variants such as 7 and 007. Leave the original file and live scores
+    # untouched so the operator can resolve the ambiguous draw.
+    if len(matches) != 1:
+        print(
+            f"CSV UPDATE: Game {game_number} occurs in multiple rows; "
+            "results not saved. Check the tournament draw."
+        )
+        return False
+
+    row = matches[0]
+    if len(row) < len(header):
+        row.extend([""] * (len(header) - len(row)))
+    row[wscore_col] = str(white_score)
+    row[bscore_col] = str(black_score)
+    row[penalties_col] = penalties_text
+    row[comments_col] = comments_text
+
+    if debug_mode:
+        print("ROW AFTER:", row)
+        print(
+            f"CSV UPDATE: Game {game_number} "
+            f"W:{white_score} B:{black_score}"
+        )
 
     with open(csv_file, "w", newline="", encoding="utf-8-sig") as f:
         writer = csv.writer(f)
