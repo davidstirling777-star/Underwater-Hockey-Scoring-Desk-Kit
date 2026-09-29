@@ -4,6 +4,7 @@ import time
 import serial
 import serial.tools.list_ports
 import threading
+import sys
 import settings_manager
 
 DEBUG_MODE = False
@@ -24,7 +25,14 @@ def _debug(message):
 
 
 def _settings_path():
-    return os.path.join(os.getcwd(), SETTINGS_FILE)
+    # Use the same persistent settings directory as uwh.py and zigbee_siren.
+    # A shortcut/Task Scheduler launch may have an unrelated working folder.
+    directory = (
+        os.path.dirname(os.path.abspath(sys.executable))
+        if getattr(sys, "frozen", False)
+        else os.path.dirname(os.path.abspath(__file__))
+    )
+    return os.path.join(directory, SETTINGS_FILE)
 
 
 def load_hardware_ports_from_json():
@@ -33,8 +41,9 @@ def load_hardware_ports_from_json():
         if not os.path.exists(path):
             return None, None
 
-        with open(path, "r", encoding="utf-8") as f:
-            settings = json.load(f)
+        settings = settings_manager.load_unified_settings(
+            os.path.dirname(path)
+        )
 
         hardware = settings.get("hardwareDetection", {})
         return hardware.get("arduino_port"), hardware.get("zigbee_port")
@@ -46,8 +55,7 @@ def load_hardware_ports_from_json():
 
 def save_hardware_ports_to_json(arduino_port, zigbee_port):
     try:
-        # Keep the existing directory behaviour for now, but use the
-        # central writer so a port scan cannot truncate the settings file.
+        # Same directory as the active UWH settings; protected central writer.
         settings_dir = os.path.dirname(_settings_path())
         settings = settings_manager.load_unified_settings(settings_dir)
         settings["hardwareDetection"] = {
@@ -78,6 +86,12 @@ def _port_exists(port_name):
 def _is_arduino_port(port):
     description = (port.description or "").lower()
     hwid = (port.hwid or "").lower()
+
+    # A Zigbee USB serial adapter may also advertise "USB-Serial".
+    # Prefer explicit Zigbee identity rather than opening its COM port as
+    # the Arduino button and waiting forever for SIREN_ON.
+    if _is_zigbee_port(port):
+        return False
 
     return (
         "arduino" in description
@@ -111,8 +125,8 @@ def detect_hardware_ports(force_scan=False):
 
     if (
         not force_scan
-        and _detected_ports["arduino_port"]
-        and _detected_ports["zigbee_port"]
+        and _port_exists(_detected_ports["arduino_port"])
+        and _port_exists(_detected_ports["zigbee_port"])
     ):
         return (
             _detected_ports["arduino_port"],
@@ -126,6 +140,16 @@ def detect_hardware_ports(force_scan=False):
         and _port_exists(cached_arduino)
         and _port_exists(cached_zigbee)
         and cached_arduino != cached_zigbee
+        and any(
+            port.device.upper() == cached_arduino.upper()
+            and _is_arduino_port(port)
+            for port in serial.tools.list_ports.comports()
+        )
+        and any(
+            port.device.upper() == cached_zigbee.upper()
+            and _is_zigbee_port(port)
+            for port in serial.tools.list_ports.comports()
+        )
     ):
         _detected_ports["arduino_port"] = cached_arduino
         _detected_ports["zigbee_port"] = cached_zigbee
@@ -259,13 +283,13 @@ def serial_listener_thread(uwh_app):
 
                         if line == "SIREN_ON":
                             if not button_held_down:
-                                _debug("Button Triggered: SIREN_ON")
+                                print(f"Arduino siren button ON received on {arduino_port}")
                                 button_held_down = True
                                 _send_app_siren_event(uwh_app, "ON")
 
                         elif line == "SIREN_OFF":
                             if button_held_down:
-                                _debug("Button Released: SIREN_OFF matched.")
+                                print(f"Arduino siren button OFF received on {arduino_port}")
                                 button_held_down = False
                                 _send_app_siren_event(uwh_app, "OFF")
 
