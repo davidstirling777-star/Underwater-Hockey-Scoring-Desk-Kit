@@ -1,5 +1,13 @@
 import os
 import json
+import datetime
+import tempfile
+import threading
+
+
+# All in-process settings writers share one lock. Each committed settings.json
+# remains readable while a complete replacement is prepared beside it.
+_SETTINGS_IO_LOCK = threading.RLock()
 
 
 def get_settings_path(base_dir):
@@ -44,26 +52,118 @@ def migrate_legacy_settings(base_dir):
     return unified_settings
 
 
+def _validate_settings_document(raw, settings_path):
+    """Refuse to overwrite corrupt settings or a non-object JSON document."""
+    try:
+        document = json.loads(raw)
+    except (ValueError, UnicodeError) as error:
+        raise ValueError(
+            f"Cannot read {settings_path}; it has not been overwritten. "
+            "Restore a valid settings_old_*.json backup after making a copy "
+            "of the damaged file."
+        ) from error
+
+    if not isinstance(document, dict):
+        raise ValueError(
+            f"Cannot read {settings_path}: expected a JSON object. "
+            "The file has not been overwritten."
+        )
+    return document
+
+
+def _write_staged_file(base_dir, prefix, payload):
+    """Write and flush a temporary file on the same filesystem as settings."""
+    descriptor, staged_path = tempfile.mkstemp(
+        dir=base_dir, prefix=prefix, suffix=".tmp"
+    )
+    try:
+        with os.fdopen(descriptor, "wb") as staged:
+            staged.write(payload)
+            staged.flush()
+            os.fsync(staged.fileno())
+    except BaseException:
+        if os.path.exists(staged_path):
+            os.unlink(staged_path)
+        raise
+    return staged_path
+
+
+def _previous_settings_backup_path(base_dir):
+    """Unique, Windows-safe, sortable date-and-time backup filename."""
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S_%f")
+    stem = f"settings_old_{timestamp}"
+    path = os.path.join(base_dir, stem + ".json")
+    counter = 1
+    while os.path.exists(path):
+        path = os.path.join(base_dir, f"{stem}_{counter}.json")
+        counter += 1
+    return path
+
+
 def load_unified_settings(base_dir):
-    """Load unified settings from JSON file."""
+    """Load the active settings; never silently reset unreadable settings."""
     settings_path = get_settings_path(base_dir)
+    with _SETTINGS_IO_LOCK:
+        if os.path.exists(settings_path):
+            with open(settings_path, "r", encoding="utf-8") as settings_file:
+                return _validate_settings_document(
+                    settings_file.read(), settings_path
+                )
 
-    if os.path.exists(settings_path):
-        with open(settings_path, "r") as f:
-            try:
-                return json.load(f)
-            except Exception:
-                return migrate_legacy_settings(base_dir)
-
-    return migrate_legacy_settings(base_dir)
+        # Preserve the existing first-run / legacy-migration behaviour only
+        # when there is genuinely no active settings file.
+        return migrate_legacy_settings(base_dir)
 
 
 def save_unified_settings(base_dir, settings):
-    """Save unified settings to JSON file."""
+    """Replace settings.json safely; archive its predecessor before committing.
+
+    The previous file is retained as settings_old_DATE_TIME.json. A complete
+    new file is staged first, then atomically replaces settings.json; there
+    is no interval with the active file missing (including on Windows).
+    """
+    if not isinstance(settings, dict):
+        raise TypeError("Unified settings must be a JSON object.")
+
+    # Fail serialization before touching either the active file or backups.
+    payload = json.dumps(settings, indent=2).encode("utf-8")
     settings_path = get_settings_path(base_dir)
 
-    with open(settings_path, "w") as f:
-        json.dump(settings, f, indent=2)
+    with _SETTINGS_IO_LOCK:
+        previous = None
+        if os.path.exists(settings_path):
+            with open(settings_path, "rb") as settings_file:
+                previous = settings_file.read()
+            previous_document = _validate_settings_document(
+                previous.decode("utf-8"), settings_path
+            )
+            # Startup synchronisation and duplicate save calls need not
+            # create a new backup when nothing has changed.
+            if previous_document == settings:
+                return
+
+        staged_new = None
+        staged_backup = None
+        try:
+            staged_new = _write_staged_file(
+                base_dir, ".settings_new_", payload
+            )
+            if previous is not None:
+                staged_backup = _write_staged_file(
+                    base_dir, ".settings_old_", previous
+                )
+                backup_path = _previous_settings_backup_path(base_dir)
+                os.replace(staged_backup, backup_path)
+                staged_backup = None
+
+            # Atomic on the same filesystem: readers always see either the
+            # old complete JSON file or the new complete JSON file.
+            os.replace(staged_new, settings_path)
+            staged_new = None
+        finally:
+            for staged_path in (staged_new, staged_backup):
+                if staged_path is not None and os.path.exists(staged_path):
+                    os.unlink(staged_path)
 
 
 def get_default_unified_settings():
