@@ -12,6 +12,7 @@ The software has an operator-facing Underwater Hockey Game Management App and a 
 - [Downloading and installing UWH on a Raspberry Pi 5](#downloading-and-installing-uwh-on-a-raspberry-pi-5)
 - [Game Variables tab](#game-variables-tab)
 - [Tournament List](#tournament-list)
+- [Two-court results synchronisation](#two-court-results-synchronisation)
 - [Screens tab](#screens-tab)
 - [Sounds tab](#sounds-tab)
 - [Scoreboard tab](#scoreboard-tab)
@@ -246,6 +247,33 @@ Scores are written to `WScore` and `BScore`, penalised cap numbers to `Penalties
 During **Between Game Break**, UWH attempts to export the completed game **just before the countdown reaches 00:30**. It atomically replaces the existing results CSV, never the input draw. If saving fails, the live game remains available for correction and retry: scores, penalties and scorer records are not discarded. If the original draw's schedule or teams no longer match an existing results file, UWH refuses to export rather than overwriting results. Back up both CSVs and resolve the difference before resuming.
 
 When updating UWH or changing machines, back up **both** the original draw and its `_Results.csv` file. A newer ZIP must not be allowed to replace an ongoing results file. If the old version has already written results directly into the original draw, keep a backup: the first results file will preserve any values already present in that draw.
+
+### Two-court results synchronisation
+
+The Tournament List widget is taller, with a read-only **Tournament Results**
+filename, **Results sync** mode, **Server URL**, masked **Access token**,
+**Save & Sync**, live status and **Sync Now**. The adjacent Game Sequence
+explanation is shorter to make room without shrinking the match variables.
+
+**Local only** is the default: completed matches go solely into this
+computer's separate results CSV. In **Shared server** mode, results are still
+saved locally first, then a background worker submits **one game at a time**
+to a third results computer. If that machine is offline or has a locked CSV,
+the court retries every ten seconds. It does not hold up the game timer or
+discard local results. Two courts may use even/odd game numbers and upload to
+the same combined results file. The third computer serialises those updates
+and reports conflicting scores rather than overwriting them.
+
+The shared destination is an HTTP(S) **server URL**, not an SMB-mounted
+folder. The results server owns its local combined CSV and must have an exact
+copy of the courts' original draw. Windows 11 and the RP5 use the same
+client settings. A trusted isolated LAN or VPN is required; HTTP without TLS
+does not encrypt the access token.
+
+Full installation, failure recovery, network setup, security, and acceptance
+testing are in **[TOURNAMENT_SYNC.md](TOURNAMENT_SYNC.md)**.
+Back up the original draw, local results CSV, server's combined CSV,
+settings.json and any .uwh_sync_*.json receipts before upgrading.
 
 The 'Starting Game #' will show a list of Game Numbers in the CSV file selected above. This could be useful if the app crashes and the games need to be restarted, or if multiple days' games are in the same file.
 
