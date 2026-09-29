@@ -1,6 +1,6 @@
 # UWH source-contribution notes
 
-**Read [MAINTAINERS.md](../../MAINTAINERS.md) first.** It is the current
+**Read [MAINTAINERS.md](../MAINTAINERS.md) first.** It is the current
 maintainer-oriented map of modules, threading, tournament-export invariants,
 and deployment. README.md is for operators/installers; ZIGBEE_SETUP.md is
 for Zigbee2MQTT deployment. The original single-file/no-tests notes that were
