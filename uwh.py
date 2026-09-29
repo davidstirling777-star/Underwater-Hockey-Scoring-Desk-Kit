@@ -1923,6 +1923,8 @@ class GameManagementApp:
         )
 
     def _on_settings_variable_change(self, *args):
+        if getattr(self, "_loading_game_settings", False):
+            return
         self.load_settings()
         self.build_game_sequence()
         # Save game settings when variables change
@@ -1930,6 +1932,8 @@ class GameManagementApp:
     
     def _on_single_variable_change(self, var_name):
         """Handle change to a single variable without updating all widgets."""
+        if getattr(self, "_loading_game_settings", False):
+            return
         # Only update the specific variable in self.variables
         for widget in self.widgets:
             if widget["name"] == var_name:
@@ -2400,6 +2404,8 @@ class GameManagementApp:
     
     def _on_team_timeouts_change(self):
         """Handle team_timeouts_allowed checkbox change."""
+        if getattr(self, "_loading_game_settings", False):
+            return
         # Update the variable
         self.variables["team_timeouts_allowed"]["used"] = self.team_timeouts_allowed_var.get()
         # Update UI state
@@ -2410,6 +2416,8 @@ class GameManagementApp:
     
     def _on_overtime_change(self):
         """Handle overtime_allowed checkbox change."""
+        if getattr(self, "_loading_game_settings", False):
+            return
         # Update the variable
         self.variables["overtime_allowed"]["used"] = self.overtime_allowed_var.get()
         # Update UI state
