@@ -2713,12 +2713,10 @@ class GameManagementApp:
                 self.run_next_game_preview
             )
 
-            # Preserve the existing 30-second correction window before
-            # exporting and resetting the completed game.
-            self.next_game_transition_job = self.master.after(
-                30000,
-                self.run_next_game_transition
-            )
+            # Export is intentionally driven by countdown_timer, not an
+            # independent time-after-break-start job. It runs as 31 seconds
+            # becomes 30, before the 30-second warning pip can sound.
+            # This also follows pauses and changes to the break duration.
 
         if self.engine.is_regular_timeout_reset_period(
             cur_period["name"]
@@ -3054,12 +3052,14 @@ class GameManagementApp:
         self.update_penalty_display()
 
     def next_period(self):
-        # Prevent an operator/automatic transition from bypassing a failed
-        # export. The pending results must be saved before the next period.
-        if self._game_export_pending:
+        # An operator can advance the break before its last 30 seconds.
+        # Still save the completed game before entering the next period.
+        cur_period = self.engine.get_current_period()
+        if (cur_period and cur_period["name"] == "Between Game Break"
+                and not self.next_game_transition_done):
             self.run_next_game_transition()
-            if self._game_export_pending:
-                return
+        if self._game_export_pending:
+            return
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
@@ -3108,6 +3108,19 @@ class GameManagementApp:
 
         if self.engine.timer_seconds > 0:
             cur_period = self.engine.get_current_period()
+
+            # The 30-second warning pip fires while timer_seconds == 31,
+            # immediately before the display changes to 00:30. Export
+            # FIRST, on this same countdown callback. A failed write pauses
+            # at 00:31 so neither the pip nor next game can proceed.
+            # <= 31 also handles exceptionally short/adjusted breaks.
+            if (cur_period and cur_period["name"] == "Between Game Break"
+                    and not self.next_game_transition_done
+                    and self.engine.timer_seconds <= 31):
+                self.run_next_game_transition()
+                if self._game_export_pending or not self.engine.timer_running:
+                    self.update_timer_display()
+                    return
 
             if self.engine.should_play_period_end_siren(cur_period):
                 try:
