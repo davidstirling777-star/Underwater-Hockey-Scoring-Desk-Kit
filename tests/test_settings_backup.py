@@ -142,6 +142,8 @@ def _extract_method(path, function_name, globals_dict):
     module = ast.fix_missing_locations(
         ast.Module(body=[extracted], type_ignores=[])
     )
+    globals_dict.setdefault("Dict", dict)
+    globals_dict.setdefault("Any", object)
     exec(compile(module, str(source), "exec"), globals_dict)
     return globals_dict[function_name]
 
