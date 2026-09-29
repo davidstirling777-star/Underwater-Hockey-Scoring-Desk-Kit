@@ -10,7 +10,9 @@ import threading
 import time
 import logging
 import json
+import queue
 import os
+import sys
 import platform
 from typing import Optional, Callable, Dict, Any
 
@@ -57,6 +59,66 @@ SIREN_EVENT_PULSE = "PULSE"
 SIREN_EVENT_DOUBLE_PULSE = "DOUBLE_PULSE"
 SIREN_EVENT_TEST = "TEST"
 
+# MQTT actions are matched for each configured device. Unknown actions have no
+# effect until a referee explicitly adds an action mapping in the UI.
+ACTION_TO_EVENT = {
+    "one_cycle": SIREN_EVENT_PULSE,
+    "two_cycles": SIREN_EVENT_DOUBLE_PULSE,
+}
+MAPPING_ACTIONS = frozenset((
+    "one_cycle", "two_cycles", "start_continuous",
+    "stop_continuous", "ignore",
+))
+LEGACY_BUTTON_ACTIONS = {
+    "single": "one_cycle", "press": "one_cycle", "click": "one_cycle",
+    "on": "one_cycle", "1": "one_cycle", "hold": "one_cycle",
+    "emergency": "one_cycle", "double": "two_cycles",
+}
+
+
+def normalize_action_mappings(raw_mappings):
+    """Return valid unique device/action mappings without executing bad actions."""
+    if not isinstance(raw_mappings, list):
+        return []
+    result = []
+    seen = set()
+    for row in raw_mappings:
+        if not isinstance(row, dict):
+            continue
+        device = str(row.get("device", "")).strip()
+        action = str(row.get("action", "")).strip().lower()
+        uwh_action = str(row.get("uwh_action", "")).strip()
+        if not device or not action or uwh_action not in MAPPING_ACTIONS:
+            continue
+        if len(device) > 128 or len(action) > 128:
+            continue
+        key = (device, action)
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append({"device": device, "action": action,
+                       "uwh_action": uwh_action,
+                       "notes": str(row.get("notes", ""))[:200]})
+    return result
+
+
+def legacy_action_mappings(devices):
+    """Seed existing button behaviour when an older settings.json is upgraded.
+
+    The controller had previously recognised these actions on ANY allowed
+    button. Explicit per-device rows preserve that behaviour when migrating.
+    """
+    result = []
+    for device in dict.fromkeys(devices):
+        if not isinstance(device, str) or not device.strip():
+            continue
+        device = device.strip()
+        for action, uwh_action in LEGACY_BUTTON_ACTIONS.items():
+            result.append({"device": device, "action": action,
+                           "uwh_action": uwh_action, "notes": "Legacy behaviour"})
+    return result
+
+
 try:
     import paho.mqtt.client as mqtt
     MQTT_AVAILABLE = True
@@ -82,6 +144,14 @@ IS_LINUX = CURRENT_PLATFORM == "Linux"
 
 SETTINGS_FILE = "settings.json"
 ZIGBEE_CONFIG_FILE = "zigbee_config.json"
+
+
+def _settings_directory():
+    # Match uwh.py / settings_manager.py: do not silently load a different
+    # settings.json when started by a desktop shortcut with another CWD.
+    if getattr(sys, "frozen", False):
+        return os.path.dirname(os.path.abspath(sys.executable))
+    return os.path.dirname(os.path.abspath(__file__))
 
 DEFAULT_CONFIG = {
     "mqtt_broker": "localhost",
@@ -145,6 +215,9 @@ class ZigbeeSirenController:
         self.logger.info(f"Zigbee controller initializing on {CURRENT_PLATFORM}")
 
         self.config = self.load_config()
+        # A Queue protects observation of unfamiliar actions by the MQTT thread.
+        # Only the Tk thread ever reads and edits the table itself.
+        self.unmapped_actions = queue.Queue(maxsize=200)
 
         if not self.config.get("serial_port"):
             self.config["serial_port"] = get_zigbee_port_from_lead_detector()
@@ -177,10 +250,24 @@ class ZigbeeSirenController:
         elif isinstance(config["siren_button_devices"], str):
             config["siren_button_devices"] = [config["siren_button_devices"]]
 
+        # Absence of action_mappings identifies a pre-mapping installation.
+        # Once users save mappings, even an empty list is authoritative.
+        if "action_mappings" not in config:
+            devices = config.get("siren_button_devices", [])
+            if not isinstance(devices, list):
+                devices = [devices]
+            legacy = config.get("siren_button_device", "")
+            if legacy and legacy not in devices:
+                devices.append(legacy)
+            config["action_mappings"] = legacy_action_mappings(devices)
+        else:
+            config["action_mappings"] = normalize_action_mappings(
+                config["action_mappings"]
+            )
         return config
 
     def load_config(self) -> Dict[str, Any]:
-        settings_path = os.path.join(os.getcwd(), SETTINGS_FILE)
+        settings_path = os.path.join(_settings_directory(), SETTINGS_FILE)
 
         if os.path.exists(settings_path):
             try:
@@ -197,7 +284,7 @@ class ZigbeeSirenController:
             except Exception as e:
                 self.logger.error(f"Error loading unified config: {e}. Trying legacy file.")
 
-        legacy_path = os.path.join(os.getcwd(), ZIGBEE_CONFIG_FILE)
+        legacy_path = os.path.join(_settings_directory(), ZIGBEE_CONFIG_FILE)
 
         if os.path.exists(legacy_path):
             try:
@@ -220,7 +307,7 @@ class ZigbeeSirenController:
 
     def save_config(self, config: Dict[str, Any]) -> None:
         try:
-            settings_path = os.path.join(os.getcwd(), SETTINGS_FILE)
+            settings_path = os.path.join(_settings_directory(), SETTINGS_FILE)
             unified_settings = {}
 
             if os.path.exists(settings_path):
@@ -285,6 +372,7 @@ class ZigbeeSirenController:
             self.connection_thread.join(timeout=5)
 
         self.connected = False
+        self._trigger_siren("WIRELESS_MQTT_DISCONNECT")
         self._notify_status(False, "Stopped")
         self.logger.info("Zigbee siren controller stopped")
 
@@ -365,7 +453,12 @@ class ZigbeeSirenController:
             self._notify_status(False, f"Connection failed (RC: {rc})")
 
     def _on_disconnect(self, client, userdata, rc) -> None:
+        was_connected = self.connected
         self.connected = False
+        if was_connected:
+            # A continuous siren must not depend on a release arriving after
+            # the MQTT link fails. This callback never touches Tk directly.
+            self._trigger_siren("WIRELESS_MQTT_DISCONNECT")
 
         if rc != 0:
             self.logger.warning(f"Unexpected disconnection from MQTT broker. RC: {rc}")
@@ -386,7 +479,9 @@ class ZigbeeSirenController:
                 return
 
             device_name = topic.split("/")[-1]
-            configured_devices = list(self.config.get("siren_button_devices", []))
+            raw_devices = self.config.get("siren_button_devices", [])
+            configured_devices = (list(raw_devices) if isinstance(raw_devices, list)
+                                  else [str(raw_devices)])
 
             legacy_device = self.config.get("siren_button_device", "")
             if legacy_device and legacy_device not in configured_devices:
@@ -399,51 +494,76 @@ class ZigbeeSirenController:
             self.logger.error(f"Error processing message: {e}")
 
     def _process_button_event(self, device_name: str, data: Dict[str, Any]) -> None:
+        """Route only a configured device and explicitly mapped action.
+
+        Receives MQTT messages on its worker thread. UI and audio work are
+        handed to the application via the existing hardware event queue.
+        """
         try:
-            action = None
-
-            if "action" in data:
-                action = data["action"]
-            elif "click" in data:
-                action = data["click"]
-            elif "state" in data:
-                action = data["state"]
-
-            if action is None:
+            action = next((data[k] for k in ("action", "click", "state")
+                           if k in data), None)
+            if action is None or isinstance(action, (dict, list)):
+                return
+            action_name = str(action).strip().lower()
+            if not action_name:
                 return
 
-            self.logger.info(f"Button action from {device_name}: {action}")
-
+            self.logger.info("Button action from %s: %s", device_name, action)
             if self.gui_log_callback:
                 self.gui_log_callback(
                     f"Button '{device_name}' action '{action}' received via Zigbee/MQTT."
                 )
 
-            action_name = str(action).strip().lower()
-            if action_name in ["single", "press", "click", "on", "1", "hold"]:
-                # A single press or a completed long hold has no matching OFF
-                # event. Both use the same duration-limited siren playback.
-                self._trigger_siren(SIREN_EVENT_PULSE)
-            elif action_name == "double":
-                # Play two bounded siren blasts, with the UI controlling timing.
-                self._trigger_siren(SIREN_EVENT_DOUBLE_PULSE)
+            # Use the first (unique) saved row for this exact button and action.
+            mapping = next((row for row in self.config.get("action_mappings", [])
+                            if row["device"] == device_name
+                            and row["action"] == action_name), None)
+            if mapping is None:
+                if self.gui_log_callback:
+                    self.gui_log_callback(
+                        f"Unmapped action: {device_name} / {action_name}; "
+                        "ignored (use Auto-add From Log to configure)."
+                    )
+                try:
+                    self.unmapped_actions.put_nowait((device_name, action_name))
+                except queue.Full:
+                    # Never delay or block MQTT processing to update a UI table.
+                    pass
+                return
 
+            action_id = mapping["uwh_action"]
+            if action_id == "ignore":
+                return
+            if action_id in ACTION_TO_EVENT:
+                self._trigger_siren(ACTION_TO_EVENT[action_id])
+            elif action_id == "start_continuous":
+                self._trigger_siren(f"WIRELESS_PRESS:{device_name}")
+            elif action_id == "stop_continuous":
+                self._trigger_siren(f"WIRELESS_RELEASE:{device_name}")
         except Exception as e:
-            self.logger.error(f"Error processing button event: {e}")
+            self.logger.error("Error processing button event: %s", e)
+
+    def consume_unmapped_actions(self):
+        """Return first-seen unmapped events for the UI's Auto-add action."""
+        items = []
+        seen = set()
+        while True:
+            try:
+                pair = self.unmapped_actions.get_nowait()
+            except queue.Empty:
+                return items
+            if pair not in seen:
+                items.append(pair)
+                seen.add(pair)
 
     def _trigger_siren(self, event_name="ON") -> None:
-        """Trigger a siren event through the callback."""
-        self.logger.info(f"Triggering wireless siren event: {event_name}")
-    
+        """Ordered handoff; the UWH callback only puts into a thread-safe queue."""
+        self.logger.info("Triggering wireless siren event: %s", event_name)
         if self.siren_callback:
             try:
-                threading.Thread(
-                    target=self.siren_callback,
-                    args=(event_name,),
-                    daemon=True
-                ).start()
+                self.siren_callback(event_name)
             except Exception as e:
-                self.logger.error(f"Error calling siren callback: {e}")
+                self.logger.error("Error queuing siren event: %s", e)
         else:
             self.logger.warning("No siren callback set")
 
