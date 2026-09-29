@@ -50,6 +50,14 @@ def save_hardware_ports_to_json(arduino_port, zigbee_port):
         # central writer so a port scan cannot truncate the settings file.
         settings_dir = os.path.dirname(_settings_path())
         settings = settings_manager.load_unified_settings(settings_dir)
+        old_ports = settings.get("hardwareDetection", {})
+        # The five-second hardware poll must not write a new timestamp
+        # and create twelve backups per minute for unchanged ports.
+        if (
+            old_ports.get("arduino_port") == arduino_port
+            and old_ports.get("zigbee_port") == zigbee_port
+        ):
+            return
         settings["hardwareDetection"] = {
             "arduino_port": arduino_port,
             "zigbee_port": zigbee_port,
