@@ -1,3 +1,10 @@
+"""Read tournament-draw data for the game selector and team-name labels.
+
+Use csv.reader, not str.split(","): quoted team names can contain commas,
+quotes or newlines. Keep game-number header aliases consistent with
+csv_export.write_game_results_to_csv so selecting and exporting agree.
+"""
+
 import csv
 import os
 
