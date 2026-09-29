@@ -710,9 +710,9 @@ def create_settings_tab(app):
         widget4,
         text=(
             "Save a CSV file of games into the same folder as this program is in.\n"
-            "Expected CSV headers: date,#,White,Score,Black,Score,"
+            "Expected CSV headers: date,#,White,WScore,Black,BScore,"
             "Referees,Penalties,Comments\n"
-            "(where # is the Game Number)"
+            "(# is the game number; use quotes around team names containing commas)"
         ),
         font=(default_font.cget("family"), small_size),
         anchor="nw",
