@@ -1,3 +1,11 @@
+"""Identify Arduino and coordinator serial ports; read wired button events.
+
+Only the Arduino port is opened here. The Zigbee USB coordinator remains
+owned by Zigbee2MQTT. Detection merely reports that COMx exists; the
+"listener opened" event is the proof that pyserial actually acquired it.
+Worker-thread events go through GameManagementApp's queue to the Tk thread.
+"""
+
 import os
 import json
 import time
