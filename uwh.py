@@ -234,6 +234,21 @@ class GameManagementApp:
         if not confirmed:
             return "break"
 
+        # Flush pending edits while widgets and the Tk event loop still exist.
+        # If saving fails, keep the application open so edits are not lost.
+        if not self._flush_pending_settings():
+            try:
+                messagebox.showerror(
+                    "Settings not saved",
+                    "The latest settings could not be saved. "
+                    "The application will remain open; check the error "
+                    "and retry closing.",
+                    parent=self.master,
+                )
+            except tk.TclError:
+                pass
+            return "break"
+
         try:
             self._stop_wireless_siren()
             self._stop_arduino_siren()
@@ -297,14 +312,57 @@ class GameManagementApp:
         return display_ui.test_displays(self)
 
     def save_screen_settings(self):
-        settings = self.load_unified_settings()
-        settings["screenSettings"] = {
+        """Coalesce automatic screen changes into the next minute's save."""
+        self._queue_settings_section("screenSettings", {
             "show_team_names": bool(self.show_display_team_names_var.get()),
             "operator_layout": self.operator_layout_var.get(),
             "display_layout": self.display_layout_var.get(),
             "show_display_screen": bool(self.show_display_screen_var.get()),
-        }
-        self.save_unified_settings(settings)
+        })
+
+    def _queue_settings_section(self, section, values):
+        """Remember the latest UI state; do not write on every keystroke."""
+        previous = self._pending_settings_sections.get(section)
+        if previous == values:
+            return
+        self._pending_settings_sections[section] = values
+        if self._settings_autosave_job is None:
+            self._settings_autosave_job = self.master.after(
+                60000, self._flush_pending_settings
+            )
+
+    def _flush_pending_settings(self):
+        """Merge changed UI sections with fresh settings, once per minute.
+
+        Presets, sound Save Settings, and explicit Zigbee Save remain immediate.
+        A failed write retains the snapshot and retries in one minute.
+        """
+        job = self._settings_autosave_job
+        self._settings_autosave_job = None
+        if job is not None:
+            try:
+                self.master.after_cancel(job)
+            except tk.TclError:
+                pass
+
+        if not self._pending_settings_sections:
+            return True
+
+        try:
+            # Serial and MQTT configuration may have changed since the UI
+            # edit; read and merge under the central writer's lock.
+            settings_manager.update_unified_settings(
+                BASE_DIR, self._pending_settings_sections
+            )
+        except Exception as error:
+            print(f"Deferred settings save failed; will retry: {error}")
+            self._settings_autosave_job = self.master.after(
+                60000, self._flush_pending_settings
+            )
+            return False
+
+        self._pending_settings_sections.clear()
+        return True
 
     def toggle_display_team_names(self):
         """
@@ -734,6 +792,10 @@ class GameManagementApp:
     
     def __init__(self, master):
         self.master = master
+        # Automatic Game Variables / Screen changes are saved at most once
+        # per minute, in a single settings.json write.
+        self._pending_settings_sections = {}
+        self._settings_autosave_job = None
         self.master.title("Underwater Hockey Game Management App")
         self.master.geometry('1200x800')
         self.notebook = ttk.Notebook(master)
@@ -2136,7 +2198,10 @@ class GameManagementApp:
         return game_settings_manager.load_game_settings(self)
                         
     def save_game_settings(self):
-        return game_settings_manager.save_game_settings(self)
+        """Queue automatic Game Variables changes for the minute save."""
+        game_settings = game_settings_manager.build_game_settings(self)
+        if game_settings is not None:
+            self._queue_settings_section("gameSettings", game_settings)
 
     # Zigbee Siren Methods
     def start_zigbee_connection(self):
