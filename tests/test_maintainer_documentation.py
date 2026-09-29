@@ -21,6 +21,7 @@ class MaintenanceDocumentationTests(unittest.TestCase):
         modules = (
             "uwh.py", "game_engine.py", "game_flow.py", "game_logging.py",
             "csv_helpers.py", "csv_export.py", "csv_ui.py",
+            "tournament_files.py",
             "game_settings_manager.py", "settings_manager.py",
             "settings_ui.py", "scoreboard_ui.py", "display_ui.py",
             "display_manager.py", "ui_scaling.py", "penalties_ui.py",
