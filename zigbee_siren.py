@@ -482,6 +482,19 @@ class ZigbeeSirenController:
 
             if device_name in configured_devices:
                 self._process_button_event(device_name, data)
+            elif isinstance(data, dict):
+                # A Zigbee2MQTT message from an unlisted button otherwise
+                # disappears silently before the action-mapping code runs.
+                # Stay fail-closed: only the operator can add a device.
+                action = data.get("action")
+                if isinstance(action, str) and action.strip():
+                    msg = (
+                        f"Ignored Zigbee button '{device_name}' action "
+                        f"'{action}': device is not in Button Device Names."
+                    )
+                    self.logger.warning(msg)
+                    if self.gui_log_callback:
+                        self.gui_log_callback(msg)
 
         except Exception as e:
             self.logger.error(f"Error processing message: {e}")
@@ -526,6 +539,11 @@ class ZigbeeSirenController:
 
             action_id = mapping["uwh_action"]
             if action_id == "ignore":
+                if self.gui_log_callback:
+                    self.gui_log_callback(
+                        f"Button '{device_name}' action '{action_name}' "
+                        "is mapped to Ignore; no siren played."
+                    )
                 return
             if action_id in ACTION_TO_EVENT:
                 self._trigger_siren(ACTION_TO_EVENT[action_id])
