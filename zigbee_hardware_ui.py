@@ -1,3 +1,10 @@
+"""Show hardware port *detection* separately from MQTT and serial access.
+
+serial_siren_listener identifies candidate Arduino/Zigbee ports; the latter
+belongs to Zigbee2MQTT. Detecting COM3 does not mean UWH opened COM3, which
+is confirmed separately by an Arduino serial-open entry in the activity log.
+"""
+
 import serial.tools.list_ports
 import serial_siren_listener
 
