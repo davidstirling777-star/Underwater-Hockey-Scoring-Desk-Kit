@@ -108,6 +108,7 @@ class Harness(CountdownCode):
         self.air_volume = Var(50)
         self.water_volume = Var(50)
         self.siren_duration = Var(1.5)
+        self.max_siren_duration = Var("10")
         self.update_timer_display = Mock()
         self.log_game_event = Mock()
         self.update_team_names_display = Mock()
