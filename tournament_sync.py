@@ -165,7 +165,7 @@ def _send(url, token, record):
         raise ValueError("Results server did not confirm the game was saved")
 
 
-def _health(url, token):
+def _health(url, token, expected_draw_digest):
     request = urllib.request.Request(
         url + "/health",
         headers={"X-UWH-Sync-Token": token},
@@ -174,6 +174,8 @@ def _health(url, token):
         response = json.loads(reply.read(16_384).decode("utf-8"))
     if response.get("status") != "ready":
         raise ValueError("Results server did not confirm readiness")
+    if response.get("draw_sha256") != expected_draw_digest:
+        raise ValueError("The server has a different original tournament draw")
 
 
 class TournamentSyncWorker:
@@ -251,9 +253,9 @@ class TournamentSyncWorker:
         if not pending:
             # Distinguish "nothing to send" from an unavailable server.
             try:
-                _health(url, token)
+                _health(url, token, draw_digest)
             except Exception as error:
-                self._status(f"Server unavailable: {error} · retry in 10 s")
+                self._status(f"Server check failed: {error} · retry in 10 s")
                 return
             self._status("Local results saved · all completed games synced")
             return
@@ -262,6 +264,13 @@ class TournamentSyncWorker:
         for position, (key, record, checksum) in enumerate(pending):
             if self._stop.is_set():
                 return
+            # Switching to Local only or a different draw/server cancels
+            # further submissions from an already-running sync pass.
+            with self._lock:
+                if self._configuration != (
+                    draw_path, enabled, server_url, token
+                ) and self._thread.is_alive():
+                    return
             try:
                 _send(url, token, record)
             except urllib.error.HTTPError as error:
