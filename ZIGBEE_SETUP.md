@@ -1,6 +1,6 @@
 # Zigbee2MQTT Wireless Siren Setup Guide
 
-This guide covers the wireless siren in the **Underwater Hockey Scoring Desk Kit (UWH)**: installation on **Windows 11** or **Raspberry Pi 5 / Raspberry Pi OS Bookworm**, MQTT configuration for Python, pairing and naming buttons, and using more than one computer. The Windows MQTT configuration and the `single`/`double`/`hold` button actions described below have been tested with UWH in September 2026. The Raspberry Pi 5 **UWH desktop application** has been tested on Bookworm + X11; the full Pi Zigbee/MQTT installation procedure remains a deployment guide to verify on the target Pi.
+This guide covers the wireless siren in the **Underwater Hockey Scoring Desk Kit (UWH)**: installation on **Windows 11** or **Raspberry Pi 5 / Raspberry Pi OS Bookworm**, MQTT configuration for Python, pairing and naming buttons, and using more than one computer. The Windows MQTT configuration and the `single`/`double`/`hold` button actions described below have been tested with UWH in September 2026. Three individual Zigbee buttons (`siren_button`, `siren_button_2`, and `siren_button_3`) have also been tested on the same coordinator. The Raspberry Pi 5 **UWH desktop application** has been tested on Bookworm + X11; the full Pi Zigbee/MQTT installation procedure remains a deployment guide to verify on the target Pi.
 
 > [!IMPORTANT]
 > **A button joins one Zigbee network at a time. Do not re-pair an existing match button to another coordinator merely to use a second computer.** A second UWH computer can subscribe to the *same MQTT broker*, receiving events from the original Zigbee2MQTT instance. Re-pairing to a different Zigbee network generally removes the button from the original network and requires a reset and rejoin when moving it back. See [Using two computers](#using-two-computers-with-the-same-buttons).
@@ -299,7 +299,7 @@ Open UWH → **Zigbee Siren**. Configure the application against the broker you 
 | **MQTT Port** | `1883` | Broker's listener port, normally `1883` |
 | **MQTT Username/Password** | Leave empty only if that broker allows local unauthenticated access | Enter the broker credentials (recommended) |
 | **MQTT Topic** | `zigbee2mqtt/+` | Same, if the host publishes the normal base topic |
-| **Button Device Names (comma-separated)** | `siren_button, siren_button_2` | Names this UWH computer should respond to |
+| **Button Device Names (comma-separated)** | `siren_button, siren_button_2, siren_button_3` | Names this UWH computer should respond to |
 | **Siren Device Name** | Leave unchanged for ordinary **local audio** triggering | Not the input button-name list |
 
 1. Enter the exact friendly names in **Button Device Names**; separating multiple names with commas is supported.
@@ -316,7 +316,7 @@ UWH stores these values in the **`zigbeeSettings` section of `settings.json`**. 
     "mqtt_broker": "localhost",
     "mqtt_port": 1883,
     "mqtt_topic": "zigbee2mqtt/+",
-    "siren_button_devices": ["siren_button", "siren_button_2"],
+    "siren_button_devices": ["siren_button", "siren_button_2", "siren_button_3"],
     "siren_button_device": "siren_button"
   }
 }

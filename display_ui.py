@@ -1,3 +1,12 @@
+"""Construct player/spectator display windows and fit them to monitors.
+
+The operator window is separate from external scoreboards. Closing the latter
+must preserve the selected display layout while remembering that it is hidden.
+Use Tk's main thread for all widget updates; independent mirror windows track
+live scoreboard state. Windows monitor coordinates may be negative on a
+secondary display; the Raspberry Pi Bookworm/X11 path uses xrandr.
+"""
+
 import tkinter as tk
 import tkinter.font as tkfont
 import display_manager
@@ -920,6 +929,7 @@ def _get_monitor_geometries(app):
 
 
 def close_all_display_windows(app):
+    """Destroy every presentation window but leave the saved layout choice intact."""
     windows = list(getattr(app, "display_windows", []))
     primary = getattr(app, "display_window", None)
     if primary is not None and primary not in windows:
@@ -937,6 +947,7 @@ def close_all_display_windows(app):
 
 
 def _place_window(window, monitor, aspect=None):
+    """Fit a presentation or operator window into the chosen monitor work area."""
     x = monitor["x"]
     y = monitor["y"]
     width = monitor["width"]
@@ -979,6 +990,7 @@ def _place_window(window, monitor, aspect=None):
 
 
 def _operator_monitor(app, monitors):
+    """Find the monitor currently containing the operator's Tk root."""
     try:
         root_x = app.master.winfo_rootx()
         root_y = app.master.winfo_rooty()
@@ -994,11 +1006,13 @@ def _operator_monitor(app, monitors):
 
 
 def _external_monitors(app, monitors):
+    """Exclude the operator screen when assigning audience windows."""
     operator = _operator_monitor(app, monitors)
     return [m for m in monitors if m is not operator]
 
 
 def _apply_operator_layout(app, monitor):
+    """Resize only the operator window to the selected aspect ratio."""
     aspect = (21, 9) if app.operator_layout_var.get() == "Widescreen" else (16, 9)
     _place_window(app.master, monitor, aspect=aspect)
     try:

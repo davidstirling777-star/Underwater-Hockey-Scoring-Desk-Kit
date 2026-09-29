@@ -1,5 +1,14 @@
 #!/home/uwh/Downloads/Underwater-Hockey-Scoring-Desk-Kit-main/.venv/bin/python
 
+"""Tk composition root for the UWH Scoring Desk Kit.
+
+GameEngine owns match state; game_flow and csv_export own tournament
+transitions. settings_ui, scoreboard_ui and display_ui construct widgets.
+zigbee_siren and serial_siren_listener work in background threads; only the
+Tk event loop should touch Tk variables and pygame sound. settings_manager
+owns the unified settings.json. See MAINTAINERS.md for a complete source map.
+"""
+
 import csv_export
 import startup_selftest
 import csv_helpers
@@ -679,6 +688,8 @@ class GameManagementApp:
         )
 
     def _stop_arduino_siren(self):
+        """Stop only the Arduino's local sound channel, not a wireless blast.
+        """
         channel = getattr(self, "arduino_siren_channel", None)
         self.arduino_siren_channel = None
         sound.stop_looping_sound(channel)
@@ -815,6 +826,9 @@ class GameManagementApp:
             pass
     
     def __init__(self, master):
+        """Build the live Tk application and restore operator settings.
+        Initialize shared state before creating tabs or starting worker listeners.
+        """
         self.master = master
         # Automatic Game Variables / Screen changes are saved at most once
         # per minute, in a single settings.json write.
@@ -2154,6 +2168,8 @@ class GameManagementApp:
                 pass  # If parsing fails, don't update
 
     def load_settings(self):
+        """Restore saved Game Variables and screen preferences into Tk.
+        """
         # Calculate "Start First Game In" from "Time to Start First Game"
         time_entry_val = None
         start_first_game_in_widget = None
@@ -2600,6 +2616,8 @@ class GameManagementApp:
                 pass
     
     def reset_timer(self):
+        """Apply the current Game Variables to the engine and restart its clock.
+        """
         self.white_score_var.set(0)
         self.black_score_var.set(0)
 
@@ -2656,6 +2674,8 @@ class GameManagementApp:
         self.start_current_period()
             
     def update_court_time(self):
+        """Advance court time on Tk's event loop while respecting pauses.
+        """
         if self.court_time_job is not None:
             self.master.after_cancel(self.court_time_job)
             self.court_time_job = None
@@ -2684,6 +2704,8 @@ class GameManagementApp:
         )
 
     def update_timer_display(self):
+        """Refresh displayed timer values from the current engine state.
+        """
         if self.referee_timeout_active:
             self.timer_var.set(
                 self.engine.format_seconds_as_mmss(
@@ -2709,6 +2731,8 @@ class GameManagementApp:
         )
         
     def adjust_between_game_break_for_crib_time(self):
+        """Shorten the break when needed to realign court and local time.
+        """
         current_court_time = datetime.datetime.now() - datetime.timedelta(seconds=self.court_time_seconds)
         local_time = datetime.datetime.now()
         seconds_behind = int((local_time - current_court_time).total_seconds())
@@ -2727,6 +2751,8 @@ class GameManagementApp:
 
 
     def start_current_period(self):
+        """Apply the chosen period's timer, widgets and sound cues.
+        """
         if self.engine.current_index >= len(self.engine.full_sequence):
             self.engine.reset_to_between_game_break()
 
@@ -3171,6 +3197,8 @@ class GameManagementApp:
         self.update_penalty_display()
 
     def next_period(self):
+        """End this period and enter the next, respecting any pending export.
+        """
         # An operator can advance the break before its last 30 seconds.
         # Still save the completed game before entering the next period.
         cur_period = self.engine.get_current_period()
@@ -3217,6 +3245,9 @@ class GameManagementApp:
         self.start_current_period()
 
     def countdown_timer(self):
+        """Tick the game timer and dispatch period sounds and export.
+        Export must precede the 30-second pip; failure prevents advance.
+        """
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
@@ -3292,6 +3323,8 @@ class GameManagementApp:
             self.next_period()
 
     def reset_timeouts_for_half(self):
+        """Enable only the remaining team timeouts for this half.
+        """
         period = self.engine.get_current_period()
         if period['type'] in ['regular']:
             if self.engine.white_timeouts_this_half < 1:
@@ -3307,6 +3340,8 @@ class GameManagementApp:
             self.black_timeout_button.config(state=tk.DISABLED)
 
     def white_team_timeout(self, preserve_saved_state=False):
+        """Start or resume the White team's timeout.
+        """
         period = self.engine.get_current_period()
         # Immediately grey out (disable) the button when pressed
         self.white_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
@@ -3342,6 +3377,8 @@ class GameManagementApp:
         self.timer_job = self.master.after(1000, self.timeout_countdown)
 
     def black_team_timeout(self, preserve_saved_state=False):
+        """Start or resume the Black team's timeout.
+        """
         period = self.engine.get_current_period()
         # Immediately grey out (disable) the button when pressed
         self.black_timeout_button.config(state=tk.DISABLED, bg="#d3d3d3", fg="#888")
@@ -3377,6 +3414,8 @@ class GameManagementApp:
         self.timer_job = self.master.after(1000, self.timeout_countdown)
 
     def timeout_countdown(self):
+        """Update the active timeout and its displayed count.
+        """
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
             self.timer_job = None
@@ -3435,6 +3474,8 @@ class GameManagementApp:
             self.end_timeout()
 
     def end_timeout(self):
+        """End a team timeout and restore the interrupted game timer.
+        """
         self.in_timeout = False
         prev_active_team = self.engine.active_timeout_team
         self.engine.end_timeout()
@@ -3504,6 +3545,8 @@ class GameManagementApp:
         )
 
     def save_timer_state(self):
+        """Capture the clock before a timeout temporarily replaces it.
+        """
     
         self.team_timeout_saved_state = {
             "timer_running": self.engine.timer_running,
@@ -3575,6 +3618,8 @@ class GameManagementApp:
         return 0
 
     def start_penalty_timer(self, team, cap, duration):
+        """Create an active penalty from the referee's choice.
+        """
         seconds = self.convert_duration_to_seconds(duration)
         if seconds == 0:
             return False
@@ -3598,6 +3643,8 @@ class GameManagementApp:
         return True
 
     def schedule_penalty_countdown(self, penalty):
+        """Schedule the next active-penalty tick.
+        """
         if not self.penalty_timers_paused and penalty["seconds_remaining"] > 0:
             penalty["timer_job"] = self.master.after(1000, lambda: self.penalty_countdown(penalty))
 
@@ -3632,6 +3679,8 @@ class GameManagementApp:
             self.remove_penalty(penalty)  # This will update the display
 
     def remove_penalty(self, penalty):
+        """Remove the chosen penalty and refresh the displayed list.
+        """
         if penalty in self.engine.active_penalties:
             if penalty["timer_job"]:
                 self.master.after_cancel(penalty["timer_job"])
@@ -3652,6 +3701,8 @@ class GameManagementApp:
         self.update_penalty_display()
 
     def pause_all_penalty_timers(self):
+        """Suspend penalties while the game clock is paused.
+        """
         self.penalty_timers_paused = True
         for penalty in self.engine.active_penalties:
             if penalty["timer_job"]:
@@ -3660,6 +3711,8 @@ class GameManagementApp:
         self.update_penalty_display()
 
     def resume_all_penalty_timers(self):
+        """Reschedule penalties after play resumes.
+        """
         self.penalty_timers_paused = False
         for penalty in self.engine.active_penalties:
             if not penalty["is_rest_of_match"] and penalty["seconds_remaining"] > 0:
@@ -3811,6 +3864,8 @@ class GameManagementApp:
         return penalties_ui.show_penalties(self, trigger_button)
     
     def toggle_referee_timeout(self):
+        """Pause or resume the affected clocks and penalty timers together.
+        """
         cur_period = self.engine.get_current_period()
         was_sudden_death = (
             cur_period
@@ -3976,6 +4031,8 @@ class GameManagementApp:
         self.timer_job = self.master.after(1000, self.referee_timeout_countup)
 
     def restore_sudden_death_after_goal_removal(self):
+        """Restore Sudden Death after correcting the deciding goal.
+        """
         self.engine.sudden_death_goal_scored = False
         self.engine.go_to_period('Sudden Death')
         self.engine.sudden_death_seconds = self.engine.sudden_death_restore_time
@@ -3984,6 +4041,8 @@ class GameManagementApp:
         self.start_current_period()
 
     def adjust_score_with_confirm(self, score_var, team_name):
+        """Confirm a subtraction, with extra warning during a break.
+        """
         if score_var.get() == 0:
             return
         if not messagebox.askyesno(
@@ -4022,6 +4081,9 @@ class GameManagementApp:
             return
 
     def add_goal_with_confirmation(self, score_var, team_name, trigger_button=None):
+        """Confirm break-period goals and optional scorer before scoring.
+        Cancellation must leave the current score unchanged.
+        """
         cur_period = self.engine.get_current_period()
         is_team_timeout = getattr(self, 'in_timeout', False)
         is_referee_timeout = getattr(self, 'referee_timeout_active', False)

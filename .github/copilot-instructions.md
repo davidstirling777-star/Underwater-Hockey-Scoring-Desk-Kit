@@ -1,115 +1,69 @@
-# Underwater Hockey Scoring Desk Kit
-Underwater Hockey Scoring Desk Kit is a Python Tkinter GUI application for managing Underwater Hockey games. It provides scoreboard functionality, timing, penalties, and game management specifically designed for New Zealand Underwater Hockey operations.
+# UWH source-contribution notes
 
-Always reference these instructions first and fallback to search or bash commands only when you encounter unexpected information that does not match the info here.
+**Read [MAINTAINERS.md](../MAINTAINERS.md) first.** It is the current
+maintainer-oriented map of modules, threading, tournament-export invariants,
+and deployment. README.md is for operators/installers; ZIGBEE_SETUP.md is
+for Zigbee2MQTT deployment. The original single-file/no-tests notes that were
+previously in this file no longer described the repository.
 
-## Working Effectively
+## Dependencies and environments
 
-### Bootstrap and Dependencies
-- Install Python 3.12+ and tkinter:
-  - `sudo apt-get update`
-  - `sudo apt-get install -y python3-tk`
-- For GUI testing in headless environments:
-  - `sudo apt-get install -y xvfb imagemagick`
-  - `export DISPLAY=:99 && Xvfb :99 -screen 0 1024x768x24 &`
+- This is a **multi-module Python Tkinter application**. It is tested as a
+  Windows packaged EXE and from source on Raspberry Pi OS Bookworm with X11.
+- The tested Raspberry Pi environment uses **Python 3.11**. Use the
+  repository's `requirements.txt` in a virtual environment instead of
+  assuming the standard library alone is sufficient. Optional devices and
+  audio use `paho-mqtt`, `pyserial`, and `pygame`.
+- Build/release details live in `.github/workflows/build-exe.yml`; a new
+  source commit does **not** update an already-installed EXE.
+- Existing matches may contain user-edited `settings.json`, tournament CSVs,
+  sounds and logs. Do not rewrite or remove them merely to test a change.
 
-### Build and Test
-- **NO BUILD PROCESS REQUIRED** - This is a pure Python application using only standard libraries
-- Validate syntax: `python3 -m py_compile uwh.py` -- takes < 1 second
-- Import test: `python3 -c "import uwh; print('Module loads successfully')"` -- takes < 1 second  
-- AST validation: `python3 -m ast uwh.py` -- takes < 1 second
-- **NEVER CANCEL**: All validation commands complete in under 3 seconds
+## Where to work
 
-### Run the Application
-- **ALWAYS install dependencies first** using the bootstrap steps above
-- GUI mode: `python3 uwh.py`
-- Headless testing: `export DISPLAY=:99 && python3 uwh.py`
-- Application starts immediately (< 1 second startup time)
-- **NEVER CANCEL**: Application startup is instant - no extended timeouts needed
+| Concern | Main modules |
+|---|---|
+| Tk root and live event handlers | `uwh.py` |
+| Game period rules | `game_engine.py`, `game_flow.py` |
+| Results/data | `csv_helpers.py`, `csv_export.py`, `game_logging.py` |
+| Settings and backups | `settings_manager.py`, `game_settings_manager.py` |
+| Screen widgets and scaling | `settings_ui.py`, `scoreboard_ui.py`, `display_ui.py`, `ui_scaling.py` |
+| Sounds | `sound.py`, `sounds_ui.py` |
+| Wireless MQTT | `zigbee_siren.py`, `zigbee_control.py`, `zigbee_ui.py` |
+| Arduino and detected USB ports | `serial_siren_listener.py`, `zigbee_hardware_ui.py` |
 
-### Validation
-- **MANUAL TESTING SCENARIOS**: Always test these complete user workflows after making changes:
-  1. **Scoreboard Test**: Start app → Add goals to White/Black teams → Verify score display updates
-  2. **Timer Test**: Start app → Go to settings → Change half period to 1 minute → Start timer → Verify countdown works
-  3. **Penalties Test**: Start app → Click Penalties button → Add penalty for White team, Cap 5, 2 minutes → Verify penalty appears in stored penalties
-  4. **Settings Test**: Start app → Go to Game Variables tab → Toggle overtime enabled checkbox → Verify setting persists
-  5. **Referee Timeout Test**: Start app → Click "Referee Time-Out" button → Verify timer pauses and label changes
-- Take screenshots when testing GUI: `export DISPLAY=:99 && import -window root /tmp/screenshot.png`
-- **NO AUTOMATED TESTS EXIST** - All validation is manual through GUI interaction
-- Application has two main tabs: "Scoreboard" (main game interface) and "Game Variables" (settings)
+**Safety boundaries:** Only the Tk thread should update widgets and read Tk
+variables; the MQTT and Arduino workers enqueue UI/audio events. Zigbee2MQTT,
+not UWH, owns the Zigbee coordinator COM port. Port detection is *not* a
+successful serial open. An unrecognised Zigbee button/action must not activate
+a siren until a referee has explicitly allowed and mapped it.
 
-## Common Tasks
+**Results boundary:** The tournament CSV must be successfully written before
+the game can be reset/advanced. The writer uses `csv.reader`/`csv.writer`
+for quoted names, checks unique game numbers, stages a full replacement, and
+replaces the draw atomically. On failure, preserve live scores and penalties
+and let the operator retry. `UWH_Game_Data.txt` is a legacy event log and
+does not include a reliable tournament game-number field.
 
-### Repository Structure
-```
-.
-├── README.md               # Project description and hardware goals
-├── LICENSE                 # MIT License
-├── uwh.py                  # Main application file (1163 lines)
-├── ui_simulation.txt       # Detailed UI mockup and functionality description
-└── __pycache__/           # Python cache (auto-generated, ignore)
-```
+**Settings boundary:** Changes to sections belong through the central locked
+unified settings writer. Normal Game Variables and Screens autosave coalesce
+about once per minute; explicit save operations are immediate. Retain existing
+user settings and their five most recent timestamped backups.
 
-### Key Application Features
-The main file `uwh.py` contains:
-- **GameManagementApp class**: Complete game management system
-- **Scoreboard**: Live score display for White vs Black teams
-- **Timer System**: Countdown timers for periods, breaks, overtime, sudden death
-- **Penalty Management**: Track player penalties with duration and automatic removal
-- **Settings Configuration**: Runtime adjustment of all game timing variables
-- **Display Window**: Separate display window for external monitors
-- **Team Timeouts**: One timeout per team per half with proper tracking
+## Validation
 
-### Frequently Used Commands
+Install the dependencies into the intended virtual environment. Run:
+
 ```bash
-# Start application (most common)
-python3 uwh.py
-
-# Validate code changes
-python3 -m py_compile uwh.py
-
-# Headless testing setup
-export DISPLAY=:99
-Xvfb :99 -screen 0 1024x768x24 &
-python3 uwh.py
-
-# Take GUI screenshot for verification  
-import -window root /tmp/app_screenshot.png
+python -m unittest discover -s tests -p "test_*.py" -v
+python -m compileall -q .
 ```
 
-### Application Dependencies
-- **Python 3.12+** (tested version)
-- **tkinter** (GUI framework - install with python3-tk package)
-- **datetime** (standard library)
-- **Standard Python libraries only** - no external pip packages required
+The repository has an automated **headless GitHub Actions** regression suite.
+It does not validate real USB devices, audio routing, Linux/Windows monitor
+placement, or whether a coordinator is paired; test those separately on
+appropriate hardware and a copy of any live tournament draw.
 
-### Critical Code Areas
-When making changes, always review these key components:
-- **Timer logic**: Lines 800-900 in uwh.py handle all timing functionality
-- **Score management**: Lines 400-500 handle goal addition/subtraction with confirmations  
-- **Settings system**: Lines 600-700 manage game variable configuration
-- **Penalty system**: Lines 1000-1100 track active penalties and timeouts
-- **Display synchronization**: Lines 1050+ keep external display in sync with main window
-
-## Hardware Context
-This application is designed to run on **Raspberry Pi 5** with:
-- DigiAMP+ HAT for audio amplification
-- NVMe Base for robust data storage
-- Zigbee communications for wireless controls
-- TOA SC610 speaker (above water) and Lubell Labs LL916 (underwater)
-- Mouse-driven interface (no keyboard required during games)
-
-## Troubleshooting
-- **"no display name" error**: Set up virtual display with Xvfb (see bootstrap section)
-- **Import errors**: Ensure python3-tk is installed via apt-get
-- **GUI not responding**: Application requires active display connection
-- **Timer issues**: Check datetime module imports and system clock
-- **Settings not saving**: Settings are stored in memory only (no persistence between sessions)
-
-## Development Notes
-- **No CI/CD configured** - manual testing required
-- **No linting tools configured** - basic syntax validation only
-- **Single-file application** - all logic contained in uwh.py
-- **Tkinter-based** - modern cross-platform GUI framework
-- **Thread-safe timers** - uses tkinter's after() method for all timing operations
-- **Scalable fonts** - automatically adjusts font sizes based on window resizing
+Keep one focused draft pull request per issue, with regression tests for
+behaviour changes. Never change a production siren or tournament file as
+an incidental side effect of a documentation cleanup.

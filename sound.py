@@ -1,5 +1,11 @@
-"""
-Sound module for Underwater Hockey Scoring Desk Kit.
+"""Audio loading, channel playback and the siren's independent safety cutoff.
+
+Ordinary game cues use the configured timed duration, looping short clips
+rather than cutting them off at the end of their first sample. Timed wireless
+playback also uses pygame's maxtime so an unresponsive Tk event loop cannot
+leave it sounding. The Arduino hold-to-sound channel is stopped on release,
+not by the timed Zigbee mapping; never conflate these paths. Tk variables
+must be read on the UI thread before calling playback from background work.
 """
 
 import subprocess

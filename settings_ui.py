@@ -1,9 +1,18 @@
+"""Build the Game Variables, tournament-list and Screens control tabs.
+
+The widgets write into GameManagementApp/engine state, not directly into
+settings.json. Automatic edits are queued for a coalesced save; buttons that
+explicitly say Save may use their own immediate persistence path.
+"""
+
 
 import tkinter as tk
 from tkinter import ttk, font, messagebox
 import re
 
 def create_settings_tab(app):
+    """Create the Game Variables, presets and tournament selection widgets.
+    """
     tab = ttk.Frame(app.notebook)
     app.notebook.add(tab, text="Game Variables")
 
@@ -483,7 +492,7 @@ def create_settings_tab(app):
 
     instruction2 = tk.Label(
         widget2,
-        text="Press and hold the button for >4 seconds to alter the stored preset values",
+        text="Press and hold a preset for 3 seconds to edit its stored values",
         anchor="w",
         justify="left",
         font=(default_font.cget("family"), default_font.cget("size"))
@@ -703,9 +712,9 @@ def create_settings_tab(app):
         widget4,
         text=(
             "Save a CSV file of games into the same folder as this program is in.\n"
-            "Expected CSV headers: date,#,White,Score,Black,Score,"
+            "Expected CSV headers: date,#,White,WScore,Black,BScore,"
             "Referees,Penalties,Comments\n"
-            "(where # is the Game Number)"
+            "(# is the game number; use quotes around team names containing commas)"
         ),
         font=(default_font.cget("family"), small_size),
         anchor="nw",

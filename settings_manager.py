@@ -1,3 +1,11 @@
+"""Load and atomically update the unified settings.json document.
+
+Game/screen autosaves are coalesced by uwh.py; this module holds the common
+reentrant lock, merges named sections, stages a replacement, and keeps up
+to five timestamped old versions. Never reset malformed existing settings
+to defaults or replace one section with a stale whole-file snapshot.
+"""
+
 import os
 import json
 import datetime

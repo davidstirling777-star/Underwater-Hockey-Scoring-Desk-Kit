@@ -1,3 +1,9 @@
+"""Manage the operator's list of available tournament CSV files.
+
+This is only the dropdown refresh layer. Game-number and team-name parsing
+belong in csv_helpers.py; result writing belongs in csv_export.py.
+"""
+
 import os
 
 

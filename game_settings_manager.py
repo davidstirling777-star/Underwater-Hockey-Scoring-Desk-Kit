@@ -1,4 +1,9 @@
-"""Save and restore Game Variables, including mixed checkbox/number fields."""
+"""Save and restore Game Variables, including mixed checkbox/number fields.
+
+Build a snapshot from the widgets and let uwh.py batch automatic changes.
+The checkbox 'used' flag is not interchangeable with the value stored in
+the entry field: disabling a setting must retain the configured number.
+"""
 
 import tkinter as tk
 

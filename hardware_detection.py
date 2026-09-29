@@ -1,3 +1,10 @@
+"""Legacy hardware enumeration and persisted COM-port detection cache.
+
+Port enumeration is not proof of exclusive serial access. The active Arduino
+reader is serial_siren_listener.py; Zigbee2MQTT owns the coordinator port.
+Avoid opening a Zigbee dongle from the application.
+"""
+
 import os
 import subprocess
 import datetime

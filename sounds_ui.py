@@ -1,3 +1,10 @@
+"""Sounds tab: audio-file choices, volume tests and siren duration inputs.
+
+The ordinary siren duration controls a timed blast; Maximum Siren Duration
+caps it independently. The Arduino's wired hold-to-sound path is deliberately
+different. sound.py owns playback and its independent audio timeout.
+"""
+
 import datetime
 import math
 import os

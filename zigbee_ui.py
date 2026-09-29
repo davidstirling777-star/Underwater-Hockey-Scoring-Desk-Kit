@@ -1,7 +1,10 @@
-"""Zigbee/MQTT tab, including editable, per-device siren action mappings.
+"""Zigbee/MQTT tab and the editable, per-device siren action table.
 
-This module constructs Tk widgets only. MQTT callbacks and local audio remain
-in zigbee_siren.py and uwh.py, respectively.
+The device-name list is the first allow-list; action mappings are a second,
+explicit per-device allow-list. Auto-add From Log creates safe Ignore entries,
+which the operator must deliberately edit and save. This module constructs
+Tk widgets only: network callbacks belong in zigbee_siren.py and local audio
+and queued events belong in uwh.py.
 """
 
 import tkinter as tk
@@ -494,12 +497,11 @@ def create_zigbee_siren_tab(app):
 
     actionbar = ttk.Frame(config_frame)
     actionbar.grid(row=6, column=0, columnspan=4, sticky="ew", pady=(7, 9))
-    for c in range(4):
+    for c in range(3):
         actionbar.columnconfigure(c, weight=1)
     for i, (name, callback) in enumerate((
         ("Save Configuration", app.save_zigbee_config),
-        ("Linux Open Zigbee2MQTT Frontend", lambda: webbrowser.open("http://localhost:8080")),
-        ("Windows Open Zigbee2MQTT Frontend", lambda: webbrowser.open("http://localhost:8080")),
+        ("Open Zigbee2MQTT Frontend", lambda: webbrowser.open("http://localhost:8080")),
         ("Test App Siren", app.test_app_siren),
     )):
         ttk.Button(actionbar, text=name, command=callback).grid(
@@ -508,6 +510,8 @@ def create_zigbee_siren_tab(app):
 
     _create_mapping_table(app, config_frame, config)
 
+    # One frontend shortcut works on both Windows and Linux. It opens the
+    # browser on THIS computer, so a remote Zigbee2MQTT host needs its LAN URL.
     # A tall, scrollable log fills the full right-hand column.
     log_frame = tk.LabelFrame(outer, text="Activity Log", bd=1,
                               relief="solid", padx=7, pady=7)

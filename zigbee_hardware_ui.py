@@ -1,3 +1,10 @@
+"""Show hardware port *detection* separately from MQTT and serial access.
+
+serial_siren_listener identifies candidate Arduino/Zigbee ports; the latter
+belongs to Zigbee2MQTT. Detecting COM3 does not mean UWH opened COM3, which
+is confirmed separately by an Arduino serial-open entry in the activity log.
+"""
+
 import serial.tools.list_ports
 import serial_siren_listener
 
@@ -26,7 +33,11 @@ def _port_display_name(port_name):
 
 
 def _apply_hardware_status(app, arduino_port, zigbee_port):
-    """Apply detected hardware ports and log only actual connection changes."""
+    """Report port presence only; a detected port might still be locked.
+
+    Arduino open failures and MQTT session state are logged separately. Do
+    not label a scanned COM port as a successfully connected device.
+    """
 
     # Never allow one COM port to represent both devices.
     if (
@@ -58,24 +69,24 @@ def _apply_hardware_status(app, arduino_port, zigbee_port):
     if hasattr(app, "arduino_status_label"):
         if arduino_port:
             app.arduino_status_label.config(
-                text=f"Connected ({arduino_port})",
+                text=f"Detected ({arduino_port})",
                 fg="green"
             )
         else:
             app.arduino_status_label.config(
-                text="Disconnected",
+                text="Not detected",
                 fg="red"
             )
 
     if hasattr(app, "usb_dongle_status_label"):
         if zigbee_port:
             app.usb_dongle_status_label.config(
-                text=f"Connected ({zigbee_port})",
+                text=f"Detected ({zigbee_port})",
                 fg="green"
             )
         else:
             app.usb_dongle_status_label.config(
-                text="Disconnected",
+                text="Not detected",
                 fg="red"
             )
 
@@ -97,13 +108,13 @@ def _apply_hardware_status(app, arduino_port, zigbee_port):
         if old_port is None and new_port is not None:
             _safe_log(
                 app,
-                f"{device_name}: Connected ({new_port})"
+                f"{device_name}: Detected ({new_port})"
             )
 
         elif old_port is not None and new_port is None:
             _safe_log(
                 app,
-                f"{device_name}: Disconnected ({old_port})"
+                f"{device_name}: No longer detected ({old_port})"
             )
 
         elif old_port is not None and new_port is not None:
@@ -130,7 +141,7 @@ def _apply_hardware_status(app, arduino_port, zigbee_port):
     app._last_detected_zigbee_port = zigbee_port
 
 def update_usb_dongle_status(app, force_rescan=False):
-    """Detect current Arduino/Zigbee ports and update the status display."""
+    """Rescan port enumeration, not the serial/MQTT connection itself."""
 
     try:
         ports = serial_siren_listener.get_detected_ports(

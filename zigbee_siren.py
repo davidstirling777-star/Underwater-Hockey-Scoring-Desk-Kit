@@ -1,9 +1,15 @@
-"""
-Zigbee2MQTT Wireless Siren Integration Module
+"""Zigbee2MQTT wireless siren integration and optional MQTT siren output.
 
-serial_siren_listener.py is the lead hardware detector.
-This module does not scan COM ports directly. It references the Zigbee COM
-port discovered/cached by serial_siren_listener when serial fallback needs it.
+Zigbee2MQTT owns the coordinator radio/serial port and publishes per-device
+MQTT actions. This Paho client never opens that port. Only devices listed in
+Button Device Names are accepted; only explicit per-device action mappings
+may create events. Unknown actions are logged and held for Auto-add From Log,
+which starts them as Ignore. Callbacks run on a background thread and must
+queue UI/audio events rather than directly operate Tk or pygame.
+
+The separately named Siren Device is an optional MQTT OUTPUT for hardware
+ON/OFF commands; it is not one of the input referee buttons.
+serial_siren_listener.py is the lead USB-port detector and Arduino reader.
 """
 
 import threading
@@ -192,6 +198,8 @@ class ZigbeeSirenController:
         siren_callback: Optional[Callable] = None,
         gui_log_callback: Optional[Callable[[str], None]] = None
     ):
+        """Create the MQTT controller and the worker-to-GUI event handoff.
+        """
         self.siren_callback = siren_callback
         self.gui_log_callback = gui_log_callback
         self.mqtt_client: Optional[mqtt.Client] = None
@@ -224,6 +232,8 @@ class ZigbeeSirenController:
             self.logger.warning("paho-mqtt not available. Zigbee siren functionality disabled.")
 
     def _migrate_device_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """Turn legacy single-device settings into an explicit device/action map.
+        """
         if "siren_button_device" in config and "siren_button_devices" not in config:
             single_device = config["siren_button_device"]
             if isinstance(single_device, str) and single_device:
@@ -261,6 +271,8 @@ class ZigbeeSirenController:
         return config
 
     def load_config(self) -> Dict[str, Any]:
+        """Read the unified Zigbee section and migrate older settings if necessary.
+        """
         settings_path = os.path.join(_settings_directory(), SETTINGS_FILE)
 
         if os.path.exists(settings_path):
@@ -334,6 +346,8 @@ class ZigbeeSirenController:
         self.connection_status_callback = callback
 
     def start(self) -> bool:
+        """Start the background MQTT connection worker without blocking Tk.
+        """
         if not MQTT_AVAILABLE:
             self._notify_status(False, "MQTT library not available")
             return False
@@ -353,6 +367,8 @@ class ZigbeeSirenController:
         return True
 
     def stop(self) -> None:
+        """Stop connection retries and close this MQTT client's session.
+        """
         self.should_stop.set()
 
         if self.mqtt_client and self.connected:
@@ -370,6 +386,8 @@ class ZigbeeSirenController:
         self.logger.info("Zigbee siren controller stopped")
 
     def _connection_loop(self) -> None:
+        """Retry the broker connection until stopped; never own the USB radio.
+        """
         while not self.should_stop.is_set():
             try:
                 self._setup_mqtt_client()
@@ -388,6 +406,8 @@ class ZigbeeSirenController:
                 time.sleep(delay)
 
     def _setup_mqtt_client(self) -> None:
+        """Configure Paho with the saved broker credentials and callbacks.
+        """
         self.mqtt_client = mqtt.Client()
 
         if self.config.get("mqtt_username"):
@@ -407,6 +427,8 @@ class ZigbeeSirenController:
         )
 
     def _connect_mqtt(self) -> None:
+        """Attempt the configured broker connection and await its status.
+        """
         self.mqtt_client.loop_start()
 
         timeout = time.time() + int(self.config.get("connection_timeout", 60))
@@ -426,6 +448,8 @@ class ZigbeeSirenController:
             raise Exception("Connection timeout")
 
     def _on_connect(self, client, userdata, flags, rc) -> None:
+        """Record a broker session and subscribe to the configured topic.
+        """
         if rc == 0:
             self.connected = True
 
@@ -446,6 +470,8 @@ class ZigbeeSirenController:
             self._notify_status(False, f"Connection failed (RC: {rc})")
 
     def _on_disconnect(self, client, userdata, rc) -> None:
+        """Mark the session unavailable; a lost release must stop a hold.
+        """
         was_connected = self.connected
         self.connected = False
         if was_connected:
@@ -461,6 +487,8 @@ class ZigbeeSirenController:
             self._notify_status(False, "Disconnected")
 
     def _on_message(self, client, userdata, msg) -> None:
+        """Only allow listed button names through to their action mappings.
+        """
         try:
             topic = msg.topic
             payload = msg.payload.decode("utf-8")
@@ -614,6 +642,8 @@ class ZigbeeSirenController:
         self.stop_siren()
 
     def start_siren(self) -> bool:
+        """Publish ON to the optional MQTT siren OUTPUT, not the input button.
+        """
         if not MQTT_AVAILABLE:
             self.logger.warning("MQTT not available - cannot control siren")
             return False
@@ -645,6 +675,8 @@ class ZigbeeSirenController:
             return False
 
     def stop_siren(self) -> bool:
+        """Publish OFF to the optional MQTT siren OUTPUT.
+        """
         if not MQTT_AVAILABLE:
             self.logger.warning("MQTT not available - cannot control siren")
             return False
@@ -700,6 +732,8 @@ class ZigbeeSirenController:
         }
 
     def test_connection(self) -> bool:
+        """Probe connectivity without replacing the controller's live session.
+        """
         if not MQTT_AVAILABLE:
             return False
 

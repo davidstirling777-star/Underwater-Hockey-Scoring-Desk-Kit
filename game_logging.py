@@ -1,3 +1,10 @@
+"""Append human-readable game events to UWH_Game_Data.txt.
+
+The pipe-delimited legacy format records local time, court time and event
+details, but NOT a tournament game number. Do not attempt reliable
+per-game attribution from this file without changing the log schema.
+"""
+
 import os
 import datetime
 
