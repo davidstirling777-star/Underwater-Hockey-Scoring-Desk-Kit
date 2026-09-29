@@ -267,7 +267,10 @@ def serial_listener_thread(uwh_app):
 
                 button_held_down = False
 
-                _debug(f"Successfully connected to siren button on {arduino_port}!")
+                print(
+                    f"Arduino siren serial listener opened {arduino_port} "
+                    "at 9600 baud; waiting for SIREN_ON / SIREN_OFF."
+                )
 
                 while True:
                     try:
