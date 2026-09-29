@@ -207,8 +207,8 @@ class TwoCourtTournamentSyncTests(unittest.TestCase):
         self.export(0, 2, 4, 3)
         changed = self.courts[0] / self.draw.name
         changed.write_bytes(self.original.replace(b"Even A", b"EVEN B"))
-        rejected = self.sync(0)
-        self.assertIn("Sync error:", rejected._last_status)
+        with self.assertRaisesRegex(ValueError, "does not match"):
+            self.sync(0)
         self.assertFalse((self.server_folder / "Tournament_Results.csv").exists())
         # A valid, but different, source draw still fails the server hash check.
         with (self.courts[0] / "Tournament_Results.csv").open(
