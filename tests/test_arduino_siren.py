@@ -134,6 +134,23 @@ class ArduinoRoutingTests(unittest.TestCase):
         self.clip.play.assert_not_called()
         self.controller.start_siren_continuous.assert_not_called()
 
+    def test_serial_open_status_reaches_gui_log(self):
+        self.app._process_hardware_siren_event("ARDUINO_SERIAL_OPEN:COM3")
+        self.app.add_to_zigbee_log.assert_called_once_with(
+            "Arduino siren serial listener opened COM3 (9600 baud)"
+        )
+        self.clip.play.assert_not_called()
+        self.controller.start_siren_continuous.assert_not_called()
+
+    def test_serial_open_failure_reaches_gui_log(self):
+        self.app._process_hardware_siren_event(
+            "ARDUINO_SERIAL_ERROR:COM3: access denied"
+        )
+        self.app.add_to_zigbee_log.assert_called_once_with(
+            "Arduino siren serial listener error: COM3: access denied"
+        )
+        self.clip.play.assert_not_called()
+
     def test_method_is_part_of_mqtt_controller_class(self):
         tree = ast.parse((ROOT / "zigbee_siren.py").read_text(encoding="utf-8"))
         top = [n.name for n in tree.body if isinstance(n, ast.FunctionDef)]
