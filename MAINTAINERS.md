@@ -83,7 +83,8 @@ successful serial open, and a broker connection is not a mapped button press.
    wireless sound has a second bounded hold limit and an audio-level cutoff.
    These limits are **not** substitutes for the wired Arduino release.
 
-One coordinator can receive three independently named tested buttons. Do not
+The Windows setup has been tested with up to three working buttons on one
+coordinator. Do not
 pair a live button to a second coordinator just to support another UWH client.
 A second UWH client can instead subscribe to the existing MQTT broker, but
 two active clients may both play audible local sirens.
