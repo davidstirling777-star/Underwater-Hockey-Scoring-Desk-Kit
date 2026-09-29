@@ -4,24 +4,6 @@ The Tk widget lifecycle lives in display_ui.py and uwh.py. Keep formatting
 here independent of which physical monitor receives the scoreboard.
 """
 
-def sync_penalty_display_to_external(app):
-    """
-    Preserve the original external display sync loop.
-
-    The actual penalty display update remains in uwh.py because it is tightly
-    coupled to Tkinter widgets.
-    """
-    try:
-        app.display_window.after(
-            1000,
-            app.sync_penalty_display_to_external
-        )
-
-    except Exception as e:
-        if getattr(app, "DEBUG_MODE", False):
-            print(f"Penalty display sync error: {e}")
-
-
 def penalty_sort_key(p):
     return (
         p["seconds_remaining"]
