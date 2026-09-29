@@ -1,30 +1,48 @@
 # game_flow.py
 
-def export_and_reset_game_at_break(app):
-    current_game = app.get_current_game_number()
+def export_and_reset_game_at_break(app, game_number=None):
+    """Save a completed game before discarding its live scores and penalties.
+
+    False means the tournament CSV was not saved; the caller must leave the
+    game intact and offer a retry. A manual game with no selected CSV keeps
+    its existing no-export workflow.
+    """
+    current_game = (app.get_current_game_number()
+                    if game_number is None else game_number)
     white_score = app.white_score_var.get()
     black_score = app.black_score_var.get()
-
     penalties_to_write = list(app.engine.stored_penalties)
 
+    csv_name = str(app.csv_var.get()).strip()
+    tournament_list = bool(app.use_tournament_list_var.get())
+    needs_export = csv_name not in ("", "No CSV files found") or tournament_list
+
+    if needs_export:
+        if csv_name in ("", "No CSV files found") or not str(current_game).strip():
+            return False
+        # The writer reports False for a missing file, an invalid header,
+        # or a game number that was not found. A write error may also raise.
+        if not app.write_game_results_to_csv(
+            current_game, white_score, black_score, penalties_to_write
+        ):
+            return False
+
+    # Do not log Game End on a failed attempt: retrying must not duplicate it.
     app.log_game_event("Game End")
-
-    app.write_game_results_to_csv(
-        current_game,
-        white_score,
-        black_score,
-        penalties_to_write
-    )
-
     app.white_score_var.set(0)
     app.black_score_var.set(0)
-
     app.engine.stored_penalties.clear()
     app.clear_all_penalties()
     app.engine.clear_goal_scorers()
 
+    # Reselect the completed game if choosing another CSV during recovery
+    # altered the tournament dropdown; advance from its original position.
+    if current_game in app.game_numbers:
+        app.current_game_index = app.game_numbers.index(current_game)
+        app.starting_game_var.set(current_game)
     app.advance_to_next_game()
     app.update_team_names_display()
+    return True
 
 def start_sudden_death_timer(app):
     if not app.engine.timer_running:
