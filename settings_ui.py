@@ -1,3 +1,10 @@
+"""Build the Game Variables, tournament-list and Screens control tabs.
+
+The widgets write into GameManagementApp/engine state, not directly into
+settings.json. Automatic edits are queued for a coalesced save; buttons that
+explicitly say Save may use their own immediate persistence path.
+"""
+
 
 import tkinter as tk
 from tkinter import ttk, font, messagebox
