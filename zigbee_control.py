@@ -1,3 +1,10 @@
+"""Connect/disconnect controls and MQTT reconnection watchdog on the UI.
+
+Network callbacks belong to zigbee_siren.ZigbeeSirenController; these helpers
+update the Tk status and schedule bounded startup retries. MQTT Connected
+means the broker accepted a session, NOT that a physical button is mapped.
+"""
+
 from tkinter import messagebox
 
 
