@@ -639,6 +639,18 @@ class GameManagementApp:
 
     def _process_hardware_siren_event(self, event_name):
         """Handle siren events ONLY on the Tk main thread."""
+        if event_name.startswith("ARDUINO_SERIAL_OPEN:"):
+            port = event_name.split(":", 1)[1]
+            self.add_to_zigbee_log(
+                f"Arduino siren serial listener opened {port} (9600 baud)"
+            )
+            return
+        if event_name.startswith("ARDUINO_SERIAL_ERROR:"):
+            detail = event_name.split(":", 1)[1]
+            self.add_to_zigbee_log(
+                f"Arduino siren serial listener error: {detail}"
+            )
+            return
         if event_name == "WIRELESS_MQTT_DISCONNECT":
             if self._wireless_continuous_active:
                 device_name = self._wireless_continuous_device
