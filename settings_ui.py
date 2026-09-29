@@ -226,7 +226,7 @@ def create_settings_tab(app):
                     return
 
                 if not re.fullmatch(
-                    r"(?:[0-9]|1[0-9]|2[0-3]):[0-5][0-9]",
+                    r"(?:[01]?[0-9]|2[0-3]):[0-5][0-9]",
                     val
                 ):
                     messagebox.showerror(
