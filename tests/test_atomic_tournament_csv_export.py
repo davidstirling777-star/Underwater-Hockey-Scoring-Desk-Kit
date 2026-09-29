@@ -1,4 +1,4 @@
-"""Tournament CSV exports must never truncate the draw on failed writes."""
+"""Tournament result exports must never change the source draw or prior results."""
 import csv
 import os
 from pathlib import Path
@@ -10,6 +10,7 @@ from unittest.mock import Mock, patch
 
 import csv_export
 import game_flow
+import tournament_files
 
 
 class Var:
@@ -28,6 +29,7 @@ class AtomicTournamentExportTests(unittest.TestCase):
         self.folder = tempfile.TemporaryDirectory()
         self.addCleanup(self.folder.cleanup)
         self.draw = Path(self.folder.name) / "Draw.csv"
+        self.results = Path(self.folder.name) / "Draw_Results.csv"
         with self.draw.open("w", newline="", encoding="utf-8-sig") as stream:
             writer = csv.writer(stream)
             writer.writerow([
@@ -51,14 +53,16 @@ class AtomicTournamentExportTests(unittest.TestCase):
         )
 
     def rows(self):
-        with self.draw.open("r", newline="", encoding="utf-8-sig") as source:
+        with self.results.open("r", newline="", encoding="utf-8-sig") as source:
             return list(csv.reader(source))
 
     def staged(self):
-        return list(self.draw.parent.glob(".uwh_draw_*.tmp"))
+        return list(self.draw.parent.glob(".uwh_results_*.tmp"))
 
     def test_successful_replace_retains_entire_draw_and_utf8_bom(self):
+        before = self.draw.read_bytes()
         self.assertTrue(self.export())
+        self.assertEqual(self.draw.read_bytes(), before)
         result = self.rows()
         self.assertEqual(result[1][0], "Pool, east")
         self.assertEqual(result[1][2], 'White "A", team')
@@ -69,7 +73,7 @@ class AtomicTournamentExportTests(unittest.TestCase):
         )
         self.assertEqual(result[2][3], "")
         self.assertEqual(result[2][5], "")
-        self.assertTrue(self.draw.read_bytes().startswith(b"\xef\xbb\xbf"))
+        self.assertTrue(self.results.read_bytes().startswith(b"\xef\xbb\xbf"))
         self.assertEqual(self.staged(), [])
 
     def test_replace_gets_complete_staged_file_in_original_directory(self):
@@ -80,7 +84,7 @@ class AtomicTournamentExportTests(unittest.TestCase):
         def guarded_replace(source, target):
             self.assertEqual(self.draw.read_bytes(), before)
             self.assertEqual(Path(source).parent, self.draw.parent)
-            self.assertEqual(Path(target), self.draw)
+            self.assertEqual(Path(target), self.results)
             self.assertNotEqual(Path(source), self.draw)
             with open(source, "r", newline="", encoding="utf-8-sig") as stream:
                 staged_rows = list(csv.reader(stream))
@@ -146,11 +150,12 @@ class AtomicTournamentExportTests(unittest.TestCase):
     def test_original_file_mode_is_preserved_on_replacement(self):
         # On Raspberry Pi OS this includes group read/write permissions;
         # on Windows os.chmod supports the read-only attribute subset.
-        os.chmod(self.draw, 0o640)
-        previous_mode = stat.S_IMODE(self.draw.stat().st_mode)
+        tournament_files.ensure_results_file(self.draw)
+        os.chmod(self.results, 0o640)
+        previous_mode = stat.S_IMODE(self.results.stat().st_mode)
         self.assertTrue(self.export())
         self.assertEqual(
-            stat.S_IMODE(self.draw.stat().st_mode), previous_mode
+            stat.S_IMODE(self.results.stat().st_mode), previous_mode
         )
 
     def test_invalid_game_keeps_original_and_does_not_make_temp_file(self):
@@ -161,7 +166,7 @@ class AtomicTournamentExportTests(unittest.TestCase):
         self.assertEqual(self.draw.read_bytes(), before)
         self.assertEqual(self.staged(), [])
 
-    def test_locked_draw_does_not_advance_or_erase_live_game(self):
+    def test_locked_results_does_not_advance_or_erase_live_game(self):
         before = self.draw.read_bytes()
         app = SimpleNamespace(
             get_current_game_number=lambda: "1",
