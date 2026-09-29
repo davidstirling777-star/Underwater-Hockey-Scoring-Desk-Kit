@@ -365,13 +365,16 @@ UWH receives wireless referee-button actions via **Zigbee2MQTT → Mosquitto (MQ
 
 ### Tested Zigbee button actions
 
-| Button action in MQTT | Local UWH siren |
+The following are **observed action names with example mappings**, not a claim that all three buttons publish the same actions. Only a saved mapping for the exact button and action triggers UWH:
+
+| Observed action in MQTT | Example local UWH siren mapping |
 |---|---|
 | `single` | One timed cycle |
 | `double` | Two consecutive timed cycles, no programmed pause |
 | `hold` | One timed cycle, triggered on release for the tested button |
+| `emergency` | A separately configured action, such as one timed cycle |
 
-All timed cycles use **Sounds → Number of seconds to play Siren**. The Arduino hardware button retains press-and-release control. Buttons may publish different action names by model; the examples above are the actions actually verified.
+Timed cycles use **Sounds → Number of seconds to play Siren**, capped by **Maximum Siren Duration**. The wired Arduino button retains physical press-and-release control. Check each model's Activity Log and save its mapping.
 
 ### Up to three tested Zigbee buttons and configuration backups
 
