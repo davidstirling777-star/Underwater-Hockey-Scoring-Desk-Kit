@@ -44,7 +44,11 @@ class SettingsBackupTests(unittest.TestCase):
         self.assertEqual(settings_manager.load_unified_settings(self.directory), updated)
         backups = _backups(self.directory)
         self.assertEqual(len(backups), 1)
-        self.assertRegex(backups[0].name, r"^settings_old_\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-\\d{2}_\\d{6}\\.json$")
+        self.assertTrue(backups[0].name.startswith("settings_old_"))
+        datetime.datetime.strptime(
+            backups[0].name[len("settings_old_"):-len(".json")],
+            "%Y-%m-%d_%H-%M-%S_%f"
+        )
         self.assertEqual(json.loads(backups[0].read_text()), first)
 
     def test_rapid_successive_saves_have_distinct_preserved_backups(self):
