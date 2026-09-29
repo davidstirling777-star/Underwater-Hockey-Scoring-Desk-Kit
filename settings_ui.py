@@ -714,7 +714,8 @@ def create_settings_tab(app):
             "Put tournament draw CSVs in the application folder.\n"
             "The selected draw is never edited. Scores, penalties and scorer\n"
             "comments are saved in a separate _Results.csv in this folder.\n"
-            "Expected CSV headers: date,#,White,WScore,Black,BScore,"\n            "Referees,Penalties,Comments"
+            "Expected CSV headers: date,#,White,WScore,Black,BScore,"
+            "Referees,Penalties,Comments"
         ),
         font=(default_font.cget("family"), small_size),
         anchor="nw",
