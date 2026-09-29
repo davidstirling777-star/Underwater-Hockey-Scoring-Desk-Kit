@@ -1,7 +1,10 @@
-"""Zigbee/MQTT tab, including editable, per-device siren action mappings.
+"""Zigbee/MQTT tab and the editable, per-device siren action table.
 
-This module constructs Tk widgets only. MQTT callbacks and local audio remain
-in zigbee_siren.py and uwh.py, respectively.
+The device-name list is the first allow-list; action mappings are a second,
+explicit per-device allow-list. Auto-add From Log creates safe Ignore entries,
+which the operator must deliberately edit and save. This module constructs
+Tk widgets only: network callbacks belong in zigbee_siren.py and local audio
+and queued events belong in uwh.py.
 """
 
 import tkinter as tk
