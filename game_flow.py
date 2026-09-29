@@ -1,3 +1,10 @@
+"""Tournament progression, game selection, and safe post-game reset.
+
+Export is a gate: do not log Game End, discard scores/penalties, or advance
+the game number until the results writer confirms success. Retain the
+original game number when an operator changes CSV selection to retry.
+"""
+
 # game_flow.py
 
 def export_and_reset_game_at_break(app, game_number=None):
