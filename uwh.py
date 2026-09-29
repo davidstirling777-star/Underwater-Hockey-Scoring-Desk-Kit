@@ -1072,10 +1072,9 @@ class GameManagementApp:
         splash_report("Game engine loaded", True)
         splash_report("Settings system available", True)
 
-        startup_selftest.report_installation_status(
-            splash_report
-        )
-
+        # The MQTT broker and Zigbee2MQTT can run as Windows services or
+        # background processes without their executables being on PATH.
+        # Verify broker connectivity rather than testing command locations.
         # Perform MQTT stability check
         mqtt_connection_stable = startup_selftest.check_mqtt_stability(
             splash_report=splash_report,
