@@ -1,3 +1,10 @@
+"""Diagnostic MQTT probe shown during startup, not the live controller.
+
+The probe uses the saved broker address and credentials and waits for a
+successful MQTT CONNACK. A failed self-test must not prevent UWH from opening:
+zigbee_siren.py independently reconnects to the broker in the background.
+"""
+
 import shutil
 import threading
 import time
