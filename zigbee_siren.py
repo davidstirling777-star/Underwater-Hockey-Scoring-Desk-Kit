@@ -173,13 +173,6 @@ DEFAULT_CONFIG = {
     "prefer_mqtt": True,
 }
 
-def handle_hardware_siren_event(self, event_name):
-    if event_name == "ON":
-        self.start_siren_continuous()
-
-    elif event_name == "OFF":
-        self.stop_siren_continuous()
-
 def get_zigbee_port_from_lead_detector():
     """Get Zigbee COM port from serial_siren_listener, if available."""
     try:
@@ -582,6 +575,17 @@ class ZigbeeSirenController:
             self.gui_log_callback("Manual MQTT siren test stopping")
 
         self.stop_siren_continuous()
+
+    def handle_hardware_siren_event(self, event_name: str) -> None:
+        """Forward an Arduino press/release to the MQTT-controlled siren.
+
+        The controller owns the siren device; UWH owns local PC audio.
+        This method must be part of the controller class, not module-level.
+        """
+        if event_name == "ON":
+            self.start_siren_continuous()
+        elif event_name == "OFF":
+            self.stop_siren_continuous()
 
     def start_siren_continuous(self, sound_config: Dict[str, Any] = None) -> None:
         self.logger.info("Starting continuous siren playback")

@@ -639,6 +639,18 @@ class GameManagementApp:
 
     def _process_hardware_siren_event(self, event_name):
         """Handle siren events ONLY on the Tk main thread."""
+        if event_name.startswith("ARDUINO_SERIAL_OPEN:"):
+            port = event_name.split(":", 1)[1]
+            self.add_to_zigbee_log(
+                f"Arduino siren serial listener opened {port} (9600 baud)"
+            )
+            return
+        if event_name.startswith("ARDUINO_SERIAL_ERROR:"):
+            detail = event_name.split(":", 1)[1]
+            self.add_to_zigbee_log(
+                f"Arduino siren serial listener error: {detail}"
+            )
+            return
         if event_name == "WIRELESS_MQTT_DISCONNECT":
             if self._wireless_continuous_active:
                 device_name = self._wireless_continuous_device
@@ -666,38 +678,50 @@ class GameManagementApp:
             return
 
         if event_name == "OFF":
+            self.add_to_zigbee_log("Arduino button: SIREN_OFF received")
             self._stop_arduino_siren()
             try:
                 self.zigbee_controller.handle_hardware_siren_event("OFF")
-            except Exception:
-                pass
+            except Exception as error:
+                print(f"Arduino siren MQTT OFF failed: {error}")
             return
 
-        # Preserve the existing Arduino press-and-hold ON/OFF behaviour.
-        # Unlike a Zigbee PULSE, this channel stays on until release.
-        if not self.enable_sound.get():
+        if event_name != "ON":
+            print(f"Unrecognised hardware siren event: {event_name!r}")
             return
-        try:
-            track = self.siren_var.get()
-            volume = self.siren_volume.get()
-            normalized_volume = max(0.0, min(100.0, volume)) / 100.0
 
-            if track in sound._preloaded_sounds:
-                sound_obj = sound._preloaded_sounds[track]
-                sound_obj.set_volume(normalized_volume)
-                self._stop_arduino_siren()
-                self.arduino_siren_channel = sound_obj.play(loops=-1)
-                if self.arduino_siren_channel is not None:
-                    # Avoid inheriting a lower volume from a reused channel.
-                    self.arduino_siren_channel.set_volume(1.0)
-        except Exception as e:
-            if DEBUG_MODE:
-                print(f"Hardware siren local audio failed: {e}")
+        self.add_to_zigbee_log("Arduino button: SIREN_ON received")
+
+        # The Arduino button has TWO outputs: local PC sound and the
+        # MQTT-controlled siren. Muting the PC must not suppress the hardware
+        # siren's ON command. A release always stops both outputs.
+        if self.enable_sound.get():
+            try:
+                track = self.siren_var.get()
+                volume = self.siren_volume.get()
+                normalized_volume = max(0.0, min(100.0, volume)) / 100.0
+                sound_obj = sound._preloaded_sounds.get(track)
+
+                if sound_obj is None:
+                    print(
+                        f"Arduino siren: selected local sound {track!r} "
+                        "is not preloaded; MQTT siren will still be requested."
+                    )
+                else:
+                    sound_obj.set_volume(normalized_volume)
+                    self._stop_arduino_siren()
+                    self.arduino_siren_channel = sound_obj.play(loops=-1)
+                    if self.arduino_siren_channel is not None:
+                        self.arduino_siren_channel.set_volume(1.0)
+                    else:
+                        print("Arduino siren: no local audio channel available.")
+            except Exception as error:
+                print(f"Arduino siren local audio failed: {error}")
 
         try:
             self.zigbee_controller.handle_hardware_siren_event("ON")
-        except Exception:
-            pass
+        except Exception as error:
+            print(f"Arduino siren MQTT ON failed: {error}")
 
     def add_to_zigbee_log(self, message):
         """
