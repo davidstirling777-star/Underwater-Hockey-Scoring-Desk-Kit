@@ -3,14 +3,16 @@
 import tkinter as tk
 
 
-def save_game_settings(app):
-    """Save game settings without losing checkbox states on numeric fields."""
-    # Setting tkinter variables during load fires their trace callbacks.
-    # Never let a partially restored screen overwrite the saved configuration.
-    if getattr(app, "_loading_game_settings", False):
-        return
+def build_game_settings(app):
+    """Read the current Game Variables without writing to disk.
 
-    unified_settings = app.load_unified_settings()
+    The UI's automatic one-minute save can combine this snapshot with
+    any pending Screens changes in one atomic settings transaction.
+    """
+    # Tk variables may fire traces during restore: never capture partial UI.
+    if getattr(app, "_loading_game_settings", False):
+        return None
+
     game_settings = {}
     mixed_checkboxes = {}
 
@@ -58,6 +60,15 @@ def save_game_settings(app):
     # Mirrors the already-used preset "checkboxes" convention. The original
     # numeric keys are unchanged, and presets remain stored separately.
     game_settings["checkboxes"] = mixed_checkboxes
+    return game_settings
+
+
+def save_game_settings(app):
+    """Save Game Variables immediately for explicit/manual callers."""
+    game_settings = build_game_settings(app)
+    if game_settings is None:
+        return
+    unified_settings = app.load_unified_settings()
     unified_settings["gameSettings"] = game_settings
     app.save_unified_settings(unified_settings)
 

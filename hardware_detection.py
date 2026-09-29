@@ -22,6 +22,10 @@ def save_hardware_detection_cache(
 ):
     try:
         unified_settings = load_unified_settings()
+        old_ports = unified_settings.get("hardwareDetection", {})
+        if (old_ports.get("arduino_port") == arduino_port
+                and old_ports.get("zigbee_port") == zigbee_port):
+            return
         unified_settings["hardwareDetection"] = {
             "arduino_port": arduino_port,
             "zigbee_port": zigbee_port,
