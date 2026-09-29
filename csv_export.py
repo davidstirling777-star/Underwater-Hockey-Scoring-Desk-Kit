@@ -1,9 +1,9 @@
 """Tournament results export and legacy scorer/event-log helpers.
 
-Only write_game_results_to_csv writes the tournament draw. It checks the
-game-number header, rejects ambiguous IDs, and stages a complete CSV beside
-the original before os.replace. A failed export must leave the live match
-state available for the operator to retry; see game_flow.py.
+write_game_results_to_csv reads the selected draw but writes exclusively to
+its sibling _Results.csv. It checks the game-number header, rejects ambiguous
+IDs, and stages a complete results CSV before os.replace. A failed export must
+leave the live match state available for retry; see game_flow.py.
 
 The goal-event reader near the bottom is legacy: UWH_Game_Data.txt lacks a
 game-number field. Do not use it to infer per-game scorers.
@@ -14,14 +14,15 @@ import os
 import stat
 import tempfile
 
+import tournament_files
+
 
 def _write_csv_atomically(csv_file, rows):
-    """Keep the tournament draw intact until a complete replacement is ready.
+    """Stage a complete RESULTS file before replacing the prior results.
 
-    The temporary file lives next to the draw, so os.replace is a single
-    filesystem operation on Windows and Linux. A failed write or replace
-    raises to the existing game-export retry screen; it cannot truncate
-    the original CSV.
+    The selected source draw is never passed to this function. The temporary
+    file lives next to the results file so os.replace is atomic on both
+    Windows and Linux. A failed write leaves prior results and the live game.
     """
     directory = os.path.dirname(os.path.abspath(csv_file))
     original_mode = stat.S_IMODE(os.stat(csv_file).st_mode)
@@ -33,7 +34,7 @@ def _write_csv_atomically(csv_file, rows):
             encoding="utf-8-sig",
             newline="",
             dir=directory,
-            prefix=".uwh_draw_",
+            prefix=".uwh_results_",
             suffix=".tmp",
             delete=False,
         ) as staged:
@@ -42,8 +43,7 @@ def _write_csv_atomically(csv_file, rows):
             staged.flush()
             os.fsync(staged.fileno())
 
-        # Preserve the original draw's file mode rather than leaving the
-        # restrictive default permissions of a newly created temp file.
+        # Preserve the results file's permissions on Windows and Linux.
         os.chmod(staged_path, original_mode)
         os.replace(staged_path, csv_file)
         staged_path = None
@@ -122,7 +122,16 @@ def write_game_results_to_csv(
 
     if not os.path.exists(csv_file):
         if debug_mode:
-            print(f"CSV UPDATE: File not found: {csv_file}")
+            print(f"CSV UPDATE: Draw not found: {csv_file}")
+        return False
+
+    # Create a sibling results file only if it does not already exist.
+    # Revalidate the schedule against the original draw on every export:
+    # restarting or changing the selection must never reset recorded games.
+    try:
+        results_file = tournament_files.ensure_results_file(csv_file)
+    except ValueError as error:
+        print(f"CSV UPDATE: Cannot use tournament results: {error}")
         return False
 
     penalties_text = build_penalties_text(penalties)
@@ -135,7 +144,7 @@ def write_game_results_to_csv(
 
     rows = []
 
-    with open(csv_file, "r", newline="", encoding="utf-8-sig") as f:
+    with open(results_file, "r", newline="", encoding="utf-8-sig") as f:
         reader = csv.reader(f)
         for row in reader:
             rows.append(row)
@@ -213,7 +222,7 @@ def write_game_results_to_csv(
         return False
 
     # Never guess which row to overwrite when an ID appears twice, including
-    # variants such as 7 and 007. Leave the original file and live scores
+    # variants such as 7 and 007. Leave results and live scores
     # untouched so the operator can resolve the ambiguous draw.
     if len(matches) != 1:
         print(
@@ -237,10 +246,10 @@ def write_game_results_to_csv(
             f"W:{white_score} B:{black_score}"
         )
 
-    _write_csv_atomically(csv_file, rows)
+    _write_csv_atomically(results_file, rows)
 
     if debug_mode:
-        print("CSV UPDATE: Success")
+        print(f"CSV UPDATE: Saved to {results_file}")
 
     return True
 
