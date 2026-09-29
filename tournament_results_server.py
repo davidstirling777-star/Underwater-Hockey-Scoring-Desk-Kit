@@ -143,7 +143,15 @@ def make_handler(draw_path, secret, write_lock):
                 return self._json(404, {"error": "Not found"})
             if not self._authenticated():
                 return self._json(401, {"error": "Unauthorised"})
-            return self._json(200, {"status": "ready"})
+            try:
+                with open(draw_path, "rb") as stream:
+                    digest = hashlib.sha256(stream.read()).hexdigest()
+            except OSError:
+                return self._json(503, {"error": "Source draw is unavailable"})
+            # Clients validate this even when they have no pending games.
+            return self._json(200, {
+                "status": "ready", "draw_sha256": digest
+            })
 
         def do_POST(self):
             if self.path != "/submit":
