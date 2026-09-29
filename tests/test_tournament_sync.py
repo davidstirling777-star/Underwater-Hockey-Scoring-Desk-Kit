@@ -251,6 +251,26 @@ class TwoCourtTournamentSyncTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Unexpected"):
             server.apply_submission(str(self.draw), record)
 
+    def test_health_check_detects_different_draw_before_first_game(self):
+        # Merely configuring a court must detect a mismatched server draw,
+        # even while the court has no completed results to POST.
+        ready = self.sync(0)
+        self.assertIn("all completed games synced", ready._last_status)
+        self.draw.write_bytes(self.original.replace(b"Odd B", b"OTHER"))
+        mismatch = self.sync(0)
+        self.assertIn("different original tournament draw", mismatch._last_status)
+        self.assertFalse((self.server_folder / "Tournament_Results.csv").exists())
+
+    def test_local_only_mode_never_contacts_the_server(self):
+        self.export(0, 2, 2, 3)
+        worker, path = self.worker(0)
+        worker._sync_once(path, False, "http://unreachable.invalid:8765", "")
+        self.assertIn("network sync off", worker._last_status)
+        self.assertFalse((self.server_folder / "Tournament_Results.csv").exists())
+        self.assertEqual(
+            read_rows(self.courts[0] / "Tournament_Results.csv")[2][3], "2"
+        )
+
     def test_invalid_server_url_rejected_before_io(self):
         for invalid in (
             "", "\\\\server\\share", "file:///tmp/results", "http://user:p@host",
