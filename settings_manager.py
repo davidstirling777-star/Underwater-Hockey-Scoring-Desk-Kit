@@ -135,7 +135,7 @@ def save_unified_settings(base_dir, settings):
             with open(settings_path, "rb") as settings_file:
                 previous = settings_file.read()
             previous_document = _validate_settings_document(
-                previous.decode("utf-8"), settings_path
+                previous, settings_path
             )
             # Startup synchronisation and duplicate save calls need not
             # create a new backup when nothing has changed.
