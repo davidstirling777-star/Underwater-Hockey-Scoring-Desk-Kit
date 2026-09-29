@@ -16,6 +16,7 @@ a = Analysis(
         "csv_helpers.py",
         "csv_ui.py",
         "tournament_files.py",
+        "tournament_sync.py",
         "display_manager.py",
         "display_ui.py",
         "game_engine.py",
@@ -57,6 +58,7 @@ a = Analysis(
 
         ("README.md", "."),
         ("ZIGBEE_SETUP.md", "."),
+        ("tournament_results_server.py", "."),
         ("HARDWARE_SETUP.md", "."),
     ],
     hiddenimports=[
@@ -67,6 +69,7 @@ a = Analysis(
         "csv_export",
         "csv_ui",
         "tournament_files",
+        "tournament_sync",
         "display_manager",
         "display_ui",
         "hardware_detection",
