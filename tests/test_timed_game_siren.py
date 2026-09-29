@@ -58,7 +58,12 @@ class DeferredThread:
 def _load_sound_functions(sound_object):
     path = Path(__file__).resolve().parents[1] / "sound.py"
     module = ast.parse(path.read_text(encoding="utf-8"))
-    names = {"play_sound_with_volume", "_play_sound_with_volume_sync"}
+    names = {
+        "normalise_max_siren_duration",
+        "play_sound_with_volume",
+        "_play_sound_with_volume_sync",
+        "start_timed_siren_with_volume",
+    }
     funcs = [
         node for node in module.body
         if isinstance(node, ast.FunctionDef) and node.name in names
@@ -108,7 +113,10 @@ class TimedSoundTests(unittest.TestCase):
         self.sound = FakeSound(length=0.7)
         self.api = _load_sound_functions(self.sound)
 
-    def play(self, kind="siren", duration=1.5, filename=None, enabled=True):
+    def play(
+        self, kind="siren", duration=1.5, filename=None,
+        enabled=True, max_seconds=10.0,
+    ):
         self.api["play_sound_with_volume"](
             filename or ("pip.mp3" if kind == "pips" else "siren.mp3"),
             kind,
@@ -118,6 +126,7 @@ class TimedSoundTests(unittest.TestCase):
             60,
             60,
             duration,
+            max_seconds,
         )
         if DeferredThread.created:
             DeferredThread.created[-1].run()
@@ -145,9 +154,53 @@ class TimedSoundTests(unittest.TestCase):
                 self.play(duration=invalid)
                 self.assertEqual(self.sound.calls, [])
 
-    def test_duration_is_bounded_to_wireless_safety_limit(self):
+    def test_default_maximum_is_ten_seconds(self):
         self.play(duration=100)
+        self.assertEqual(self.sound.calls, [{"loops": -1, "maxtime": 10_000}])
+
+    def test_user_maximum_applies_to_longer_regular_siren(self):
+        self.play(duration=18, max_seconds=4.25)
+        self.assertEqual(self.sound.calls, [{"loops": -1, "maxtime": 4250}])
+
+    def test_maximum_never_exceeds_thirty_seconds(self):
+        self.play(duration=100, max_seconds=30)
         self.assertEqual(self.sound.calls, [{"loops": -1, "maxtime": 30_000}])
+        self.sound.calls.clear()
+        self.play(duration=100, max_seconds=100)
+        self.assertEqual(self.sound.calls, [{"loops": -1, "maxtime": 10_000}])
+
+    def test_bad_saved_maximum_falls_back_to_ten(self):
+        for value in (None, "", "NaN", float("inf"), -10, 0, 31, "bad"):
+            with self.subTest(value=value):
+                self.assertEqual(
+                    self.api["normalise_max_siren_duration"](value), 10.0
+                )
+
+    def test_wireless_timed_siren_respects_same_user_maximum(self):
+        result = self.api["start_timed_siren_with_volume"](
+            "siren.mp3", True, 65, 20, 4
+        )
+        self.assertIs(result, self.sound.channels[0])
+        self.assertEqual(self.sound.calls, [{"loops": -1, "maxtime": 4000}])
+        self.sound.calls.clear()
+        self.api["start_timed_siren_with_volume"](
+            "siren.mp3", True, 65, 20
+        )
+        self.assertEqual(self.sound.calls, [{"loops": -1, "maxtime": 10_000}])
+
+    def test_invalid_wireless_duration_does_not_play(self):
+        for value in (0, -5, "invalid", float("nan"), float("inf")):
+            with self.subTest(value=value):
+                self.assertIsNone(self.api["start_timed_siren_with_volume"](
+                    "siren.mp3", True, 65, value
+                ))
+        self.assertEqual(self.sound.calls, [])
+
+    def test_maximum_tk_variable_is_snapshotted_before_worker(self):
+        max_limit = TkDuration("4")
+        self.play(duration=20, max_seconds=max_limit)
+        self.assertEqual(max_limit.calls, 1)
+        self.assertEqual(self.sound.calls, [{"loops": -1, "maxtime": 4000}])
 
     def test_pips_remain_one_full_sound(self):
         self.play(kind="pips", duration=100)
@@ -155,10 +208,12 @@ class TimedSoundTests(unittest.TestCase):
         self.assertEqual(self.sound.volume, 0.4)
         self.assertEqual(self.sound.channels[0].volume, 1.0)
 
-    def test_pips_do_not_access_siren_duration_at_all(self):
+    def test_pips_do_not_access_any_siren_duration(self):
         tk_value = TkDuration(1.5)
-        self.play(kind="pips", duration=tk_value)
+        max_value = TkDuration(2)
+        self.play(kind="pips", duration=tk_value, max_seconds=max_value)
         self.assertEqual(tk_value.calls, 0)
+        self.assertEqual(max_value.calls, 0)
         self.assertEqual(self.sound.calls, [{}])
 
     def test_ui_snapshots_duration_before_background_thread_starts(self):
@@ -168,7 +223,7 @@ class TimedSoundTests(unittest.TestCase):
         )
         self.assertEqual(tk_value.calls, 1)
         self.assertEqual(len(DeferredThread.created), 1)
-        self.assertEqual(DeferredThread.created[0].args[-1], 1.5)
+        self.assertEqual(DeferredThread.created[0].args[-2:], (1.5, 10.0))
         DeferredThread.created[0].run()
         self.assertEqual(tk_value.calls, 1)
         self.assertEqual(self.sound.calls, [{"loops": -1, "maxtime": 1500}])
