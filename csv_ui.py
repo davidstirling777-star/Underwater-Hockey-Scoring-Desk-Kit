@@ -9,14 +9,15 @@ import os
 
 def get_csv_files(base_dir):
     """
-    Scan the application folder for CSV files.
+    List only draw CSVs in the application folder, not generated results.
     Returns a list of CSV files found.
     """
     csv_files = []
 
     try:
         for filename in os.listdir(base_dir):
-            if filename.lower().endswith(".csv"):
+            if (filename.lower().endswith(".csv")
+                    and not filename.lower().endswith("_results.csv")):
                 csv_files.append(filename)
 
     except Exception as e:
