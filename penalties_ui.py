@@ -1,3 +1,10 @@
+"""Tk penalty-entry dialog and live penalty-list interactions.
+
+Penalties themselves live on app.engine. Listbox rows are presentation
+indexes: when removing a selected penalty, resolve it against the current
+stored/active collection instead of treating a row as a permanent ID.
+"""
+
 import tkinter as tk
 from tkinter import ttk, messagebox
 
