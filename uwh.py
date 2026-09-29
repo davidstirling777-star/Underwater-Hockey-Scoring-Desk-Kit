@@ -666,6 +666,7 @@ class GameManagementApp:
             return
 
         if event_name == "OFF":
+            self.add_to_zigbee_log("Arduino button: SIREN_OFF received")
             self._stop_arduino_siren()
             try:
                 self.zigbee_controller.handle_hardware_siren_event("OFF")
@@ -676,6 +677,8 @@ class GameManagementApp:
         if event_name != "ON":
             print(f"Unrecognised hardware siren event: {event_name!r}")
             return
+
+        self.add_to_zigbee_log("Arduino button: SIREN_ON received")
 
         # The Arduino button has TWO outputs: local PC sound and the
         # MQTT-controlled siren. Muting the PC must not suppress the hardware
