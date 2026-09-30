@@ -70,9 +70,9 @@ class MaintenanceDocumentationTests(unittest.TestCase):
         self.assertIn("**up to three working Zigbee buttons**", readme)
         self.assertIn(
             '"siren_button_2", "siren_button_3"',
-            guide,
+            readme,
         )
-        self.assertIn("individual buttons may publish different actions", guide)
+        self.assertIn("individual buttons may publish different actions", readme)
 
     def test_readme_settings_and_preset_instructions_match_current_code(self):
         readme = source("README.md")
@@ -87,12 +87,12 @@ class MaintenanceDocumentationTests(unittest.TestCase):
     def test_readme_zigbee_section_explains_mapping_and_auto_add_safety(self):
         readme = source("README.md")
         self.assertIn("**Auto-add From Log**", readme)
-        self.assertIn("**Ignore**", guide)
-        self.assertIn("**Save Action Mappings**", guide)
-        self.assertIn("**Save Configuration**", guide)
-        self.assertIn("up to five recent", guide)
-        self.assertIn("**Detected** ports", guide)
-        self.assertIn("`emergency`", guide)
+        self.assertIn("**Ignore**", readme)
+        self.assertIn("**Save Action Mappings**", readme)
+        self.assertIn("**Save Configuration**", readme)
+        self.assertIn("up to five recent", readme)
+        self.assertIn("**Detected** ports", readme)
+        self.assertIn("`emergency`", readme)
 
     def test_tournament_help_names_the_actual_required_score_columns(self):
         text = source("settings_ui.py")
