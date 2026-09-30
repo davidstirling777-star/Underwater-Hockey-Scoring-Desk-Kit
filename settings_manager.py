@@ -233,6 +233,13 @@ def get_default_unified_settings():
             "reconnect_delay": 5,
             "enable_logging": True
         },
+        # Networking is opt-in: installing an update never sends game data.
+        # A court holds its own results even when the server is offline.
+        "tournamentSync": {
+            "mode": "Local only",
+            "server_url": "",
+            "token": "",
+        },
         "screenSettings": {
             "show_team_names": True,
             "operator_layout": "Standard",

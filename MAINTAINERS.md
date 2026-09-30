@@ -40,6 +40,9 @@ operating a match.
 | `penalties_ui.py` | Penalty-entry dialog and its refresh/removal handlers. |
 | `preset_manager.py` | Six Game Variables preset buttons and long-hold editor. |
 | `csv_ui.py` | Draw-file dropdown refresh. |
+| `tournament_files.py` | Protect input draw, create/resume results CSV, and seed sample for source installs. |
+| `tournament_sync.py` | Worker: completed local game discovery, 10 s retries, receipts, HTTP client; never touch Tk from worker. |
+| `tournament_results_server.py` | Standalone authenticated third-computer writer, serialised result merges and conflict detection. |
 | `csv_helpers.py` | CSV draw game-number list and team-name retrieval; handles quoted fields. |
 | `csv_export.py` | Tournament result writer, scorer formatting and legacy goal-event helpers. |
 | `game_settings_manager.py` | Translate between Game Variables widgets and the persisted gameSettings section. |
@@ -99,12 +102,22 @@ with `csv.reader`, never `line.split(',')`: quoted team names can contain
 commas, apostrophes, quotes and embedded newlines. A duplicated numeric game
 ID, including `7` and `007`, must not be guessed or overwritten.
 
-`csv_export.write_game_results_to_csv` stages the *entire* result CSV beside
-the draw, flushes it, and replaces the original only after success. An export
-failure should leave both the original draw and the operator's current game
-data intact. `game_flow.export_and_reset_game_at_break` is the protection
-gate: it only logs Game End, clears scores/penalties/scorers and advances the
-game when the export succeeds (or there is explicitly no tournament export).
+`tournament_files.py` owns the draw/output boundary. A source ZIP copies
+`assets/Tournament_Draw.csv` into the application folder **only if missing**.
+`results_path_for_draw` derives the sibling `_Results.csv`, and
+`ensure_results_file` copies the source *only on first selection*. It checks
+that non-result columns still match the draw on every subsequent access.
+Never replace an existing results file from the sample or the selected draw:
+doing so could erase a completed tournament. `csv_ui.get_csv_files` excludes
+generated `_Results.csv` files from the draw picker.
+
+`csv_export.write_game_results_to_csv` reads the selected draw indirectly
+through this guard but stages and atomically replaces **only the results CSV**.
+The draw remains unmodified; duplicate game numbers still fail closed. An
+export failure must retain both prior results and the operator's live game.
+`game_flow.export_and_reset_game_at_break` remains the protection gate: only
+after a successful write does it log Game End, clear scores/penalties/scorers
+and advance. Keep the two-file contract intact on Windows and Linux.
 The countdown checks export before its 30-second warning pip; an operator can
 retry instead of losing match data. Do not reorder these operations casually.
 
@@ -112,6 +125,34 @@ Scorer comments use `W#7(2)`, `W#PG(1)`, `B#UNK(1)`, etc. The legacy
 `UWH_Game_Data.txt` event format has **no tournament game number**; its
 `get_goal_events_for_game(..., game_number)` helper must not be used as
 reliable per-game attribution without extending and migrating that format.
+
+## Two-court, local-first results sync
+
+The [TOURNAMENT_SYNC.md](TOURNAMENT_SYNC.md) operator guide explains setup,
+the private LAN boundary and RP5/Windows acceptance testing. The draw must
+have identical bytes on the results server and both scoring computers.
+`tournament_sync.completed_game_records` reconstructs every locally
+completed game's fields from the durable court _Results.csv; a missing
+acknowledgement file causes safe idempotent replay, not loss of a game.
+`TournamentSyncWorker` uses its own daemon thread, wake Event and 10-second
+retry; Tk is touched only by polling its status queue. It must never delay
+`game_flow.export_and_reset_game_at_break`: the remote network is not part
+of the local export success gate.
+
+`tournament_results_server.apply_submission` accepts only game-number and
+four result fields plus the full source-draw SHA-256. The HTTP handler
+authenticates and holds one process lock around validation, merge and atomic
+results replacement. All non-result columns are checked against the source
+draw; a different result for an already-saved game is HTTP 409, never a
+last-writer-wins overwrite. The server cannot accept filesystem paths from
+clients, and production clients must authenticate over a protected LAN/VPN.
+Do not use SMB to let two clients overwrite the whole results CSV.
+
+The masked sync token and server URL live in the `tournamentSync` section
+of settings.json, **not** in the draw or receipt file. A masked GUI field
+does not encrypt settings.json: protect filesystem permissions. Default
+mode is Local only; there are no network calls until Save & Sync explicitly
+enables the shared server.
 
 ## Settings and update safety
 

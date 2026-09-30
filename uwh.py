@@ -13,6 +13,8 @@ import csv_export
 import startup_selftest
 import csv_helpers
 import csv_ui
+import tournament_files
+import tournament_sync
 import display_manager
 import display_ui
 import game_flow
@@ -88,6 +90,14 @@ if getattr(sys, 'frozen', False):
 
     # Tell Python to check the '_internal' folder for your helper modules
     sys.path.insert(0, internal_dir)
+
+# In a source ZIP the sample draw lives under assets/, not the root
+# scanned by the tournament selector. Seed a working DRAW once on either OS.
+# An existing draw or previously recorded _Results.csv is never replaced.
+try:
+    tournament_files.seed_sample_draw(BASE_DIR)
+except OSError as error:
+    print(f"TOURNAMENT DRAW: Could not install sample: {error}")
 
 # NOW you can safely import your custom helper modules
 import sound
@@ -279,6 +289,14 @@ class GameManagementApp:
                 controller.stop()
         except Exception as e:
             print(f"Error stopping Zigbee controller: {e}")
+
+        # Local scores/results have already been written. An unfinished
+        # network submission remains pending and is replayed after restart.
+        # Fake/headless harnesses may exercise request_exit without building
+        # the whole application. Production always has the worker.
+        sync_worker = getattr(self, "tournament_sync", None)
+        if sync_worker is not None:
+            sync_worker.stop()
 
         try:
             self.close_all_display_windows()
@@ -832,6 +850,12 @@ class GameManagementApp:
         self.master = master
         # Automatic Game Variables / Screen changes are saved at most once
         # per minute, in a single settings.json write.
+        # Network synchronisation runs off the GUI thread; the queue below
+        # brings only status text back to Tk.
+        self._tournament_sync_status_queue = queue.Queue()
+        self.tournament_sync = tournament_sync.TournamentSyncWorker(
+            self._tournament_sync_status_queue
+        )
         self._pending_settings_sections = {}
         self._settings_autosave_job = None
         self.master.title("Underwater Hockey Game Management App")
@@ -1278,6 +1302,10 @@ class GameManagementApp:
         splash_report("Scoreboard tab created", True)
 
         self.create_settings_tab()
+        # The tab's initial selection configures the worker. Starting the
+        # daemon here lets its first network request happen off the Tk thread.
+        self.tournament_sync.start()
+        self._poll_tournament_sync_status()
         splash_report("Settings tab created", True)
 
         self.create_screen_tab()
@@ -1375,7 +1403,9 @@ class GameManagementApp:
         )
         
     def write_game_results_to_csv(self, game_number, white_score, black_score, penalties):
-        return csv_export.write_game_results_to_csv(
+        # Local CSV is the durable source of truth for this court. The remote
+        # submission happens later and cannot delay game advancement.
+        saved = csv_export.write_game_results_to_csv(
             csv_file=self.csv_var.get(),
             base_dir=BASE_DIR,
             game_number=game_number,
@@ -1387,6 +1417,9 @@ class GameManagementApp:
             black_goal_scorers=self.engine.black_goal_scorers,
             debug_mode=DEBUG_MODE
         )
+        if saved:
+            self.tournament_sync.wake()
+        return saved
     
     def create_scoreboard_tab(self):
         return scoreboard_ui.create_scoreboard_tab(self)
@@ -1811,11 +1844,97 @@ class GameManagementApp:
     def _sort_cap_key(self, cap_number):
         return csv_export.sort_cap_key(cap_number)
 
-    def on_csv_file_changed(self, event=None):
-        return game_flow.on_csv_file_changed(
-            self,
-            event
+    def _selected_tournament_draw(self):
+        """Return the source draw path; never return a results file."""
+        filename = self.csv_var.get()
+        if filename in ("", "No CSV files found"):
+            return ""
+        return os.path.join(BASE_DIR, filename)
+
+    def _configure_tournament_sync(self):
+        """Read SAVED options; uncommitted UI text cannot redirect results."""
+        settings = load_unified_settings().get("tournamentSync", {})
+        self.tournament_sync.configure(
+            self._selected_tournament_draw(),
+            settings.get("mode") == "Shared server",
+            settings.get("server_url", ""),
+            settings.get("token", ""),
         )
+
+    def save_tournament_sync_configuration(self):
+        """Validate and immediately save server details, then start syncing."""
+        mode = self.tournament_sync_mode_var.get()
+        address = self.tournament_sync_url_var.get().strip()
+        token = self.tournament_sync_token_var.get().strip()
+        if mode == "Shared server":
+            try:
+                address = tournament_sync.normalise_url(address)
+                if len(token) < 16:
+                    raise ValueError(
+                        "Enter the shared results server token (16+ characters)"
+                    )
+            except ValueError as error:
+                messagebox.showerror(
+                    "Tournament Results", str(error), parent=self.master
+                )
+                return
+        try:
+            settings_manager.update_unified_settings(BASE_DIR, {
+                "tournamentSync": {
+                    "mode": mode,
+                    "server_url": address,
+                    "token": token,
+                }
+            })
+        except OSError as error:
+            messagebox.showerror(
+                "Tournament Results",
+                f"Could not save results configuration:\n{error}",
+                parent=self.master,
+            )
+            return
+
+        self._configure_tournament_sync()
+        self.tournament_sync.wake()
+
+    def _poll_tournament_sync_status(self):
+        """Only the Tk thread edits the Game Variables status label."""
+        try:
+            while True:
+                self.tournament_sync_status_var.set(
+                    self._tournament_sync_status_queue.get_nowait()
+                )
+        except queue.Empty:
+            pass
+        self.master.after(500, self._poll_tournament_sync_status)
+
+    def on_csv_file_changed(self, event=None):
+        # Game selection/team names always come from the ORIGINAL draw.
+        game_flow.on_csv_file_changed(self, event)
+
+        draw_path = self._selected_tournament_draw()
+        if draw_path:
+            try:
+                # Create only if missing; retain completed games after reboot.
+                result_path = tournament_files.ensure_results_file(draw_path)
+                self.tournament_results_var.set(
+                    os.path.basename(result_path)
+                )
+                self.tournament_results_dropdown.configure(
+                    values=(os.path.basename(result_path),)
+                )
+            except (OSError, ValueError) as error:
+                print(f"TOURNAMENT RESULTS: {error}")
+                self.tournament_results_var.set("Results unavailable")
+                if event is not None:
+                    messagebox.showerror(
+                        "Tournament Results",
+                        f"Cannot prepare the results file:\n{error}",
+                        parent=self.master
+                    )
+        else:
+            self.tournament_results_var.set("No results file")
+        self._configure_tournament_sync()
 
     def on_court_game_mode_changed(self, event=None):
         return game_flow.on_court_game_mode_changed(

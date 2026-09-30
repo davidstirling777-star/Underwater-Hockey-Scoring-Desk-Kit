@@ -6,6 +6,12 @@ on:
       - "uwh.py"
       - "game_flow.py"
       - "game_engine.py"
+      - "csv_export.py"
+      - "tournament_files.py"
+      - "tournament_sync.py"
+      - "tournament_results_server.py"
+      - "settings_ui.py"
+      - "TOURNAMENT_SYNC.md"
       - "tests/**"
       - ".github/workflows/test-game-export.yml"
   workflow_dispatch:
@@ -25,3 +31,20 @@ jobs:
           python-version: "3.11"
       - name: Run headless regression tests
         run: python -m unittest discover -s tests -p "test_*.py" -v
+
+  two-court-sync-cross-platform:
+    name: Two-court sync (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - name: Checkout PR code
+        uses: actions/checkout@v6
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: Run two-court network sync tests
+        run: python -m unittest discover -s tests -p "test_tournament_sync.py" -v

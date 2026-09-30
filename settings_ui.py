@@ -16,10 +16,12 @@ def create_settings_tab(app):
     tab = ttk.Frame(app.notebook)
     app.notebook.add(tab, text="Game Variables")
 
-    tab.grid_rowconfigure(0, weight=3)
-    tab.grid_rowconfigure(1, weight=1)
-    tab.grid_rowconfigure(2, weight=1)
-    tab.grid_rowconfigure(3, weight=1)
+    # Tournament List is deliberately taller than Game Sequence:
+    # its result/connection controls must fit on Pi 5's operator display.
+    tab.grid_rowconfigure(0, weight=2)
+    tab.grid_rowconfigure(1, weight=0)
+    tab.grid_rowconfigure(2, weight=3)
+    tab.grid_rowconfigure(3, weight=0)
     tab.grid_columnconfigure(0, weight=2)
     tab.grid_columnconfigure(1, weight=1)
 
@@ -522,7 +524,8 @@ def create_settings_tab(app):
     widget4.grid_rowconfigure(1, weight=0)
     widget4.grid_rowconfigure(2, weight=0)
     widget4.grid_rowconfigure(3, weight=0)
-    widget4.grid_rowconfigure(4, weight=1)
+    widget4.grid_rowconfigure(4, weight=0)
+    widget4.grid_rowconfigure(8, weight=1)
 
     tournament_header = tk.Label(
         widget4,
@@ -704,30 +707,105 @@ def create_settings_tab(app):
         app.on_court_game_mode_changed
     )
 
-    # Load the selected CSV and then apply the initial checkbox state.
+    # ------------------------------------------------------------
+    # Results: local file + optional third-computer synchronisation
+    # ------------------------------------------------------------
+    # The result filename is derived from the draw. This read-only dropdown
+    # intentionally cannot select a different file to overwrite.
+    sync_settings = app.load_unified_settings().get("tournamentSync", {})
+    app.tournament_results_var = tk.StringVar(
+        master=app.master, value="No results file"
+    )
+    app.tournament_results_dropdown = ttk.Combobox(
+        widget4, textvariable=app.tournament_results_var,
+        values=(), state="readonly", width=18
+    )
+    ttk.Label(widget4, text="Tournament Results:").grid(
+        row=3, column=0, sticky="w", padx=8, pady=(10, 2)
+    )
+    app.tournament_results_dropdown.grid(
+        row=3, column=1, columnspan=3,
+        sticky="ew", padx=4, pady=(10, 2)
+    )
+    ttk.Button(
+        widget4, text="Results Folder", command=app.open_csv_folder
+    ).grid(row=3, column=4, sticky="ew", padx=(4, 8), pady=(10, 2))
+
+    app.tournament_sync_mode_var = tk.StringVar(
+        master=app.master,
+        value=sync_settings.get("mode", "Local only")
+    )
+    ttk.Label(widget4, text="Results sync:").grid(
+        row=4, column=0, sticky="w", padx=8, pady=2
+    )
+    ttk.Combobox(
+        widget4, textvariable=app.tournament_sync_mode_var,
+        values=("Local only", "Shared server"),
+        state="readonly", width=18
+    ).grid(row=4, column=1, columnspan=3, sticky="ew", padx=4, pady=2)
+
+    app.tournament_sync_url_var = tk.StringVar(
+        master=app.master,
+        value=sync_settings.get("server_url", "")
+    )
+    ttk.Label(widget4, text="Server URL:").grid(
+        row=5, column=0, sticky="w", padx=8, pady=2
+    )
+    ttk.Entry(
+        widget4, textvariable=app.tournament_sync_url_var,
+        width=30
+    ).grid(row=5, column=1, columnspan=4,
+           sticky="ew", padx=(4, 8), pady=2)
+
+    app.tournament_sync_token_var = tk.StringVar(
+        master=app.master, value=sync_settings.get("token", "")
+    )
+    ttk.Label(widget4, text="Access token:").grid(
+        row=6, column=0, sticky="w", padx=8, pady=2
+    )
+    ttk.Entry(
+        widget4, textvariable=app.tournament_sync_token_var,
+        show="*", width=20
+    ).grid(row=6, column=1, columnspan=3,
+           sticky="ew", padx=4, pady=2)
+    ttk.Button(
+        widget4, text="Save & Sync",
+        command=app.save_tournament_sync_configuration
+    ).grid(row=6, column=4, sticky="ew", padx=(4, 8), pady=2)
+
+    app.tournament_sync_status_var = tk.StringVar(
+        master=app.master,
+        value="Local results saved · network sync off"
+    )
+    ttk.Label(
+        widget4, textvariable=app.tournament_sync_status_var,
+        font=(default_font.cget("family"), small_size),
+        wraplength=490, justify="left"
+    ).grid(row=7, column=0, columnspan=4,
+           sticky="ew", padx=8, pady=(6, 2))
+    ttk.Button(
+        widget4, text="Sync Now", command=app.tournament_sync.wake
+    ).grid(row=7, column=4, sticky="ew", padx=(4, 8), pady=(6, 2))
+
+    # Create/resume results immediately but never make the network a
+    # prerequisite for selecting or finishing a match.
     app.on_csv_file_changed()
     app.on_use_tournament_list_changed()
 
     csv_comment = tk.Label(
         widget4,
         text=(
-            "Save a CSV file of games into the same folder as this program is in.\n"
+            "The original draw is read-only; completed games are saved "
+            "locally first. Shared-server sync retries every 10 seconds.\n"
             "Expected CSV headers: date,#,White,WScore,Black,BScore,"
-            "Referees,Penalties,Comments\n"
-            "(# is the game number; use quotes around team names containing commas)"
+            "Referees,Penalties,Comments"
         ),
         font=(default_font.cget("family"), small_size),
-        anchor="nw",
-        justify="left",
-        wraplength=600
+        anchor="nw", justify="left", wraplength=600
     )
     csv_comment.grid(
-        row=3,
-        column=0,
-        columnspan=5,
-        sticky="nw",
-        padx=8,
-        pady=(8, 4)
+        row=8, column=0, columnspan=5,
+        sticky="nw", padx=8, pady=(6, 4)
     )
 
     # ------------------------------------------------------------
@@ -755,16 +833,9 @@ def create_settings_tab(app):
     )
 
     explanation_text = (
-        "Game Sequence Flow:\n"
-        "1. First Game Starts In: (runs once at app start)\n"
-        "2. First Half → Half Time → Second Half\n"
-        "3. If scores tied: Overtime Game Break → Overtime First Half "
-        "→ Overtime Half Time → Overtime Second Half (if enabled)\n"
-        "4. If still tied: Sudden Death Game Break → Sudden Death (if enabled)\n"
-        "5. Between Game Break (loop back to step 2)\n\n"
-        "Important Notes:\n"
-        "• 'First Game Starts In:' transitions directly to First Half\n"
-        "• Crib time is subtracted from Between Game Break"
+        "First Game Starts In → First Half → Half Time → Second Half\n"
+        "If tied: Overtime → Sudden Death (if enabled)\n"
+        "Between Game Break → Next game; crib time shortens this break."
     )
 
     explanation_label = tk.Label(

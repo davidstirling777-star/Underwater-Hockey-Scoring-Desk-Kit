@@ -12,6 +12,7 @@ The software has an operator-facing Underwater Hockey Game Management App and a 
 - [Downloading and installing UWH on a Raspberry Pi 5](#downloading-and-installing-uwh-on-a-raspberry-pi-5)
 - [Game Variables tab](#game-variables-tab)
 - [Tournament List](#tournament-list)
+- [Two-court results synchronisation](#two-court-results-synchronisation)
 - [Screens tab](#screens-tab)
 - [Sounds tab](#sounds-tab)
 - [Scoreboard tab](#scoreboard-tab)
@@ -172,7 +173,7 @@ If the desktop asks you to **Allow Launching** or **mark the shortcut as trusted
 
 A GitHub Download ZIP is a snapshot: it does not update itself. To obtain newer code, download a new ZIP and extract it into a separate directory, or back up the existing directory before replacing files.
 
-In particular, keep copies of `settings.json` (including the Zigbee `siren_button_devices` list, MQTT broker, sounds and screen visibility), tournament CSV files, sound files added under `assets/`, and game logs such as `UWH_Game_Data.txt` if present. The application writes results back to the CSV file during tournaments. A missing UWH `settings.json` does not unpair a button, but UWH can lose its name and stop responding to it.
+In particular, keep copies of `settings.json` (including the Zigbee `siren_button_devices` list, MQTT broker, sounds and screen visibility), **both draw and results CSV files**, sound files added under `assets/`, and game logs such as `UWH_Game_Data.txt` if present. The application writes completed games to the **results CSV** during tournaments, not to the draw. A missing UWH `settings.json` does not unpair a button, but UWH can lose its name and stop responding to it.
 
 After copying a fresh version into its intended location, install that version's dependencies into its `.venv` and test it from Terminal before changing the desktop shortcut. Do not copy a `.venv` from an old installation. Verify the **Zigbee Siren** button-name list after restoring settings; the Raspberry Pi and Windows MQTT setup instructions are in [ZIGBEE_SETUP.md](ZIGBEE_SETUP.md).
 
@@ -230,18 +231,49 @@ Here, six buttons are located where commonly used settings can be stored. Holdin
 
 ### Tournament List
 
-A sample CSV file is included with the distribution of this app. This has a dropdown list where a CSV file can be selected that contains the draw for a Tournament or a list of games. The team names listed in the 'White' and 'Black' columns will appear on the Scoreboard.
+A sample `assets/Tournament_Draw.csv` is included with the distribution. On a source installation (including Raspberry Pi 5), UWH copies it once beside `uwh.py` as `Tournament_Draw.csv` if no root copy exists. Windows builds also make their bundled sample available in the application folder. Existing draw and results files are never replaced by this sample installation. Select an original draw from the dropdown; its `White` and `Black` columns supply the displayed team names.
 
-The CSV File dropdown automatically refreshes when clicked. New Tournament CSV files copied into the application folder can be selected without restarting the application.
+The CSV File dropdown automatically refreshes when clicked. New original draw CSV files copied into the application folder can be selected without restarting the application. Generated results CSVs are excluded from the dropdown.
 
 **Expected CSV headers:** `date,#,White,WScore,Black,BScore,Referees,Penalties,Comments`
 
 Where `#` is the Game Number (but this can also be `game`, `game#` or `game_number`).
 
 > [!IMPORTANT]
-> The selected tournament CSV is updated with scores in `WScore` and `BScore`, penalised cap numbers in `Penalties`, and (when **Record Scorers Cap Number** is enabled) scorer information in `Comments`. Scorer entries use forms such as `W#7(2)`, `W#PG(1)` (Penalty Goal) and `B#UNK(1)` (Unknown). The `White` and `Black` columns retain the team names. Team names containing commas or quotes must be properly quoted in CSV.
+> The selected **draw is an input file** and is not modified by UWH. Selecting it creates a sibling results CSV only if one does not already exist; an existing results file is **never reset**. `Tournament_Draw.csv` produces `Tournament_Results.csv`; `Court_A_Draw.csv` produces `Court_A_Results.csv`. Other names produce `<name>_Results.csv`. The results file starts as a complete copy of the draw, then receives scores and penalty data. UWH hides generated `_Results.csv` files from the draw selector.
 
-During **Between Game Break**, UWH attempts to export the completed game **just before the countdown reaches 00:30**. It writes a complete replacement CSV before swapping it into place. If saving fails, the game remains available for correction and retry: UWH must not discard its scores, penalties or scorer records and advance to the next game.
+Scores are written to `WScore` and `BScore`, penalised cap numbers to `Penalties`, and (when **Record Scorers Cap Number** is enabled) scorer information to `Comments` **in the results file**. Scorer entries use forms such as `W#7(2)`, `W#PG(1)` (Penalty Goal) and `B#UNK(1)` (Unknown). Team names, game numbers and the rest of the draw are carried through unchanged. Team names containing commas or quotes must be properly quoted in CSV.
+
+During **Between Game Break**, UWH attempts to export the completed game **just before the countdown reaches 00:30**. It atomically replaces the existing results CSV, never the input draw. If saving fails, the live game remains available for correction and retry: scores, penalties and scorer records are not discarded. If the original draw's schedule or teams no longer match an existing results file, UWH refuses to export rather than overwriting results. Back up both CSVs and resolve the difference before resuming.
+
+When updating UWH or changing machines, back up **both** the original draw and its `_Results.csv` file. A newer ZIP must not be allowed to replace an ongoing results file. If the old version has already written results directly into the original draw, keep a backup: the first results file will preserve any values already present in that draw.
+
+### Two-court results synchronisation
+
+The Tournament List widget is taller, with a read-only **Tournament Results**
+filename, **Results sync** mode, **Server URL**, masked **Access token**,
+**Save & Sync**, live status and **Sync Now**. The adjacent Game Sequence
+explanation is shorter to make room without shrinking the match variables.
+
+**Local only** is the default: completed matches go solely into this
+computer's separate results CSV. In **Shared server** mode, results are still
+saved locally first, then a background worker submits **one game at a time**
+to a third results computer. If that machine is offline or has a locked CSV,
+the court retries every ten seconds. It does not hold up the game timer or
+discard local results. Two courts may use even/odd game numbers and upload to
+the same combined results file. The third computer serialises those updates
+and reports conflicting scores rather than overwriting them.
+
+The shared destination is an HTTP(S) **server URL**, not an SMB-mounted
+folder. The results server owns its local combined CSV and must have an exact
+copy of the courts' original draw. Windows 11 and the RP5 use the same
+client settings. A trusted isolated LAN or VPN is required; HTTP without TLS
+does not encrypt the access token.
+
+Full installation, failure recovery, network setup, security, and acceptance
+testing are in **[TOURNAMENT_SYNC.md](TOURNAMENT_SYNC.md)**.
+Back up the original draw, local results CSV, server's combined CSV,
+settings.json and any .uwh_sync_*.json receipts before upgrading.
 
 The 'Starting Game #' will show a list of Game Numbers in the CSV file selected above. This could be useful if the app crashes and the games need to be restarted, or if multiple days' games are in the same file.
 

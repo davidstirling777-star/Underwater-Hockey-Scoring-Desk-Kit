@@ -108,7 +108,11 @@ class ScorerExportLabelsTests(unittest.TestCase):
                 },
             )
             self.assertTrue(saved)
-            with draw.open("r", newline="", encoding="utf-8-sig") as stream:
+            with draw.open("r", newline="", encoding="utf-8-sig") as source:
+                self.assertEqual(list(csv.reader(source))[1][3], "")
+            with (Path(folder) / "Draw_Results.csv").open(
+                "r", newline="", encoding="utf-8-sig"
+            ) as stream:
                 rows = list(csv.reader(stream))
             self.assertEqual(rows[1][2], "O'Brien, White")
             self.assertEqual(rows[1][3], "3")

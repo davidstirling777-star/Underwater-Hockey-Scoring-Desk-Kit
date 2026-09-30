@@ -27,8 +27,11 @@ class GameColumnExportTests(unittest.TestCase):
         self.folder = tempfile.TemporaryDirectory()
         self.addCleanup(self.folder.cleanup)
         self.file = Path(self.folder.name) / "Draw.csv"
+        self.results_file = Path(self.folder.name) / "Draw_Results.csv"
 
     def create_draw(self, header, *rows):
+        # Each test/subtest represents a distinct new tournament.
+        self.results_file.unlink(missing_ok=True)
         with self.file.open("w", encoding="utf-8-sig", newline="") as stream:
             writer = csv.writer(stream)
             writer.writerow(header)
@@ -36,6 +39,10 @@ class GameColumnExportTests(unittest.TestCase):
 
     def read_draw(self):
         with self.file.open("r", encoding="utf-8-sig", newline="") as stream:
+            return list(csv.reader(stream))
+
+    def read_results(self):
+        with self.results_file.open("r", encoding="utf-8-sig", newline="") as stream:
             return list(csv.reader(stream))
 
     def export(self, game_number, white=4, black=3, penalties=(),
@@ -55,7 +62,7 @@ class GameColumnExportTests(unittest.TestCase):
         )
         # Old row[1] logic would silently update game 1 (Venue='2').
         self.assertTrue(self.export("2"))
-        rows = self.read_draw()
+        rows = self.read_results()
         self.assertEqual(rows[1][3:8], ["", "Black One", "", "", ""])
         self.assertEqual(rows[2][3], "4")
         self.assertEqual(rows[2][5], "3")
@@ -75,7 +82,7 @@ class GameColumnExportTests(unittest.TestCase):
         self.assertTrue(self.export("11", penalties=(
             {"team": "White", "cap": "7", "duration": "120"},
         ), record_scorers=True))
-        record = self.read_draw()[1]
+        record = self.read_results()[1]
         self.assertEqual(record[0], "West, north")
         self.assertEqual(record[1], 'Team "A", blue')
         self.assertEqual(record[3], "Team B, red")
@@ -95,7 +102,7 @@ class GameColumnExportTests(unittest.TestCase):
                     ["White Team", "3", "", "Black Team", "", "", ""],
                 )
                 self.assertTrue(self.export("3"))
-                row = self.read_draw()[1]
+                row = self.read_results()[1]
                 self.assertEqual(row[2], "3")
                 self.assertEqual(row[5], "4")
                 self.assertEqual(row[0], "White Team")
@@ -108,7 +115,7 @@ class GameColumnExportTests(unittest.TestCase):
             ["", "Black", "9", "", "", ""],
         )
         self.assertTrue(self.export("9"))
-        self.assertEqual(self.read_draw()[1], [
+        self.assertEqual(self.read_results()[1], [
             "4", "Black", "9", "3", "", ""
         ])
 
@@ -122,7 +129,7 @@ class GameColumnExportTests(unittest.TestCase):
             self.file.name, self.folder.name
         ), ["7"])
         self.assertTrue(self.export("7"))
-        self.assertEqual(self.read_draw()[1][2], "4")
+        self.assertEqual(self.read_results()[1][2], "4")
 
     def test_nonnumeric_game_id_remains_exact_match(self):
         self.create_draw(
@@ -130,7 +137,7 @@ class GameColumnExportTests(unittest.TestCase):
             ["F1", "", "", "", ""],
         )
         self.assertTrue(self.export("F1"))
-        self.assertEqual(self.read_draw()[1][1:3], ["4", "3"])
+        self.assertEqual(self.read_results()[1][1:3], ["4", "3"])
 
     def test_duplicate_game_number_is_rejected_without_writing(self):
         self.create_draw(
@@ -190,7 +197,7 @@ class GameColumnExportTests(unittest.TestCase):
             ["2"],
         )
         self.assertTrue(self.export("2"))
-        self.assertEqual(self.read_draw()[1], ["2", "4", "3", "", ""])
+        self.assertEqual(self.read_results()[1], ["2", "4", "3", "", ""])
 
     def test_failed_ambiguous_export_preserves_live_score_and_game(self):
         self.create_draw(
