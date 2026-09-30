@@ -1,9 +1,10 @@
 # UWH maintainer guide
 
-This is the technical companion to [README.md](README.md) (operator and
-installation instructions), [ZIGBEE_SETUP.md](ZIGBEE_SETUP.md) (MQTT and radio
-deployment), and [HARDWARE_SETUP.md](HARDWARE_SETUP.md) (physical hardware).
-It is intended for someone modifying the **Python source**, not for a referee
+This is the technical companion to [README.md](README.md), which is the single
+operator, installation, tournament-sync and Zigbee deployment manual.
+[HARDWARE_SETUP.md](HARDWARE_SETUP.md) remains a separate working hardware note
+while the production hardware is still being developed. This maintainer guide
+is intended for someone modifying the **Python source**, not for a referee
 operating a match.
 
 ## Start here
@@ -128,7 +129,7 @@ reliable per-game attribution without extending and migrating that format.
 
 ## Two-court, local-first results sync
 
-The [TOURNAMENT_SYNC.md](TOURNAMENT_SYNC.md) operator guide explains setup,
+The [README two-court synchronisation section](README.md#two-court-tournament-results-synchronisation) explains setup,
 the private LAN boundary and RP5/Windows acceptance testing. The draw must
 have identical bytes on the results server and both scoring computers.
 `tournament_sync.completed_game_records` reconstructs every locally
@@ -206,5 +207,5 @@ procedure. Versioned Windows releases should only be published from current
 `main` using the workflow's release gate.
 
 For the exact operating instructions and any platform-specific deployment
-qualification, use README.md and ZIGBEE_SETUP.md rather than treating this
-architectural guide as a setup script.
+qualification, use README.md rather than treating this architectural guide as
+a setup script.
