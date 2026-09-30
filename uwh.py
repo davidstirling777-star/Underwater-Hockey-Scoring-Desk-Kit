@@ -63,7 +63,6 @@ DRAW_PATH = os.path.join(BASE_DIR, 'Tournament_Draw.csv')
 LICENSE_PATH = os.path.join(BASE_DIR, 'LICENSE')
 INO_PATH = os.path.join(BASE_DIR, 'arduino_siren_button.ino')
 README_PATH = os.path.join(BASE_DIR, 'README.md')
-ZIGBEE_PATH = os.path.join(BASE_DIR, 'ZIGBEE_SETUP.md')
 
 # --- SELF-EXTRACTING ROUTINE FOR PYINSTALLER 6 ---
 # If running compiled, ensure files exist in the root folder. If missing, copy them from _internal.
@@ -76,8 +75,7 @@ if getattr(sys, 'frozen', False):
         ('Tournament_Draw.csv', DRAW_PATH),
         ('LICENSE', LICENSE_PATH),
         ('arduino_siren_button.ino', INO_PATH),
-        ('README.md', README_PATH),
-        ('ZIGBEE_SETUP.md', ZIGBEE_PATH)
+        ('README.md', README_PATH)
     ]
     
     for filename, target_path in files_to_extract:
