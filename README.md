@@ -1,29 +1,51 @@
 # Underwater Hockey Scoring Desk Kit
 
-A project to allow the use of a computer, modern computer languages and readily available Arduino hardware to make a scoring and siren system for Underwater Hockey. Example hardware is described in `HARDWARE_SETUP.md`.
+A project to allow the use of a computer, modern computer languages and readily available Arduino hardware to make a scoring and siren system for Underwater Hockey.
 
-The software has an operator-facing Underwater Hockey Game Management App and a player-facing or spectator-facing Display Window(s). The operator window opens on the second tab, Game Variables, with four other tabs: Scoreboard, Screens, Sounds, and Zigbee Siren.
+**This README is the user manual for the software.** It combines installation, normal operation, tournament files, two-court results synchronisation, screens, sounds and Zigbee siren setup in one place. The separate `MAINTAINERS.md` is for people modifying the Python source.
+
+The hardware is still being developed. The current `HARDWARE_SETUP.md` remains a separate working hardware note for now; when the production hardware is settled, its relevant material can be folded into this manual as a hardware chapter.
+
+The software has an operator-facing Underwater Hockey Game Management App and player-facing or spectator-facing Display Window(s). The operator window opens on **Game Variables**, with four other main tabs: **Scoreboard**, **Screens**, **Sounds**, and **Zigbee Siren**.
 
 ## Contents
 
-- [Windows 11: tested configuration](#windows-11-tested-configuration-september-2026)
-- [Raspberry Pi 5: tested configuration](#raspberry-pi-5-tested-configuration-september-2026)
-- [Downloading and installing UWH on Windows](#downloading-and-installing-uwh-on-windows)
-- [Downloading and installing UWH on a Raspberry Pi 5](#downloading-and-installing-uwh-on-a-raspberry-pi-5)
+- [How the application works](#how-the-application-works)
+- [Known working setups](#known-working-setups)
+- [Windows 11 installation](#downloading-and-installing-uwh-on-windows)
+- [Raspberry Pi 5 installation](#downloading-and-installing-uwh-on-a-raspberry-pi-5)
 - [Game Variables tab](#game-variables-tab)
 - [Tournament List](#tournament-list)
-- [Two-court results synchronisation](#two-court-results-synchronisation)
+- [Game Sequence](#game-sequence)
+- [Two-court tournament results synchronisation](#two-court-tournament-results-synchronisation)
 - [Screens tab](#screens-tab)
 - [Sounds tab](#sounds-tab)
 - [Scoreboard tab](#scoreboard-tab)
-- [Zigbee2MQTT wireless siren control](#zigbee2mqtt-wireless-siren-control)
+- [Other game behaviour](#other-game-behaviour)
+- [Zigbee2MQTT wireless siren setup and operation](#zigbee2mqtt-wireless-siren-setup-and-operation)
 - [Other installation and packaging notes](#other-installation-and-packaging-notes)
+
+## How the application works
+
+UWH separates **match setup**, **live match control**, **public display**, **audio**, and **optional wireless control** so the operator can configure a game before play and then work mainly from the Scoreboard tab.
+
+A normal operating flow is:
+
+1. Start UWH and allow the startup self-test to complete.
+2. In **Game Variables**, load a preset or enter the match timings and rules. If a tournament draw is being used, select the draw and starting game.
+3. In **Screens**, select the operator layout and open the required player/spectator Display Window(s). Use **Auto Detect Screens** and **Test Displays** when setting up a new computer or monitor arrangement.
+4. In **Sounds**, select and test the siren and pip sounds, durations and volumes.
+5. If wireless referee buttons are being used, configure and test them in **Zigbee Siren**. The wired Arduino siren button remains a separate local input path.
+6. Use **Scoreboard** during the match for goals, penalties, team time-outs and manual timer control. The player/spectator Display Window follows the live match state.
+7. At the end of a tournament game, UWH saves the completed result to the separate results CSV before clearing the live match and advancing to the next selected game. If shared two-court sync is enabled, the local save happens first and network upload happens afterwards in the background.
+
+The game clock progresses through First Half, Half Time and Second Half, with optional Overtime and Sudden Death when enabled. The detailed sequence and the special rules for goals scored during breaks are described later in this manual.
 
 ## Known working setups
 
 ## Windows 11: tested configuration (September 2026)
 
-The Windows 11 UWH application, wired Arduino siren, Mosquitto MQTT broker and Zigbee2MQTT have been tested together with **up to three working Zigbee buttons** on one coordinator. Observed button actions include `single`, `double`, `hold` and `emergency`; **which action each button sends depends on its model**, and UWH's per-button Action Mapping determines the siren response. Zigbee2MQTT was also confirmed to restart through PM2 and Windows Task Scheduler after a Windows reboot. See [ZIGBEE_SETUP.md](ZIGBEE_SETUP.md) for installation and button-mapping instructions. Do not re-pair a working button to a second coordinator just to share it with another UWH computer.
+The Windows 11 UWH application, wired Arduino siren, Mosquitto MQTT broker and Zigbee2MQTT have been tested together with **up to three working Zigbee buttons** on one coordinator. Observed button actions include `single`, `double`, `hold` and `emergency`; **which action each button sends depends on its model**, and UWH's per-button Action Mapping determines the siren response. Zigbee2MQTT was also confirmed to restart through PM2 and Windows Task Scheduler after a Windows reboot. See [the Zigbee section](#zigbee2mqtt-wireless-siren-setup-and-operation) for installation and button-mapping instructions. Do not re-pair a working button to a second coordinator just to share it with another UWH computer.
 
 ## Raspberry Pi 5: tested configuration (September 2026)
 
@@ -83,7 +105,7 @@ Download the newer release and extract it into a **separate folder** first. Do n
 > [!WARNING]
 > **Back up `settings.json` before every update.** It includes your **Zigbee button-name list** (for example, `siren_button, siren_button_2, siren_button_3`), MQTT settings, sound preferences, screen layout and the remembered Display Window open/closed state. Back up tournament CSVs, custom sounds under `assets/`, and game logs too. Replacing UWH's settings can lose button names **or action mappings**, even though the buttons remain paired to Zigbee2MQTT.
 
-After updating, confirm the **Zigbee Siren → Button Device Names** field and test every configured button and its action mapping before using the system at a match. Do not blindly replace a new-format `settings.json` with a very old version; compare and carry forward your customised values where the format has changed. Zigbee2MQTT has a **separate** `data/` directory that should be backed up before Zigbee2MQTT updates; see [ZIGBEE_SETUP.md](ZIGBEE_SETUP.md).
+After updating, confirm the **Zigbee Siren → Button Device Names** field and test every configured button and its action mapping before using the system at a match. Do not blindly replace a new-format `settings.json` with a very old version; compare and carry forward your customised values where the format has changed. Zigbee2MQTT has a **separate** `data/` directory that should be backed up before Zigbee2MQTT updates; see [the Zigbee section](#zigbee2mqtt-wireless-siren-setup-and-operation).
 
 ## Downloading and installing UWH on a Raspberry Pi 5
 
@@ -175,7 +197,7 @@ A GitHub Download ZIP is a snapshot: it does not update itself. To obtain newer 
 
 In particular, keep copies of `settings.json` (including the Zigbee `siren_button_devices` list, MQTT broker, sounds and screen visibility), **both draw and results CSV files**, sound files added under `assets/`, and game logs such as `UWH_Game_Data.txt` if present. The application writes completed games to the **results CSV** during tournaments, not to the draw. A missing UWH `settings.json` does not unpair a button, but UWH can lose its name and stop responding to it.
 
-After copying a fresh version into its intended location, install that version's dependencies into its `.venv` and test it from Terminal before changing the desktop shortcut. Do not copy a `.venv` from an old installation. Verify the **Zigbee Siren** button-name list after restoring settings; the Raspberry Pi and Windows MQTT setup instructions are in [ZIGBEE_SETUP.md](ZIGBEE_SETUP.md).
+After copying a fresh version into its intended location, install that version's dependencies into its `.venv` and test it from Terminal before changing the desktop shortcut. Do not copy a `.venv` from an old installation. Verify the **Zigbee Siren** button-name list after restoring settings; the Raspberry Pi and Windows MQTT setup instructions are in [the Zigbee section](#zigbee2mqtt-wireless-siren-setup-and-operation).
 
 ### Raspberry Pi troubleshooting
 
@@ -186,7 +208,7 @@ After copying a fresh version into its intended location, install that version's
 | `No module named tkinter` | Install `python3-tk` using APT and recreate/test the virtual environment as necessary. |
 | Desktop icon appears but program does not start | Run `.venv/bin/python uwh.py` from Terminal; check the `Exec=` and `Path=` entries in the desktop shortcut. |
 | Display Window is missing or opens on the wrong monitor | Check **Screens → Display Screen Options**, run **Auto Detect Screens** and **Test Displays**, and position the window on the intended monitor. Closing the window with **X** queues its closed state for automatic saving or normal exit. |
-| Zigbee siren unavailable | Consult `ZIGBEE_SETUP.md`; a detected USB/COM port is not proof that the Zigbee button is paired or communicating. |
+| Zigbee siren unavailable | See the Zigbee section below; a detected USB/COM port is not proof that the Zigbee button is paired or communicating. |
 | Need to check OS package updates | Run `sudo apt update` followed by `apt list --upgradable`. An empty list means no upgrades are offered by the configured repositories, not that you are on the newest version. |
 
 ## Game Variables tab
@@ -248,40 +270,191 @@ During **Between Game Break**, UWH attempts to export the completed game **just 
 
 When updating UWH or changing machines, back up **both** the original draw and its `_Results.csv` file. A newer ZIP must not be allowed to replace an ongoing results file. If the old version has already written results directly into the original draw, keep a backup: the first results file will preserve any values already present in that draw.
 
-### Two-court results synchronisation
-
-The Tournament List widget is taller, with a read-only **Tournament Results**
-filename, **Results sync** mode, **Server URL**, masked **Access token**,
-**Save & Sync**, live status and **Sync Now**. The adjacent Game Sequence
-explanation is shorter to make room without shrinking the match variables.
-
-**Local only** is the default: completed matches go solely into this
-computer's separate results CSV. In **Shared server** mode, results are still
-saved locally first, then a background worker submits **one game at a time**
-to a third results computer. If that machine is offline or has a locked CSV,
-the court retries every ten seconds. It does not hold up the game timer or
-discard local results. Two courts may use even/odd game numbers and upload to
-the same combined results file. The third computer serialises those updates
-and reports conflicting scores rather than overwriting them.
-
-The shared destination is an HTTP(S) **server URL**, not an SMB-mounted
-folder. The results server owns its local combined CSV and must have an exact
-copy of the courts' original draw. Windows 11 and the RP5 use the same
-client settings. A trusted isolated LAN or VPN is required; HTTP without TLS
-does not encrypt the access token.
-
-Full installation, failure recovery, network setup, security, and acceptance
-testing are in **[TOURNAMENT_SYNC.md](TOURNAMENT_SYNC.md)**.
-Back up the original draw, local results CSV, server's combined CSV,
-settings.json and any .uwh_sync_*.json receipts before upgrading.
-
 The 'Starting Game #' will show a list of Game Numbers in the CSV file selected above. This could be useful if the app crashes and the games need to be restarted, or if multiple days' games are in the same file.
 
 At the completion of each game, the application automatically advances to the next game number in the selected Tournament CSV file and updates the displayed team names. There is a drop down box to select the starting game number.
 
 ### Game Sequence
 
-This section describes how the app progresses through the various stages of the game.
+The normal game sequence is:
+
+1. **First Game Starts In / Time to Start First Game** runs once to start the first scheduled match.
+2. **First Half** → **Half Time** → **Second Half**.
+3. If the score is tied and Overtime is enabled: **Overtime Game Break** → **Overtime First Half** → **Overtime Half Time** → **Overtime Second Half**.
+4. If the score is still tied and Sudden Death is enabled: **Sudden Death Game Break** → **Sudden Death**.
+5. **Between Game Break** follows the completed game and then the application advances to the next tournament game when tournament mode is active.
+
+**First Game Starts In** transitions directly to First Half. **Crib Time**, when enabled, is subtracted from the Between Game Break to help bring court time back into alignment with local computer time.
+
+## Two-court tournament results synchronisation
+
+This optional feature lets Windows 11 and Raspberry Pi 5 scoring computers
+operate independently while a third computer maintains one combined results
+CSV. It uses Python's standard HTTP library, with **one remote writer** rather
+than two courts concurrently editing a shared CSV over SMB.
+
+### Files and ownership
+
+| Computer | Original draw | Results |
+| --- | --- | --- |
+| Court 1 (even games) | Local Tournament_Draw.csv | Local Tournament_Results.csv |
+| Court 2 (odd games) | Identical local Tournament_Draw.csv | Independent local Tournament_Results.csv |
+| Results computer | Identical Tournament_Draw.csv | Combined Tournament_Results.csv |
+
+The draw must be **byte-for-byte identical** on all three machines. Do not edit
+its game numbers, teams or schedule during a tournament. The court and server
+both refuse to merge against a changed draw.
+
+The courts do **not** mount or edit the third computer's CSV. They send one
+completed game at a time to a Python service. An SMB share is unnecessary for
+uploading results, though you can separately share the folder for read-only
+viewing.
+
+### Safety rules
+
+- Each court's complete result is saved **locally first**, independent of the
+  network. Network failure cannot block normal game progression.
+- A background worker retries after ten seconds when offline. It also wakes
+  immediately after a local export or when **Sync Now** is pressed. The
+  networking code never touches Tk widgets or runs on the timer thread.
+- The results server processes one game write at a time under a lock. It
+  stages a complete replacement CSV, then atomically replaces only its
+  results file. No caller can supply a filesystem path.
+- An identical repeat submission is acknowledged without rewriting. A
+  different result for an already-completed game raises a visible CONFLICT;
+  neither value is silently overwritten.
+- A small local .uwh_sync_*.json file remembers which game results the server
+  acknowledged. If it is missing after a crash, submissions are reconstructed
+  from the completed local results CSV, and duplicate submissions are safe.
+- Zero–zero is a completed result: both score cells contain the string "0".
+  Any row with a blank score remains unsubmitted.
+- A locked CSV, missing server, wrong token or disk error means **pending**,
+  never "synced." Retrying the same game does not erase other games.
+- An even/odd or consecutive court selection is applied by the existing
+  local Tournament List control. The server merges by game number.
+
+### 1. Set up the third results computer
+
+Windows 11 or Raspberry Pi/Linux can run the service. Use Python 3.11+ and a
+permanent folder containing the **source ZIP** files:
+
+    tournament_results_server.py
+    tournament_files.py
+    csv_export.py
+    Tournament_Draw.csv
+
+The easiest route is to extract the full updated GitHub source ZIP on the
+third computer and copy the same original draw beside these Python files.
+Do not use the packaged Windows application EXE as the server.
+
+Generate a long, unpredictable secret once, and record it securely:
+
+    python -c "import secrets; print(secrets.token_urlsafe(32))"
+
+If the Windows Python executable is named differently, use py -3 instead.
+Enter the same secret on the two courts. It must be at least 16 characters.
+
+#### Windows 11 results computer
+
+In PowerShell in the extracted project folder (for example C:\UWH):
+
+    cd C:\UWH
+    $env:UWH_SYNC_TOKEN = Read-Host "Shared results token"
+    python tournament_results_server.py --draw "C:\UWH\Tournament_Draw.csv" --bind 0.0.0.0 --port 8765
+
+The 0.0.0.0 option lets other computers connect; the default is localhost
+only. On a **private LAN** you may need an administrator PowerShell to allow
+TCP port 8765 through Windows Firewall:
+
+    New-NetFirewallRule -DisplayName "UWH Results" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 8765 -Profile Private -RemoteAddress LocalSubnet
+
+For example, if the third computer has the IP address 192.168.1.50, courts
+would enter http://192.168.1.50:8765 into the UWH widget.
+
+#### Raspberry Pi/Linux results computer
+
+In a Terminal in the extracted project folder:
+
+    cd /home/uwh/UWH
+    read -r -s -p "Shared results token: " UWH_SYNC_TOKEN
+    echo
+    export UWH_SYNC_TOKEN
+    python3 tournament_results_server.py --draw /home/uwh/UWH/Tournament_Draw.csv --bind 0.0.0.0 --port 8765
+
+Adapt the path to where you extracted the source. On Linux, also restrict
+firewall access to the scoring computers on the local network. The service
+runs in the Terminal until Ctrl+C; make it a startup service only after
+testing. Back up the server's combined results CSV periodically.
+
+**Security:** HTTP on port 8765 is unencrypted. Use a trusted, isolated LAN,
+or HTTPS/VPN for untrusted networks. Do not forward the port to the public
+internet. The masked access token is stored in each court's settings.json;
+protect that file from other users and back it up.
+
+### 2. Configure the two court computers
+
+Copy the same original draw to each updated court installation. Back up each
+court's settings.json, original draw and any existing local results file
+before installing a new release/source ZIP.
+
+In Game Variables → Tournament List:
+
+1. Check Use Tournament List? and choose Tournament_Draw.csv.
+2. Choose the starting game and select **even** on one court, **odd** on the
+   other. Existing game/period rules remain unchanged.
+3. Verify the read-only **Tournament Results** box shows
+   Tournament_Results.csv, the LOCAL results output derived from the draw.
+4. Under Results sync, select **Shared server**.
+5. Enter the server URL, such as http://192.168.1.50:8765, and the same
+   shared access token on both courts.
+6. Press **Save & Sync** to save this machine's settings and begin submitting
+   completed games. **Sync Now** wakes a pending retry immediately.
+7. Watch the status text for pending, synced, server-unavailable or conflict
+   messages. The original draw remains read-only from the app.
+
+To disable uploads, choose **Local only** and press Save & Sync. Results
+continue to be saved on that court, and the other court is unaffected.
+
+**The server URL is not a Windows UNC path or a mapped drive letter.** It is
+the address of the single-writer service. No SMB mount is needed on the RP5.
+Windows and Raspberry Pi both use the same URL, even though the server's
+CSV file may be stored in a Windows or Linux folder.
+
+### 3. Test before a live tournament
+
+Use a copy of the draw, not a live tournament:
+
+1. Submit even Game 2 from Court 1, then odd Game 1 from Court 2. Both must
+   appear in the combined server CSV without modifying either original draw.
+2. Stop the server/network; finish another game. The court's local CSV must
+   contain it, the timer must still advance, and the status must remain
+   pending/offline.
+3. Restore the server. The result must appear automatically after a retry
+   without erasing either earlier game.
+4. Restart a court: previous games must remain saved and acknowledged.
+5. In disposable files, submit two **different** results for the same game.
+   The second must report CONFLICT and preserve both copies for review.
+6. On Windows, temporarily hold the server CSV open in a program that
+   exclusively locks it. A failed write must leave local data safe and retry
+   after the lock is released.
+
+Only test on production hardware after the headless tests pass. If CONFLICT
+appears, back up the local and server result files and reconcile the affected
+game manually. The software must not guess which court's score is correct.
+
+### 4. Status messages
+
+| Message | Action |
+| --- | --- |
+| Local results saved · network sync off | Shared upload is disabled; enable it and Save & Sync if required. |
+| Network unavailable · retry in 10 s | Check server, LAN address and firewall. Local results remain safe. |
+| Sync blocked (HTTP 401) | Correct the access token on this court. |
+| Sync blocked (HTTP 503) | Server results file is locked, disk full or unwritable; fix then retry. |
+| CONFLICT game N | Different existing result or draw mismatch. Stop and reconcile manually. |
+| All completed games synced | Every completed game this court knows about has a server acknowledgement. |
+
+The court files do **not** need to contain the other court's games. The
+results computer's combined CSV is the tournament's combined record.
 
 ## Screens tab
 
@@ -315,7 +488,7 @@ The **Air** and **Water** controls are intended for separate above-water and und
 
 **Hardwired button (Arduino/serial):** the siren sounds while the button is held and stops when it is released. This differs from the timed Zigbee button behaviour.
 
-**Zigbee buttons (MQTT):** When **Button Action Mapping** assigns them accordingly, `single` sounds one timed cycle and `double` sounds two consecutive timed cycles **without a programmed pause**. On the button tested for `hold`, that action arrives on release and was mapped to one timed cycle. Another tested button publishes `emergency`, which must be mapped separately. These are **observed examples, not universal button behaviours**. See [ZIGBEE_SETUP.md](ZIGBEE_SETUP.md) for setup and Auto-add From Log.
+**Zigbee buttons (MQTT):** When **Button Action Mapping** assigns them accordingly, `single` sounds one timed cycle and `double` sounds two consecutive timed cycles **without a programmed pause**. On the button tested for `hold`, that action arrives on release and was mapped to one timed cycle. Another tested button publishes `emergency`, which must be mapped separately. These are **observed examples, not universal button behaviours**. See [the Zigbee section](#zigbee2mqtt-wireless-siren-setup-and-operation) for setup and Auto-add From Log.
 
 ### Sound timing table
 
@@ -391,37 +564,470 @@ This table explains the results and progression rules when a goal is added durin
 
 This logic ensures the correct flow for tournament progression based on goals scored during break periods.
 
-## Zigbee2MQTT wireless siren control
+## Zigbee2MQTT wireless siren setup and operation
 
-UWH receives wireless referee-button actions via **Zigbee2MQTT → Mosquitto (MQTT) → UWH**. Windows 11 has been verified end-to-end, including automatic Zigbee2MQTT startup after reboot. Raspberry Pi 5 MQTT/Zigbee installation instructions are provided but should be tested on the actual Pi before match use.
-
-### Tested Zigbee button actions
-
-The following are **observed action names with example mappings**, not a claim that all three buttons publish the same actions. Only a saved mapping for the exact button and action triggers UWH:
-
-| Observed action in MQTT | Example local UWH siren mapping |
-|---|---|
-| `single` | One timed cycle |
-| `double` | Two consecutive timed cycles, no programmed pause |
-| `hold` | One timed cycle, triggered on release for the tested button |
-| `emergency` | A separately configured action, such as one timed cycle |
-
-Timed cycles use **Sounds → Number of seconds to play Siren**, capped by **Maximum Siren Duration**. The wired Arduino button retains physical press-and-release control. Check each model's Activity Log and save its mapping.
-
-### Up to three tested Zigbee buttons and configuration backups
-
-The setup has been tested with **up to three working Zigbee buttons** on the **same Zigbee2MQTT coordinator**, with friendly names `siren_button`, `siren_button_2` and `siren_button_3`. Enter the names of the buttons you actually use in **Zigbee Siren → Button Device Names (comma-separated)**. For the three-button setup:
-
-```text
-siren_button, siren_button_2, siren_button_3
-```
-
-Click **Save Configuration**, then check **Button Action Mapping**. A button can be listed and appear in the Activity Log without sounding the siren if its observed action has no mapping. Press the button, use **Auto-add From Log** for a missing action, edit the new **Ignore** row to your intended UWH action, and click **Save Action Mappings**. Both the button-name list and action mappings live in `settings.json`; restoring them can restore UWH control **without re-pairing** the Zigbee device.
+This guide covers the wireless siren in the **Underwater Hockey Scoring Desk Kit (UWH)**: installation on **Windows 11** or **Raspberry Pi 5 / Raspberry Pi OS Bookworm**, MQTT configuration for Python, pairing and naming buttons, and using more than one computer. The Windows MQTT setup has been tested with **up to three working Zigbee buttons** on one coordinator (`siren_button`, `siren_button_2` and `siren_button_3`). Observed action values include `single`, `double`, `hold` and `emergency`; **individual buttons may publish different actions**, and the mapping for each action is configured in UWH. The Raspberry Pi 5 **UWH desktop application** has been tested on Bookworm + X11; the full Pi Zigbee/MQTT installation procedure remains a deployment guide to verify on the target Pi.
 
 > [!IMPORTANT]
-> **One Zigbee button cannot ordinarily be paired to two separate Zigbee coordinator networks at the same time.** To use a button with a second UWH computer, connect both UWH applications to the **existing MQTT broker**, rather than pairing the button to a second coordinator. **Both UWH installations may sound their local sirens** when receiving the same button message; choose which computer is authorised to control the live amplifier. Re-pairing to a different Zigbee network can break the original pairing.
+> **A button joins one Zigbee network at a time. Do not re-pair an existing match button to another coordinator merely to use a second computer.** A second UWH computer can subscribe to the *same MQTT broker*, receiving events from the original Zigbee2MQTT instance. Re-pairing to a different Zigbee network generally removes the button from the original network and requires a reset and rejoin when moving it back. See [Using two computers](#using-two-computers-with-the-same-buttons).
+>
+> **Two UWH applications listening for the same button can BOTH activate their local sirens.** Decide which computer controls the live PA/amplifier and test the routing before a match.
 
-For detailed [Raspberry Pi 5 and Windows setup](ZIGBEE_SETUP.md), native Windows PM2/Task Scheduler startup, pairing, frontend-friendly-name conventions, MQTT broker security and two-computer examples, read **[ZIGBEE_SETUP.md](ZIGBEE_SETUP.md)**. A Windows COM-port detection message by itself does not prove a button is paired; direct Windows serial operation is **not** the verified button-control path here.
+> [!WARNING]
+> **Back up `settings.json` before every UWH upgrade.** Its Zigbee button list is separate from Zigbee2MQTT's device database. Losing `settings.json` does *not* unpair a button, but UWH may stop recognising additional button names until they are re-entered.
+
+### How the system works
+
+```text
+Zigbee button(s)
+       |  Zigbee radio (not Wi-Fi / not MQTT)
+       v
+Zigbee USB coordinator -- Zigbee2MQTT (Node.js)
+                                 |
+                                 | MQTT publish
+                                 v
+                        Mosquitto MQTT broker
+                                 |
+                      MQTT subscribers (Python / UWH)
+                                 |
+                    UWH siren sound on this computer
+```
+
+- **Zigbee2MQTT** manages the physical Zigbee network. It uses **Node.js**, *not Python*.
+- **Mosquitto** is the MQTT message broker. The broker and Zigbee2MQTT can run on the same computer, or on different computers if properly configured.
+- **Python `paho-mqtt`** is the MQTT *client library* used by a source-code UWH installation. Installing it does **not** install a broker or Zigbee2MQTT.
+- **UWH** subscribes to button messages. The selected *Siren* audio file is played by UWH on its own audio output; a separate Zigbee siren device is **not** needed for this use case.
+- **Arduino hardwired siren:** its local press/hold/release audio path is independent of MQTT. If an optional MQTT siren output is configured, the Arduino can also send ON/OFF commands to that separate output.
+
+For the simple local installation, all three software components run on one machine, and the MQTT broker is `localhost:1883`. For a second UWH computer, set its **MQTT Broker** field to the hostname or LAN IP address of the existing broker; `localhost` would point to the *second* computer, not the first.
+
+**USB-adapter caution:** A COM port identified as `CP210x` or `FTDI` describes a USB/serial interface, not proof that the device is a supported Zigbee coordinator. Check the actual adapter model and firmware against [Zigbee2MQTT's supported adapters](https://www.zigbee2mqtt.io/guide/adapters/). Zigbee2MQTT and a second program must not both try to open the same coordinator serial port.
+
+### Raspberry Pi 5: Mosquitto, Python MQTT and Zigbee2MQTT
+
+This section assumes the UWH source checkout and its virtual environment are installed as described in the installation section of this manual. The tested UWH desktop uses **Raspberry Pi OS Bookworm + Python 3.11 + X11**; Python 3.12 is **not** a prerequisite for that setup. These Zigbee installation commands are adapted from the current official Linux guidance; check the [upstream instructions](https://www.zigbee2mqtt.io/guide/installation/01_linux.html) for any later changes.
+
+#### 1. Install and test the Mosquitto broker
+
+In a Pi terminal:
+
+```bash
+sudo apt update
+sudo apt install mosquitto mosquitto-clients
+sudo systemctl enable --now mosquitto
+systemctl status mosquitto --no-pager
+```
+
+For a first test, open **terminal A**, then **terminal B**:
+
+```bash
+# Terminal A: wait for ONE test message
+mosquitto_sub -h localhost -t uwh/test -C 1
+```
+
+```bash
+# Terminal B: send it
+mosquitto_pub -h localhost -t uwh/test -m 'MQTT working'
+```
+
+Terminal A should print `MQTT working`. Use different terminals: a subscriber started *after* a non-retained message was sent will miss that message. An ordinary local-only broker needs no network listener or external firewall rule. See [Network access and security](#network-access-and-security) before allowing remote clients.
+
+#### 2. Install the Python MQTT client in the UWH virtual environment
+
+From your **actual UWH checkout directory** (the README's example is shown below):
+
+```bash
+cd ~/Downloads/Underwater-Hockey-Scoring-Desk-Kit-main
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python -m pip install paho-mqtt
+.venv/bin/python -c "import paho.mqtt.client; print('Python MQTT OK')"
+```
+
+`paho-mqtt` may already be present in `requirements.txt`; the explicit install is a way to confirm it is installed in **this** `.venv`. Avoid `sudo pip install` and `--break-system-packages` on Bookworm. The UWH app can be launched with `.venv/bin/python uwh.py` as explained in the README.
+
+#### 3. Install and start Zigbee2MQTT
+
+Install the Node.js version recommended by the [current Zigbee2MQTT Linux instructions](https://www.zigbee2mqtt.io/guide/installation/01_linux.html). At the time of this guide, their installation flow is:
+
+```bash
+sudo apt-get install -y curl
+curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+sudo apt-get install -y nodejs git make g++ gcc libsystemd-dev
+sudo corepack enable
+node --version
+```
+
+Now install Zigbee2MQTT. The commands use `/opt/zigbee2mqtt`; change the location if you already have an installation:
+
+```bash
+sudo mkdir -p /opt/zigbee2mqtt
+sudo chown -R "$USER":"$USER" /opt/zigbee2mqtt
+git clone --depth 1 https://github.com/Koenkk/zigbee2mqtt.git /opt/zigbee2mqtt
+cd /opt/zigbee2mqtt
+pnpm install --frozen-lockfile
+pnpm start
+```
+
+On a **new** install, open `http://localhost:8080` in the Pi's browser and complete onboarding: choose the coordinator, set the MQTT server to `mqtt://localhost:1883`, and enable the frontend. When the UI is already configured, the relevant settings in `/opt/zigbee2mqtt/data/configuration.yaml` resemble:
+
+```yaml
+mqtt:
+  base_topic: zigbee2mqtt
+  server: 'mqtt://localhost:1883'
+frontend:
+  enabled: true
+```
+
+Do **not** replace an existing `configuration.yaml` with this fragment: preserve its network and serial settings. Newer Zigbee2MQTT versions may add a `version` key or other settings during onboarding. Use **one** coordinator, detected automatically where supported; if discovery fails, consult [adapter settings](https://www.zigbee2mqtt.io/guide/configuration/adapter-settings.html) and, on the Pi, check `ls -l /dev/serial/by-id/`. Do not assume a particular `/dev/ttyUSB0` or adapter type.
+
+#### 4. Optional: start Zigbee2MQTT automatically on Pi boot
+
+Only after `pnpm start` works, stop that foreground instance with **Ctrl+C**. The official Linux guide documents [running Zigbee2MQTT under systemd](https://www.zigbee2mqtt.io/guide/installation/01_linux.html). For a normal `/opt/zigbee2mqtt` install, create a service with the correct local username and Node path (`command -v node`):
+
+```bash
+sudo nano /etc/systemd/system/zigbee2mqtt.service
+```
+
+```ini
+[Unit]
+Description=Zigbee2MQTT
+Wants=network-online.target
+After=network-online.target mosquitto.service
+
+[Service]
+Type=simple
+User=YOUR_LINUX_USERNAME
+WorkingDirectory=/opt/zigbee2mqtt
+ExecStart=/usr/bin/node /opt/zigbee2mqtt/index.js
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Replace `YOUR_LINUX_USERNAME` with the output of `whoami` and check that `/usr/bin/node` agrees with `command -v node`. Then:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now zigbee2mqtt
+systemctl status zigbee2mqtt --no-pager
+# For diagnostic messages:
+sudo journalctl -u zigbee2mqtt -n 50 --no-pager
+```
+
+Do not also leave a manual `pnpm start` instance running against the same coordinator. Boot-time operation on a particular Pi must still be tested after reboot.
+
+### Windows 11: Mosquitto, Python MQTT and Zigbee2MQTT
+
+The **tested Windows path is Mosquitto + native Windows Zigbee2MQTT + UWH over MQTT**. WSL2 is not required. Directly opening the Zigbee coordinator's COM port from UWH is **not** a substitute for Zigbee2MQTT pairing and is not the verified wireless-button path.
+
+#### 1. Install and test Mosquitto on Windows
+
+1. Download the Windows installer from [Eclipse Mosquitto](https://mosquitto.org/download/). Install it with its Windows service enabled.
+2. Open **Services** (`services.msc`). Find **Mosquitto Broker** (service name commonly `mosquitto`), set **Startup type → Automatic**, and make sure it is **Running**.
+3. Open two Command Prompt windows. The executable locations below assume the default install folder; use your actual install path if different.
+
+Command Prompt A:
+
+```cmd
+"C:\Program Files\mosquitto\mosquitto_sub.exe" -h localhost -t uwh/test -C 1
+```
+
+Command Prompt B:
+
+```cmd
+"C:\Program Files\mosquitto\mosquitto_pub.exe" -h localhost -t uwh/test -m "MQTT working"
+```
+
+Prompt A should print `MQTT working`. If the service does not exist, review the Mosquitto installer and [Windows service instructions](https://github.com/eclipse-mosquitto/mosquitto/blob/master/README-windows.txt). **Do not start a second Mosquitto process on the same port** while the service is running. On a local-only installation, UWH and Zigbee2MQTT both use `localhost`.
+
+#### 2. Install Zigbee2MQTT natively on Windows
+
+Install **Node.js 22 LTS** (or the version named in the [current Windows instructions](https://www.zigbee2mqtt.io/guide/installation/05_windows.html)) and Git. In a new **Command Prompt**:
+
+```cmd
+node --version
+corepack enable
+git clone --depth 1 https://github.com/Koenkk/zigbee2mqtt.git C:\zigbee2mqtt
+cd /d C:\zigbee2mqtt
+pnpm install --frozen-lockfile
+pnpm start
+```
+
+`C:\zigbee2mqtt` matches the tested Windows installation. If it already exists, **do not clone over it or delete its `data` directory**. Follow the upstream update procedure instead.
+
+Open `http://localhost:8080`. Complete the new-install onboarding or, for an existing installation, ensure `C:\zigbee2mqtt\data\configuration.yaml` includes the appropriate existing settings:
+
+```yaml
+mqtt:
+  base_topic: zigbee2mqtt
+  server: 'mqtt://localhost:1883'
+frontend:
+  enabled: true
+```
+
+Check that your actual USB Zigbee coordinator is found. If it is not, open **Device Manager → Ports (COM & LPT)**, identify its COM port, and use the Zigbee2MQTT [serial/adapter settings](https://www.zigbee2mqtt.io/guide/configuration/adapter-settings.html) to specify the correct port and adapter for *your* model. Seeing a `CP210x` device alone does not establish coordinator compatibility.
+
+#### 3. Python MQTT for Windows source installations
+
+If you run **`uwh.py` from Python** rather than the published Windows ZIP, install the project's requirements and `paho-mqtt` in the interpreter or virtual environment actually used for UWH:
+
+```cmd
+py -m pip install -r requirements.txt
+py -m pip install paho-mqtt
+py -c "import paho.mqtt.client; print('Python MQTT OK')"
+```
+
+Run those commands from the project directory, using your selected interpreter if `py` is not the correct one. **Users running the packaged UWH `.exe` normally do not install Python or `paho-mqtt` separately**; the executable must have been built with the needed dependencies.
+
+#### 4. Tested Windows automatic startup: PM2 and Task Scheduler
+
+Once manual `pnpm start` works, stop it with **Ctrl+C**. From the Windows account that will own PM2:
+
+```cmd
+npm install -g pm2
+cd /d C:\zigbee2mqtt
+pm2 start index.js --name zigbee2mqtt
+pm2 save
+pm2 list
+```
+
+`pm2 save` stores the process list under that account's `.pm2` folder. If PM2 has an empty process list after reboot, **`pm2 resurrect`** restores the saved processes; `pm2 restart zigbee2mqtt` cannot restart a process that does not yet exist in that daemon.
+
+> [!NOTE]
+> On Windows, `pm2 startup` can fail with **“Init system not found”**. The tested solution uses **Windows Task Scheduler** instead.
+
+Create a Task Scheduler **Create Task...** entry:
+
+| Task field | Tested setup |
+|---|---|
+| General → Name | `Start Zigbee2MQTT` |
+| General → Security | Use the **same Windows account** that ran `pm2 save`; select **Run whether user is logged on or not**. A Windows *account password* may be required (not the sign-in PIN). |
+| Trigger | **At startup**; delay **1 minute** so the broker and system can start first |
+| Action | **Start a program** |
+| Program/script | `C:\Windows\System32\cmd.exe` |
+| Add arguments | `/d /c "C:\Users\YOUR_WINDOWS_USER\AppData\Roaming\npm\pm2.cmd resurrect"` |
+| Start in | `C:\zigbee2mqtt` |
+| Conditions | Do not require idle time, AC power, or a specific network connection |
+| Settings | Allow on-demand runs; run after a missed scheduled start; optionally retry failures; **Do not start a new instance** |
+
+Use `where pm2` to find **your actual** `pm2.cmd` path, replacing `YOUR_WINDOWS_USER` (and the entire path if necessary). Leave **“Do not store password”** unchecked if Windows prompts for the account password. Disable **“Stop the task if it runs longer than...”**. In **Services**, keep Mosquitto set to **Automatic**. Only one PM2 instance should control this Zigbee2MQTT process.
+
+**Verify:** reboot Windows, wait about two minutes, then open `http://localhost:8080` **before** manually running PM2. In the tested setup, the frontend and wireless button reception returned after restarting Windows. A separate sign-in test with a second Windows account has not yet been documented.
+
+### Pairing and naming buttons in the frontend
+
+These steps apply to **both** platforms and are performed on the **single Zigbee2MQTT instance that owns the coordinator**.
+
+1. Open the Zigbee2MQTT frontend: `http://localhost:8080` if browsing on the Zigbee2MQTT host, or `http://HOST-IP:8080` if its frontend is deliberately accessible on your LAN. The UWH **Open Zigbee2MQTT Frontend** button targets `localhost`; on a second computer, use the host's LAN address directly.
+2. Use **Permit join** in the frontend (currently in the top navigation area). Current Zigbee2MQTT documentation says this opens joining for **254 seconds**; close it earlier when finished. The timing/UI wording can change with releases.
+3. Put the button into pairing/reset mode **using the instructions for its exact model**. Do not assume a universal hold duration or LED pattern.
+4. Wait for the device to join and finish its interview. If joining fails, follow the model's factory reset instructions and retry nearer the coordinator.
+5. Open the device's page in the frontend and edit its **friendly name** (usually accessible from the device details or rename action). Use simple unique names **without `/`**, e.g. `siren_button`, `siren_button_2` and `siren_button_3`.
+6. Close **Permit join**. Press each button and watch its device page or Zigbee2MQTT log. A successful button event produces an MQTT topic corresponding to its friendly name:
+
+```text
+zigbee2mqtt/siren_button
+zigbee2mqtt/siren_button_2
+zigbee2mqtt/siren_button_3
+```
+
+Example message payloads:
+
+```json
+{"action":"single","battery":93,"linkquality":98,"voltage":2900}
+```
+
+The `action` value is what UWH uses. Battery/link-quality-only updates do **not** request a siren. If you rename `siren_button_2` to `referee_two`, its MQTT topic becomes `zigbee2mqtt/referee_two`; **update the UWH button list too**. A Zigbee device may send other action strings; check the actual MQTT message before assuming they map to UWH siren actions.
+
+**Why simple names?** UWH's current subscription example is `zigbee2mqtt/+` and the current handler extracts the **last segment** of the topic. A Zigbee2MQTT friendly name containing `/` creates a deeper MQTT topic and will not match that configuration reliably. Avoid spaces and keep names identical between Zigbee2MQTT and UWH.
+
+### Configure the UWH Zigbee Siren tab
+
+Open UWH → **Zigbee Siren**. Configure the application against the broker you actually use:
+
+| UWH field | One-computer setup | Second computer sharing the same broker |
+|---|---|---|
+| **MQTT Broker** | `localhost` | Existing broker's **LAN IP address or DNS name** |
+| **MQTT Port** | `1883` | Broker's listener port, normally `1883` |
+| **MQTT Username/Password** | Leave empty only if that broker allows local unauthenticated access | Enter the broker credentials (recommended) |
+| **MQTT Topic** | `zigbee2mqtt/+` | Same, if the host publishes the normal base topic |
+| **Button Device Names (comma-separated)** | Enter the buttons in use; up to three have been tested together: `siren_button, siren_button_2, siren_button_3` | Names this UWH computer should respond to |
+| **Siren Device Name** | Leave unchanged for ordinary **local audio** triggering | Not the input button-name list |
+
+1. Enter the exact friendly names in **Button Device Names**, separated by commas; enter only the buttons in use.
+2. Click **Save Configuration**. If you changed the broker, topic or device names while connected, reconnect or restart UWH so the active connection uses the new configuration.
+3. Click **Test App Siren** to check the selected local sound independently of Zigbee reception.
+4. Press each physical button and inspect **Activity Log**. For example, `Button 'siren_button_2' action 'single' received via Zigbee/MQTT.` confirms UWH received that message, **not** that the action is mapped to make sound.
+5. In **Button Action Mapping**, find the row for the exact button name and received action. To add an unfamiliar action, press that configured button and click **Auto-add From Log**. The new row is deliberately set to **Ignore**; select **Edit Mapping** and choose the intended action, such as **One siren cycle**.
+6. Click **Save Action Mappings**. This is distinct from saving the device-name list with **Save Configuration**. Test each button again and confirm its intended response. For a new button, check what it actually publishes; for example, a tested button uses `emergency` rather than `single`.
+7. For a continuous-press mapping, provide the correct release action as a separate **Stop continuous siren** mapping and check the **Maximum hold (s)** cutoff (default 10; allowed 1–30 seconds). Only use that mode after checking the device's actual press/release messages.
+
+UWH stores these values in the **`zigbeeSettings` section of `settings.json`**. A representative extract is:
+
+```json
+{
+  "zigbeeSettings": {
+    "mqtt_broker": "localhost",
+    "mqtt_port": 1883,
+    "mqtt_topic": "zigbee2mqtt/+",
+    "siren_button_devices": ["siren_button", "siren_button_2", "siren_button_3"],
+    "siren_button_device": "siren_button"
+  }
+}
+```
+
+This is a **partial example**, not a replacement for the complete `settings.json`. The actual file also holds **`action_mappings`**; the list of button names alone does not specify which received actions should sound the siren. The legacy `siren_button_device` entry may coexist with the multi-device list; use the UI to save the full configuration. Keep the **UWH configuration** (`settings.json`) and **Zigbee2MQTT's own `data` directory** backed up separately.
+
+### Button actions and siren playback
+
+The table describes **observed actions and their tested mappings**, not a universal set of button commands. UWH responds only when the device and exact received action have been configured:
+
+| Observed Zigbee2MQTT `action` | Example UWH mapping |
+|---|---|
+| `single` | **One siren cycle** of **Number of seconds to play Siren** |
+| `double` | **Two siren cycles**, consecutive, with no deliberately programmed pause |
+| `hold` | **One siren cycle** for the tested button, which sends `hold` on release |
+| `emergency` | A separately configured mapping, such as **One siren cycle**, for a button that publishes `emergency` |
+
+For example, a configured duration of **1.5 seconds** gives approximately 1.5 seconds for one timed cycle and two consecutive cycles for a mapped `double`. Actual audio-start/stop overhead may cause a small transition between cycles. Different models publish different long-press and release values: inspect each button's log rather than assuming the table applies automatically.
+
+**Important:** On the tested button, the `hold` action arrives **on release**; mapping that action to **One siren cycle** is not continuous press-to-sound. The Zigbee mapping table also offers **Start continuous siren** and **Stop continuous siren**, but these require actual matching press/release messages and are bounded by the hold timer and audio cutoff. The **hardwired Arduino button** instead sounds locally while physically held and stops on release. Timed game and wireless sirens use the selected **Sounds** file and duration, subject to **Maximum Siren Duration (seconds)** (default 10; allowed 1–30 seconds). Confirm Air/Water routing on the actual hardware.
+
+### Using two computers with the same buttons
+
+#### Supported arrangement: one Zigbee network, multiple MQTT clients
+
+```text
+                           ONE Zigbee network
+button 1 -----\
+button 2 ------> Coordinator + Zigbee2MQTT ----> MQTT broker
+button 3 -----/
+                                                   |           |
+                                     MQTT client A |           | MQTT client B
+                                                   v           v
+                                                UWH PC 1    UWH PC 2
+```
+
+The two UWH applications can be on **Windows, Raspberry Pi, or a mixture**; they can each subscribe to the same broker. The button is paired **once**, to the **one** coordinator. The second computer does not require another Zigbee USB dongle or a second Zigbee2MQTT instance merely to receive those button messages.
+
+**Example:** Zigbee2MQTT and Mosquitto run on Windows PC 1, whose broker is reachable at `192.168.1.50` (illustrative address only). UWH on PC 1 uses `MQTT Broker: localhost`. UWH on the Raspberry Pi/PC 2 uses `MQTT Broker: 192.168.1.50`, the same port and the same relevant button names. Both subscribe to the existing Zigbee2MQTT topics. The broker must be configured for authenticated LAN access; `localhost` on PC 2 would not reach PC 1.
+
+> [!CAUTION]
+> **Shared-button siren hazard:** If both UWH applications listen for `siren_button` and both computers are connected to an audible amplifier, pressing the button can activate **two sirens**. Each UWH instance has its own sound state and is *not* automatically synchronised with the other's game clock. If the intention is one live siren, configure only the designated controlling application to accept that button (or otherwise isolate/mute the secondary audio output). Test this with the actual PA before play. Do not assume MQTT provides automatic active/standby failover.
+
+#### Different arrangement: moving a button to another Zigbee coordinator
+
+If the second computer has a **different Zigbee coordinator and different Zigbee network**, a standard Zigbee button cannot normally remain joined to **both** networks. Moving it usually involves a model-specific reset and joining the second network. This can make it disappear from the first coordinator's working network until moved back. **Do not do this to a live referee button just to get a second UWH display or client.** See the [official Zigbee2MQTT FAQ](https://www.zigbee2mqtt.io/guide/faq/) for the one-coordinator/one-network limitation.
+
+Running two *independent* Zigbee2MQTT networks on one broker also requires different `base_topic` values; the corresponding UWH topic must match. This is a separate advanced deployment, not a way to pair one button to both radios simultaneously.
+
+### Network access and security
+
+**On the same computer:** use `localhost` for MQTT; do not expose broker port **1883** or frontend port **8080** to the internet. New Mosquitto installations without a configured listener commonly accept only local connections.
+
+**For a second computer:** the broker must accept connections from the trusted LAN, and all MQTT clients (Zigbee2MQTT and UWH) must use its actual network address. Configure a listener, authentication and firewall restrictions *before* exposing port 1883. Mosquitto 2.x does **not** automatically accept remote anonymous connections when a listener is added.
+
+A typical **Debian/Raspberry Pi** authenticated listener can be configured by creating a password file and `/etc/mosquitto/conf.d/uwh.conf`:
+
+```bash
+sudo mosquitto_passwd -c /etc/mosquitto/passwd uwh_mqtt
+sudo chown root:mosquitto /etc/mosquitto/passwd
+sudo chmod 640 /etc/mosquitto/passwd
+sudo nano /etc/mosquitto/conf.d/uwh.conf
+```
+
+```conf
+listener 1883
+allow_anonymous false
+password_file /etc/mosquitto/passwd
+```
+
+```bash
+sudo systemctl restart mosquitto
+```
+
+Enter `uwh_mqtt` and its chosen password into **both** Zigbee2MQTT's MQTT configuration (`mqtt.user` and `mqtt.password`) and UWH's MQTT fields. If your Mosquitto already has authentication or a listener, **adapt the existing configuration** rather than defining a conflicting second listener.
+
+For an **optional Windows LAN broker**, first back up the service's existing `mosquitto.conf`. In an **Administrator Command Prompt**, create an authentication file (the `-c` option creates/overwrites it; do **not** use `-c` on an existing password file containing other users):
+
+```cmd
+mkdir C:\ProgramData\UWH
+"C:\Program Files\mosquitto\mosquitto_passwd.exe" -c "C:\ProgramData\UWH\mqtt.passwd" uwh_mqtt
+```
+
+Add or adapt these settings in the **existing** `mosquitto.conf` used by the Mosquitto Windows service, usually in its installation directory:
+
+```conf
+listener 1883
+allow_anonymous false
+password_file C:/ProgramData/UWH/mqtt.passwd
+```
+
+Restart the **Mosquitto Broker** service using `services.msc`. Configure its credentials in **both** UWH and Zigbee2MQTT; **otherwise even a formerly working local connection will be rejected**. The service account must be able to read the password file. Test a local MQTT client first, then PC 2 using the Windows host's LAN IP address. Restrict Windows Firewall **TCP 1883** access to the trusted local network; do **not** open it on a public network. Read the [Mosquitto authentication documentation](https://mosquitto.org/documentation/authentication-methods/) before modifying a production installation.
+
+Plain MQTT on port **1883 is not encrypted**; use a trusted LAN, or TLS/VPN for less trusted connections. Never publish broker passwords in public GitHub documentation, screenshots or bug reports.
+
+The frontend on port 8080 is **separate from MQTT**. Opening a webpage on PC 2 does not establish an MQTT client connection, and UWH's **Open Zigbee2MQTT Frontend** button opens `localhost:8080` on **that** PC. Access the host frontend by the host address only when intentionally configured and secured for LAN use.
+
+### Updates, backups and troubleshooting
+
+#### What to back up
+
+| Item | What it contains | Important distinction |
+|---|---|---|
+| **UWH `settings.json`** | Siren files/duration, MQTT broker, button-name list, **action mappings**, display settings and other app preferences | Restoring its names **and mappings** can recover UWH recognition without re-pairing. Back it up before replacing a UWH ZIP; UWH also retains up to five recent `settings_old_*.json` backups. |
+| **UWH tournament CSVs, custom `assets/` sounds, logs** | Tournament/game data and custom audio | A UWH update must not overwrite them. |
+| **Zigbee2MQTT `data/` folder** | Zigbee2MQTT configuration and network/device database | Back up before changing Zigbee2MQTT or moving installations; preserving the coordinator/network data matters for retained pairing. |
+| **PM2 process list on Windows** | Saved Zigbee2MQTT startup process for that Windows user | Run `pm2 save` after setup. A Task Scheduler task alone does not recreate a missing PM2 saved process. |
+
+#### Troubleshooting checklist
+
+| Observation | What to check |
+|---|---|
+| Frontend does not open at `localhost:8080` | Is Zigbee2MQTT actually running? On Windows, check `pm2 list`, `pm2 logs zigbee2mqtt` and Task Scheduler's **Last Run Result**; on Pi check `systemctl status zigbee2mqtt`. Check frontend enablement and port. |
+| UWH displays **Connected** but no button appears in the activity log | **Connected** means the MQTT broker session is up, not that a button is paired or mapped. Press the button and inspect Zigbee2MQTT's log; compare the **friendly name**, MQTT topic (`zigbee2mqtt/+`), and **Button Device Names**. UWH's Arduino/USB labels report **Detected** ports, not proof that an Arduino COM port was opened. |
+| One button works but another does not | Check that each button's exact friendly name appears in **Button Device Names** and click **Save Configuration**. Press it and check the **Activity Log**. If it says **Unmapped action**, use **Auto-add From Log**, change **Ignore** to the desired response and **Save Action Mappings**. Missing settings do not necessarily mean the device needs re-pairing. |
+| Zigbee2MQTT publishes `{"battery":...}` but UWH is silent | A battery-only update has **no `action`**; it is device status rather than a button press. |
+| A newly named button stops working | A frontend rename changes the device MQTT topic. Update UWH's exact friendly-name list. |
+| One PC sees the events, the other does not | PC 2 must connect to PC 1's *LAN broker address*, not its own `localhost`. Check Mosquitto listener/authentication, firewall, subnet and MQTT topic. |
+| Both PCs sound their sirens | Both subscribed to the same button; this is expected, not a pairing fault. Configure the standby application's allowed button names or audio routing. |
+| Windows broker works but Zigbee2MQTT does not start after boot | Set Mosquitto **Automatic**; confirm `pm2 save` under the task's Windows account and correct `pm2.cmd`/working directory; inspect Scheduler history. Do not run two PM2 instances. |
+| Pi MQTT fails with `ModuleNotFoundError` | Check `.venv/bin/python -m pip show paho-mqtt`, then run UWH using that same virtual environment. |
+| Frontend says adapter missing / port busy | Find the actual COM port or `/dev/serial/by-id`; confirm adapter type and permissions, and close any other program using the coordinator. |
+| Audible siren works but time/volume is different | Check the **Sounds** tab's siren file, **Number of seconds to play Siren**, **Maximum Siren Duration**, and hardware audio routing. Arduino hold-to-sound differs from Zigbee timed actions. |
+
+**Useful diagnostic commands** (use the correct host and authentication options for your broker):
+
+```bash
+# Pi / Linux: view button events while pressing a button
+mosquitto_sub -h localhost -t 'zigbee2mqtt/+' -v
+
+# Pi / Linux: check broker service and Zigbee2MQTT service
+systemctl status mosquitto --no-pager
+systemctl status zigbee2mqtt --no-pager
+```
+
+```cmd
+REM Windows Command Prompt: change path if Mosquitto is installed elsewhere
+"C:\Program Files\mosquitto\mosquitto_sub.exe" -h localhost -t "zigbee2mqtt/+" -v
+pm2 list
+pm2 logs zigbee2mqtt
+```
+
+If MQTT authentication is enabled, use authenticated client options or the UWH UI's credentials; do not paste credentials into screenshots or public GitHub issues. If the frontend shows button actions but UWH is silent, verify the sound with **Test App Siren**, then confirm the button is listed **and** its received action has a saved mapping. An Arduino `Access is denied` COM-port error is a separate serial-access problem: close other serial monitors or programs holding that port.
+
+### Official references
+
+- [Zigbee2MQTT getting started and onboarding](https://www.zigbee2mqtt.io/guide/getting-started/)
+- [Zigbee2MQTT Linux installation](https://www.zigbee2mqtt.io/guide/installation/01_linux.html)
+- [Zigbee2MQTT Windows installation](https://www.zigbee2mqtt.io/guide/installation/05_windows.html)
+- [Pairing devices / Permit join](https://www.zigbee2mqtt.io/guide/usage/pairing_devices.html)
+- [MQTT topics, friendly names and device rename](https://www.zigbee2mqtt.io/guide/usage/mqtt_topics_and_messages.html)
+- [Zigbee2MQTT FAQ: one coordinator and one network per device](https://www.zigbee2mqtt.io/guide/faq/)
+- [Mosquitto downloads](https://mosquitto.org/download/), [Windows service instructions](https://github.com/eclipse-mosquitto/mosquitto/blob/master/README-windows.txt), [MQTT authentication](https://mosquitto.org/documentation/authentication-methods/)
+- [Eclipse Paho Python client](https://pypi.org/project/paho-mqtt/)
 
 ## Other installation and packaging notes
 
@@ -435,7 +1041,7 @@ On Raspberry Pi OS Bookworm, use the project virtual environment rather than a s
 .venv/bin/python -m pip install PACKAGE_NAME
 ```
 
-For source installations, `paho-mqtt` is the **Python MQTT client**, not the MQTT broker. Zigbee2MQTT is a separate **Node.js** program. On Bookworm, install Python dependencies inside the UWH virtual environment; a Windows release EXE normally includes its required Python dependencies. `pyserial`/COM-port discovery alone does not establish Zigbee pairing or serial-mode compatibility. See [ZIGBEE_SETUP.md](ZIGBEE_SETUP.md).
+For source installations, `paho-mqtt` is the **Python MQTT client**, not the MQTT broker. Zigbee2MQTT is a separate **Node.js** program. On Bookworm, install Python dependencies inside the UWH virtual environment; a Windows release EXE normally includes its required Python dependencies. `pyserial`/COM-port discovery alone does not establish Zigbee pairing or serial-mode compatibility. See [the Zigbee section](#zigbee2mqtt-wireless-siren-setup-and-operation).
 
 ### Standalone executables (advanced)
 
@@ -467,5 +1073,5 @@ The application includes a startup diagnostic window and a Zigbee Siren activity
 - [Raspberry Pi OS documentation](https://www.raspberrypi.com/documentation/computers/os.html) — OS updates and Python virtual environments.
 - [Raspberry Pi desktop configuration](https://www.raspberrypi.com/documentation/computers/configuration.html) — switching between X11 and Wayland using `raspi-config`.
 - [GitHub: downloading files](https://docs.github.com/en/repositories/working-with-files/using-files/downloading-source-code-archives-and-directories) — using Code → Download ZIP.
-- [ZIGBEE_SETUP.md](ZIGBEE_SETUP.md) — Mosquitto, Python/Paho, Zigbee2MQTT, pairing, multi-computer warnings and troubleshooting.
+- [Zigbee2MQTT wireless siren setup and operation](#zigbee2mqtt-wireless-siren-setup-and-operation) — Mosquitto, Python/Paho, Zigbee2MQTT, pairing, multi-computer warnings and troubleshooting.
 - `HARDWARE_SETUP.md` — wired Arduino/physical hardware, where supplied.

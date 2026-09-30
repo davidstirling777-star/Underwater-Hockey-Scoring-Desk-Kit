@@ -57,7 +57,6 @@ a = Analysis(
         ("assets/arduino_siren_button.ino", "."),
 
         ("README.md", "."),
-        ("ZIGBEE_SETUP.md", "."),
         ("tournament_results_server.py", "."),
         ("HARDWARE_SETUP.md", "."),
     ],
