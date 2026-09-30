@@ -2,8 +2,8 @@
 
 **Read [MAINTAINERS.md](../MAINTAINERS.md) first.** It is the current
 maintainer-oriented map of modules, threading, tournament-export invariants,
-and deployment. README.md is for operators/installers; ZIGBEE_SETUP.md is
-for Zigbee2MQTT deployment. The original single-file/no-tests notes that were
+and deployment. README.md is the single operator/install/deployment manual, including
+Zigbee2MQTT and tournament results synchronisation. The original single-file/no-tests notes that were
 previously in this file no longer described the repository.
 
 ## Dependencies and environments
