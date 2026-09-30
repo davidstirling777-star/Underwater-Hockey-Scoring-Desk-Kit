@@ -16,12 +16,12 @@ def create_settings_tab(app):
     tab = ttk.Frame(app.notebook)
     app.notebook.add(tab, text="Game Variables")
 
-    # Tournament List is deliberately taller than Game Sequence:
-    # its result/connection controls must fit on Pi 5's operator display.
+    # Keep enough height for the expanded Tournament List controls while
+    # returning useful vertical space to the full Game Sequence explanation.
     tab.grid_rowconfigure(0, weight=2)
     tab.grid_rowconfigure(1, weight=0)
-    tab.grid_rowconfigure(2, weight=3)
-    tab.grid_rowconfigure(3, weight=0)
+    tab.grid_rowconfigure(2, weight=2)
+    tab.grid_rowconfigure(3, weight=1)
     tab.grid_columnconfigure(0, weight=2)
     tab.grid_columnconfigure(1, weight=1)
 
@@ -525,7 +525,7 @@ def create_settings_tab(app):
     widget4.grid_rowconfigure(2, weight=0)
     widget4.grid_rowconfigure(3, weight=0)
     widget4.grid_rowconfigure(4, weight=0)
-    widget4.grid_rowconfigure(8, weight=1)
+    widget4.grid_rowconfigure(8, weight=0)
 
     tournament_header = tk.Label(
         widget4,
@@ -795,10 +795,14 @@ def create_settings_tab(app):
     csv_comment = tk.Label(
         widget4,
         text=(
-            "The original draw is read-only; completed games are saved "
-            "locally first. Shared-server sync retries every 10 seconds.\n"
+            "Put tournament draw CSVs in the same folder as this program.\n"
+            "The selected draw is read-only; completed games are saved locally "
+            "first in a separate _Results.csv file.\n"
+            "Shared-server sync sends one completed game at a time and retries "
+            "every 10 seconds if the server is unavailable.\n"
             "Expected CSV headers: date,#,White,WScore,Black,BScore,"
-            "Referees,Penalties,Comments"
+            "Referees,Penalties,Comments\n"
+            "(# is the game number; use quotes around team names containing commas)"
         ),
         font=(default_font.cget("family"), small_size),
         anchor="nw", justify="left", wraplength=600
@@ -833,9 +837,16 @@ def create_settings_tab(app):
     )
 
     explanation_text = (
-        "First Game Starts In → First Half → Half Time → Second Half\n"
-        "If tied: Overtime → Sudden Death (if enabled)\n"
-        "Between Game Break → Next game; crib time shortens this break."
+        "Game Sequence Flow:\n"
+        "1. First Game Starts In: (runs once at app start)\n"
+        "2. First Half → Half Time → Second Half\n"
+        "3. If scores tied: Overtime Game Break → Overtime First Half "
+        "→ Overtime Half Time → Overtime Second Half (if enabled)\n"
+        "4. If still tied: Sudden Death Game Break → Sudden Death (if enabled)\n"
+        "5. Between Game Break (loop back to step 2)\n\n"
+        "Important Notes:\n"
+        "• 'First Game Starts In:' transitions directly to First Half\n"
+        "• Crib time is subtracted from Between Game Break"
     )
 
     explanation_label = tk.Label(
