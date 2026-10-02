@@ -94,6 +94,17 @@ class MaintenanceDocumentationTests(unittest.TestCase):
         self.assertIn("**Detected** ports", readme)
         self.assertIn("`emergency`", readme)
 
+    def test_sounds_tab_reports_the_startup_audio_output(self):
+        sound = source("sound.py")
+        sounds_ui = source("sounds_ui.py")
+        readme = source("README.md")
+        self.assertIn('"@DEFAULT_AUDIO_SINK@"', sound)
+        self.assertIn("HiFiBerry DAC+ / compatible I2S DAC", sound)
+        self.assertIn("AUDIO_OUTPUT_AT_STARTUP", sound)
+        self.assertIn("Audio output in use:", sounds_ui)
+        self.assertIn("(selected when UWH started)", sounds_ui)
+        self.assertIn("restart UWH", readme)
+
     def test_tournament_help_names_the_actual_required_score_columns(self):
         text = source("settings_ui.py")
         self.assertIn(
