@@ -147,10 +147,17 @@ class MaintenanceDocumentationTests(unittest.TestCase):
         self.assertIn('build_sound_table(', sounds_ui)
         self.assertIn('"Pips"', sounds_ui)
         self.assertIn('"Sirens"', sounds_ui)
+        self.assertIn('text="Use"', sounds_ui)
         self.assertIn('text="Sound File"', sounds_ui)
         self.assertIn('text="Trim %"', sounds_ui)
+        self.assertIn("tk.Radiobutton(", sounds_ui)
+        self.assertIn("variable=selection_var", sounds_ui)
+        self.assertIn("value=filename", sounds_ui)
         self.assertIn("range(MAX_SOUND_ROWS)", sounds_ui)
-        self.assertIn("double-click to preview", sounds_ui)
+        self.assertIn("double-click the filename to preview it", sounds_ui)
+        readme = source("README.md")
+        self.assertIn("Exactly **one Pip** and **one Siren**", readme)
+        self.assertIn("`pips_sound` and `siren_sound`", readme)
 
     def test_tournament_help_names_the_actual_required_score_columns(self):
         text = source("settings_ui.py")
