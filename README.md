@@ -696,7 +696,13 @@ The system automatically plays audio cues during different periods:
 
 If the 'Team time-outs allowed?' check box is selected, the Team Time-Out buttons are selectable. Only one team time-out per half, no team time-outs are permitted in Overtime or Sudden Death according to CMAS rules.
 
-**Add Goal White** adds a goal to white and, if the 'Record Scorers Cap Number' checkbox is ticked, a popup dialogue box where the cap number of the player scoring the goal can be entered. Unknown and Penalty Goal options are provided.
+**Add Goal White** adds a goal to White and, if the 'Record Scorers Cap Number' checkbox is ticked, opens a popup dialogue box where the cap number of the player scoring the goal can be entered. Unknown and Penalty Goal options are provided.
+
+**Add Goal Black** adds a goal to Black and, if the 'Record Scorers Cap Number' checkbox is ticked, opens the same scorer popup for the Black team. Unknown and Penalty Goal options are provided.
+
+**-ve Goal White** removes one goal from White after confirmation. It does nothing if White's score is already zero. If used during a break, Team Time-Out or Referee Time-Out, an additional warning is shown before the score is changed.
+
+**-ve Goal Black** removes one goal from Black after confirmation. It does nothing if Black's score is already zero. If used during a break, Team Time-Out or Referee Time-Out, an additional warning is shown before the score is changed.
 
 **Referee Time-Out** pauses:
 - Court Time
@@ -706,7 +712,7 @@ If the 'Team time-outs allowed?' check box is selected, the Team Time-Out button
 
 When Referee Time-Out is released, the interrupted period(s) resumes from the exact point at which it was paused, including Sudden Death periods.
 
-**Penalties** is enabled during play but greyed out for breaks (as you cannot award a Penalty when play cannot be stopped [section 17.1.1 of CMAS rules]) but if the 'Referee Time-Out' button is pushed, the Penalties button becomes active.
+**Penalties** is enabled during play but greyed out for breaks (as you cannot award a Penalty when play cannot be stopped [section 17.1.1 of CMAS rules]) but if the 'Referee Time-Out' button is pushed, the Penalties button becomes active (that is for you KD).
 
 ## Other game behaviour
 
