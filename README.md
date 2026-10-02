@@ -111,32 +111,43 @@ After updating, confirm the **Zigbee Siren → Button Device Names** field and t
 
 These instructions are for a new installation from the Python source, not a standalone executable. A keyboard, mouse and Raspberry Pi OS Desktop are needed; the Lite edition does not include the graphical desktop.
 
-### Raspberry Pi 5 GPIO power configuration
+### Raspberry Pi 5 power supply configurations
+
+Raspberry Pi 5 can be powered in several ways, but the power source affects how much current the firmware makes available to the board and to USB peripherals. Raspberry Pi recommends a **5 V / 5 A** supply for full capability. A good **5 V / 3 A** supply can run a Pi 5, but the total current available to downstream USB peripherals is normally limited to **600 mA** instead of **1.6 A**.
+
+| Power arrangement | Pi 5 behaviour | Required configuration |
+|---|---|---|
+| **UWH Scoring Desk production motherboard — 5.1 V / at least 5 A through the GPIO header** | No USB-C Power Delivery negotiation occurs. The motherboard provides the high-current 5 V rail directly. | **Set `PSU_MAX_CURRENT=5000` in the Pi 5 bootloader EEPROM.** |
+| **Official Raspberry Pi 27 W USB-C supply, or another compatible USB-PD source that negotiates 5 V / 5 A** | The Pi detects the 5 A supply through USB-PD and automatically enables the higher power budget. | No `PSU_MAX_CURRENT` override is normally required. |
+| **Good-quality 5 V / 3 A USB-C supply** | The Pi 5 can operate, but downstream USB power is normally limited to 600 mA. | Do **not** claim 5 A with `PSU_MAX_CURRENT=5000` unless the supply and complete power path really can provide it. |
+| **Other verified 5 V / 5 A non-PD supply or bench supply connected through GPIO** | Electrically similar to the UWH GPIO-powered case: there is no USB-PD negotiation to report the available current. | `PSU_MAX_CURRENT=5000` may be used only when the source, wiring and connectors are genuinely capable of supplying 5 A. |
+
+#### UWH Scoring Desk production hardware
 
 > [!IMPORTANT]
-> **The UWH Scoring Desk motherboard provides the Raspberry Pi 5 with a regulated 5.1 V supply capable of at least 5 A through the GPIO header. The dedicated DC-DC PDM-Audio power supply is capable of supplying 5 A and brings its 5.1 V output to operating level in less than 10 ms. Because this bypasses USB-C Power Delivery negotiation, the Pi 5 bootloader must be told that 5000 mA is available.**
+> **The UWH Scoring Desk motherboard provides the Raspberry Pi 5 with a regulated 5.1 V supply capable of at least 5 A through the GPIO header. The dedicated PDM-Audio DC-DC supply uses the LMQ61460 regulator. The regulator specifies 3.5–7 ms from its first switching pulse to 90% of the selected output voltage, with a typical 0.7 ms enable-to-first-switching-pulse delay. This keeps the regulator's designed start-up to near operating voltage below 10 ms. The assembled production board should still be checked under load during hardware validation.**
 
-Most users of the production UWH Scoring Desk hardware will supply their own Raspberry Pi 5. When that Pi is powered from the motherboard through the GPIO 5 V pins rather than through USB-C, configure the Pi 5 bootloader to recognise the available 5 A supply.
+The production motherboard feeds the Pi 5 through the **5 V GPIO power pins rather than through USB-C**. This deliberately bypasses USB-C Power Delivery negotiation. Most users are expected to provide their own Raspberry Pi 5, so each Pi fitted to the production motherboard must have its bootloader configured to recognise the available **5000 mA** supply.
 
-Open Terminal and run:
+For the UWH motherboard, edit the Pi 5 bootloader EEPROM configuration:
 
 ```bash
 sudo rpi-eeprom-config --edit
 ```
 
-Add or change this bootloader setting:
+Add or change:
 
 ```text
 PSU_MAX_CURRENT=5000
 ```
 
-Save the bootloader configuration and reboot the Pi:
+Save the configuration and reboot:
 
 ```bash
 sudo reboot
 ```
 
-After rebooting, verify the setting with:
+After rebooting, verify the setting:
 
 ```bash
 rpi-eeprom-config | grep PSU_MAX_CURRENT
@@ -148,8 +159,29 @@ The result should include:
 PSU_MAX_CURRENT=5000
 ```
 
+`PSU_MAX_CURRENT=5000` tells the Pi 5 firmware to **skip USB Power Delivery negotiation and assume that a 5 A source is available**. It does not increase the capability of the power supply itself. On the UWH motherboard this is appropriate because the dedicated PDM-Audio supply and its power path are designed for the Pi 5 load.
+
+Raspberry Pi also provides a `usb_max_current_enable=1` setting that raises the USB peripheral limit from 600 mA to 1.6 A. **It does not need to be added separately for the UWH motherboard:** Raspberry Pi documents that this higher USB-current setting is enabled automatically when `PSU_MAX_CURRENT=5000` is set.
+
 > [!CAUTION]
-> `PSU_MAX_CURRENT=5000` does **not** make a power supply capable of delivering 5 A. It tells the Raspberry Pi 5 firmware that a suitable 5 A supply is already fitted. This setting is appropriate when the Pi 5 is powered from the UWH Scoring Desk motherboard's dedicated PDM-Audio supply. If the Pi is later moved to a different power arrangement, make sure that supply is suitable before retaining this setting.
+> **Do not use `PSU_MAX_CURRENT=5000` merely to remove a low-power warning.** Only use it when the complete 5 V supply path is genuinely capable of supplying 5 A. If a Pi 5 is removed from the UWH motherboard and later used with a lower-current supply, review or remove this EEPROM override. Also avoid connecting a second USB-C power supply while the Pi is already being powered from the UWH motherboard's GPIO 5 V rail.
+
+#### If the Pi 5 is powered through USB-C instead
+
+A Pi 5 supplied from an official Raspberry Pi 27 W USB-C supply negotiates **5 V / 5 A** using USB Power Delivery, so the firmware knows that the higher current is available and no UWH-specific EEPROM override is required.
+
+A Pi 5 can also run from a suitable **5 V / 3 A** USB-C source. In that configuration Raspberry Pi normally restricts the total power available to downstream USB devices to **600 mA**. With a recognised 5 V / 5 A source—or with the UWH motherboard correctly configured using `PSU_MAX_CURRENT=5000`—the USB peripheral limit rises to **1.6 A**.
+
+The production UWH motherboard uses GPIO power injection rather than USB-C because its dedicated regulated 5.1 V supply is already part of the scoring-desk hardware; implementing a separate USB-C 5 A source would otherwise require a suitable USB-C/USB-PD power-source arrangement.
+
+The dedicated PDM-Audio supply also makes a future independent Pi 5 hard-reset function practical, but **the dedicated supply by itself does not provide a reset**. A hard-reset/recovery button would need to be added to the PDM-Audio daughterboard (or otherwise wired to its regulator enable/control path) so that the Pi's 5.1 V output can be deliberately switched off and restarted. Without that additional hardware, recovery from a completely locked Pi still requires an external power cycle or use of the Pi's own controls.
+
+Official references:
+
+- [Raspberry Pi 5 power-supply requirements](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#power-supply)
+- [Raspberry Pi: USB Power Delivery on Raspberry Pi 5](https://pip-assets.raspberrypi.com/categories/685-app-notes-guides-whitepapers/documents/RP-009856-WP-1-USB%20Power%20delivery%20on%20Raspberry%20Pi%205.pdf)
+- [Raspberry Pi bootloader configuration — `PSU_MAX_CURRENT`](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#PSU_MAX_CURRENT)
+- [Texas Instruments LMQ61460 product page](https://www.ti.com/product/LMQ61460)
 
 ### 1. Prepare Raspberry Pi OS
 
@@ -385,14 +417,24 @@ permanent folder containing the **source ZIP** files:
 
 The easiest route is to extract the full updated GitHub source ZIP on the
 third computer and copy the same original draw beside these Python files.
-Do not use the packaged Windows application EXE as the server.
+The packaged Windows UWH application (`UnderwaterHockeyScoringDesk.exe`) is
+the court/operator program and cannot run the shared tournament-results
+server. On the third results computer, download/extract the GitHub source ZIP
+and run `tournament_results_server.py` with Python.
 
 Generate a long, unpredictable secret once, and record it securely:
 
     python -c "import secrets; print(secrets.token_urlsafe(32))"
 
-If the Windows Python executable is named differently, use py -3 instead.
-Enter the same secret on the two courts. It must be at least 16 characters.
+If Windows reports that `python` is not recognised, use `py -3` in place
+of `python` in the commands below.
+
+Enter exactly the same shared results token on the two courts. The recommended
+command above generates a long, unpredictable token (typically about 43
+characters). The results server rejects tokens shorter than 16 characters as a
+basic safeguard against weak manually chosen passwords; 16 characters is only
+a minimum length check, not a special cryptographic threshold. Using the
+generated random token is strongly recommended.
 
 #### Windows 11 results computer
 
@@ -514,17 +556,19 @@ The Sounds tab reports **Audio output in use**. On Raspberry Pi/Linux it identif
 
 **Save Settings** stores the selected sound files, Pips/Siren volume levels and siren timing settings in the JSON file (stored in the same location as the app itself).
 
-**Pips** is a dropdown box where a sound file can be selected. Any .MP3 or .WAV file can be placed in the 'assets' folder and these will appear in the 'Pips' dropdown box.
+**Pips** is a dropdown box where a pip sound file can be selected. UWH scans the `assets` folder for `.MP3` and `.WAV` files, then places a file in the **Pips** dropdown if its filename contains `pip` (case-insensitive). For clarity, custom pip files should use the naming convention `pip-<description>.mp3` or `pip-<description>.wav`, for example `pip-short-beep.mp3`.
 
-**Siren** is a dropdown box where a sound file can be selected. Any .MP3 or .WAV file can be placed in the 'assets' folder and these will also appear in the 'Siren' dropdown box.
+**Siren** is a dropdown box where a siren sound file can be selected. UWH places a supported sound file in the **Siren** dropdown if its filename contains `siren` (case-insensitive). For clarity, custom siren files should use the naming convention `siren-<description>.mp3` or `siren-<description>.wav`, for example `siren-air-horn.wav`.
+
+A sound file that does not contain `pip` or `siren` in its filename will not appear in the corresponding dropdown.
 
 The **Open Sounds Folder** button opens the 'assets' folder, where sound files can be added.
 
-**Pips Vol** and **Siren Vol** are independent in-app volume controls for those two sound types. They remain saved with the Sounds settings. The former **Air** and **Water** volume sliders have been removed because they did not control separate audio outputs. Use the operating-system/DAC/amplifier level as the overall master volume.
+**Pips Vol** and **Siren Vol** are independent in-app volume controls for those two sound types. They remain saved with the Sounds settings. Use the operating-system/DAC/amplifier level as the overall master volume.
 
-### Raspberry Pi 5: Jaycar XC9048 / HiFiBerry-compatible DAC HAT
+### Raspberry Pi 5: duinotech Digital Audio Converter / HiFiBerry-compatible DAC HAT
 
-The Jaycar **XC9048** has been tested on a Raspberry Pi 5 running Raspberry Pi OS Bookworm. The red LED on the HAT only confirms that the board has power; it does not prove that Linux has loaded an audio driver.
+The **duinotech Digital Audio Converter** has been tested on a Raspberry Pi 5 running Raspberry Pi OS Bookworm. The red LED on the HAT only confirms that the board has power; it does not prove that Linux has loaded an audio driver.
 
 With the Pi shut down, fit the DAC to the 40-pin GPIO header. On Bookworm, the boot configuration file is `/boot/firmware/config.txt`. Back it up and edit it:
 
@@ -598,7 +642,7 @@ Here `0.50` means **50%**. After changing the default audio sink, **completely c
 - **Audio is too loud or too quiet overall:** change the PipeWire sink volume, for example `wpctl set-volume <sink-id> 0.50`. The UWH **Pips Vol** and **Siren Vol** sliders can then trim those two sound types independently. The obsolete Air/Water sliders have been removed.
 - **The DAC disappears after an OS/configuration change:** repeat `aplay -l`, `cat /proc/asound/cards`, and `wpctl status` before changing UWH settings. This separates a Linux audio problem from an application problem.
 
-Useful references: [Raspberry Pi `config.txt` documentation](https://www.raspberrypi.com/documentation/computers/config_txt.html), [HiFiBerry Pi 5 driver/overlay change](https://www.hifiberry.com/blog/changes-in-hifiberry-drivers/), and the [Jaycar XC9048 product page](https://www.jaycar.co.nz/digital-audio-converter-raspberry-pi-compatible/p/XC9048).
+Useful references: [Raspberry Pi `config.txt` documentation](https://www.raspberrypi.com/documentation/computers/config_txt.html), [HiFiBerry Pi 5 driver/overlay change](https://www.hifiberry.com/blog/changes-in-hifiberry-drivers/), and the [duinotech Digital Audio Converter product page](https://www.jaycar.co.nz/digital-audio-converter-raspberry-pi-compatible/p/XC9048).
 
 UWH keeps the working **Pips Vol** and **Siren Vol** sliders for relative cue levels. The operating system, DAC/amplifier or other downstream hardware remains the overall master volume. On Raspberry Pi OS/PipeWire, use `wpctl` for that master level; on Windows, use the normal Windows output and volume controls.
 
@@ -652,7 +696,13 @@ The system automatically plays audio cues during different periods:
 
 If the 'Team time-outs allowed?' check box is selected, the Team Time-Out buttons are selectable. Only one team time-out per half, no team time-outs are permitted in Overtime or Sudden Death according to CMAS rules.
 
-**Add Goal White** adds a goal to white and, if the 'Record Scorers Cap Number' checkbox is ticked, a popup dialogue box where the cap number of the player scoring the goal can be entered. Unknown and Penalty Goal options are provided.
+**Add Goal White** adds a goal to White and, if the 'Record Scorers Cap Number' checkbox is ticked, opens a popup dialogue box where the cap number of the player scoring the goal can be entered. Unknown and Penalty Goal options are provided.
+
+**Add Goal Black** adds a goal to Black and, if the 'Record Scorers Cap Number' checkbox is ticked, opens the same scorer popup for the Black team. Unknown and Penalty Goal options are provided.
+
+**-ve Goal White** removes one goal from White after confirmation. It does nothing if White's score is already zero. If used during a break, Team Time-Out or Referee Time-Out, an additional warning is shown before the score is changed.
+
+**-ve Goal Black** removes one goal from Black after confirmation. It does nothing if Black's score is already zero. If used during a break, Team Time-Out or Referee Time-Out, an additional warning is shown before the score is changed.
 
 **Referee Time-Out** pauses:
 - Court Time
@@ -662,7 +712,7 @@ If the 'Team time-outs allowed?' check box is selected, the Team Time-Out button
 
 When Referee Time-Out is released, the interrupted period(s) resumes from the exact point at which it was paused, including Sudden Death periods.
 
-**Penalties** is enabled during play but greyed out for breaks (as you cannot award a Penalty when play cannot be stopped [section 17.1.1 of CMAS rules]) but if the 'Referee Time-Out' button is pushed, the Penalties button becomes active.
+**Penalties** is enabled during play but greyed out for breaks (as you cannot award a Penalty when play cannot be stopped [section 17.1.1 of CMAS rules]) but if the 'Referee Time-Out' button is pushed, the Penalties button becomes active (that is for you KD).
 
 ## Other game behaviour
 
@@ -683,7 +733,7 @@ This table explains the results and progression rules when a goal is added durin
 | Sudden Death Game Break | Even | Remain in Sudden Death Game Break. Proceed to Sudden Death period as scheduled. |
 | | Uneven | Progress directly to Between Game Break. (Skips Sudden Death period.) |
 
-This logic ensures the correct flow for tournament progression based on goals scored during break periods.
+This logic ensures the correct flow for tournament progression based on goals recorded during break periods.
 
 ## Zigbee2MQTT wireless siren setup and operation
 
@@ -945,7 +995,11 @@ These steps apply to **both** platforms and are performed on the **single Zigbee
 2. Use **Permit join** in the frontend (currently in the top navigation area). Current Zigbee2MQTT documentation says this opens joining for **254 seconds**; close it earlier when finished. The timing/UI wording can change with releases.
 3. Put the button into pairing/reset mode **using the instructions for its exact model**. Do not assume a universal hold duration or LED pattern.
 4. Wait for the device to join and finish its interview. If joining fails, follow the model's factory reset instructions and retry nearer the coordinator.
-5. Open the device's page in the frontend and edit its **friendly name** (usually accessible from the device details or rename action). Use simple unique names **without `/`**, e.g. `siren_button`, `siren_button_2` and `siren_button_3`.
+5. Open the device's page in the frontend and edit its **friendly name** (usually accessible from the device details or rename action). Use simple unique names **without `/`**, e.g. `siren_button`, `siren_button_2` and `siren_button_3` for one system, or perhaps `Blue_1`, `Blue_2` for buttons paired to one controller (which may be colour-coded blue) and `Orange_1`, `Orange_2` for buttons paired to another controller (which may be colour-coded orange).
+![Zigbee2MQTT Devices page showing three paired siren buttons](docs/images/zigbee2mqtt-devices-three-buttons.png)
+
+*Example Zigbee2MQTT Devices page showing three paired buttons with unique friendly names.*
+
 6. Close **Permit join**. Press each button and watch its device page or Zigbee2MQTT log. A successful button event produces an MQTT topic corresponding to its friendly name:
 
 ```text
@@ -1107,7 +1161,7 @@ The frontend on port 8080 is **separate from MQTT**. Opening a webpage on PC 2 d
 
 | Observation | What to check |
 |---|---|
-| Frontend does not open at `localhost:8080` | Is Zigbee2MQTT actually running? On Windows, check `pm2 list`, `pm2 logs zigbee2mqtt` and Task Scheduler's **Last Run Result**; on Pi check `systemctl status zigbee2mqtt`. Check frontend enablement and port. |
+| Frontend does not open at `localhost:8080` | Is Zigbee2MQTT actually running? On the **Windows computer that runs Zigbee2MQTT**, open **Command Prompt** or **PowerShell** while signed in as the **same Windows account that was used to set up and save the PM2 process list**, then type `pm2 list` to see whether the `zigbee2mqtt` process is online. Type `pm2 logs zigbee2mqtt` to view its recent/startup log messages; press **Ctrl+C** when you have finished viewing the live log. Also check Task Scheduler's **Last Run Result** for the Zigbee2MQTT startup task. On Raspberry Pi/Linux, open a Terminal and run `systemctl status zigbee2mqtt`. Check frontend enablement and port as well. |
 | UWH displays **Connected** but no button appears in the activity log | **Connected** means the MQTT broker session is up, not that a button is paired or mapped. Press the button and inspect Zigbee2MQTT's log; compare the **friendly name**, MQTT topic (`zigbee2mqtt/+`), and **Button Device Names**. UWH's Arduino/USB labels report **Detected** ports, not proof that an Arduino COM port was opened. |
 | One button works but another does not | Check that each button's exact friendly name appears in **Button Device Names** and click **Save Configuration**. Press it and check the **Activity Log**. If it says **Unmapped action**, use **Auto-add From Log**, change **Ignore** to the desired response and **Save Action Mappings**. Missing settings do not necessarily mean the device needs re-pairing. |
 | Zigbee2MQTT publishes `{"battery":...}` but UWH is silent | A battery-only update has **no `action`**; it is device status rather than a button press. |
