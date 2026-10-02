@@ -556,13 +556,15 @@ The Sounds tab reports **Audio output in use**. On Raspberry Pi/Linux it identif
 
 **Save Settings** stores the selected sound files, Pips/Siren volume levels and siren timing settings in the JSON file (stored in the same location as the app itself).
 
-**Pips** is a dropdown box where a sound file can be selected. Any .MP3 or .WAV file can be placed in the 'assets' folder and these will appear in the 'Pips' dropdown box.
+**Pips** is a dropdown box where a pip sound file can be selected. UWH scans the `assets` folder for `.MP3` and `.WAV` files, then places a file in the **Pips** dropdown if its filename contains `pip` (case-insensitive). For clarity, custom pip files should use the naming convention `pip-<description>.mp3` or `pip-<description>.wav`, for example `pip-short-beep.mp3`.
 
-**Siren** is a dropdown box where a sound file can be selected. Any .MP3 or .WAV file can be placed in the 'assets' folder and these will also appear in the 'Siren' dropdown box.
+**Siren** is a dropdown box where a siren sound file can be selected. UWH places a supported sound file in the **Siren** dropdown if its filename contains `siren` (case-insensitive). For clarity, custom siren files should use the naming convention `siren-<description>.mp3` or `siren-<description>.wav`, for example `siren-air-horn.wav`.
+
+A sound file that does not contain `pip` or `siren` in its filename will not appear in the corresponding dropdown.
 
 The **Open Sounds Folder** button opens the 'assets' folder, where sound files can be added.
 
-**Pips Vol** and **Siren Vol** are independent in-app volume controls for those two sound types. They remain saved with the Sounds settings. The former **Air** and **Water** volume sliders have been removed because they did not control separate audio outputs. Use the operating-system/DAC/amplifier level as the overall master volume.
+**Pips Vol** and **Siren Vol** are independent in-app volume controls for those two sound types. They remain saved with the Sounds settings. Use the operating-system/DAC/amplifier level as the overall master volume.
 
 ### Raspberry Pi 5: Jaycar XC9048 / HiFiBerry-compatible DAC HAT
 
