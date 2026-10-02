@@ -34,7 +34,7 @@ A normal operating flow is:
 1. Start UWH and allow the startup self-test to complete.
 2. In **Game Variables**, load a preset or enter the match timings and rules. If a tournament draw is being used, select the draw and starting game.
 3. In **Screens**, select the operator layout and open the required player/spectator Display Window(s). Use **Auto Detect Screens** and **Test Displays** when setting up a new computer or monitor arrangement.
-4. In **Sounds**, select and test the siren and pip sounds, durations and volumes.
+4. In **Sounds**, select and test the siren and pip sounds, per-file trims and siren timing.
 5. If wireless referee buttons are being used, configure and test them in **Zigbee Siren**. The wired Arduino siren button remains a separate local input path.
 6. Use **Scoreboard** during the match for goals, penalties, team time-outs and manual timer control. The player/spectator Display Window follows the live match state.
 7. At the end of a tournament game, UWH saves the completed result to the separate results CSV before clearing the live match and advancing to the next selected game. If shared two-court sync is enabled, the local save happens first and network upload happens afterwards in the background.
@@ -105,11 +105,11 @@ Download the newer release and extract it into a **separate folder** first. Do n
 > [!WARNING]
 > **Back up `settings.json` before every update.** It includes your **Zigbee button-name list** (for example, `siren_button, siren_button_2, siren_button_3`), MQTT settings, sound preferences, screen layout and the remembered Display Window open/closed state. Back up tournament CSVs, custom sounds under `assets/`, and game logs too. Replacing UWH's settings can lose button names **or action mappings**, even though the buttons remain paired to Zigbee2MQTT.
 
-After updating, confirm the **Zigbee Siren → Button Device Names** field and test every configured button and its action mapping before using the system at a match. The lower-right corner of the **Game Variables** panel shows the running UWH version so you can confirm which download is actually open. Windows release builds show the same `1.2.<build>` number used in the release ZIP name; source ZIPs show a source-build identifier. Do not blindly replace a new-format `settings.json` with a very old version; compare and carry forward your customised values where the format has changed. Zigbee2MQTT has a **separate** `data/` directory that should be backed up before Zigbee2MQTT updates; see [the Zigbee section](#zigbee2mqtt-wireless-siren-setup-and-operation).
+After updating, confirm the **Zigbee Siren → Button Device Names** field and test every configured button and its action mapping before using the system at a match. The lower-right corner of the **Game Variables** panel shows the running UWH version so you can confirm which download is actually open. Windows and Raspberry Pi 5 release builds show the same `1.2.<build>` number used in their release ZIP names; source installations show a source-build identifier. Do not blindly replace a new-format `settings.json` with a very old version; compare and carry forward your customised values where the format has changed. Zigbee2MQTT has a **separate** `data/` directory that should be backed up before Zigbee2MQTT updates; see [the Zigbee section](#zigbee2mqtt-wireless-siren-setup-and-operation).
 
 ## Downloading and installing UWH on a Raspberry Pi 5
 
-These instructions are for a new installation from the Python source, not a standalone executable. A keyboard, mouse and Raspberry Pi OS Desktop are needed; the Lite edition does not include the graphical desktop.
+The normal Raspberry Pi 5 installation now uses the ready-to-run **Linux ARM64 release ZIP** produced by GitHub Actions. A keyboard, mouse and 64-bit Raspberry Pi OS Desktop are needed; the Lite edition does not include the graphical desktop. The release bundle includes the Python runtime and UWH Python dependencies, so ordinary users do **not** need to create a virtual environment or run `pip install`.
 
 ### Raspberry Pi 5 power supply configurations
 
@@ -185,66 +185,65 @@ Official references:
 
 ### 1. Prepare Raspberry Pi OS
 
-For a new Pi 5 installation based on the tested setup, select **Raspberry Pi OS (Legacy, 64-bit) with desktop** in Raspberry Pi Imager. As of September 2026 this is the Bookworm-based image; the standard, newer Raspberry Pi OS uses Wayland by default.
+For a Pi 5 based on the tested setup, use **Raspberry Pi OS Bookworm 64-bit Desktop** and select X11 using the [instructions above](#select-x11-on-raspberry-pi-os). The ready-to-run UWH package is ARM64 and is not intended for a 32-bit Raspberry Pi OS installation.
 
-After booting into the desktop, select X11 using the [instructions above](#select-x11-on-raspberry-pi-os). Open Terminal and install the prerequisites:
+Open Terminal and make sure the basic archive utility is available:
 
 ```bash
 sudo apt update
-sudo apt install python3-venv python3-tk python3-pip unzip
+sudo apt install unzip
 ```
 
-Raspberry Pi OS Bookworm includes Python 3.11. Python 3.12 is not a requirement for the configuration tested here. `python3-tk` supplies the Tkinter desktop toolkit; `python3-venv` allows dependencies to be installed in a project-specific environment.
+The packaged application includes its own Python runtime and Python packages. You do not need `python3-venv`, `pip install`, or a project `.venv` for the normal release installation.
 
-### 2. Download the program from GitHub
+### 2. Download the Raspberry Pi 5 release ZIP
 
 1. Open Chromium (or another browser) on the Raspberry Pi.
-2. Open the GitHub repository containing this README. Open the [UWH Scoring Desk Kit repository](https://github.com/davidstirling777-star/Underwater-Hockey-Scoring-Desk-Kit).
-3. Above the list of files, click the green **Code** button and choose **Download ZIP**.
-4. Save the ZIP into your Downloads folder. In the tested installation it was named `Underwater-Hockey-Scoring-Desk-Kit-main.zip`.
-5. Open **File Manager** → **Downloads**. Right-click the ZIP and extract it into Downloads. If the Pi has no internet connection, download the ZIP on another computer and copy it to the Pi using a USB drive from another computer.
+2. Open the [UWH Scoring Desk Kit repository](https://github.com/davidstirling777-star/Underwater-Hockey-Scoring-Desk-Kit).
+3. Open **Releases** and select the latest release.
+4. Under **Assets**, download the file whose name resembles:
+   `UnderwaterHockeyScoringDesk-v1.2.123-RaspberryPi5.zip`
+   (the version/build number will vary).
+5. Save the ZIP to the Pi's Downloads folder.
 
-Alternatively, using Terminal after the ZIP has downloaded:
+> [!IMPORTANT]
+> Do **not** choose GitHub's automatically generated **Source code (zip)** and do not use **Code → Download ZIP** when you want the ready-to-run Pi application. Those are source-code archives. Also, if downloading on another computer, copy the **ZIP itself** to the Pi and extract it on the Pi. The Linux package can contain symbolic links and executable permissions that should not be reconstructed by Windows.
 
-```bash
-cd ~/Downloads
-unzip Underwater-Hockey-Scoring-Desk-Kit-main.zip
-cd Underwater-Hockey-Scoring-Desk-Kit-main
-```
+### 3. Extract and run UWH
 
-> [!WARNING]
-> **Do not overwrite an existing installation without a backup.** It may contain your saved `settings.json`, edited tournament CSV files, custom sounds and other game records. Back it up first, or extract into a separate directory.
-
-### 3. Install the Python dependencies
-
-Open Terminal in the extracted project directory (or use `cd` as shown above). Run:
+The following example installs the release in `~/UWH-Scoring-Desk`. Replace the ZIP filename with the version you downloaded:
 
 ```bash
-cd ~/Downloads/Underwater-Hockey-Scoring-Desk-Kit-main
-python3 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt
+rm -rf ~/UWH-Scoring-Desk-new
+mkdir -p ~/UWH-Scoring-Desk-new
+cd ~/UWH-Scoring-Desk-new
+unzip ~/Downloads/UnderwaterHockeyScoringDesk-v1.2.123-RaspberryPi5.zip
+chmod +x Start-UWH.sh UnderwaterHockeyScoringDesk
+./Start-UWH.sh
 ```
 
-A `.venv` is a private Python environment inside the project folder. This is important on Bookworm: do not use `sudo pip install` or `pip install --break-system-packages` to install this project's dependencies.
+The startup self-test should run, followed by the operator interface. The extracted folder is a **one-folder application**: keep `UnderwaterHockeyScoringDesk`, `Start-UWH.sh`, the `_internal` directory and the other supplied files together.
 
-The contents of `requirements.txt` may change between versions; use the file in the ZIP you downloaded as the source of truth. The application includes optional audio and Zigbee features that may need additional system packages or Python modules.
+On its first run, UWH places writable files such as `settings.json` and the sample tournament draw beside the executable as required. It also writes `debug_log.txt` beside the executable for packaged-build diagnostics.
 
-### 4. Run UWH
+Use **Screens → Display Screen Options** to open player-facing or crowd-facing displays. Position each window on its intended monitor. Use **Auto Detect Screens** and **Test Displays** to identify the monitors.
 
-Still in Terminal, run:
+If startup fails, run `./Start-UWH.sh` from Terminal. For the packaged build, also inspect:
 
 ```bash
-cd ~/Downloads/Underwater-Hockey-Scoring-Desk-Kit-main
-.venv/bin/python uwh.py
+tail -n 100 debug_log.txt
 ```
 
-The startup self-test should run, followed by the operator interface. Use **Screens → Display Screen Options** to open player-facing or crowd-facing displays. Position each window on its intended monitor. Closing a Display Window with **X** queues its closed state for automatic saving (about one minute after the first change, or on normal exit). Use **Auto Detect Screens** and **Test Displays** to identify the monitors.
+### 4. Optional: create a desktop shortcut
 
-If startup fails, launch with the Terminal command above rather than a desktop shortcut. The last lines printed to Terminal are usually much more useful than the last startup self-test message.
+Once the packaged application starts correctly, move/rename the tested folder to a permanent location if required. For example:
 
-### 5. Optional: create a desktop shortcut
+```bash
+rm -rf "$HOME/UWH-Scoring-Desk"
+mv "$HOME/UWH-Scoring-Desk-new" "$HOME/UWH-Scoring-Desk"
+```
 
-Once the Terminal launch works, the following commands create a shortcut on the Pi user's desktop, using the folder shown in these instructions. Paste the complete block into Terminal:
+Then create a desktop launcher:
 
 ```bash
 cat > "$HOME/Desktop/UWH-Scoring-Desk.desktop" <<EOF
@@ -253,35 +252,56 @@ Version=1.0
 Type=Application
 Name=UWH Scoring Desk
 Comment=Underwater Hockey scoring and siren application
-Exec=$HOME/Downloads/Underwater-Hockey-Scoring-Desk-Kit-main/.venv/bin/python $HOME/Downloads/Underwater-Hockey-Scoring-Desk-Kit-main/uwh.py
-Path=$HOME/Downloads/Underwater-Hockey-Scoring-Desk-Kit-main
+Exec=$HOME/UWH-Scoring-Desk/Start-UWH.sh
+Path=$HOME/UWH-Scoring-Desk
 Terminal=false
 Categories=Game;
 EOF
 chmod +x "$HOME/Desktop/UWH-Scoring-Desk.desktop"
 ```
 
-If the desktop asks you to **Allow Launching** or **mark the shortcut as trusted**, do so. If your project was extracted anywhere other than `~/Downloads/Underwater-Hockey-Scoring-Desk-Kit-main`, adjust both the `Exec=` and `Path=` entries to match.
+If the desktop asks you to **Allow Launching** or mark the shortcut as trusted, do so.
 
-### 6. Updating an existing installation safely
+### 5. Updating an existing Raspberry Pi installation safely
 
-A GitHub Download ZIP is a snapshot: it does not update itself. To obtain newer code, download a new ZIP and extract it into a separate directory, or back up the existing directory before replacing files.
+Download the newer `-RaspberryPi5.zip` and extract it into a **separate folder first**. Do not unzip it over a working installation.
 
-In particular, keep copies of `settings.json` (including the Zigbee `siren_button_devices` list, MQTT broker, sounds and screen visibility), **both draw and results CSV files**, sound files added under `assets/`, and game logs such as `UWH_Game_Data.txt` if present. The application writes completed games to the **results CSV** during tournaments, not to the draw. A missing UWH `settings.json` does not unpair a button, but UWH can lose its name and stop responding to it.
+> [!WARNING]
+> Before changing versions, back up `settings.json`, both tournament draw/results CSV files, custom sounds under `assets/`, game logs, and any other locally edited files. In particular, `settings.json` contains the Zigbee button names/action mappings, MQTT settings, sound selections/trims and screen settings.
 
-After copying a fresh version into its intended location, install that version's dependencies into its `.venv` and test it from Terminal before changing the desktop shortcut. Do not copy a `.venv` from an old installation. Verify the **Zigbee Siren** button-name list after restoring settings; the Raspberry Pi and Windows MQTT setup instructions are in [the Zigbee section](#zigbee2mqtt-wireless-siren-setup-and-operation).
+Run the new version once and confirm its startup self-test, screens, audio and configured siren buttons. Then copy your required user data/settings into the new installation deliberately. Do not copy the old `_internal` directory into a new release.
+
+The lower-right version display uses the same `1.2.<build>` value as the Raspberry Pi release ZIP, just as the Windows release does.
+
+### 6. Advanced/developer alternative: run from Python source
+
+Developers can still use the source-code ZIP or a Git checkout. On Bookworm, install source dependencies in a project virtual environment rather than into the system Python:
+
+```bash
+sudo apt update
+sudo apt install python3-venv python3-tk python3-pip
+cd ~/Downloads/Underwater-Hockey-Scoring-Desk-Kit-main
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python uwh.py
+```
+
+Do not use `sudo pip install` or `pip install --break-system-packages` for the source installation. This source method is useful for development and troubleshooting; ordinary Pi users should prefer the versioned `-RaspberryPi5.zip` under GitHub Releases.
 
 ### Raspberry Pi troubleshooting
 
 | Symptom | Check |
 |---------|-------|
 | Jerky mouse when passing over Game Variables checkboxes | Run `echo $XDG_SESSION_TYPE`. If it shows `wayland`, test the X11 option described [above](#select-x11-on-raspberry-pi-os). |
-| `ModuleNotFoundError` at startup | Check that `.venv/bin/python -m pip install -r requirements.txt` completed successfully, and that you launch with `.venv/bin/python uwh.py`. |
-| `No module named tkinter` | Install `python3-tk` using APT and recreate/test the virtual environment as necessary. |
-| Desktop icon appears but program does not start | Run `.venv/bin/python uwh.py` from Terminal; check the `Exec=` and `Path=` entries in the desktop shortcut. |
-| Display Window is missing or opens on the wrong monitor | Check **Screens → Display Screen Options**, run **Auto Detect Screens** and **Test Displays**, and position the window on the intended monitor. Closing the window with **X** queues its closed state for automatic saving or normal exit. |
+| `./Start-UWH.sh: Permission denied` | Run `chmod +x Start-UWH.sh UnderwaterHockeyScoringDesk`, then try `./Start-UWH.sh` again. |
+| Executable reports the wrong architecture / does not run | Confirm `uname -m` reports `aarch64` and that you downloaded the `-RaspberryPi5.zip`, not the Windows ZIP or source ZIP. |
+| Packaged application closes or appears not to start | Launch `./Start-UWH.sh` from Terminal and inspect `debug_log.txt` in the extracted UWH folder. |
+| A library error appears at startup | Keep the complete extracted release folder together, especially `_internal`. Re-extract the ZIP **on the Pi** into a fresh directory before changing OS packages. |
+| Desktop icon appears but program does not start | Run `./Start-UWH.sh` from Terminal; check the desktop shortcut's `Exec=` and `Path=` entries. |
+| Display Window is missing or opens on the wrong monitor | Check **Screens → Display Screen Options**, run **Auto Detect Screens** and **Test Displays**, and position the window on the intended monitor. |
 | Zigbee siren unavailable | See the Zigbee section below; a detected USB/COM port is not proof that the Zigbee button is paired or communicating. |
-| Need to check OS package updates | Run `sudo apt update` followed by `apt list --upgradable`. An empty list means no upgrades are offered by the configured repositories, not that you are on the newest version. |
+| Source/developer install shows `ModuleNotFoundError` | In a source checkout, check that `.venv/bin/python -m pip install -r requirements.txt` completed successfully and launch with `.venv/bin/python uwh.py`. |
+| Need to check OS package updates | Run `sudo apt update` followed by `apt list --upgradable`. An empty list means no upgrades are offered by the configured repositories, not that you are on the newest Raspberry Pi OS release. |
 
 ## Game Variables tab
 
@@ -1215,35 +1235,28 @@ If MQTT authentication is enabled, use authenticated client options or the UWH U
 
 ### Running on other systems
 
-The source is a Python/Tkinter program. Install the Python version and dependencies appropriate to your operating system, then launch `uwh.py`. Windows 11 has been tested end-to-end with Zigbee2MQTT; Raspberry Pi 5 has been tested as a Bookworm/X11 desktop application. The full Pi MQTT/Zigbee setup and other operating systems have not received the same end-to-end verification.
+The source remains a Python/Tkinter program and can be run from a virtual environment on other supported systems. For normal installations, however, use the prepared platform package when one is available:
 
-On Raspberry Pi OS Bookworm, use the project virtual environment rather than a system-wide `pip install`. For additional Python packages, use:
+- **Windows x64:** `UnderwaterHockeyScoringDesk-v<version>-Windows.zip`
+- **Raspberry Pi 5 / Linux ARM64:** `UnderwaterHockeyScoringDesk-v<version>-RaspberryPi5.zip`
 
-```bash
-.venv/bin/python -m pip install PACKAGE_NAME
-```
+Both packages are produced from the same commit and use the same displayed `1.2.<build>` version. Windows 11 has been tested end-to-end with Zigbee2MQTT; Raspberry Pi 5 has been tested as a Bookworm/X11 desktop application. The full Pi MQTT/Zigbee installation still has not received the same end-to-end deployment verification as Windows.
 
-For source installations, `paho-mqtt` is the **Python MQTT client**, not the MQTT broker. Zigbee2MQTT is a separate **Node.js** program. On Bookworm, install Python dependencies inside the UWH virtual environment; a Windows release EXE normally includes its required Python dependencies. `pyserial`/COM-port discovery alone does not establish Zigbee pairing or serial-mode compatibility. See [the Zigbee section](#zigbee2mqtt-wireless-siren-setup-and-operation).
+For a source installation on Raspberry Pi OS Bookworm, use a project virtual environment rather than a system-wide `pip install`. `paho-mqtt` is the Python MQTT client, not the MQTT broker; Zigbee2MQTT remains a separate Node.js program.
 
-### Standalone executables (advanced)
+### Standalone release builds
 
-A PyInstaller build can package the application, but builds and bundled resources must be checked for each platform. These notes describe the project's existing build approach; they have not been extensively tested.
+The repository uses PyInstaller's **one-folder** format. The GitHub Actions release workflow builds the application separately on each native platform:
 
-**Windows:** Prefer the prepared Windows ZIP under GitHub **Releases → Assets**. Use a source/PyInstaller build only if you need to develop or package UWH yourself. A downloaded source-code ZIP is not the ready-to-run Windows EXE.
+- Windows is built on the GitHub-hosted `windows-2022` x64 runner.
+- Raspberry Pi 5 is built on the GitHub-hosted `ubuntu-22.04-arm` ARM64 runner.
+- The Pi build is checked with `file` to confirm an **ARM64/aarch64** executable and with `ldd` to detect unresolved shared libraries in the build environment.
+- Both ZIPs must build successfully before the publish job creates the GitHub Release.
+- Pull requests run both platform builds but do **not** publish a release.
 
-**Linux:** If `build_exe.sh` exists in the checkout, the earlier build workflow was:
+The Raspberry Pi ZIP contains `Start-UWH.sh` as a convenient launcher. Keep each extracted one-folder application intact; do not copy only the main executable away from its `_internal` directory.
 
-```bash
-cd ~/Downloads/Underwater-Hockey-Scoring-Desk-Kit-main
-source .venv/bin/activate
-python -m pip install pyinstaller
-chmod +x build_exe.sh
-./build_exe.sh
-```
-
-The earlier documentation expects an executable at `dist/uwh` after a successful Linux build. That path depends on the current build script; use `ls dist` to inspect the actual result. For a direct specification, consult the build script.
-
-The earlier spec/build notes refer to `--onefile`, `--windowed`, bundled MP3 files under `assets/`, `settings.json` and tournament sample data. Check the current `.spec` or build script before relying on those features.
+Source/PyInstaller builds are still possible for developers, but ordinary users should use **Releases → Assets** rather than GitHub's automatically generated source archives.
 
 ### Startup self-test
 

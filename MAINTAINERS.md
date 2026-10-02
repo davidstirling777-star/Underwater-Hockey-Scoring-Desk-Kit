@@ -58,7 +58,7 @@ operating a match.
 | `serial_siren_listener.py` | COM-port detection/cache and the Arduino serial listener. |
 | `hardware_detection.py` | Hardware enumeration and saved detection metadata. |
 | `startup_selftest.py` | Diagnostic MQTT probe, not the live connection. |
-| `.github/scripts/release_gate.py` | Suppress stale Windows release publishing. |
+| `.github/scripts/release_gate.py` | Suppress stale multi-platform release publishing after the Windows and Raspberry Pi 5 builds. |
 
 ## The three different siren pathways
 

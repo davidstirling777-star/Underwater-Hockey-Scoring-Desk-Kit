@@ -163,20 +163,31 @@ class ReleaseOrderTests(unittest.TestCase):
                         gate.main()
             self.assertFalse(output.exists())
 
-    def test_workflow_has_separate_serialized_publisher_and_two_checks(self):
+    def test_workflow_builds_both_platforms_and_serializes_publication(self):
         source = WORKFLOW_PATH.read_text(encoding="utf-8")
-        self.assertIn("  publish:\n    needs: build", source)
-        self.assertIn("group: uwh-windows-release-publish", source)
+        self.assertIn("  build-windows:", source)
+        self.assertIn("runs-on: windows-2022", source)
+        self.assertIn("  build-rpi5:", source)
+        self.assertIn("runs-on: ubuntu-22.04-arm", source)
+        self.assertIn("needs: [build-windows, build-rpi5]", source)
+        self.assertIn("if: github.event_name != 'pull_request'", source)
+        self.assertIn("group: uwh-release-publish", source)
         self.assertIn("queue: max", source)
         self.assertIn("cancel-in-progress: false", source)
-        self.assertIn("uses: actions/download-artifact@v8", source)
+        self.assertEqual(
+            source.count("uses: actions/download-artifact@v8"),
+            2,
+        )
         self.assertEqual(
             source.count("run: python .github/scripts/release_gate.py"),
             2,
         )
         self.assertIn("if: steps.final.outputs.publish == 'true'", source)
         self.assertIn("make_latest: true", source)
-        self.assertIn("name: Upload release ZIP for publication", source)
+        self.assertIn("-Windows.zip", source)
+        self.assertIn("-RaspberryPi5.zip", source)
+        self.assertIn("zip -yr", source)
+        self.assertIn("Start-UWH.sh", source)
 
 
 if __name__ == "__main__":
