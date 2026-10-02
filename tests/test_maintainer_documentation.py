@@ -140,7 +140,7 @@ class MaintenanceDocumentationTests(unittest.TestCase):
     def test_sounds_tab_keeps_controls_compact_after_air_water_removal(self):
         sounds_ui = source("sounds_ui.py")
         self.assertIn("for column in range(6):", sounds_ui)
-        self.assertIn("columns 4-5 naturally acted as this spacer", sounds_ui)
+        self.assertIn("sounds_widget.grid_columnconfigure(3, weight=0)", sounds_ui)
         self.assertEqual(sounds_ui.count("tk.Scale("), 2)
 
     def test_tournament_help_names_the_actual_required_score_columns(self):
