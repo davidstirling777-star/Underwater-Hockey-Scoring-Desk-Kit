@@ -149,16 +149,6 @@ def _get_value(value):
     return value.get() if hasattr(value, "get") else value
 
 
-def _normalise_volume(volume):
-    """Convert a 0-100 value to pygame's 0.0-1.0 range."""
-    try:
-        numeric_volume = float(_get_value(volume))
-    except (TypeError, ValueError):
-        numeric_volume = 0.0
-
-    return max(0.0, min(100.0, numeric_volume)) / 100.0
-
-
 def normalise_max_siren_duration(value):
     """Return a safe timed-siren cutoff (default 10 s; allowed 1-30 s).
 
@@ -392,33 +382,21 @@ def play_sound(filename, enable_sound):
     )
     sound_thread.start()
 
-def play_sound_with_volume(
+def play_timed_sound(
     filename,
     sound_type,
     enable_sound,
-    pips_volume,
-    siren_volume,
-    air_volume,
-    water_volume,
     siren_duration,
     max_siren_duration=10.0
 ):
-    """Play a selected pip or siren sound in a background thread."""
+    """Play a selected pip once or a siren for its configured duration."""
     sound_enabled = _get_value(enable_sound)
     filename = _normalise_filename(filename)
 
     if not sound_enabled or not _is_valid_sound_selection(filename):
         return
 
-    if sound_type == "pips":
-        volume = _get_value(pips_volume)
-    else:
-        volume = _get_value(siren_volume)
-
-    normalized_volume = _normalise_volume(volume)
-
-    # Read Tk variables on the calling/UI thread, before background playback.
-    # In particular, a Tk DoubleVar must not be accessed by the audio thread.
+    # Snapshot Tk variables on the UI thread before background playback.
     if sound_type == "siren":
         try:
             duration_seconds = float(_get_value(siren_duration))
@@ -430,28 +408,23 @@ def play_sound_with_volume(
         max_duration_seconds = 10.0
 
     sound_thread = threading.Thread(
-        target=_play_sound_with_volume_sync,
+        target=_play_timed_sound_sync,
         args=(
             filename,
             sound_type,
             sound_enabled,
-            normalized_volume,
-            air_volume,
-            water_volume,
             duration_seconds,
-            max_duration_seconds
+            max_duration_seconds,
         ),
-        daemon=True
+        daemon=True,
     )
     sound_thread.start()
 
-def _play_sound_with_volume_sync(
+
+def _play_timed_sound_sync(
     filename,
     sound_type,
     enable_sound,
-    normalized_volume,
-    air_volume,
-    water_volume,
     siren_duration,
     max_siren_duration=10.0
 ):
@@ -474,10 +447,6 @@ def _play_sound_with_volume_sync(
             )
             return
 
-        # A whole-file loop count cannot match arbitrary durations: it
-        # truncates short clips and overruns when a clip exceeds the requested
-        # duration. pygame's maxtime cuts off at the chosen millisecond,
-        # regardless of the source file's length.
         if sound_type == "siren":
             try:
                 duration_seconds = float(siren_duration)
@@ -488,9 +457,6 @@ def _play_sound_with_volume_sync(
                 print("Siren playback skipped: duration must be positive.")
                 return
 
-            # The operator's maximum is enforced independently of the
-            # selected blast duration. A hard 30-second cap remains as a
-            # safeguard against malformed data.
             max_duration = normalise_max_siren_duration(max_siren_duration)
             duration_ms = max(
                 1, min(30_000, int(min(duration_seconds, max_duration) * 1000))
@@ -498,16 +464,15 @@ def _play_sound_with_volume_sync(
 
         if PYGAME_INITIALIZED and filename in _preloaded_sounds:
             sound_obj = _preloaded_sounds[filename]
-            sound_obj.set_volume(normalized_volume)
+            # UWH no longer applies its own volume scaling. The operating
+            # system / amplifier owns volume, so every app path uses unity.
+            sound_obj.set_volume(1.0)
 
             if sound_type == "siren":
                 channel = sound_obj.play(loops=-1, maxtime=duration_ms)
             else:
-                # Countdown pips remain single, complete sound-file plays.
                 channel = sound_obj.play()
 
-            # Sound volume is already set above. A mixer channel may retain
-            # the attenuation from an earlier playback; reset it to unity.
             if channel is not None:
                 channel.set_volume(1.0)
             return
@@ -532,63 +497,8 @@ def _play_sound_with_volume_sync(
                 )
 
     except Exception as e:
-        print(f"Error in sound playback with volume: {e}")
+        print(f"Error in timed sound playback: {e}")
 
-def start_looping_sound_with_volume(
-    filename,
-    sound_type,
-    enable_sound,
-    pips_volume,
-    siren_volume
-):
-    """
-    Start a looping sound and return the pygame Channel object.
-
-    Used for Arduino press-and-hold siren playback.
-    The caller is responsible for storing the returned channel and
-    stopping it with stop_looping_sound().
-    """
-    sound_enabled = _get_value(enable_sound)
-    filename = _normalise_filename(filename)
-
-    if not sound_enabled or not _is_valid_sound_selection(filename):
-        return None
-
-    if sound_type == "pips":
-        volume = _get_value(pips_volume)
-    else:
-        volume = _get_value(siren_volume)
-
-    normalized_volume = _normalise_volume(volume)
-
-    try:
-        file_path = resource_path(os.path.join("assets", filename))
-
-        if not os.path.exists(file_path):
-            print(
-                f"Sound Error: Sound file '{filename}' "
-                f"not found at {file_path}"
-            )
-            return None
-
-        if PYGAME_INITIALIZED and filename in _preloaded_sounds:
-            sound_obj = _preloaded_sounds[filename]
-            sound_obj.set_volume(normalized_volume)
-
-            channel = sound_obj.play(loops=-1)
-
-            if channel is not None:
-                # Do not apply the same volume twice (Sound * Channel).
-                channel.set_volume(1.0)
-
-            return channel
-
-        print("Looping sound requires pygame.mixer and a preloaded sound.")
-        return None
-
-    except Exception as e:
-        print(f"Error starting looping sound: {e}")
-        return None
 
 def stop_looping_sound(channel):
     """
@@ -602,8 +512,8 @@ def stop_looping_sound(channel):
         print(f"Error stopping looping sound: {e}")
 
 
-def start_timed_siren_with_volume(
-    filename, enable_sound, siren_volume, duration_seconds,
+def start_timed_siren(
+    filename, enable_sound, duration_seconds,
     max_siren_duration=10.0
 ):
     """Play one wireless siren for at most the selected duration.
@@ -639,13 +549,10 @@ def start_timed_siren_with_volume(
             return None
 
         sound_obj = _preloaded_sounds[filename]
-        normalized_volume = _normalise_volume(siren_volume)
-        sound_obj.set_volume(normalized_volume)
+        sound_obj.set_volume(1.0)
         # maxtime independently stops this sound even if Tk's event loop stalls.
         channel = sound_obj.play(loops=-1, maxtime=duration_ms)
         if channel is not None:
-            # The Sound already has the requested volume. Channel volume is
-            # multiplicative, so applying it here again made Zigbee quieter.
             channel.set_volume(1.0)
         return channel
     except Exception as e:
