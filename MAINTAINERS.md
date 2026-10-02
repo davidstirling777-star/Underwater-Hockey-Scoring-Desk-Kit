@@ -34,7 +34,7 @@ operating a match.
 | `game_engine.py` | Period list, period transitions and runtime timer/penalty state. |
 | `game_flow.py` | Tournament selection, advancing games and export-before-reset rule. |
 | `game_logging.py` | Appends the older pipe-delimited `UWH_Game_Data.txt` event log. |
-| `settings_ui.py` | Game Variables, tournament selector, Screens-tab widgets and their explanatory labels. |
+| `settings_ui.py` | Game Variables, standalone Tournament List, About, Screens-tab widgets and their explanatory labels/links. |
 | `scoreboard_ui.py` | Referee-facing scoreboard widgets and commands. |
 | `display_ui.py` | External display window creation, monitor selection and mirrored scoreboard widgets. |
 | `display_manager.py` | Penalty display label/sorting helpers. |
