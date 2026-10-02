@@ -104,6 +104,22 @@ class MaintenanceDocumentationTests(unittest.TestCase):
         self.assertIn("Audio output in use:", sounds_ui)
         self.assertIn("(selected when UWH started)", sounds_ui)
         self.assertIn("restart UWH", readme)
+        self.assertIn("dtoverlay=hifiberry-dacplus-std", readme)
+        self.assertIn("wpctl set-default", readme)
+        self.assertIn("wpctl set-volume", readme)
+
+    def test_obsolete_in_app_volume_controls_are_removed(self):
+        for filename in ("uwh.py", "sound.py", "sounds_ui.py", "settings_manager.py"):
+            text = source(filename)
+            for obsolete in (
+                "pips_volume", "siren_volume", "air_volume", "water_volume",
+                "play_sound_with_volume", "start_timed_siren_with_volume",
+            ):
+                with self.subTest(filename=filename, obsolete=obsolete):
+                    self.assertNotIn(obsolete, text)
+        self.assertNotIn("tk.Scale(", source("sounds_ui.py"))
+        self.assertIn("play_timed_sound", source("sound.py"))
+        self.assertIn("start_timed_siren", source("sound.py"))
 
     def test_tournament_help_names_the_actual_required_score_columns(self):
         text = source("settings_ui.py")
