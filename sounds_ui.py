@@ -286,7 +286,7 @@ def create_sounds_tab(app):
         state="readonly"
     )
     siren_dropdown.grid(
-        row=7,
+        row=5,
         column=1,
         columnspan=2,
         sticky="ew",
@@ -360,7 +360,7 @@ def create_sounds_tab(app):
         width=10
     )
     siren_duration_entry.grid(
-        row=5,
+        row=7,
         column=1,
         columnspan=2,
         sticky="w",
