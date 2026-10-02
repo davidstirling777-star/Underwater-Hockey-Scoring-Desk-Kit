@@ -656,7 +656,7 @@ class GameManagementApp:
         channel = sound.start_timed_siren(
             self.siren_var.get(),
             self.enable_sound.get(),
-            self.siren_volume.get(),
+            self.get_sound_trim(self.siren_var.get()),
             seconds,
             self.max_siren_duration.get(),
         )
