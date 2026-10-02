@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "uwh.py"
+      - "app_version.py"
       - "game_flow.py"
       - "game_engine.py"
       - "csv_export.py"

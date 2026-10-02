@@ -44,7 +44,12 @@ def create_sounds_tab(app):
 
     for row in range(9):
         sounds_widget.grid_rowconfigure(row, weight=1)
-    for column in range(4):
+
+    # Keep the sound controls in the left two-thirds of a wide operator
+    # window. Before the obsolete Air/Water controls were removed, columns
+    # 4-5 naturally acted as this spacer. Retaining six grid columns prevents
+    # the dropdowns/sliders from stretching to the far-right edge.
+    for column in range(6):
         sounds_widget.grid_columnconfigure(column, weight=1)
     sounds_widget.grid_columnconfigure(3, weight=0)
 

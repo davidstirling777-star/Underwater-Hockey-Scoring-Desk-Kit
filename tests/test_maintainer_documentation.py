@@ -19,7 +19,7 @@ def source(path):
 class MaintenanceDocumentationTests(unittest.TestCase):
     def test_every_runtime_python_module_has_a_maintainer_docstring(self):
         modules = (
-            "uwh.py", "game_engine.py", "game_flow.py", "game_logging.py",
+            "uwh.py", "app_version.py", "game_engine.py", "game_flow.py", "game_logging.py",
             "csv_helpers.py", "csv_export.py", "csv_ui.py",
             "tournament_files.py", "tournament_sync.py",
             "tournament_results_server.py",
@@ -123,6 +123,25 @@ class MaintenanceDocumentationTests(unittest.TestCase):
         self.assertIn("siren_volume", source("uwh.py"))
         self.assertIn('"pips_volume": 50.0', source("settings_manager.py"))
         self.assertIn('"siren_volume": 50.0', source("settings_manager.py"))
+
+    def test_game_variables_shows_user_visible_app_version(self):
+        settings_ui = source("settings_ui.py")
+        version = source("app_version.py")
+        workflow = source(".github/workflows/build-exe.yml")
+        readme = source("README.md")
+
+        self.assertIn("from app_version import APP_VERSION", settings_ui)
+        self.assertIn('text=f"UWH v{APP_VERSION}"', settings_ui)
+        self.assertIn('APP_VERSION = "1.2.source.', version)
+        self.assertIn("Stamp application version", workflow)
+        self.assertIn("github.run_number", workflow)
+        self.assertIn("lower-right corner", readme)
+
+    def test_sounds_tab_keeps_controls_compact_after_air_water_removal(self):
+        sounds_ui = source("sounds_ui.py")
+        self.assertIn("for column in range(6):", sounds_ui)
+        self.assertIn("sounds_widget.grid_columnconfigure(3, weight=0)", sounds_ui)
+        self.assertEqual(sounds_ui.count("tk.Scale("), 2)
 
     def test_tournament_help_names_the_actual_required_score_columns(self):
         text = source("settings_ui.py")

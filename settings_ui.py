@@ -10,6 +10,8 @@ import tkinter as tk
 from tkinter import ttk, font, messagebox
 import re
 
+from app_version import APP_VERSION
+
 def create_settings_tab(app):
     """Create the Game Variables, presets and tournament selection widgets.
     """
@@ -409,6 +411,23 @@ def create_settings_tab(app):
         column=0,
         columnspan=4,
         pady=8
+    )
+
+    # Keep a small version identifier permanently visible in the lower-right
+    # corner of the Game Variables ("Use?") panel. This is deliberately
+    # unobtrusive but makes it easy to confirm which downloaded build is open.
+    widget1.grid_rowconfigure(row_idx + 1, weight=0)
+    tk.Label(
+        widget1,
+        text=f"UWH v{APP_VERSION}",
+        font=(default_font.cget("family"), small_size),
+        fg="gray"
+    ).grid(
+        row=row_idx + 1,
+        column=3,
+        sticky="se",
+        padx=6,
+        pady=(0, 4)
     )
 
     # ------------------------------------------------------------
