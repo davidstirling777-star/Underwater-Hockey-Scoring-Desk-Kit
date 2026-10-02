@@ -111,6 +111,46 @@ After updating, confirm the **Zigbee Siren → Button Device Names** field and t
 
 These instructions are for a new installation from the Python source, not a standalone executable. A keyboard, mouse and Raspberry Pi OS Desktop are needed; the Lite edition does not include the graphical desktop.
 
+### Raspberry Pi 5 GPIO power configuration
+
+> [!IMPORTANT]
+> **The UWH Scoring Desk motherboard provides the Raspberry Pi 5 with a regulated 5.1 V supply capable of at least 5 A through the GPIO header. The dedicated DC-DC PDM-Audio power supply is capable of supplying 5 A and brings its 5.1 V output to operating level in less than 10 ms. Because this bypasses USB-C Power Delivery negotiation, the Pi 5 bootloader must be told that 5000 mA is available.**
+
+Most users of the production UWH Scoring Desk hardware will supply their own Raspberry Pi 5. When that Pi is powered from the motherboard through the GPIO 5 V pins rather than through USB-C, configure the Pi 5 bootloader to recognise the available 5 A supply.
+
+Open Terminal and run:
+
+```bash
+sudo rpi-eeprom-config --edit
+```
+
+Add or change this bootloader setting:
+
+```text
+PSU_MAX_CURRENT=5000
+```
+
+Save the bootloader configuration and reboot the Pi:
+
+```bash
+sudo reboot
+```
+
+After rebooting, verify the setting with:
+
+```bash
+rpi-eeprom-config | grep PSU_MAX_CURRENT
+```
+
+The result should include:
+
+```text
+PSU_MAX_CURRENT=5000
+```
+
+> [!CAUTION]
+> `PSU_MAX_CURRENT=5000` does **not** make a power supply capable of delivering 5 A. It tells the Raspberry Pi 5 firmware that a suitable 5 A supply is already fitted. This setting is appropriate when the Pi 5 is powered from the UWH Scoring Desk motherboard's dedicated PDM-Audio supply. If the Pi is later moved to a different power arrangement, make sure that supply is suitable before retaining this setting.
+
 ### 1. Prepare Raspberry Pi OS
 
 For a new Pi 5 installation based on the tested setup, select **Raspberry Pi OS (Legacy, 64-bit) with desktop** in Raspberry Pi Imager. As of September 2026 this is the Bookworm-based image; the standard, newer Raspberry Pi OS uses Wayland by default.
