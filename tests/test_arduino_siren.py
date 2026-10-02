@@ -74,13 +74,14 @@ class ArduinoRoutingTests(unittest.TestCase):
         self.app.zigbee_controller = self.controller
         self.app.siren_var = Variable("siren.mp3")
         self.app.enable_sound = Variable(True)
+        self.app.siren_volume = Variable(60)
         self.app.arduino_siren_channel = None
         self.app.add_to_zigbee_log = Mock()
 
     def test_press_starts_local_and_mqtt_siren(self):
         self.app._process_hardware_siren_event("ON")
         self.clip.play.assert_called_once_with(loops=-1)
-        self.assertEqual(self.clip.volume, 1.0)
+        self.assertEqual(self.clip.volume, 0.6)
         self.controller.start_siren_continuous.assert_called_once_with()
         self.app.add_to_zigbee_log.assert_called_with(
             "Arduino button: SIREN_ON received"
