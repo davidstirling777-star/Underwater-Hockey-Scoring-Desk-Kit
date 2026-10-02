@@ -1235,35 +1235,28 @@ If MQTT authentication is enabled, use authenticated client options or the UWH U
 
 ### Running on other systems
 
-The source is a Python/Tkinter program. Install the Python version and dependencies appropriate to your operating system, then launch `uwh.py`. Windows 11 has been tested end-to-end with Zigbee2MQTT; Raspberry Pi 5 has been tested as a Bookworm/X11 desktop application. The full Pi MQTT/Zigbee setup and other operating systems have not received the same end-to-end verification.
+The source remains a Python/Tkinter program and can be run from a virtual environment on other supported systems. For normal installations, however, use the prepared platform package when one is available:
 
-On Raspberry Pi OS Bookworm, use the project virtual environment rather than a system-wide `pip install`. For additional Python packages, use:
+- **Windows x64:** `UnderwaterHockeyScoringDesk-v<version>-Windows.zip`
+- **Raspberry Pi 5 / Linux ARM64:** `UnderwaterHockeyScoringDesk-v<version>-RaspberryPi5.zip`
 
-```bash
-.venv/bin/python -m pip install PACKAGE_NAME
-```
+Both packages are produced from the same commit and use the same displayed `1.2.<build>` version. Windows 11 has been tested end-to-end with Zigbee2MQTT; Raspberry Pi 5 has been tested as a Bookworm/X11 desktop application. The full Pi MQTT/Zigbee installation still has not received the same end-to-end deployment verification as Windows.
 
-For source installations, `paho-mqtt` is the **Python MQTT client**, not the MQTT broker. Zigbee2MQTT is a separate **Node.js** program. On Bookworm, install Python dependencies inside the UWH virtual environment; a Windows release EXE normally includes its required Python dependencies. `pyserial`/COM-port discovery alone does not establish Zigbee pairing or serial-mode compatibility. See [the Zigbee section](#zigbee2mqtt-wireless-siren-setup-and-operation).
+For a source installation on Raspberry Pi OS Bookworm, use a project virtual environment rather than a system-wide `pip install`. `paho-mqtt` is the Python MQTT client, not the MQTT broker; Zigbee2MQTT remains a separate Node.js program.
 
-### Standalone executables (advanced)
+### Standalone release builds
 
-A PyInstaller build can package the application, but builds and bundled resources must be checked for each platform. These notes describe the project's existing build approach; they have not been extensively tested.
+The repository uses PyInstaller's **one-folder** format. The GitHub Actions release workflow builds the application separately on each native platform:
 
-**Windows:** Prefer the prepared Windows ZIP under GitHub **Releases → Assets**. Use a source/PyInstaller build only if you need to develop or package UWH yourself. A downloaded source-code ZIP is not the ready-to-run Windows EXE.
+- Windows is built on the GitHub-hosted `windows-2022` x64 runner.
+- Raspberry Pi 5 is built on the GitHub-hosted `ubuntu-22.04-arm` ARM64 runner.
+- The Pi build is checked with `file` to confirm an **ARM64/aarch64** executable and with `ldd` to detect unresolved shared libraries in the build environment.
+- Both ZIPs must build successfully before the publish job creates the GitHub Release.
+- Pull requests run both platform builds but do **not** publish a release.
 
-**Linux:** If `build_exe.sh` exists in the checkout, the earlier build workflow was:
+The Raspberry Pi ZIP contains `Start-UWH.sh` as a convenient launcher. Keep each extracted one-folder application intact; do not copy only the main executable away from its `_internal` directory.
 
-```bash
-cd ~/Downloads/Underwater-Hockey-Scoring-Desk-Kit-main
-source .venv/bin/activate
-python -m pip install pyinstaller
-chmod +x build_exe.sh
-./build_exe.sh
-```
-
-The earlier documentation expects an executable at `dist/uwh` after a successful Linux build. That path depends on the current build script; use `ls dist` to inspect the actual result. For a direct specification, consult the build script.
-
-The earlier spec/build notes refer to `--onefile`, `--windowed`, bundled MP3 files under `assets/`, `settings.json` and tournament sample data. Check the current `.spec` or build script before relying on those features.
+Source/PyInstaller builds are still possible for developers, but ordinary users should use **Releases → Assets** rather than GitHub's automatically generated source archives.
 
 ### Startup self-test
 
