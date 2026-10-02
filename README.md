@@ -470,6 +470,8 @@ results computer's combined CSV is the tournament's combined record.
 
 ## Sounds tab
 
+The Sounds tab reports **Audio output in use**. On Raspberry Pi/Linux it identifies the PipeWire system-default output selected when UWH started, including a HiFiBerry DAC+ or compatible I2S DAC when detected; on Windows it reports that the Windows system-default output is in use. UWH does not change the operating system's audio default. If you change the OS default while UWH is running, **restart UWH** so pygame opens the newly selected output.
+
 **Save Settings** is a button that stores the user-selected sound files to the JSON file (stored in the same location as the app itself).
 
 **Pips** is a dropdown box where a sound file can be selected. Any .MP3 or .WAV file can be placed in the 'assets' folder and these will appear in the 'Pips' dropdown box.
