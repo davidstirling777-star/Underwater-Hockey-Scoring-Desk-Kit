@@ -554,17 +554,23 @@ results computer's combined CSV is the tournament's combined record.
 
 The Sounds tab reports **Audio output in use**. On Raspberry Pi/Linux it identifies the PipeWire system-default output selected when UWH started, including a HiFiBerry DAC+ or compatible I2S DAC when detected; on Windows it reports that the Windows system-default output is in use. UWH does not change the operating system's audio default. If you change the OS default while UWH is running, **restart UWH** so pygame opens the newly selected output.
 
-**Save Settings** stores the selected sound files, Pips/Siren volume levels and siren timing settings in the JSON file (stored in the same location as the app itself).
+**Save Settings** stores the selected pip and siren files, the per-file **Trim %** values, the Enable Sound setting and the siren timing settings in the JSON file stored beside the application.
 
-**Pips** is a dropdown box where a pip sound file can be selected. UWH scans the `assets` folder for `.MP3` and `.WAV` files, then places a file in the **Pips** dropdown if its filename contains `pip` (case-insensitive). For clarity, custom pip files should use the naming convention `pip-<description>.mp3` or `pip-<description>.wav`, for example `pip-short-beep.mp3`.
+The old Pips and Siren dropdown boxes have been replaced by two fixed tables. Each table shows up to **10 sound files** with the columns **Sound File** and **Trim %**:
 
-**Siren** is a dropdown box where a siren sound file can be selected. UWH places a supported sound file in the **Siren** dropdown if its filename contains `siren` (case-insensitive). For clarity, custom siren files should use the naming convention `siren-<description>.mp3` or `siren-<description>.wav`, for example `siren-air-horn.wav`.
+- The **Pips** table lists supported `.MP3` and `.WAV` files from the `assets` folder whose filename contains `pip` (case-insensitive). For clarity, custom pip files should use names such as `pip-short-beep.mp3` or `pip-countdown.wav`.
+- The **Sirens** table lists supported files whose filename contains `siren` (case-insensitive). For clarity, custom siren files should use names such as `siren-air-horn.wav` or `siren-classic.mp3`.
+- A sound file that does not contain `pip` or `siren` in its filename will not appear in the corresponding table.
+- Click a sound-file row to make that file the active pip or siren. **Double-click** a filename to preview it using its current Trim %.
+- New sound files default to **100% Trim**.
 
-A sound file that does not contain `pip` or `siren` in its filename will not appear in the corresponding dropdown.
+**Trim %** is an attenuation-only correction for differences in the apparent loudness of individual sound files. The accepted range is **0–100%**: `100%` plays the file at its native level, `50%` attenuates it to half the playback amplitude used by UWH, and `0%` mutes that file. UWH deliberately does not boost files above their native level, avoiding a digital-gain stage that could introduce clipping.
 
-The **Open Sounds Folder** button opens the 'assets' folder, where sound files can be added.
+A practical way to balance a set of sounds is to use the **quietest native file as the reference**, leave it at 100%, trim the louder files down until they sound similar, and then raise or lower the overall **hardware/DAC/operating-system master volume** to suit the pool or venue. If a source file itself needs to be made louder, normalized, compressed or otherwise processed, edit that file in suitable specialist audio software and then place the revised file in the `assets` folder.
 
-**Pips Vol** and **Siren Vol** are independent in-app volume controls for those two sound types. They remain saved with the Sounds settings. Use the operating-system/DAC/amplifier level as the overall master volume.
+There are no longer separate **Pips Vol** or **Siren Vol** master sliders in UWH. Overall level is controlled by the downstream audio hardware or operating-system/DAC level; **Trim %** is only for matching individual files to one another.
+
+The **Open Sounds Folder** button, immediately to the right of **Save Settings**, opens the `assets` folder so sound files can be added or replaced.
 
 ### Raspberry Pi 5: duinotech Digital Audio Converter / HiFiBerry-compatible DAC HAT
 
@@ -639,12 +645,12 @@ Here `0.50` means **50%**. After changing the default audio sink, **completely c
 - **Red LED on the HAT, but `aplay -l` shows only HDMI:** the DAC is powered but its driver/overlay is not active. Recheck `/boot/firmware/config.txt`, use `dtoverlay=hifiberry-dacplus-std` on the Pi 5, and reboot.
 - **The direct `speaker-test` works, but UWH is silent:** run `wpctl status`. If the asterisk is still beside an HDMI sink, make the DAC sink the default with `wpctl set-default <sink-id>`, then restart UWH.
 - **UWH plays through the wrong output:** read **Audio output in use** on the Sounds tab. It reports the default that was selected when UWH started. Change the OS default and restart UWH.
-- **Audio is too loud or too quiet overall:** change the PipeWire sink volume, for example `wpctl set-volume <sink-id> 0.50`. The UWH **Pips Vol** and **Siren Vol** sliders can then trim those two sound types independently. The obsolete Air/Water sliders have been removed.
+- **Audio is too loud or too quiet overall:** change the PipeWire sink volume, for example `wpctl set-volume <sink-id> 0.50`, or adjust the downstream DAC/amplifier hardware. Use each file's **Trim %** only to match its apparent loudness to the other pip/siren files.
 - **The DAC disappears after an OS/configuration change:** repeat `aplay -l`, `cat /proc/asound/cards`, and `wpctl status` before changing UWH settings. This separates a Linux audio problem from an application problem.
 
 Useful references: [Raspberry Pi `config.txt` documentation](https://www.raspberrypi.com/documentation/computers/config_txt.html), [HiFiBerry Pi 5 driver/overlay change](https://www.hifiberry.com/blog/changes-in-hifiberry-drivers/), and the [duinotech Digital Audio Converter product page](https://www.jaycar.co.nz/digital-audio-converter-raspberry-pi-compatible/p/XC9048).
 
-UWH keeps the working **Pips Vol** and **Siren Vol** sliders for relative cue levels. The operating system, DAC/amplifier or other downstream hardware remains the overall master volume. On Raspberry Pi OS/PipeWire, use `wpctl` for that master level; on Windows, use the normal Windows output and volume controls.
+UWH uses the per-file **Trim %** values for relative cue levels. The operating system, DAC/amplifier or other downstream hardware is the overall master volume. On Raspberry Pi OS/PipeWire, use `wpctl` for that master level; on Windows, use the normal Windows output and volume controls.
 
 **Pips** play at pre-determined periods.
 
@@ -676,8 +682,8 @@ The system automatically plays audio cues during different periods:
 
 #### Notes:
 
-- Pip sounds use the chosen **Pips** file and **Pips Vol** setting.
-- Siren sounds use the chosen **Siren** file and **Siren Vol** setting. The operating-system/DAC/amplifier volume still acts as the overall master level.
+- Pip sounds use the selected file in the **Pips** table and that file's **Trim %**.
+- Siren sounds use the selected file in the **Sirens** table and that file's **Trim %**. The operating-system/DAC/amplifier volume remains the overall master level.
 - **Timed siren playback:** A short sound file loops until the configured duration is reached, subject to **Maximum Siren Duration**. The hardwired Arduino siren instead follows the button's physical press and release.
 - Game periods (halves) only play siren at the end, no countdown pips
 - Sudden Death periods have no automatic audio cues. The Sudden Death timer counts upwards from 00:00. A goal scored during Sudden Death immediately ends the game. Sudden Death Start and Sudden Death End messages are logged but do not trigger audio.
