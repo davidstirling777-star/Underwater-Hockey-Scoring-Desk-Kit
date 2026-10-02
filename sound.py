@@ -20,6 +20,77 @@ IS_WINDOWS = platform.system() == "Windows"
 IS_LINUX = platform.system() == "Linux"
 
 
+def _describe_linux_audio_properties(properties):
+    """Turn PipeWire/ALSA properties into an operator-friendly device name."""
+    identifiers = " ".join(
+        str(properties.get(key, ""))
+        for key in (
+            "api.alsa.card.name",
+            "api.alsa.card.longname",
+            "node.name",
+            "node.description",
+            "device.description",
+        )
+    ).lower()
+    card_index = str(properties.get("api.alsa.card", "")).strip()
+    card_suffix = f" (ALSA card {card_index})" if card_index else ""
+
+    if "hifiberry" in identifiers or "pcm512" in identifiers:
+        return f"HiFiBerry DAC+ / compatible I2S DAC{card_suffix}"
+
+    if "hdmi" in identifiers:
+        return f"HDMI audio{card_suffix}"
+
+    description = (
+        properties.get("node.description")
+        or properties.get("device.description")
+        or properties.get("api.alsa.card.name")
+    )
+    if description:
+        return f"{description}{card_suffix}"
+
+    return "Linux system default audio output"
+
+
+def _linux_default_audio_output_description():
+    """Report the PipeWire default sink without changing the OS selection."""
+    try:
+        result = subprocess.run(
+            ["wpctl", "inspect", "@DEFAULT_AUDIO_SINK@"],
+            capture_output=True,
+            text=True,
+            timeout=3,
+        )
+    except (
+        subprocess.TimeoutExpired,
+        FileNotFoundError,
+        OSError,
+    ):
+        return "Linux system default audio output"
+
+    if result.returncode != 0:
+        return "Linux system default audio output"
+
+    properties = {}
+    for raw_line in result.stdout.splitlines():
+        line = raw_line.strip()
+        if " = " not in line:
+            continue
+        key, value = line.split(" = ", 1)
+        properties[key.strip()] = value.strip().strip('"')
+
+    return _describe_linux_audio_properties(properties)
+
+
+def get_audio_output_description():
+    """Return the system-default output that pygame selected at startup."""
+    if IS_LINUX:
+        return _linux_default_audio_output_description()
+    if IS_WINDOWS:
+        return "Windows system default audio output"
+    return f"{platform.system()} system default audio output"
+
+
 def resource_path(relative_path):
     """Get absolute path to resource, works for dev and PyInstaller."""
     try:
@@ -62,6 +133,13 @@ if IS_WINDOWS:
         WINSOUND_AVAILABLE = False
 else:
     WINSOUND_AVAILABLE = False
+
+
+# pygame.mixer selects the operating system's default output when it starts.
+# Capture the description once so the UI reports the device actually selected
+# for this UWH session rather than a default that may be changed afterwards.
+AUDIO_OUTPUT_AT_STARTUP = get_audio_output_description()
+print(f"Audio output selected at UWH startup: {AUDIO_OUTPUT_AT_STARTUP}")
 
 
 _preloaded_sounds = {}
