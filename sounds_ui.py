@@ -1,4 +1,4 @@
-"""Sounds tab: audio-file choices, output reporting and siren timing inputs.
+"""Sounds tab: audio-file choices, volume tests, output reporting and timing.
 
 The ordinary siren duration controls a timed blast; Maximum Siren Duration
 caps it independently. The Arduino's wired hold-to-sound path is deliberately
@@ -42,7 +42,7 @@ def create_sounds_tab(app):
         pady=8
     )
 
-    for row in range(7):
+    for row in range(9):
         sounds_widget.grid_rowconfigure(row, weight=1)
     for column in range(4):
         sounds_widget.grid_columnconfigure(column, weight=1)
@@ -119,16 +119,26 @@ def create_sounds_tab(app):
 
         try:
             timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
+            volume = (
+                app.pips_volume.get()
+                if sound_type == "pips"
+                else app.siren_volume.get()
+            )
             print(
                 f"[{timestamp}] {sound_type.title()} sound test started: "
-                f"file='{sound_file}'"
+                f"file='{sound_file}', volume={volume}%"
             )
-            app_log(f"{sound_type.title()} test: {sound_file}")
+            app_log(
+                f"{sound_type.title()} test: "
+                f"{sound_file} (Vol: {volume}%)"
+            )
 
             play_timed_sound(
                 sound_file,
                 sound_type,
                 app.enable_sound,
+                app.pips_volume,
+                app.siren_volume,
                 app.siren_duration,
                 app.max_siren_duration
             )
@@ -214,18 +224,60 @@ def create_sounds_tab(app):
         command=lambda: play_selected_sound(app.pips_var, "pips")
     ).grid(row=2, column=3)
 
+    # Row 3: Pips volume
+    tk.Label(
+        sounds_widget,
+        text="Pips Vol",
+        font=("Arial", 11)
+    ).grid(row=3, column=0, sticky="ew")
+
+    pips_vol_slider = tk.Scale(
+        sounds_widget,
+        from_=0,
+        to=100,
+        orient="horizontal",
+        variable=app.pips_volume,
+        font=("Arial", 10),
+        showvalue=False
+    )
+    pips_vol_slider.grid(
+        row=3,
+        column=1,
+        columnspan=2,
+        sticky="ew"
+    )
+
+    pips_vol_label = tk.Label(
+        sounds_widget,
+        text=f"{app.pips_volume.get()}%",
+        font=("Arial", 11),
+        width=5
+    )
+    pips_vol_label.grid(row=3, column=3, sticky="w")
+
+    def on_pips_slider_interaction(event=None):
+        pips_vol_label.config(text=f"{app.pips_volume.get()}%")
+        ensure_audio_device(app.pips_var, "pips")
+
+    pips_vol_slider.bind("<Button-1>", on_pips_slider_interaction)
+    pips_vol_slider.bind("<B1-Motion>", on_pips_slider_interaction)
+    pips_vol_slider.bind(
+        "<ButtonRelease-1>",
+        on_pips_slider_interaction
+    )
+
     tk.Button(
         sounds_widget,
         text="Open Sounds Folder",
         font=("Arial", 11),
         command=open_sounds_folder
-    ).grid(row=3, column=1, columnspan=2, pady=6)
+    ).grid(row=4, column=1, columnspan=2, pady=6)
 
     tk.Label(
         sounds_widget,
         text="Siren",
         font=("Arial", 12)
-    ).grid(row=4, column=0, sticky="nsew")
+    ).grid(row=5, column=0, sticky="nsew")
 
     siren_dropdown = ttk.Combobox(
         sounds_widget,
@@ -234,7 +286,7 @@ def create_sounds_tab(app):
         state="readonly"
     )
     siren_dropdown.grid(
-        row=4,
+        row=7,
         column=1,
         columnspan=2,
         sticky="ew",
@@ -251,13 +303,55 @@ def create_sounds_tab(app):
         font=("Arial", 11),
         width=5,
         command=lambda: play_selected_sound(app.siren_var, "siren")
-    ).grid(row=4, column=3)
+    ).grid(row=5, column=3)
+
+    # Row 6: Siren volume
+    tk.Label(
+        sounds_widget,
+        text="Siren Vol",
+        font=("Arial", 11)
+    ).grid(row=6, column=0, sticky="ew")
+
+    siren_vol_slider = tk.Scale(
+        sounds_widget,
+        from_=0,
+        to=100,
+        orient="horizontal",
+        variable=app.siren_volume,
+        font=("Arial", 10),
+        showvalue=False
+    )
+    siren_vol_slider.grid(
+        row=6,
+        column=1,
+        columnspan=2,
+        sticky="ew"
+    )
+
+    siren_vol_label = tk.Label(
+        sounds_widget,
+        text=f"{app.siren_volume.get()}%",
+        font=("Arial", 11),
+        width=5
+    )
+    siren_vol_label.grid(row=6, column=3, sticky="w")
+
+    def on_siren_slider_interaction(event=None):
+        siren_vol_label.config(text=f"{app.siren_volume.get()}%")
+        ensure_audio_device(app.siren_var, "siren")
+
+    siren_vol_slider.bind("<Button-1>", on_siren_slider_interaction)
+    siren_vol_slider.bind("<B1-Motion>", on_siren_slider_interaction)
+    siren_vol_slider.bind(
+        "<ButtonRelease-1>",
+        on_siren_slider_interaction
+    )
 
     tk.Label(
         sounds_widget,
         text="Number of seconds to play Siren",
         font=("Arial", 11)
-    ).grid(row=5, column=0, sticky="ew")
+    ).grid(row=7, column=0, sticky="ew")
 
     siren_duration_entry = tk.Entry(
         sounds_widget,
@@ -308,7 +402,7 @@ def create_sounds_tab(app):
         sounds_widget,
         text="Maximum Siren Duration (seconds)",
         font=("Arial", 11)
-    ).grid(row=6, column=0, sticky="ew")
+    ).grid(row=8, column=0, sticky="ew")
 
     max_siren_duration_entry = tk.Entry(
         sounds_widget,
@@ -317,7 +411,7 @@ def create_sounds_tab(app):
         width=10
     )
     max_siren_duration_entry.grid(
-        row=6, column=1, columnspan=2, sticky="w", padx=(0, 10)
+        row=8, column=1, columnspan=2, sticky="w", padx=(0, 10)
     )
 
     last_valid_max = [str(app.max_siren_duration.get())]
@@ -368,6 +462,8 @@ def save_sound_settings_method(app):
     settings = {
         "pips_sound": app.pips_var.get(),
         "siren_sound": app.siren_var.get(),
+        "pips_volume": app.pips_volume.get(),
+        "siren_volume": app.siren_volume.get(),
         "enable_sound": app.enable_sound.get(),
         "siren_duration": app.siren_duration.get(),
         "max_siren_duration": max_duration,
