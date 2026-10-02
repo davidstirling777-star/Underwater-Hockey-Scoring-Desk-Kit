@@ -2,10 +2,6 @@
   "soundSettings": {
     "pips_sound": "pip-beep.mp3",
     "siren_sound": "siren-car-honk.mp3",
-    "pips_volume": 50.0,
-    "siren_volume": 50.0,
-    "air_volume": 50.0,
-    "water_volume": 50.0,
     "enable_sound": true,
     "siren_duration": 2.0
   },
