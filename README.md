@@ -111,32 +111,43 @@ After updating, confirm the **Zigbee Siren → Button Device Names** field and t
 
 These instructions are for a new installation from the Python source, not a standalone executable. A keyboard, mouse and Raspberry Pi OS Desktop are needed; the Lite edition does not include the graphical desktop.
 
-### Raspberry Pi 5 GPIO power configuration
+### Raspberry Pi 5 power supply configurations
+
+Raspberry Pi 5 can be powered in several ways, but the power source affects how much current the firmware makes available to the board and to USB peripherals. Raspberry Pi recommends a **5 V / 5 A** supply for full capability. A good **5 V / 3 A** supply can run a Pi 5, but the total current available to downstream USB peripherals is normally limited to **600 mA** instead of **1.6 A**.
+
+| Power arrangement | Pi 5 behaviour | Required configuration |
+|---|---|---|
+| **UWH Scoring Desk production motherboard — 5.1 V / at least 5 A through the GPIO header** | No USB-C Power Delivery negotiation occurs. The motherboard provides the high-current 5 V rail directly. | **Set `PSU_MAX_CURRENT=5000` in the Pi 5 bootloader EEPROM.** |
+| **Official Raspberry Pi 27 W USB-C supply, or another compatible USB-PD source that negotiates 5 V / 5 A** | The Pi detects the 5 A supply through USB-PD and automatically enables the higher power budget. | No `PSU_MAX_CURRENT` override is normally required. |
+| **Good-quality 5 V / 3 A USB-C supply** | The Pi 5 can operate, but downstream USB power is normally limited to 600 mA. | Do **not** claim 5 A with `PSU_MAX_CURRENT=5000` unless the supply and complete power path really can provide it. |
+| **Other verified 5 V / 5 A non-PD supply or bench supply connected through GPIO** | Electrically similar to the UWH GPIO-powered case: there is no USB-PD negotiation to report the available current. | `PSU_MAX_CURRENT=5000` may be used only when the source, wiring and connectors are genuinely capable of supplying 5 A. |
+
+#### UWH Scoring Desk production hardware
 
 > [!IMPORTANT]
-> **The UWH Scoring Desk motherboard provides the Raspberry Pi 5 with a regulated 5.1 V supply capable of at least 5 A through the GPIO header. The dedicated DC-DC PDM-Audio power supply is capable of supplying 5 A and brings its 5.1 V output to operating level in less than 10 ms. Because this bypasses USB-C Power Delivery negotiation, the Pi 5 bootloader must be told that 5000 mA is available.**
+> **The UWH Scoring Desk motherboard provides the Raspberry Pi 5 with a regulated 5.1 V supply capable of at least 5 A through the GPIO header. The dedicated PDM-Audio DC-DC supply uses the LMQ61460 regulator. The regulator specifies 3.5–7 ms from its first switching pulse to 90% of the selected output voltage, with a typical 0.7 ms enable-to-first-switching-pulse delay. This keeps the regulator's designed start-up to near operating voltage below 10 ms. The assembled production board should still be checked under load during hardware validation.**
 
-Most users of the production UWH Scoring Desk hardware will supply their own Raspberry Pi 5. When that Pi is powered from the motherboard through the GPIO 5 V pins rather than through USB-C, configure the Pi 5 bootloader to recognise the available 5 A supply.
+The production motherboard feeds the Pi 5 through the **5 V GPIO power pins rather than through USB-C**. This deliberately bypasses USB-C Power Delivery negotiation. Most users are expected to provide their own Raspberry Pi 5, so each Pi fitted to the production motherboard must have its bootloader configured to recognise the available **5000 mA** supply.
 
-Open Terminal and run:
+For the UWH motherboard, edit the Pi 5 bootloader EEPROM configuration:
 
 ```bash
 sudo rpi-eeprom-config --edit
 ```
 
-Add or change this bootloader setting:
+Add or change:
 
 ```text
 PSU_MAX_CURRENT=5000
 ```
 
-Save the bootloader configuration and reboot the Pi:
+Save the configuration and reboot:
 
 ```bash
 sudo reboot
 ```
 
-After rebooting, verify the setting with:
+After rebooting, verify the setting:
 
 ```bash
 rpi-eeprom-config | grep PSU_MAX_CURRENT
@@ -148,8 +159,27 @@ The result should include:
 PSU_MAX_CURRENT=5000
 ```
 
+`PSU_MAX_CURRENT=5000` tells the Pi 5 firmware to **skip USB Power Delivery negotiation and assume that a 5 A source is available**. It does not increase the capability of the power supply itself. On the UWH motherboard this is appropriate because the dedicated PDM-Audio supply and its power path are designed for the Pi 5 load.
+
+Raspberry Pi also provides a `usb_max_current_enable=1` setting that raises the USB peripheral limit from 600 mA to 1.6 A. **It does not need to be added separately for the UWH motherboard:** Raspberry Pi documents that this higher USB-current setting is enabled automatically when `PSU_MAX_CURRENT=5000` is set.
+
 > [!CAUTION]
-> `PSU_MAX_CURRENT=5000` does **not** make a power supply capable of delivering 5 A. It tells the Raspberry Pi 5 firmware that a suitable 5 A supply is already fitted. This setting is appropriate when the Pi 5 is powered from the UWH Scoring Desk motherboard's dedicated PDM-Audio supply. If the Pi is later moved to a different power arrangement, make sure that supply is suitable before retaining this setting.
+> **Do not use `PSU_MAX_CURRENT=5000` merely to remove a low-power warning.** Only use it when the complete 5 V supply path is genuinely capable of supplying 5 A. If a Pi 5 is removed from the UWH motherboard and later used with a lower-current supply, review or remove this EEPROM override. Also avoid connecting a second USB-C power supply while the Pi is already being powered from the UWH motherboard's GPIO 5 V rail.
+
+#### If the Pi 5 is powered through USB-C instead
+
+A Pi 5 supplied from an official Raspberry Pi 27 W USB-C supply negotiates **5 V / 5 A** using USB Power Delivery, so the firmware knows that the higher current is available and no UWH-specific EEPROM override is required.
+
+A Pi 5 can also run from a suitable **5 V / 3 A** USB-C source. In that configuration Raspberry Pi normally restricts the total power available to downstream USB devices to **600 mA**. With a recognised 5 V / 5 A source—or with the UWH motherboard correctly configured using `PSU_MAX_CURRENT=5000`—the USB peripheral limit rises to **1.6 A**.
+
+The production UWH motherboard uses GPIO power injection rather than USB-C because its dedicated regulated 5.1 V supply is already part of the scoring-desk hardware; implementing a separate USB-C 5 A source would otherwise require a suitable USB-C/USB-PD power-source arrangement.
+
+Official references:
+
+- [Raspberry Pi 5 power-supply requirements](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#power-supply)
+- [Raspberry Pi: USB Power Delivery on Raspberry Pi 5](https://pip-assets.raspberrypi.com/categories/685-app-notes-guides-whitepapers/documents/RP-009856-WP-1-USB%20Power%20delivery%20on%20Raspberry%20Pi%205.pdf)
+- [Raspberry Pi bootloader configuration — `PSU_MAX_CURRENT`](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#PSU_MAX_CURRENT)
+- [Texas Instruments LMQ61460 product page](https://www.ti.com/product/LMQ61460)
 
 ### 1. Prepare Raspberry Pi OS
 
