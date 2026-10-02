@@ -1177,7 +1177,7 @@ The frontend on port 8080 is **separate from MQTT**. Opening a webpage on PC 2 d
 | Windows broker works but Zigbee2MQTT does not start after boot | Set Mosquitto **Automatic**; confirm `pm2 save` under the task's Windows account and correct `pm2.cmd`/working directory; inspect Scheduler history. Do not run two PM2 instances. |
 | Pi MQTT fails with `ModuleNotFoundError` | Check `.venv/bin/python -m pip show paho-mqtt`, then run UWH using that same virtual environment. |
 | Frontend says adapter missing / port busy | Find the actual COM port or `/dev/serial/by-id`; confirm adapter type and permissions, and close any other program using the coordinator. |
-| Audible siren works but timing or level is different | Check the **Sounds** tab's siren file, **Siren Vol**, **Number of seconds to play Siren**, **Maximum Siren Duration**, and the operating-system/amplifier master volume. Arduino hold-to-sound differs from Zigbee timed actions. |
+| Audible siren works but timing or level is different | Check the selected siren file and its **Trim %** in the **Sounds** tab, **Number of seconds to play Siren**, **Maximum Siren Duration**, and the operating-system/DAC/amplifier master volume. Arduino hold-to-sound differs from Zigbee timed actions. |
 
 **Useful diagnostic commands** (use the correct host and authentication options for your broker):
 
