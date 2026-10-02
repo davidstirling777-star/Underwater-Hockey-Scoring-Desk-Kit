@@ -1,4 +1,4 @@
-"""Sounds tab: audio-file choices, volume tests and siren duration inputs.
+"""Sounds tab: audio-file choices, output reporting and siren timing inputs.
 
 The ordinary siren duration controls a timed blast; Maximum Siren Duration
 caps it independently. The Arduino's wired hold-to-sound path is deliberately
