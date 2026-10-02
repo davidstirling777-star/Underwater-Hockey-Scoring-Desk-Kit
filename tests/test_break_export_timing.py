@@ -103,6 +103,8 @@ class Harness(CountdownCode):
         self.siren_var = Var("siren.mp3")
         self.pips_var = Var("pip.mp3")
         self.enable_sound = Var(True)
+        self.pips_volume = Var(50)
+        self.siren_volume = Var(50)
         self.siren_duration = Var(1.5)
         self.max_siren_duration = Var("10")
         self.update_timer_display = Mock()
