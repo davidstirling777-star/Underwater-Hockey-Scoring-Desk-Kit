@@ -149,6 +149,16 @@ def _get_value(value):
     return value.get() if hasattr(value, "get") else value
 
 
+def _normalise_volume(volume):
+    """Convert a 0-100 value to pygame's 0.0-1.0 range."""
+    try:
+        numeric_volume = float(_get_value(volume))
+    except (TypeError, ValueError):
+        numeric_volume = 0.0
+
+    return max(0.0, min(100.0, numeric_volume)) / 100.0
+
+
 def normalise_max_siren_duration(value):
     """Return a safe timed-siren cutoff (default 10 s; allowed 1-30 s).
 
@@ -386,6 +396,8 @@ def play_timed_sound(
     filename,
     sound_type,
     enable_sound,
+    pips_volume,
+    siren_volume,
     siren_duration,
     max_siren_duration=10.0
 ):
@@ -395,6 +407,13 @@ def play_timed_sound(
 
     if not sound_enabled or not _is_valid_sound_selection(filename):
         return
+
+    volume = (
+        _get_value(pips_volume)
+        if sound_type == "pips"
+        else _get_value(siren_volume)
+    )
+    normalized_volume = _normalise_volume(volume)
 
     # Snapshot Tk variables on the UI thread before background playback.
     if sound_type == "siren":
@@ -413,6 +432,7 @@ def play_timed_sound(
             filename,
             sound_type,
             sound_enabled,
+            normalized_volume,
             duration_seconds,
             max_duration_seconds,
         ),
@@ -425,6 +445,7 @@ def _play_timed_sound_sync(
     filename,
     sound_type,
     enable_sound,
+    normalized_volume,
     siren_duration,
     max_siren_duration=10.0
 ):
@@ -464,9 +485,7 @@ def _play_timed_sound_sync(
 
         if PYGAME_INITIALIZED and filename in _preloaded_sounds:
             sound_obj = _preloaded_sounds[filename]
-            # UWH no longer applies its own volume scaling. The operating
-            # system / amplifier owns volume, so every app path uses unity.
-            sound_obj.set_volume(1.0)
+            sound_obj.set_volume(normalized_volume)
 
             if sound_type == "siren":
                 channel = sound_obj.play(loops=-1, maxtime=duration_ms)
@@ -513,7 +532,7 @@ def stop_looping_sound(channel):
 
 
 def start_timed_siren(
-    filename, enable_sound, duration_seconds,
+    filename, enable_sound, siren_volume, duration_seconds,
     max_siren_duration=10.0
 ):
     """Play one wireless siren for at most the selected duration.
@@ -549,7 +568,7 @@ def start_timed_siren(
             return None
 
         sound_obj = _preloaded_sounds[filename]
-        sound_obj.set_volume(1.0)
+        sound_obj.set_volume(_normalise_volume(siren_volume))
         # maxtime independently stops this sound even if Tk's event loop stalls.
         channel = sound_obj.play(loops=-1, maxtime=duration_ms)
         if channel is not None:
