@@ -119,8 +119,8 @@ import webbrowser
 DEBUG_MODE = False
 
 from zigbee_siren import ZigbeeSirenController, is_mqtt_available
-from sound import (check_audio_device_available, handle_no_audio_device_warning, 
-                   get_sound_files, play_sound, play_sound_with_volume, preload_sounds)
+from sound import (check_audio_device_available, handle_no_audio_device_warning,
+                   get_sound_files, play_sound, play_timed_sound, preload_sounds)
 from game_engine import GameEngine
 
 SETTINGS_FILE = "settings.json"
@@ -580,10 +580,9 @@ class GameManagementApp:
         try:
             duration = self._wireless_siren_cycle_duration
             duration_ms = max(1, int(duration * 1000))
-            self._wireless_siren_channel = sound.start_timed_siren_with_volume(
+            self._wireless_siren_channel = sound.start_timed_siren(
                 self.siren_var.get(),
                 self.enable_sound.get(),
-                self.siren_volume.get(),
                 duration,
                 self.max_siren_duration.get(),
             )
@@ -653,10 +652,9 @@ class GameManagementApp:
         # Replace any timed wireless cycle; the wired Arduino channel remains
         # untouched. Never stack separate wireless sound channels.
         self._stop_wireless_siren()
-        channel = sound.start_timed_siren_with_volume(
+        channel = sound.start_timed_siren(
             self.siren_var.get(),
             self.enable_sound.get(),
-            self.siren_volume.get(),
             seconds,
             self.max_siren_duration.get(),
         )
@@ -783,8 +781,6 @@ class GameManagementApp:
         if self.enable_sound.get():
             try:
                 track = self.siren_var.get()
-                volume = self.siren_volume.get()
-                normalized_volume = max(0.0, min(100.0, volume)) / 100.0
                 sound_obj = sound._preloaded_sounds.get(track)
 
                 if sound_obj is None:
@@ -793,7 +789,7 @@ class GameManagementApp:
                         "is not preloaded; MQTT siren will still be requested."
                     )
                 else:
-                    sound_obj.set_volume(normalized_volume)
+                    sound_obj.set_volume(1.0)
                     self._stop_arduino_siren()
                     self.arduino_siren_channel = sound_obj.play(loops=-1)
                     if self.arduino_siren_channel is not None:
@@ -1025,12 +1021,9 @@ class GameManagementApp:
         # Store last position of penalties dialog (None means use default positioning)
         self.penalty_dialog_last_position = None
 
-        # Initialize volume variables for sounds - load from settings
+        # Load sound selections and timing. Playback volume is controlled by
+        # the operating system / amplifier rather than duplicate app sliders.
         sound_settings = load_sound_settings()
-        self.pips_volume = tk.DoubleVar(value=sound_settings.get("pips_volume", 50.0))
-        self.siren_volume = tk.DoubleVar(value=sound_settings.get("siren_volume", 50.0))
-        self.air_volume = tk.DoubleVar(value=sound_settings.get("air_volume", 50.0))
-        self.water_volume = tk.DoubleVar(value=sound_settings.get("water_volume", 50.0))
         self.enable_sound = tk.BooleanVar(value=sound_settings.get("enable_sound", True))
         self.siren_duration = tk.DoubleVar(value=sound_settings.get("siren_duration", 1.5))
         # Separate, user-configurable safety cutoff for timed siren blasts.
@@ -2102,14 +2095,10 @@ class GameManagementApp:
         self.add_to_zigbee_log("Testing app siren sound...")
     
         try:
-            play_sound_with_volume(
+            play_timed_sound(
                 self.siren_var.get(),
                 "siren",
                 self.enable_sound,
-                self.pips_volume,
-                self.siren_volume,
-                self.air_volume,
-                self.water_volume,
                 self.siren_duration,
                 self.max_siren_duration
             )
@@ -3395,14 +3384,10 @@ class GameManagementApp:
 
             if self.engine.should_play_period_end_siren(cur_period):
                 try:
-                    play_sound_with_volume(
+                    play_timed_sound(
                         self.siren_var.get(),
                         "siren",
                         self.enable_sound,
-                        self.pips_volume,
-                        self.siren_volume,
-                        self.air_volume,
-                        self.water_volume,
                         self.siren_duration,
                         self.max_siren_duration
                     )
@@ -3415,14 +3400,10 @@ class GameManagementApp:
                 and self.engine.should_play_break_countdown_pip(cur_period)
             ):
                 try:
-                    play_sound_with_volume(
+                    play_timed_sound(
                         self.pips_var.get(),
                         "pips",
                         self.enable_sound,
-                        self.pips_volume,
-                        self.siren_volume,
-                        self.air_volume,
-                        self.water_volume,
                         self.siren_duration,
                         self.max_siren_duration
                     )
@@ -3551,14 +3532,10 @@ class GameManagementApp:
             # Only play if no pending timeout exists.
             if self.engine.timer_seconds == 16 and self.pending_timeout is None:
                 try:
-                    play_sound_with_volume(
+                    play_timed_sound(
                         self.pips_var.get(),
                         "pips",
                         self.enable_sound,
-                        self.pips_volume,
-                        self.siren_volume,
-                        self.air_volume,
-                        self.water_volume,
                         self.siren_duration,
                         self.max_siren_duration
                     )
@@ -3571,14 +3548,10 @@ class GameManagementApp:
             # Only play if no pending timeout exists.
             if self.engine.timer_seconds == 1 and self.pending_timeout is None:
                 try:
-                    play_sound_with_volume(
+                    play_timed_sound(
                         self.siren_var.get(),
                         "siren",
                         self.enable_sound,
-                        self.pips_volume,
-                        self.siren_volume,
-                        self.air_volume,
-                        self.water_volume,
                         self.siren_duration,
                         self.max_siren_duration
                     )
