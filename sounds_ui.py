@@ -421,12 +421,14 @@ def create_sounds_tab(app):
     ttk.Button(
         controls,
         text="Save Settings",
+        width=16,
         command=app.save_sound_settings_method,
     ).grid(row=0, column=0, padx=(0, 8))
 
     ttk.Button(
         controls,
         text="Open Sounds Folder",
+        width=20,
         command=open_sounds_folder,
     ).grid(row=0, column=1, padx=(0, 12))
 
@@ -507,17 +509,15 @@ def create_sounds_tab(app):
     timing_frame.grid_columnconfigure(0, weight=1)
     timing_frame.grid_columnconfigure(1, weight=0)
 
-    tk.Label(
+    ttk.Label(
         timing_frame,
         text="Number of seconds to play Siren",
-        font=("Arial", 11),
         anchor="w",
-    ).grid(row=0, column=0, sticky="ew", padx=10, pady=(18, 8))
+    ).grid(row=0, column=0, sticky="ew", padx=(4, 10), pady=(12, 8))
 
-    siren_duration_entry = tk.Entry(
+    siren_duration_entry = ttk.Entry(
         timing_frame,
         textvariable=app.siren_duration,
-        font=("Arial", 11),
         width=10,
     )
     siren_duration_entry.grid(
@@ -525,7 +525,7 @@ def create_sounds_tab(app):
         column=1,
         sticky="w",
         padx=(0, 10),
-        pady=(18, 8),
+        pady=(12, 8),
     )
 
     def validate_siren_duration(new_value):
@@ -559,17 +559,15 @@ def create_sounds_tab(app):
     siren_duration_entry.bind("<FocusOut>", normalize_siren_duration)
     siren_duration_entry.bind("<Return>", normalize_siren_duration)
 
-    tk.Label(
+    ttk.Label(
         timing_frame,
         text="Maximum Siren Duration (seconds)",
-        font=("Arial", 11),
         anchor="w",
-    ).grid(row=1, column=0, sticky="ew", padx=10, pady=8)
+    ).grid(row=1, column=0, sticky="ew", padx=(4, 10), pady=8)
 
-    max_siren_duration_entry = tk.Entry(
+    max_siren_duration_entry = ttk.Entry(
         timing_frame,
         textvariable=app.max_siren_duration,
-        font=("Arial", 11),
         width=10,
     )
     max_siren_duration_entry.grid(
@@ -610,28 +608,39 @@ def create_sounds_tab(app):
         normalize_max_siren_duration,
     )
 
-    tk.Label(
+    ttk.Separator(
+        timing_frame,
+        orient="horizontal",
+    ).grid(
+        row=2,
+        column=0,
+        columnspan=2,
+        sticky="ew",
+        padx=4,
+        pady=(14, 10),
+    )
+
+    ttk.Label(
         timing_frame,
         text=(
             "Overall loudness is set by the OS/DAC/amplifier. "
             "Trim % only attenuates individual files: 100% is native level "
             "and 0% mutes that file."
         ),
-        font=("Arial", 10),
         justify="left",
         anchor="nw",
-        wraplength=360,
+        wraplength=330,
     ).grid(
-        row=2,
+        row=3,
         column=0,
         columnspan=2,
         sticky="ew",
-        padx=10,
-        pady=(18, 8),
+        padx=4,
+        pady=(0, 8),
     )
 
     if len(all_pips) > MAX_SOUND_ROWS or len(all_sirens) > MAX_SOUND_ROWS:
-        tk.Label(
+        ttk.Label(
             timing_frame,
             text=(
                 "Up to 10 pip files and 10 siren files are shown. "
@@ -642,11 +651,11 @@ def create_sounds_tab(app):
             anchor="nw",
             wraplength=360,
         ).grid(
-            row=3,
+            row=4,
             column=0,
             columnspan=2,
             sticky="ew",
-            padx=10,
+            padx=4,
             pady=(8, 0),
         )
 
