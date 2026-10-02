@@ -174,6 +174,8 @@ A Pi 5 can also run from a suitable **5 V / 3 A** USB-C source. In that configur
 
 The production UWH motherboard uses GPIO power injection rather than USB-C because its dedicated regulated 5.1 V supply is already part of the scoring-desk hardware; implementing a separate USB-C 5 A source would otherwise require a suitable USB-C/USB-PD power-source arrangement.
 
+The dedicated PDM-Audio supply also makes a future independent Pi 5 hard-reset function practical, but **the dedicated supply by itself does not provide a reset**. A hard-reset/recovery button would need to be added to the PDM-Audio daughterboard (or otherwise wired to its regulator enable/control path) so that the Pi's 5.1 V output can be deliberately switched off and restarted. Without that additional hardware, recovery from a completely locked Pi still requires an external power cycle or use of the Pi's own controls.
+
 Official references:
 
 - [Raspberry Pi 5 power-supply requirements](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#power-supply)
