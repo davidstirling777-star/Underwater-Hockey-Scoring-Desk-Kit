@@ -561,8 +561,8 @@ The old Pips and Siren dropdown boxes have been replaced by two fixed tables. Ea
 - The **Pips** table lists supported `.MP3` and `.WAV` files from the `assets` folder whose filename contains `pip` (case-insensitive). For clarity, custom pip files should use names such as `pip-short-beep.mp3` or `pip-countdown.wav`.
 - The **Sirens** table lists supported files whose filename contains `siren` (case-insensitive). For clarity, custom siren files should use names such as `siren-air-horn.wav` or `siren-classic.mp3`.
 - A sound file that does not contain `pip` or `siren` in its filename will not appear in the corresponding table.
-- Each row has a radio button on the left. Exactly **one Pip** and **one Siren** can be selected at a time. The selections are stored as `pips_sound` and `siren_sound` in `settings.json` and are restored when UWH starts.
-- Click the radio button (or the filename) to make that file the active pip or siren. **Double-click** a filename to preview it using its current Trim %.
+- Each of the 10 rows has a radio-button position on the left. Exactly **one Pip** and **one Siren** can be selected at a time. Rows without a sound file remain visible but their radio button and Trim % field are disabled/greyed, keeping the table layout consistent. The selections are stored as `pips_sound` and `siren_sound` in `settings.json` and are restored when UWH starts.
+- Click the enabled radio button (or the filename) to make that file the active pip or siren. **Double-click** a filename to preview it using its current Trim %.
 - New sound files default to **100% Trim**.
 
 **Trim %** is an attenuation-only correction for differences in the apparent loudness of individual sound files. The accepted range is **0–100%**: `100%` plays the file at its native level, `50%` attenuates it to half the playback amplitude used by UWH, and `0%` mutes that file. UWH deliberately does not boost files above their native level, avoiding a digital-gain stage that could introduce clipping.
