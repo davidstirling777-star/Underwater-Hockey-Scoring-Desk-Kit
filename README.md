@@ -417,14 +417,24 @@ permanent folder containing the **source ZIP** files:
 
 The easiest route is to extract the full updated GitHub source ZIP on the
 third computer and copy the same original draw beside these Python files.
-Do not use the packaged Windows application EXE as the server.
+The packaged Windows UWH application (`UnderwaterHockeyScoringDesk.exe`) is
+the court/operator program and cannot run the shared tournament-results
+server. On the third results computer, download/extract the GitHub source ZIP
+and run `tournament_results_server.py` with Python.
 
 Generate a long, unpredictable secret once, and record it securely:
 
     python -c "import secrets; print(secrets.token_urlsafe(32))"
 
-If the Windows Python executable is named differently, use py -3 instead.
-Enter the same secret on the two courts. It must be at least 16 characters.
+If Windows reports that `python` is not recognised, use `py -3` in place
+of `python` in the commands below.
+
+Enter exactly the same shared results token on the two courts. The recommended
+command above generates a long, unpredictable token (typically about 43
+characters). The results server rejects tokens shorter than 16 characters as a
+basic safeguard against weak manually chosen passwords; 16 characters is only
+a minimum length check, not a special cryptographic threshold. Using the
+generated random token is strongly recommended.
 
 #### Windows 11 results computer
 
