@@ -11,6 +11,8 @@ on:
       - "tournament_sync.py"
       - "tournament_results_server.py"
       - "settings_ui.py"
+      - "sound.py"
+      - "sounds_ui.py"
       - "README.md"
       - "tests/**"
       - ".github/workflows/test-game-export.yml"
