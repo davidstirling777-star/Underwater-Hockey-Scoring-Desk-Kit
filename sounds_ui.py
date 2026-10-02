@@ -12,6 +12,7 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 
 from sound import (
+    AUDIO_OUTPUT_AT_STARTUP,
     check_audio_device_available,
     get_sound_files,
     play_sound_with_volume,
@@ -187,6 +188,26 @@ def create_sounds_tab(app):
         variable=app.enable_sound
     )
     enable_sound_cb.grid(row=1, column=0, sticky="w")
+
+    # pygame selects the OS default when sound.py is imported. Report that
+    # startup choice so an operator can immediately spot HDMI-vs-DAC routing.
+    audio_output_label = tk.Label(
+        sounds_widget,
+        text=(
+            f"Audio output in use: {AUDIO_OUTPUT_AT_STARTUP}\n"
+            "(selected when UWH started)"
+        ),
+        font=("Arial", 10),
+        justify="left",
+        anchor="w",
+    )
+    audio_output_label.grid(
+        row=1,
+        column=1,
+        columnspan=3,
+        sticky="w",
+        padx=(10, 0),
+    )
 
     # Row 0-1: Linux volume headings
     tk.Label(
