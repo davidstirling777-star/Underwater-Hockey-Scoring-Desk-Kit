@@ -108,7 +108,7 @@ class MaintenanceDocumentationTests(unittest.TestCase):
         self.assertIn("wpctl set-default", readme)
         self.assertIn("wpctl set-volume", readme)
 
-    def test_only_obsolete_air_water_volume_controls_are_removed(self):
+    def test_sounds_tab_uses_per_file_trim_not_software_master_volume(self):
         for filename in ("uwh.py", "sound.py", "sounds_ui.py", "settings_manager.py"):
             text = source(filename)
             for obsolete in ("air_volume", "water_volume"):
@@ -116,13 +116,18 @@ class MaintenanceDocumentationTests(unittest.TestCase):
                     self.assertNotIn(obsolete, text)
 
         sounds_ui = source("sounds_ui.py")
-        self.assertEqual(sounds_ui.count("tk.Scale("), 2)
-        self.assertIn("pips_volume", sounds_ui)
-        self.assertIn("siren_volume", sounds_ui)
-        self.assertIn("pips_volume", source("uwh.py"))
-        self.assertIn("siren_volume", source("uwh.py"))
-        self.assertIn('"pips_volume": 50.0', source("settings_manager.py"))
-        self.assertIn('"siren_volume": 50.0', source("settings_manager.py"))
+        settings_manager = source("settings_manager.py")
+        self.assertEqual(sounds_ui.count("tk.Scale("), 0)
+        self.assertNotIn("Pips Vol", sounds_ui)
+        self.assertNotIn("Siren Vol", sounds_ui)
+        self.assertIn('text="Trim %"', sounds_ui)
+        self.assertIn("MAX_SOUND_ROWS = 10", sounds_ui)
+        self.assertIn("0 to 100", sounds_ui)
+        self.assertIn('"sound_trims": {}', settings_manager)
+        self.assertNotIn('"pips_volume": 50.0', settings_manager)
+        self.assertNotIn('"siren_volume": 50.0', settings_manager)
+        self.assertIn("Trim %", source("README.md"))
+        self.assertIn("hardware", source("README.md").lower())
 
     def test_game_variables_shows_user_visible_app_version(self):
         settings_ui = source("settings_ui.py")
@@ -137,11 +142,22 @@ class MaintenanceDocumentationTests(unittest.TestCase):
         self.assertIn("github.run_number", workflow)
         self.assertIn("lower-right corner", readme)
 
-    def test_sounds_tab_keeps_controls_compact_after_air_water_removal(self):
+    def test_sounds_tab_has_two_fixed_ten_row_sound_tables(self):
         sounds_ui = source("sounds_ui.py")
-        self.assertIn("for column in range(6):", sounds_ui)
-        self.assertIn("sounds_widget.grid_columnconfigure(3, weight=0)", sounds_ui)
-        self.assertEqual(sounds_ui.count("tk.Scale("), 2)
+        self.assertIn('build_sound_table(', sounds_ui)
+        self.assertIn('"Pips"', sounds_ui)
+        self.assertIn('"Sirens"', sounds_ui)
+        self.assertIn('text="Use"', sounds_ui)
+        self.assertIn('text="Sound File"', sounds_ui)
+        self.assertIn('text="Trim %"', sounds_ui)
+        self.assertIn("tk.Radiobutton(", sounds_ui)
+        self.assertIn("variable=selection_var", sounds_ui)
+        self.assertIn("value=filename", sounds_ui)
+        self.assertIn("range(MAX_SOUND_ROWS)", sounds_ui)
+        self.assertIn("double-click the filename to preview it", sounds_ui)
+        readme = source("README.md")
+        self.assertIn("Exactly **one Pip** and **one Siren**", readme)
+        self.assertIn("`pips_sound` and `siren_sound`", readme)
 
     def test_tournament_help_names_the_actual_required_score_columns(self):
         text = source("settings_ui.py")

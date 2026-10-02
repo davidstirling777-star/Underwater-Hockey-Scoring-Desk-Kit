@@ -583,7 +583,7 @@ class GameManagementApp:
             self._wireless_siren_channel = sound.start_timed_siren(
                 self.siren_var.get(),
                 self.enable_sound.get(),
-                self.siren_volume.get(),
+                self.get_sound_trim(self.siren_var.get()),
                 duration,
                 self.max_siren_duration.get(),
             )
@@ -656,7 +656,7 @@ class GameManagementApp:
         channel = sound.start_timed_siren(
             self.siren_var.get(),
             self.enable_sound.get(),
-            self.siren_volume.get(),
+            self.get_sound_trim(self.siren_var.get()),
             seconds,
             self.max_siren_duration.get(),
         )
@@ -783,8 +783,10 @@ class GameManagementApp:
         if self.enable_sound.get():
             try:
                 track = self.siren_var.get()
-                volume = self.siren_volume.get()
-                normalized_volume = max(0.0, min(100.0, volume)) / 100.0
+                trim_percent = self.get_sound_trim(track)
+                normalized_volume = (
+                    sound.normalise_trim_percent(trim_percent) / 100.0
+                )
                 sound_obj = sound._preloaded_sounds.get(track)
 
                 if sound_obj is None:
@@ -1025,17 +1027,16 @@ class GameManagementApp:
         # Store last position of penalties dialog (None means use default positioning)
         self.penalty_dialog_last_position = None
 
-        # Load sound selections, independent Pips/Siren levels and timing.
-        # Overall output level is still controlled by the OS/DAC/amplifier.
+        # Load the active pip/siren selections, per-file attenuation trims and
+        # siren timing. Overall loudness is intentionally controlled by the
+        # OS/DAC/amplifier rather than by a second software master volume.
         sound_settings = load_sound_settings()
-        self.pips_volume = tk.DoubleVar(
-            value=sound_settings.get("pips_volume", 50.0)
+        self.enable_sound = tk.BooleanVar(
+            value=sound_settings.get("enable_sound", True)
         )
-        self.siren_volume = tk.DoubleVar(
-            value=sound_settings.get("siren_volume", 50.0)
+        self.siren_duration = tk.DoubleVar(
+            value=sound_settings.get("siren_duration", 1.5)
         )
-        self.enable_sound = tk.BooleanVar(value=sound_settings.get("enable_sound", True))
-        self.siren_duration = tk.DoubleVar(value=sound_settings.get("siren_duration", 1.5))
         # Separate, user-configurable safety cutoff for timed siren blasts.
         # StringVar keeps an invalid entry editable until validation on save.
         self.max_siren_duration = tk.StringVar(
@@ -1043,26 +1044,55 @@ class GameManagementApp:
                 sound_settings.get("max_siren_duration", 10.0)
             ))
         )
-        
-        # Initialize sound selection variables with auto-selection of first audio file if no saved setting
+
         sound_files = get_sound_files()
-        available_audio_files = sound_files if sound_files != ["No sound files found"] else []
-        
-        pips_default = sound_settings.get("pips_sound", "Default")
-        siren_default = sound_settings.get("siren_sound", "Default")
-        
-        # If no saved setting and audio files are available, pick the first one
-        if pips_default == "Default" and available_audio_files:
-            pips_default = available_audio_files[0]
-        if siren_default == "Default" and available_audio_files:
-            # Try to default to siren-police.mp3 if available, otherwise use first available
-            if "siren-police.mp3" in available_audio_files:
+        available_audio_files = (
+            sound_files
+            if sound_files != ["No sound files found"]
+            else []
+        )
+        pips_files = [
+            name for name in available_audio_files
+            if "pip" in name.lower()
+        ]
+        siren_files = [
+            name for name in available_audio_files
+            if "siren" in name.lower()
+        ]
+
+        pips_default = sound_settings.get("pips_sound", "")
+        siren_default = sound_settings.get("siren_sound", "")
+        if pips_default not in pips_files:
+            pips_default = pips_files[0] if pips_files else ""
+        if siren_default not in siren_files:
+            if "siren-police.mp3" in siren_files:
                 siren_default = "siren-police.mp3"
             else:
-                siren_default = available_audio_files[0]
-            
+                siren_default = siren_files[0] if siren_files else ""
+
         self.pips_var = tk.StringVar(value=pips_default)
         self.siren_var = tk.StringVar(value=siren_default)
+
+        # Per-file trims default to 100%. When upgrading an older settings
+        # file, preserve the previous selected Pips/Siren software levels for
+        # those two selected files so the first upgraded run does not jump in
+        # level unexpectedly. New/discovered files still begin at 100%.
+        self.sound_trims = {}
+        saved_trims = sound_settings.get("sound_trims", {})
+        if isinstance(saved_trims, dict):
+            for filename, value in saved_trims.items():
+                self.sound_trims[str(filename)] = (
+                    sound.normalise_trim_percent(value)
+                )
+        if "sound_trims" not in sound_settings:
+            if pips_default:
+                self.sound_trims[pips_default] = sound.normalise_trim_percent(
+                    sound_settings.get("pips_volume", 100.0)
+                )
+            if siren_default:
+                self.sound_trims[siren_default] = sound.normalise_trim_percent(
+                    sound_settings.get("siren_volume", 100.0)
+                )
         
         # Preload all sound files into memory for instant playback
         preload_sounds()
@@ -2093,6 +2123,16 @@ class GameManagementApp:
         csv_folder = BASE_DIR
         open_folder_in_file_manager(csv_folder)
 
+    def get_sound_trim(self, filename):
+        """Return one file's attenuation trim; unknown files default to 100%."""
+        return sound.normalise_trim_percent(
+            self.sound_trims.get(str(filename), 100.0)
+        )
+
+    def set_sound_trim(self, filename, value):
+        """Update one file's in-memory trim without changing master volume."""
+        self.sound_trims[str(filename)] = sound.normalise_trim_percent(value)
+
     def create_sounds_tab(self):
         return sounds_ui.create_sounds_tab(self)
         
@@ -2109,8 +2149,7 @@ class GameManagementApp:
                 self.siren_var.get(),
                 "siren",
                 self.enable_sound,
-                self.pips_volume,
-                self.siren_volume,
+                self.get_sound_trim(self.siren_var.get()),
                 self.siren_duration,
                 self.max_siren_duration
             )
@@ -3400,8 +3439,7 @@ class GameManagementApp:
                         self.siren_var.get(),
                         "siren",
                         self.enable_sound,
-                        self.pips_volume,
-                        self.siren_volume,
+                        self.get_sound_trim(self.siren_var.get()),
                         self.siren_duration,
                         self.max_siren_duration
                     )
@@ -3418,8 +3456,7 @@ class GameManagementApp:
                         self.pips_var.get(),
                         "pips",
                         self.enable_sound,
-                        self.pips_volume,
-                        self.siren_volume,
+                        self.get_sound_trim(self.pips_var.get()),
                         self.siren_duration,
                         self.max_siren_duration
                     )
@@ -3552,8 +3589,7 @@ class GameManagementApp:
                         self.pips_var.get(),
                         "pips",
                         self.enable_sound,
-                        self.pips_volume,
-                        self.siren_volume,
+                        self.get_sound_trim(self.pips_var.get()),
                         self.siren_duration,
                         self.max_siren_duration
                     )
@@ -3570,8 +3606,7 @@ class GameManagementApp:
                         self.siren_var.get(),
                         "siren",
                         self.enable_sound,
-                        self.pips_volume,
-                        self.siren_volume,
+                        self.get_sound_trim(self.siren_var.get()),
                         self.siren_duration,
                         self.max_siren_duration
                     )

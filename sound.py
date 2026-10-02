@@ -149,14 +149,26 @@ def _get_value(value):
     return value.get() if hasattr(value, "get") else value
 
 
-def _normalise_volume(volume):
-    """Convert a 0-100 value to pygame's 0.0-1.0 range."""
-    try:
-        numeric_volume = float(_get_value(volume))
-    except (TypeError, ValueError):
-        numeric_volume = 0.0
+def normalise_trim_percent(value):
+    """Return a safe per-file trim percentage in the 0-100 range.
 
-    return max(0.0, min(100.0, numeric_volume)) / 100.0
+    A missing or malformed trim defaults to 100% so a newly discovered sound
+    file plays at its native level. Trim is attenuation only; overall system
+    loudness is deliberately left to the OS/DAC/amplifier hardware path.
+    """
+    try:
+        numeric_value = float(_get_value(value))
+        if not math.isfinite(numeric_value):
+            raise ValueError
+    except (TypeError, ValueError, OverflowError):
+        numeric_value = 100.0
+
+    return max(0.0, min(100.0, numeric_value))
+
+
+def _normalise_volume(trim_percent):
+    """Convert a 0-100 per-file trim to pygame's 0.0-1.0 range."""
+    return normalise_trim_percent(trim_percent) / 100.0
 
 
 def normalise_max_siren_duration(value):
@@ -396,24 +408,18 @@ def play_timed_sound(
     filename,
     sound_type,
     enable_sound,
-    pips_volume,
-    siren_volume,
+    trim_percent,
     siren_duration,
     max_siren_duration=10.0
 ):
-    """Play a selected pip once or a siren for its configured duration."""
+    """Play a selected file using its 0-100% per-file trim."""
     sound_enabled = _get_value(enable_sound)
     filename = _normalise_filename(filename)
 
     if not sound_enabled or not _is_valid_sound_selection(filename):
         return
 
-    volume = (
-        _get_value(pips_volume)
-        if sound_type == "pips"
-        else _get_value(siren_volume)
-    )
-    normalized_volume = _normalise_volume(volume)
+    normalized_volume = _normalise_volume(trim_percent)
 
     # Snapshot Tk variables on the UI thread before background playback.
     if sound_type == "siren":
@@ -532,7 +538,7 @@ def stop_looping_sound(channel):
 
 
 def start_timed_siren(
-    filename, enable_sound, siren_volume, duration_seconds,
+    filename, enable_sound, trim_percent, duration_seconds,
     max_siren_duration=10.0
 ):
     """Play one wireless siren for at most the selected duration.
@@ -568,7 +574,7 @@ def start_timed_siren(
             return None
 
         sound_obj = _preloaded_sounds[filename]
-        sound_obj.set_volume(_normalise_volume(siren_volume))
+        sound_obj.set_volume(_normalise_volume(trim_percent))
         # maxtime independently stops this sound even if Tk's event loop stalls.
         channel = sound_obj.play(loops=-1, maxtime=duration_ms)
         if channel is not None:

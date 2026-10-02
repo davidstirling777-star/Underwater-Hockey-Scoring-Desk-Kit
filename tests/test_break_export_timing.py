@@ -103,8 +103,7 @@ class Harness(CountdownCode):
         self.siren_var = Var("siren.mp3")
         self.pips_var = Var("pip.mp3")
         self.enable_sound = Var(True)
-        self.pips_volume = Var(50)
-        self.siren_volume = Var(50)
+        self.sound_trims = {"pip.mp3": 50, "siren.mp3": 60}
         self.siren_duration = Var(1.5)
         self.max_siren_duration = Var("10")
         self.update_timer_display = Mock()
@@ -114,6 +113,9 @@ class Harness(CountdownCode):
         self.update_penalty_display = Mock()
         self.clear_all_penalties = Mock()
         self.start_current_period = Mock()
+
+    def get_sound_trim(self, filename):
+        return self.sound_trims.get(filename, 100)
 
     def get_current_game_number(self):
         return self.starting_game_var.get()

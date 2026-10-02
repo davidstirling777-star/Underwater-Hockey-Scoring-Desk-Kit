@@ -1,8 +1,9 @@
-"""Sounds tab: audio-file choices, volume tests, output reporting and timing.
+"""Sounds tab: per-file trims, selection, output reporting and timing.
 
-The ordinary siren duration controls a timed blast; Maximum Siren Duration
-caps it independently. The Arduino's wired hold-to-sound path is deliberately
-different. sound.py owns playback and its independent audio timeout.
+The tab lists up to ten pip files and ten siren files discovered in assets/.
+Each file has an attenuation-only Trim % (0-100). Overall system loudness is
+left to the operating system, DAC and amplifier. Click a file row to make it
+the active pip/siren; double-click it to preview the current trim.
 """
 
 import datetime
@@ -20,8 +21,23 @@ from sound import (
 )
 
 
+MAX_SOUND_ROWS = 10
+
+
+def _visible_files(files, selected):
+    """Return at most ten files, keeping the active selection visible."""
+    files = list(files)
+    if len(files) <= MAX_SOUND_ROWS:
+        return files
+
+    visible = files[:MAX_SOUND_ROWS]
+    if selected and selected in files and selected not in visible:
+        visible[-1] = selected
+    return visible
+
+
 def create_sounds_tab(app):
-    """Create the Sounds tab and its controls."""
+    """Create the Sounds tab and its per-file trim tables."""
     tab = ttk.Frame(app.notebook)
     app.notebook.add(tab, text="Sounds")
 
@@ -32,42 +48,43 @@ def create_sounds_tab(app):
         tab,
         text="Sounds",
         borderwidth=2,
-        relief="solid"
+        relief="solid",
     )
     sounds_widget.grid(
         row=0,
         column=0,
         sticky="nsew",
         padx=8,
-        pady=8
+        pady=8,
     )
-
-    for row in range(9):
-        sounds_widget.grid_rowconfigure(row, weight=1)
-
-    # Keep the sound controls in the left two-thirds of a wide operator
-    # window. Before the obsolete Air/Water controls were removed, columns
-    # 4-5 naturally acted as this spacer. Retaining six grid columns prevents
-    # the dropdowns/sliders from stretching to the far-right edge.
-    for column in range(6):
-        sounds_widget.grid_columnconfigure(column, weight=1)
-    sounds_widget.grid_columnconfigure(3, weight=0)
+    sounds_widget.grid_columnconfigure(0, weight=3)
+    sounds_widget.grid_columnconfigure(1, weight=2)
+    sounds_widget.grid_rowconfigure(2, weight=1)
+    sounds_widget.grid_rowconfigure(3, weight=1)
 
     sound_files = get_sound_files()
     if sound_files == ["No sound files found"]:
         sound_files = []
 
-    pips_options = [
+    all_pips = [
         filename for filename in sound_files if "pip" in filename.lower()
     ]
-    siren_options = [
+    all_sirens = [
         filename for filename in sound_files if "siren" in filename.lower()
     ]
 
-    if app.pips_var.get() not in pips_options:
-        app.pips_var.set(pips_options[0] if pips_options else "")
-    if app.siren_var.get() not in siren_options:
-        app.siren_var.set(siren_options[0] if siren_options else "")
+    if app.pips_var.get() not in all_pips:
+        app.pips_var.set(all_pips[0] if all_pips else "")
+    if app.siren_var.get() not in all_sirens:
+        app.siren_var.set(all_sirens[0] if all_sirens else "")
+
+    pips_files = _visible_files(all_pips, app.pips_var.get())
+    siren_files = _visible_files(all_sirens, app.siren_var.get())
+
+    # Tk variables exist only for currently displayed files. app.sound_trims
+    # remains the persistent in-memory dictionary, including trims for files
+    # temporarily removed from the assets folder.
+    app.sound_trim_vars = {}
 
     def app_log(message):
         try:
@@ -75,7 +92,7 @@ def create_sounds_tab(app):
         except Exception:
             pass
 
-    def ensure_audio_device(sound_var, sound_type):
+    def ensure_audio_device(sound_type):
         """Warn once when sound is enabled but no usable audio device exists."""
         if check_audio_device_available(app.enable_sound):
             return True
@@ -83,12 +100,9 @@ def create_sounds_tab(app):
         if not app.audio_device_warning_shown:
             messagebox.showwarning(
                 "Audio Device Warning",
-                f"No audio device detected. Cannot play {sound_type} sounds.\n\n"
-                "The sound selection has been cleared."
+                f"No audio device detected. Cannot play {sound_type} sounds.",
             )
             app.audio_device_warning_shown = True
-
-        sound_var.set("")
         return False
 
     def open_sounds_folder():
@@ -105,271 +119,384 @@ def create_sounds_tab(app):
         except (OSError, AttributeError) as error:
             messagebox.showerror(
                 "Open Sounds Folder",
-                f"Could not open the sounds folder:\n{error}"
+                f"Could not open the sounds folder:\n{error}",
             )
 
-    def play_selected_sound(sound_var, sound_type):
-        """Play the selected test sound after basic validation."""
-        sound_file = sound_var.get().strip()
+    def validate_trim(new_value):
+        """Allow an empty edit-in-progress or a whole number from 0 to 100."""
+        if new_value == "":
+            return True
+        if not new_value.isdigit():
+            return False
+        return 0 <= int(new_value) <= 100
 
-        if not sound_file:
-            messagebox.showwarning(
-                "No Sound Selected",
-                f"Choose a {sound_type} sound file first."
+    trim_validation = (sounds_widget.register(validate_trim), "%P")
+
+    def commit_trim(filename, trim_var):
+        """Validate one table entry and update the in-memory trim."""
+        raw_value = trim_var.get().strip()
+        try:
+            trim = int(raw_value)
+            if not 0 <= trim <= 100:
+                raise ValueError
+        except ValueError:
+            previous = int(round(app.get_sound_trim(filename)))
+            trim_var.set(str(previous))
+            messagebox.showerror(
+                "Invalid Trim %",
+                "Trim % must be a whole number from 0 to 100.",
             )
+            return False
+
+        app.set_sound_trim(filename, trim)
+        trim_var.set(str(trim))
+        return True
+
+    def trim_for_preview(filename):
+        """Use an unsaved valid edit immediately when previewing a file."""
+        trim_var = app.sound_trim_vars.get(filename)
+        if trim_var is None:
+            return app.get_sound_trim(filename)
+        try:
+            trim = int(trim_var.get().strip())
+            if 0 <= trim <= 100:
+                return trim
+        except ValueError:
+            pass
+        return app.get_sound_trim(filename)
+
+    def preview_sound(filename, sound_type):
+        """Preview one file using the currently displayed per-file trim."""
+        if not filename or not ensure_audio_device(sound_type):
             return
 
-        if not ensure_audio_device(sound_var, sound_type):
-            return
-
+        trim = trim_for_preview(filename)
         try:
             timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
-            volume = (
-                app.pips_volume.get()
-                if sound_type == "pips"
-                else app.siren_volume.get()
-            )
             print(
-                f"[{timestamp}] {sound_type.title()} sound test started: "
-                f"file='{sound_file}', volume={volume}%"
+                f"[{timestamp}] {sound_type.title()} preview started: "
+                f"file='{filename}', trim={trim}%"
             )
             app_log(
-                f"{sound_type.title()} test: "
-                f"{sound_file} (Vol: {volume}%)"
+                f"{sound_type.title()} preview: {filename} "
+                f"(Trim: {trim}%)"
             )
-
             play_timed_sound(
-                sound_file,
+                filename,
                 sound_type,
                 app.enable_sound,
-                app.pips_volume,
-                app.siren_volume,
+                trim,
                 app.siren_duration,
-                app.max_siren_duration
+                app.max_siren_duration,
             )
-
-            app_log(
-                f"{sound_type.title()} sound playback initiated successfully"
-            )
-
         except Exception as error:
             print(
-                f"Error testing {sound_type} sound: "
+                f"Error previewing {sound_type} sound: "
                 f"{type(error).__name__}: {error}"
             )
             app_log(
-                f"ERROR testing {sound_type}: "
+                f"ERROR previewing {sound_type}: "
                 f"{type(error).__name__}: {error}"
             )
 
-    save_btn = tk.Button(
-        sounds_widget,
+    def build_sound_table(parent, title, files, selection_var, sound_type):
+        """Build a fixed ten-row Sound File / Trim % selector table."""
+        frame = tk.LabelFrame(
+            parent,
+            text=title,
+            borderwidth=1,
+            relief="groove",
+        )
+        frame.grid_columnconfigure(0, weight=0)
+        frame.grid_columnconfigure(1, weight=1)
+        frame.grid_columnconfigure(2, weight=0)
+
+        tk.Label(
+            frame,
+            text="Use",
+            font=("Arial", 10, "bold"),
+            width=5,
+            relief="ridge",
+            anchor="center",
+        ).grid(
+            row=0,
+            column=0,
+            sticky="nsew",
+            padx=(6, 0),
+            pady=(4, 0),
+        )
+
+        tk.Label(
+            frame,
+            text="Sound File",
+            font=("Arial", 10, "bold"),
+            relief="ridge",
+            anchor="center",
+        ).grid(
+            row=0,
+            column=1,
+            sticky="nsew",
+            padx=(0, 0),
+            pady=(4, 0),
+        )
+
+        tk.Label(
+            frame,
+            text="Trim %",
+            font=("Arial", 10, "bold"),
+            width=8,
+            relief="ridge",
+            anchor="center",
+        ).grid(
+            row=0,
+            column=2,
+            sticky="nsew",
+            padx=(0, 6),
+            pady=(4, 0),
+        )
+
+        for index in range(MAX_SOUND_ROWS):
+            row = index + 1
+            if index < len(files):
+                filename = files[index]
+                trim = int(round(app.get_sound_trim(filename)))
+                trim_var = tk.StringVar(value=str(trim))
+                app.sound_trim_vars[filename] = trim_var
+
+                select_radio = tk.Radiobutton(
+                    frame,
+                    variable=selection_var,
+                    value=filename,
+                    anchor="center",
+                    padx=4,
+                    command=lambda name=filename: selection_var.set(name),
+                )
+                select_radio.grid(
+                    row=row,
+                    column=0,
+                    sticky="nsew",
+                    padx=(6, 0),
+                )
+
+                file_cell = tk.Label(
+                    frame,
+                    text=filename,
+                    anchor="w",
+                    relief="groove",
+                    borderwidth=1,
+                    padx=6,
+                    font=("Arial", 10),
+                )
+                file_cell.grid(
+                    row=row,
+                    column=1,
+                    sticky="nsew",
+                )
+                file_cell.bind(
+                    "<Button-1>",
+                    lambda event, name=filename: selection_var.set(name),
+                )
+                file_cell.bind(
+                    "<Double-Button-1>",
+                    lambda event, name=filename, kind=sound_type:
+                        preview_sound(name, kind),
+                )
+
+                trim_entry = tk.Entry(
+                    frame,
+                    textvariable=trim_var,
+                    width=8,
+                    justify="center",
+                    font=("Arial", 10),
+                    validate="key",
+                    validatecommand=trim_validation,
+                )
+                trim_entry.grid(
+                    row=row,
+                    column=2,
+                    sticky="nsew",
+                    padx=(0, 6),
+                )
+                trim_entry.bind(
+                    "<FocusOut>",
+                    lambda event, name=filename, var=trim_var:
+                        commit_trim(name, var),
+                )
+                trim_entry.bind(
+                    "<Return>",
+                    lambda event, name=filename, var=trim_var:
+                        commit_trim(name, var),
+                )
+            else:
+                tk.Label(
+                    frame,
+                    text="",
+                    width=5,
+                ).grid(
+                    row=row,
+                    column=0,
+                    sticky="nsew",
+                    padx=(6, 0),
+                )
+                tk.Label(
+                    frame,
+                    text="",
+                    relief="groove",
+                    borderwidth=1,
+                    anchor="w",
+                ).grid(
+                    row=row,
+                    column=1,
+                    sticky="nsew",
+                )
+                blank_trim = tk.Entry(
+                    frame,
+                    width=8,
+                    justify="center",
+                    font=("Arial", 10),
+                )
+                blank_trim.insert(0, "100")
+                blank_trim.config(state="disabled")
+                blank_trim.grid(
+                    row=row,
+                    column=2,
+                    sticky="nsew",
+                    padx=(0, 6),
+                )
+
+        tk.Label(
+            frame,
+            text="Select one radio button for the active sound; double-click the filename to preview it.",
+            font=("Arial", 9),
+            anchor="w",
+        ).grid(
+            row=MAX_SOUND_ROWS + 1,
+            column=0,
+            columnspan=3,
+            sticky="ew",
+            padx=6,
+            pady=(4, 5),
+        )
+        return frame
+
+    # Top controls: keep the folder button immediately to the right of Save.
+    controls = tk.Frame(sounds_widget)
+    controls.grid(
+        row=0,
+        column=0,
+        columnspan=2,
+        sticky="w",
+        padx=10,
+        pady=(8, 0),
+    )
+
+    tk.Button(
+        controls,
         text="Save Settings",
         font=("Arial", 11),
-        command=app.save_sound_settings_method
-    )
-    save_btn.grid(row=0, column=0)
+        command=app.save_sound_settings_method,
+    ).grid(row=0, column=0, padx=(0, 8))
 
-    enable_sound_cb = tk.Checkbutton(
-        sounds_widget,
+    tk.Button(
+        controls,
+        text="Open Sounds Folder",
+        font=("Arial", 11),
+        command=open_sounds_folder,
+    ).grid(row=0, column=1, padx=(0, 18))
+
+    tk.Checkbutton(
+        controls,
         text="Enable Sound?",
         font=("Arial", 11),
-        variable=app.enable_sound
-    )
-    enable_sound_cb.grid(row=1, column=0, sticky="w")
+        variable=app.enable_sound,
+    ).grid(row=0, column=2, padx=(10, 0))
 
-    audio_output_label = tk.Label(
+    # Keep the diagnostic slightly below the top controls so it reads as
+    # status information rather than another editable setting.
+    tk.Label(
         sounds_widget,
         text=(
-            f"Audio output in use: {AUDIO_OUTPUT_AT_STARTUP}\n"
+            f"Audio output in use: {AUDIO_OUTPUT_AT_STARTUP} "
             "(selected when UWH started)"
         ),
         font=("Arial", 10),
         justify="left",
         anchor="w",
-    )
-    audio_output_label.grid(
-        row=0,
-        column=1,
-        columnspan=3,
-        rowspan=2,
-        sticky="w",
-        padx=(10, 0),
+    ).grid(
+        row=1,
+        column=0,
+        columnspan=2,
+        sticky="ew",
+        padx=10,
+        pady=(8, 10),
     )
 
-    tk.Label(
+    pips_frame = build_sound_table(
         sounds_widget,
-        text="Pips",
-        font=("Arial", 12)
-    ).grid(row=2, column=0, sticky="nsew")
-
-    pips_dropdown = ttk.Combobox(
-        sounds_widget,
-        textvariable=app.pips_var,
-        values=pips_options,
-        state="readonly"
+        "Pips",
+        pips_files,
+        app.pips_var,
+        "pips",
     )
-    pips_dropdown.grid(
+    pips_frame.grid(
+        row=2,
+        column=0,
+        sticky="nsew",
+        padx=(10, 8),
+        pady=(0, 6),
+    )
+
+    siren_frame = build_sound_table(
+        sounds_widget,
+        "Sirens",
+        siren_files,
+        app.siren_var,
+        "siren",
+    )
+    siren_frame.grid(
+        row=3,
+        column=0,
+        sticky="nsew",
+        padx=(10, 8),
+        pady=(0, 10),
+    )
+
+    timing_frame = tk.LabelFrame(
+        sounds_widget,
+        text="Siren timing",
+        borderwidth=1,
+        relief="groove",
+    )
+    timing_frame.grid(
         row=2,
         column=1,
-        columnspan=2,
-        sticky="ew",
-        padx=(0, 10)
+        rowspan=2,
+        sticky="nsew",
+        padx=(0, 10),
+        pady=(0, 10),
     )
-    pips_dropdown.bind(
-        "<<ComboboxSelected>>",
-        lambda event: ensure_audio_device(app.pips_var, "pips")
-    )
-
-    tk.Button(
-        sounds_widget,
-        text="Play",
-        font=("Arial", 11),
-        width=5,
-        command=lambda: play_selected_sound(app.pips_var, "pips")
-    ).grid(row=2, column=3)
-
-    # Row 3: Pips volume
-    tk.Label(
-        sounds_widget,
-        text="Pips Vol",
-        font=("Arial", 11)
-    ).grid(row=3, column=0, sticky="ew")
-
-    pips_vol_slider = tk.Scale(
-        sounds_widget,
-        from_=0,
-        to=100,
-        orient="horizontal",
-        variable=app.pips_volume,
-        font=("Arial", 10),
-        showvalue=False
-    )
-    pips_vol_slider.grid(
-        row=3,
-        column=1,
-        columnspan=2,
-        sticky="ew"
-    )
-
-    pips_vol_label = tk.Label(
-        sounds_widget,
-        text=f"{app.pips_volume.get()}%",
-        font=("Arial", 11),
-        width=5
-    )
-    pips_vol_label.grid(row=3, column=3, sticky="w")
-
-    def on_pips_slider_interaction(event=None):
-        pips_vol_label.config(text=f"{app.pips_volume.get()}%")
-        ensure_audio_device(app.pips_var, "pips")
-
-    pips_vol_slider.bind("<Button-1>", on_pips_slider_interaction)
-    pips_vol_slider.bind("<B1-Motion>", on_pips_slider_interaction)
-    pips_vol_slider.bind(
-        "<ButtonRelease-1>",
-        on_pips_slider_interaction
-    )
-
-    tk.Button(
-        sounds_widget,
-        text="Open Sounds Folder",
-        font=("Arial", 11),
-        command=open_sounds_folder
-    ).grid(row=4, column=1, columnspan=2, pady=6)
+    timing_frame.grid_columnconfigure(0, weight=1)
+    timing_frame.grid_columnconfigure(1, weight=0)
 
     tk.Label(
-        sounds_widget,
-        text="Siren",
-        font=("Arial", 12)
-    ).grid(row=5, column=0, sticky="nsew")
-
-    siren_dropdown = ttk.Combobox(
-        sounds_widget,
-        textvariable=app.siren_var,
-        values=siren_options,
-        state="readonly"
-    )
-    siren_dropdown.grid(
-        row=5,
-        column=1,
-        columnspan=2,
-        sticky="ew",
-        padx=(0, 10)
-    )
-    siren_dropdown.bind(
-        "<<ComboboxSelected>>",
-        lambda event: ensure_audio_device(app.siren_var, "siren")
-    )
-
-    tk.Button(
-        sounds_widget,
-        text="Play",
-        font=("Arial", 11),
-        width=5,
-        command=lambda: play_selected_sound(app.siren_var, "siren")
-    ).grid(row=5, column=3)
-
-    # Row 6: Siren volume
-    tk.Label(
-        sounds_widget,
-        text="Siren Vol",
-        font=("Arial", 11)
-    ).grid(row=6, column=0, sticky="ew")
-
-    siren_vol_slider = tk.Scale(
-        sounds_widget,
-        from_=0,
-        to=100,
-        orient="horizontal",
-        variable=app.siren_volume,
-        font=("Arial", 10),
-        showvalue=False
-    )
-    siren_vol_slider.grid(
-        row=6,
-        column=1,
-        columnspan=2,
-        sticky="ew"
-    )
-
-    siren_vol_label = tk.Label(
-        sounds_widget,
-        text=f"{app.siren_volume.get()}%",
-        font=("Arial", 11),
-        width=5
-    )
-    siren_vol_label.grid(row=6, column=3, sticky="w")
-
-    def on_siren_slider_interaction(event=None):
-        siren_vol_label.config(text=f"{app.siren_volume.get()}%")
-        ensure_audio_device(app.siren_var, "siren")
-
-    siren_vol_slider.bind("<Button-1>", on_siren_slider_interaction)
-    siren_vol_slider.bind("<B1-Motion>", on_siren_slider_interaction)
-    siren_vol_slider.bind(
-        "<ButtonRelease-1>",
-        on_siren_slider_interaction
-    )
-
-    tk.Label(
-        sounds_widget,
+        timing_frame,
         text="Number of seconds to play Siren",
-        font=("Arial", 11)
-    ).grid(row=7, column=0, sticky="ew")
+        font=("Arial", 11),
+        anchor="w",
+    ).grid(row=0, column=0, sticky="ew", padx=10, pady=(18, 8))
 
     siren_duration_entry = tk.Entry(
-        sounds_widget,
+        timing_frame,
         textvariable=app.siren_duration,
         font=("Arial", 11),
-        width=10
+        width=10,
     )
     siren_duration_entry.grid(
-        row=7,
+        row=0,
         column=1,
-        columnspan=2,
         sticky="w",
-        padx=(0, 10)
+        padx=(0, 10),
+        pady=(18, 8),
     )
 
     def validate_siren_duration(new_value):
@@ -381,13 +508,13 @@ def create_sounds_tab(app):
         except ValueError:
             return False
 
-    validation_command = (
-        sounds_widget.register(validate_siren_duration),
-        "%P"
+    duration_validation = (
+        timing_frame.register(validate_siren_duration),
+        "%P",
     )
     siren_duration_entry.config(
         validate="key",
-        validatecommand=validation_command
+        validatecommand=duration_validation,
     )
 
     def normalize_siren_duration(event=None):
@@ -404,19 +531,24 @@ def create_sounds_tab(app):
     siren_duration_entry.bind("<Return>", normalize_siren_duration)
 
     tk.Label(
-        sounds_widget,
+        timing_frame,
         text="Maximum Siren Duration (seconds)",
-        font=("Arial", 11)
-    ).grid(row=8, column=0, sticky="ew")
+        font=("Arial", 11),
+        anchor="w",
+    ).grid(row=1, column=0, sticky="ew", padx=10, pady=8)
 
     max_siren_duration_entry = tk.Entry(
-        sounds_widget,
+        timing_frame,
         textvariable=app.max_siren_duration,
         font=("Arial", 11),
-        width=10
+        width=10,
     )
     max_siren_duration_entry.grid(
-        row=8, column=1, columnspan=2, sticky="w", padx=(0, 10)
+        row=1,
+        column=1,
+        sticky="w",
+        padx=(0, 10),
+        pady=8,
     )
 
     last_valid_max = [str(app.max_siren_duration.get())]
@@ -428,11 +560,11 @@ def create_sounds_tab(app):
                 str(app.max_siren_duration.get()).strip().replace(",", ".")
             )
             if not math.isfinite(seconds) or not 1.0 <= seconds <= 30.0:
-                raise ValueError("Maximum siren duration must be 1-30 seconds.")
+                raise ValueError
         except (ValueError, TypeError, tk.TclError):
             messagebox.showerror(
                 "Invalid Maximum Siren Duration",
-                "Enter a number between 1 and 30 seconds."
+                "Enter a number between 1 and 30 seconds.",
             )
             app.max_siren_duration.set(last_valid_max[0])
             return
@@ -441,34 +573,91 @@ def create_sounds_tab(app):
         app.max_siren_duration.set(last_valid_max[0])
 
     max_siren_duration_entry.bind(
-        "<FocusOut>", normalize_max_siren_duration
+        "<FocusOut>",
+        normalize_max_siren_duration,
     )
     max_siren_duration_entry.bind(
-        "<Return>", normalize_max_siren_duration
+        "<Return>",
+        normalize_max_siren_duration,
     )
+
+    tk.Label(
+        timing_frame,
+        text=(
+            "Overall loudness is set by the OS/DAC/amplifier. "
+            "Trim % only attenuates individual files: 100% is native level "
+            "and 0% mutes that file."
+        ),
+        font=("Arial", 10),
+        justify="left",
+        anchor="nw",
+        wraplength=360,
+    ).grid(
+        row=2,
+        column=0,
+        columnspan=2,
+        sticky="ew",
+        padx=10,
+        pady=(18, 8),
+    )
+
+    if len(all_pips) > MAX_SOUND_ROWS or len(all_sirens) > MAX_SOUND_ROWS:
+        tk.Label(
+            timing_frame,
+            text=(
+                "Up to 10 pip files and 10 siren files are shown. "
+                "If more are present, the active selection is kept visible."
+            ),
+            font=("Arial", 9),
+            justify="left",
+            anchor="nw",
+            wraplength=360,
+        ).grid(
+            row=3,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            padx=10,
+            pady=(8, 0),
+        )
 
 
 def save_sound_settings_method(app):
-    """Save current sound settings to the main settings.json file."""
+    """Validate and save active files, per-file trims and siren timing."""
     try:
         max_duration = float(
             str(app.max_siren_duration.get()).strip().replace(",", ".")
         )
         if not math.isfinite(max_duration) or not 1.0 <= max_duration <= 30.0:
-            raise ValueError("Maximum siren duration must be 1-30 seconds.")
+            raise ValueError
     except (ValueError, TypeError, tk.TclError):
         messagebox.showerror(
             "Invalid Maximum Siren Duration",
-            "Enter a number between 1 and 30 seconds."
+            "Enter a number between 1 and 30 seconds.",
         )
         return
+
+    for filename, trim_var in app.sound_trim_vars.items():
+        try:
+            trim = int(trim_var.get().strip())
+            if not 0 <= trim <= 100:
+                raise ValueError
+        except ValueError:
+            messagebox.showerror(
+                "Invalid Trim %",
+                f"Trim % for '{filename}' must be a whole number from 0 to 100.",
+            )
+            return
+        app.set_sound_trim(filename, trim)
 
     app.max_siren_duration.set(f"{max_duration:g}")
     settings = {
         "pips_sound": app.pips_var.get(),
         "siren_sound": app.siren_var.get(),
-        "pips_volume": app.pips_volume.get(),
-        "siren_volume": app.siren_volume.get(),
+        "sound_trims": {
+            filename: int(round(value))
+            for filename, value in sorted(app.sound_trims.items())
+        },
         "enable_sound": app.enable_sound.get(),
         "siren_duration": app.siren_duration.get(),
         "max_siren_duration": max_duration,
@@ -477,16 +666,15 @@ def save_sound_settings_method(app):
     try:
         app.save_sound_settings(settings)
         print(f"Sound settings saved: {settings}")
-
     except Exception as error:
         print(f"Error saving sound settings: {error}")
         messagebox.showerror(
             "Save Error",
-            f"Could not save sound settings:\n{error}"
+            f"Could not save sound settings:\n{error}",
         )
         return
 
     messagebox.showinfo(
         "Settings Saved",
-        "Sound settings have been saved."
+        "Sound settings have been saved.",
     )

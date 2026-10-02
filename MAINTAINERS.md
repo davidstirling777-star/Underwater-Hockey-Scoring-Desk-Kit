@@ -49,7 +49,7 @@ operating a match.
 | `csv_export.py` | Tournament result writer, scorer formatting and legacy goal-event helpers. |
 | `game_settings_manager.py` | Translate between Game Variables widgets and the persisted gameSettings section. |
 | `settings_manager.py` | The unified settings.json reader, locked merge and atomic replacement/backups. |
-| `sounds_ui.py` | Sounds-tab widgets, sound tests, duration and volume editing. |
+| `sounds_ui.py` | Sounds-tab file-selection/preview tables, per-file Trim % editing and siren timing controls. |
 | `sound.py` | Audio resource loading, pygame/subprocess backends, loop control and timed cutoff. |
 | `zigbee_ui.py` | MQTT connection widgets, device-name field and per-button action mapping table. |
 | `zigbee_siren.py` | Paho MQTT connection/subscription, message filtering and optional siren-device publishes. |

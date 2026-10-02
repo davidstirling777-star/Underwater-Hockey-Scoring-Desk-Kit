@@ -56,8 +56,13 @@ class ArduinoRoutingTests(unittest.TestCase):
         self.clip = FakeSound()
         self.stop = Mock()
         self.log = Mock()
-        audio = SimpleNamespace(_preloaded_sounds={"siren.mp3": self.clip},
-                                stop_looping_sound=self.stop)
+        audio = SimpleNamespace(
+            _preloaded_sounds={"siren.mp3": self.clip},
+            stop_looping_sound=self.stop,
+            normalise_trim_percent=lambda value: max(
+                0.0, min(100.0, float(value))
+            ),
+        )
         self.controller_type = methods(
             "zigbee_siren.py", {"handle_hardware_siren_event"}, {},
             "ZigbeeSirenController"
@@ -74,7 +79,7 @@ class ArduinoRoutingTests(unittest.TestCase):
         self.app.zigbee_controller = self.controller
         self.app.siren_var = Variable("siren.mp3")
         self.app.enable_sound = Variable(True)
-        self.app.siren_volume = Variable(60)
+        self.app.get_sound_trim = lambda filename: 60
         self.app.arduino_siren_channel = None
         self.app.add_to_zigbee_log = Mock()
 

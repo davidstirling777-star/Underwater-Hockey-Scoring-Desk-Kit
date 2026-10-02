@@ -60,6 +60,7 @@ def _load_sound_functions(sound_object):
     module = ast.parse(path.read_text(encoding="utf-8"))
     names = {
         "normalise_max_siren_duration",
+        "normalise_trim_percent",
         "play_timed_sound",
         "_play_timed_sound_sync",
         "start_timed_siren",
@@ -115,19 +116,27 @@ class TimedSoundTests(unittest.TestCase):
 
     def play(
         self, kind="siren", duration=1.5, filename=None,
-        enabled=True, max_seconds=10.0,
+        enabled=True, max_seconds=10.0, trim=None,
     ):
+        if trim is None:
+            trim = 40 if kind == "pips" else 65
         self.api["play_timed_sound"](
             filename or ("pip.mp3" if kind == "pips" else "siren.mp3"),
             kind,
             enabled,
-            40,
-            65,
+            trim,
             duration,
             max_seconds,
         )
         if DeferredThread.created:
             DeferredThread.created[-1].run()
+
+    def test_trim_is_attenuation_only_and_defaults_safely(self):
+        self.assertEqual(self.api["normalise_trim_percent"](100), 100.0)
+        self.assertEqual(self.api["normalise_trim_percent"](40), 40.0)
+        self.assertEqual(self.api["normalise_trim_percent"](0), 0.0)
+        self.assertEqual(self.api["normalise_trim_percent"](150), 100.0)
+        self.assertEqual(self.api["normalise_trim_percent"]("bad"), 100.0)
 
     def test_short_siren_loops_until_exact_time_limit(self):
         self.play(duration=1.5)
@@ -217,7 +226,7 @@ class TimedSoundTests(unittest.TestCase):
     def test_ui_snapshots_duration_before_background_thread_starts(self):
         tk_value = TkDuration(1.5)
         self.api["play_timed_sound"](
-            "siren.mp3", "siren", True, 40, 65, tk_value
+            "siren.mp3", "siren", True, 65, tk_value
         )
         self.assertEqual(tk_value.calls, 1)
         self.assertEqual(len(DeferredThread.created), 1)
