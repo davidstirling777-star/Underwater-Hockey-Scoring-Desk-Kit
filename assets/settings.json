@@ -2,10 +2,10 @@
   "soundSettings": {
     "pips_sound": "pip-beep.mp3",
     "siren_sound": "siren-car-honk.mp3",
-    "pips_volume": 50.0,
-    "siren_volume": 50.0,
+    "sound_trims": {},
     "enable_sound": true,
-    "siren_duration": 2.0
+    "siren_duration": 2,
+    "max_siren_duration": 10
   },
   "zigbeeSettings": {
     "mqtt_broker": "localhost",
