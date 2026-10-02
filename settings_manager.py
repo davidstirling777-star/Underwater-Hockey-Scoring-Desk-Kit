@@ -214,10 +214,6 @@ def get_default_unified_settings():
         "soundSettings": {
             "pips_sound": "Default",
             "siren_sound": "Default",
-            "pips_volume": 50.0,
-            "siren_volume": 50.0,
-            "air_volume": 50.0,
-            "water_volume": 50.0,
             "enable_sound": True,
             "max_siren_duration": 10.0
         },
