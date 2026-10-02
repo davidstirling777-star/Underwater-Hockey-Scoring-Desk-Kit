@@ -15,7 +15,7 @@ from sound import (
     AUDIO_OUTPUT_AT_STARTUP,
     check_audio_device_available,
     get_sound_files,
-    play_sound_with_volume,
+    play_timed_sound,
     resource_path,
 )
 
@@ -42,37 +42,25 @@ def create_sounds_tab(app):
         pady=8
     )
 
-    for row in range(10):
+    for row in range(7):
         sounds_widget.grid_rowconfigure(row, weight=1)
-
-    for column in range(6):
+    for column in range(4):
         sounds_widget.grid_columnconfigure(column, weight=1)
-
     sounds_widget.grid_columnconfigure(3, weight=0)
 
-    # The dropdowns contain only actual files with the required text
-    # in their names. "Default" is not added to either list.
     sound_files = get_sound_files()
     if sound_files == ["No sound files found"]:
         sound_files = []
 
     pips_options = [
-        filename
-        for filename in sound_files
-        if "pip" in filename.lower()
+        filename for filename in sound_files if "pip" in filename.lower()
     ]
-
     siren_options = [
-        filename
-        for filename in sound_files
-        if "siren" in filename.lower()
+        filename for filename in sound_files if "siren" in filename.lower()
     ]
 
-    # Clean up old saved values, including "Default", and choose the
-    # first valid file for each sound type when one is available.
     if app.pips_var.get() not in pips_options:
         app.pips_var.set(pips_options[0] if pips_options else "")
-
     if app.siren_var.get() not in siren_options:
         app.siren_var.set(siren_options[0] if siren_options else "")
 
@@ -83,10 +71,7 @@ def create_sounds_tab(app):
             pass
 
     def ensure_audio_device(sound_var, sound_type):
-        """
-        Warn once when sound is enabled but no usable audio device exists.
-        Clear the selected file rather than setting it to "Default".
-        """
+        """Warn once when sound is enabled but no usable audio device exists."""
         if check_audio_device_available(app.enable_sound):
             return True
 
@@ -107,8 +92,12 @@ def create_sounds_tab(app):
 
         try:
             os.makedirs(sounds_folder, exist_ok=True)
-            os.startfile(sounds_folder)
-        except OSError as error:
+            if os.name == "nt":
+                os.startfile(sounds_folder)
+            else:
+                import subprocess
+                subprocess.Popen(["xdg-open", sounds_folder])
+        except (OSError, AttributeError) as error:
             messagebox.showerror(
                 "Open Sounds Folder",
                 f"Could not open the sounds folder:\n{error}"
@@ -130,29 +119,16 @@ def create_sounds_tab(app):
 
         try:
             timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
-
-            if sound_type == "pips":
-                volume = app.pips_volume.get()
-            else:
-                volume = app.siren_volume.get()
-
             print(
                 f"[{timestamp}] {sound_type.title()} sound test started: "
-                f"file='{sound_file}', volume={volume}%"
+                f"file='{sound_file}'"
             )
-            app_log(
-                f"{sound_type.title()} test: "
-                f"{sound_file} (Vol: {volume}%)"
-            )
+            app_log(f"{sound_type.title()} test: {sound_file}")
 
-            play_sound_with_volume(
+            play_timed_sound(
                 sound_file,
                 sound_type,
                 app.enable_sound,
-                app.pips_volume,
-                app.siren_volume,
-                app.air_volume,
-                app.water_volume,
                 app.siren_duration,
                 app.max_siren_duration
             )
@@ -171,7 +147,6 @@ def create_sounds_tab(app):
                 f"{type(error).__name__}: {error}"
             )
 
-    # Row 0: Save settings
     save_btn = tk.Button(
         sounds_widget,
         text="Save Settings",
@@ -180,7 +155,6 @@ def create_sounds_tab(app):
     )
     save_btn.grid(row=0, column=0)
 
-    # Row 1: Sound enable control
     enable_sound_cb = tk.Checkbutton(
         sounds_widget,
         text="Enable Sound?",
@@ -189,8 +163,6 @@ def create_sounds_tab(app):
     )
     enable_sound_cb.grid(row=1, column=0, sticky="w")
 
-    # pygame selects the OS default when sound.py is imported. Report that
-    # startup choice so an operator can immediately spot HDMI-vs-DAC routing.
     audio_output_label = tk.Label(
         sounds_widget,
         text=(
@@ -202,33 +174,14 @@ def create_sounds_tab(app):
         anchor="w",
     )
     audio_output_label.grid(
-        row=1,
+        row=0,
         column=1,
         columnspan=3,
+        rowspan=2,
         sticky="w",
         padx=(10, 0),
     )
 
-    # Row 0-1: Linux volume headings
-    tk.Label(
-        sounds_widget,
-        text="Volume",
-        font=("Arial", 12)
-    ).grid(row=0, column=4, columnspan=2, sticky="nsew")
-
-    tk.Label(
-        sounds_widget,
-        text="Air",
-        font=("Arial", 12)
-    ).grid(row=1, column=4, sticky="nsew")
-
-    tk.Label(
-        sounds_widget,
-        text="Water",
-        font=("Arial", 12)
-    ).grid(row=1, column=5, sticky="nsew")
-
-    # Row 2: Pips sound
     tk.Label(
         sounds_widget,
         text="Pips",
@@ -253,77 +206,26 @@ def create_sounds_tab(app):
         lambda event: ensure_audio_device(app.pips_var, "pips")
     )
 
-    pips_play_btn = tk.Button(
+    tk.Button(
         sounds_widget,
         text="Play",
         font=("Arial", 11),
         width=5,
         command=lambda: play_selected_sound(app.pips_var, "pips")
-    )
-    pips_play_btn.grid(row=2, column=3)
+    ).grid(row=2, column=3)
 
-    # Row 3: Pips volume
-    tk.Label(
-        sounds_widget,
-        text="Pips Vol",
-        font=("Arial", 11)
-    ).grid(row=3, column=0, sticky="ew")
-
-    pips_vol_slider = tk.Scale(
-        sounds_widget,
-        from_=0,
-        to=100,
-        orient="horizontal",
-        variable=app.pips_volume,
-        font=("Arial", 10),
-        showvalue=False
-    )
-    pips_vol_slider.grid(
-        row=3,
-        column=1,
-        columnspan=2,
-        sticky="ew"
-    )
-
-    pips_vol_label = tk.Label(
-        sounds_widget,
-        text=f"{app.pips_volume.get()}%",
-        font=("Arial", 11),
-        width=5
-    )
-    pips_vol_label.grid(row=3, column=3, sticky="w")
-
-    def on_pips_slider_interaction(event=None):
-        pips_vol_label.config(text=f"{app.pips_volume.get()}%")
-        ensure_audio_device(app.pips_var, "pips")
-
-    pips_vol_slider.bind("<Button-1>", on_pips_slider_interaction)
-    pips_vol_slider.bind("<B1-Motion>", on_pips_slider_interaction)
-    pips_vol_slider.bind(
-        "<ButtonRelease-1>",
-        on_pips_slider_interaction
-    )
-
-    # Row 4: button vertically between Pips volume and Siren controls
-    open_sounds_folder_btn = tk.Button(
+    tk.Button(
         sounds_widget,
         text="Open Sounds Folder",
         font=("Arial", 11),
         command=open_sounds_folder
-    )
-    open_sounds_folder_btn.grid(
-        row=4,
-        column=1,
-        columnspan=2,
-        pady=6
-    )
+    ).grid(row=3, column=1, columnspan=2, pady=6)
 
-    # Row 5: Siren sound
     tk.Label(
         sounds_widget,
         text="Siren",
         font=("Arial", 12)
-    ).grid(row=5, column=0, sticky="nsew")
+    ).grid(row=4, column=0, sticky="nsew")
 
     siren_dropdown = ttk.Combobox(
         sounds_widget,
@@ -332,7 +234,7 @@ def create_sounds_tab(app):
         state="readonly"
     )
     siren_dropdown.grid(
-        row=5,
+        row=4,
         column=1,
         columnspan=2,
         sticky="ew",
@@ -343,63 +245,19 @@ def create_sounds_tab(app):
         lambda event: ensure_audio_device(app.siren_var, "siren")
     )
 
-    siren_play_btn = tk.Button(
+    tk.Button(
         sounds_widget,
         text="Play",
         font=("Arial", 11),
         width=5,
         command=lambda: play_selected_sound(app.siren_var, "siren")
-    )
-    siren_play_btn.grid(row=5, column=3)
+    ).grid(row=4, column=3)
 
-    # Row 6: Siren volume
-    tk.Label(
-        sounds_widget,
-        text="Siren Vol",
-        font=("Arial", 11)
-    ).grid(row=6, column=0, sticky="ew")
-
-    siren_vol_slider = tk.Scale(
-        sounds_widget,
-        from_=0,
-        to=100,
-        orient="horizontal",
-        variable=app.siren_volume,
-        font=("Arial", 10),
-        showvalue=False
-    )
-    siren_vol_slider.grid(
-        row=6,
-        column=1,
-        columnspan=2,
-        sticky="ew"
-    )
-
-    siren_vol_label = tk.Label(
-        sounds_widget,
-        text=f"{app.siren_volume.get()}%",
-        font=("Arial", 11),
-        width=5
-    )
-    siren_vol_label.grid(row=6, column=3, sticky="w")
-
-    def on_siren_slider_interaction(event=None):
-        siren_vol_label.config(text=f"{app.siren_volume.get()}%")
-        ensure_audio_device(app.siren_var, "siren")
-
-    siren_vol_slider.bind("<Button-1>", on_siren_slider_interaction)
-    siren_vol_slider.bind("<B1-Motion>", on_siren_slider_interaction)
-    siren_vol_slider.bind(
-        "<ButtonRelease-1>",
-        on_siren_slider_interaction
-    )
-
-    # Row 7: Siren duration
     tk.Label(
         sounds_widget,
         text="Number of seconds to play Siren",
         font=("Arial", 11)
-    ).grid(row=7, column=0, sticky="ew")
+    ).grid(row=5, column=0, sticky="ew")
 
     siren_duration_entry = tk.Entry(
         sounds_widget,
@@ -408,7 +266,7 @@ def create_sounds_tab(app):
         width=10
     )
     siren_duration_entry.grid(
-        row=7,
+        row=5,
         column=1,
         columnspan=2,
         sticky="w",
@@ -418,7 +276,6 @@ def create_sounds_tab(app):
     def validate_siren_duration(new_value):
         if new_value == "":
             return True
-
         try:
             float(new_value.replace(",", "."))
             return True
@@ -437,27 +294,21 @@ def create_sounds_tab(app):
     def normalize_siren_duration(event=None):
         try:
             raw_value = siren_duration_entry.get().strip()
-
             if not raw_value:
                 app.siren_duration.set(1.5)
                 return
-
-            app.siren_duration.set(
-                float(raw_value.replace(",", "."))
-            )
-
+            app.siren_duration.set(float(raw_value.replace(",", ".")))
         except (ValueError, tk.TclError):
             app.siren_duration.set(1.5)
 
     siren_duration_entry.bind("<FocusOut>", normalize_siren_duration)
     siren_duration_entry.bind("<Return>", normalize_siren_duration)
 
-    # Row 8: Independent safety cutoff for every timed siren blast.
     tk.Label(
         sounds_widget,
         text="Maximum Siren Duration (seconds)",
         font=("Arial", 11)
-    ).grid(row=8, column=0, sticky="ew")
+    ).grid(row=6, column=0, sticky="ew")
 
     max_siren_duration_entry = tk.Entry(
         sounds_widget,
@@ -466,7 +317,7 @@ def create_sounds_tab(app):
         width=10
     )
     max_siren_duration_entry.grid(
-        row=8, column=1, columnspan=2, sticky="w", padx=(0, 10)
+        row=6, column=1, columnspan=2, sticky="w", padx=(0, 10)
     )
 
     last_valid_max = [str(app.max_siren_duration.get())]
@@ -497,91 +348,6 @@ def create_sounds_tab(app):
         "<Return>", normalize_max_siren_duration
     )
 
-    # Air volume (Linux only)
-    air_vol_slider = tk.Scale(
-        sounds_widget,
-        from_=100,
-        to=0,
-        orient="vertical",
-        variable=app.air_volume,
-        font=("Arial", 10),
-        showvalue=False
-    )
-    air_vol_slider.grid(
-        row=2,
-        column=4,
-        rowspan=5,
-        sticky="ns"
-    )
-
-    air_vol_label = tk.Label(
-        sounds_widget,
-        text=f"{app.air_volume.get()}%",
-        font=("Arial", 11)
-    )
-    air_vol_label.grid(row=8, column=4, sticky="n")
-
-    def on_air_slider_interaction(event=None):
-        air_vol_label.config(text=f"{app.air_volume.get()}%")
-
-    air_vol_slider.bind("<Button-1>", on_air_slider_interaction)
-    air_vol_slider.bind("<B1-Motion>", on_air_slider_interaction)
-    air_vol_slider.bind(
-        "<ButtonRelease-1>",
-        on_air_slider_interaction
-    )
-
-    # Water volume (Linux only)
-    water_vol_slider = tk.Scale(
-        sounds_widget,
-        from_=100,
-        to=0,
-        orient="vertical",
-        variable=app.water_volume,
-        font=("Arial", 10),
-        showvalue=False
-    )
-    water_vol_slider.grid(
-        row=2,
-        column=5,
-        rowspan=5,
-        sticky="ns"
-    )
-
-    water_vol_label = tk.Label(
-        sounds_widget,
-        text=f"{app.water_volume.get()}%",
-        font=("Arial", 11)
-    )
-    water_vol_label.grid(row=8, column=5, sticky="n")
-
-    def on_water_slider_interaction(event=None):
-        water_vol_label.config(text=f"{app.water_volume.get()}%")
-
-    water_vol_slider.bind("<Button-1>", on_water_slider_interaction)
-    water_vol_slider.bind("<B1-Motion>", on_water_slider_interaction)
-    water_vol_slider.bind(
-        "<ButtonRelease-1>",
-        on_water_slider_interaction
-    )
-
-    warning_label = tk.Label(
-        sounds_widget,
-        text=(
-            "These Volume controls do not work on Windows Machines, "
-            "only Linux-based machines"
-        ),
-        font=("Arial", 9, "italic"),
-        fg="gray"
-    )
-    warning_label.grid(
-        row=9,
-        column=0,
-        columnspan=6,
-        sticky="ew",
-        pady=(10, 0)
-    )
-
 
 def save_sound_settings_method(app):
     """Save current sound settings to the main settings.json file."""
@@ -602,10 +368,6 @@ def save_sound_settings_method(app):
     settings = {
         "pips_sound": app.pips_var.get(),
         "siren_sound": app.siren_var.get(),
-        "pips_volume": app.pips_volume.get(),
-        "siren_volume": app.siren_volume.get(),
-        "air_volume": app.air_volume.get(),
-        "water_volume": app.water_volume.get(),
         "enable_sound": app.enable_sound.get(),
         "siren_duration": app.siren_duration.get(),
         "max_siren_duration": max_duration,
