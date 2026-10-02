@@ -6,7 +6,7 @@ A project to allow the use of a computer, modern computer languages and readily 
 
 The hardware is still being developed. The current `HARDWARE_SETUP.md` remains a separate working hardware note for now; when the production hardware is settled, its relevant material can be folded into this manual as a hardware chapter.
 
-The software has an operator-facing Underwater Hockey Game Management App and player-facing or spectator-facing Display Window(s). The operator window opens on **Game Variables**, with four other main tabs: **Scoreboard**, **Screens**, **Sounds**, and **Zigbee Siren**.
+The software has an operator-facing Underwater Hockey Game Management App and player-facing or spectator-facing Display Window(s). The operator window opens on **Game Variables**, with six other main tabs: **Scoreboard**, **Tournament List**, **Screens**, **Sounds**, **Zigbee Siren**, and **About**.
 
 ## Contents
 
@@ -15,7 +15,7 @@ The software has an operator-facing Underwater Hockey Game Management App and pl
 - [Windows 11 installation](#downloading-and-installing-uwh-on-windows)
 - [Raspberry Pi 5 installation](#downloading-and-installing-uwh-on-a-raspberry-pi-5)
 - [Game Variables tab](#game-variables-tab)
-- [Tournament List](#tournament-list)
+- [Tournament List tab](#tournament-list-tab)
 - [Game Sequence](#game-sequence)
 - [Two-court tournament results synchronisation](#two-court-tournament-results-synchronisation)
 - [Screens tab](#screens-tab)
@@ -23,6 +23,7 @@ The software has an operator-facing Underwater Hockey Game Management App and pl
 - [Scoreboard tab](#scoreboard-tab)
 - [Other game behaviour](#other-game-behaviour)
 - [Zigbee2MQTT wireless siren setup and operation](#zigbee2mqtt-wireless-siren-setup-and-operation)
+- [About tab](#about-tab)
 - [Other installation and packaging notes](#other-installation-and-packaging-notes)
 
 ## How the application works
@@ -32,12 +33,13 @@ UWH separates **match setup**, **live match control**, **public display**, **aud
 A normal operating flow is:
 
 1. Start UWH and allow the startup self-test to complete.
-2. In **Game Variables**, load a preset or enter the match timings and rules. If a tournament draw is being used, select the draw and starting game.
-3. In **Screens**, select the operator layout and open the required player/spectator Display Window(s). Use **Auto Detect Screens** and **Test Displays** when setting up a new computer or monitor arrangement.
-4. In **Sounds**, select and test the siren and pip sounds, per-file trims and siren timing.
-5. If wireless referee buttons are being used, configure and test them in **Zigbee Siren**. The wired Arduino siren button remains a separate local input path.
-6. Use **Scoreboard** during the match for goals, penalties, team time-outs and manual timer control. The player/spectator Display Window follows the live match state.
-7. At the end of a tournament game, UWH saves the completed result to the separate results CSV before clearing the live match and advancing to the next selected game. If shared two-court sync is enabled, the local save happens first and network upload happens afterwards in the background.
+2. In **Game Variables**, load a preset or enter the match timings and rules.
+3. If a tournament draw is being used, use **Tournament List** to select the draw, starting game and any results synchronisation settings.
+4. In **Screens**, select the operator layout and open the required player/spectator Display Window(s). Use **Auto Detect Screens** and **Test Displays** when setting up a new computer or monitor arrangement.
+5. In **Sounds**, select and test the siren and pip sounds, per-file trims and siren timing.
+6. If wireless referee buttons are being used, configure and test them in **Zigbee Siren**. The wired Arduino siren button remains a separate local input path.
+7. Use **Scoreboard** during the match for goals, penalties, team time-outs and manual timer control. The player/spectator Display Window follows the live match state.
+8. At the end of a tournament game, UWH saves the completed result to the separate results CSV before clearing the live match and advancing to the next selected game. If shared two-court sync is enabled, the local save happens first and network upload happens afterwards in the background.
 
 The game clock progresses through First Half, Half Time and Second Half, with optional Overtime and Sudden Death when enabled. The detailed sequence and the special rules for goals scored during breaks are described later in this manual.
 
@@ -343,7 +345,9 @@ Most period-duration boxes accept decimal **minutes**, e.g. `1.5` (or `1,5`) = 1
 
 Here, six buttons are located where commonly used settings can be stored. Holding a preset button for **three seconds** opens its editor, where the button name and saved settings can be changed. Click the stored button to load those settings back into the Game Variables.
 
-### Tournament List
+## Tournament List tab
+
+Tournament draw selection and results synchronisation are on their own **Tournament List** tab, leaving more room for Game Variables and its Game Sequence explanation.
 
 A sample `assets/Tournament_Draw.csv` is included with the distribution. On a source installation (including Raspberry Pi 5), UWH copies it once beside `uwh.py` as `Tournament_Draw.csv` if no root copy exists. Windows builds also make their bundled sample available in the application folder. Existing draw and results files are never replaced by this sample installation. Select an original draw from the dropdown; its `White` and `Black` columns supply the displayed team names.
 
@@ -366,7 +370,9 @@ The 'Starting Game #' will show a list of Game Numbers in the CSV file selected 
 
 At the completion of each game, the application automatically advances to the next game number in the selected Tournament CSV file and updates the displayed team names. There is a drop down box to select the starting game number.
 
-### Game Sequence
+## Game Sequence
+
+The **Game Sequence** explanation remains on the **Game Variables** tab and now occupies the space previously used by Tournament List.
 
 The normal game sequence is:
 
@@ -1230,6 +1236,17 @@ If MQTT authentication is enabled, use authenticated client options or the UWH U
 - [Zigbee2MQTT FAQ: one coordinator and one network per device](https://www.zigbee2mqtt.io/guide/faq/)
 - [Mosquitto downloads](https://mosquitto.org/download/), [Windows service instructions](https://github.com/eclipse-mosquitto/mosquitto/blob/master/README-windows.txt), [MQTT authentication](https://mosquitto.org/documentation/authentication-methods/)
 - [Eclipse Paho Python client](https://pypi.org/project/paho-mqtt/)
+
+## About tab
+
+The **About** tab shows the running application version and the project credits. It includes clickable links to the local `README.md` in the installed UWH folder, the project repository, and the project contact email.
+
+This app was started in Google AI, made workable by GitHub Copilot and extensively refactored, tweaked, improved, expanded and tested by ChatGPT, conducted by David Stirling (who can't write code), davidstirling777@gmail.com.
+
+The conductor seems to be the star of the show, even though they do not make any noise. They even get to come on to the stage all on their own, to rapturous applause.
+
+This app can be downloaded free from:  
+https://github.com/davidstirling777-star/Underwater-Hockey-Scoring-Desk-Kit
 
 ## Other installation and packaging notes
 
