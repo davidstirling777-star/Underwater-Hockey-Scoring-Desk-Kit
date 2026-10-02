@@ -1,7 +1,9 @@
-name: Build and Release Windows EXE
+name: Build and Release Windows + Raspberry Pi 5
 
 on:
   push:
+    branches: ["main"]
+  pull_request:
     branches: ["main"]
   workflow_dispatch:
 
@@ -14,7 +16,8 @@ env:
   RELEASE_SERIES: "1.2"
 
 jobs:
-  build:
+  build-windows:
+    name: Build Windows x64
     runs-on: windows-2022
 
     steps:
@@ -46,12 +49,12 @@ jobs:
           $content = $content -replace 'APP_VERSION = "[^"]+"', "APP_VERSION = `"$version`""
           Set-Content -Path "app_version.py" -Value $content -Encoding utf8
 
-      - name: Build EXE with PyInstaller
+      - name: Build Windows application with PyInstaller
         shell: pwsh
         run: |
           pyinstaller uwh.spec
 
-      - name: Verify executable exists
+      - name: Verify Windows executable exists
         shell: pwsh
         run: |
           $exe = "dist\UnderwaterHockeyScoringDesk\UnderwaterHockeyScoringDesk.exe"
@@ -70,33 +73,162 @@ jobs:
             -DestinationPath "release\UnderwaterHockeyScoringDesk-v${{ env.RELEASE_SERIES }}.${{ github.run_number }}-Windows.zip" `
             -Force
 
-      # Upload the uncompressed PyInstaller folder as the Actions artifact.
-      # GitHub automatically packages an Actions artifact as a ZIP download,
-      # so uploading the folder avoids a ZIP file inside another ZIP file.
-      - name: Upload build artifact
+      - name: Upload Windows build artifact
         uses: actions/upload-artifact@v7.0.1
         with:
           name: UWH-Scoring-Desk-v${{ env.RELEASE_SERIES }}.${{ github.run_number }}-Windows
           path: dist/UnderwaterHockeyScoringDesk/
           if-no-files-found: error
 
-      # Keep the existing uncompressed Actions artifact for testers.
-      # Also retain the release ZIP so the publish job can run separately.
-      - name: Upload release ZIP for publication
+      - name: Upload Windows release ZIP for publication
         uses: actions/upload-artifact@v7.0.1
         with:
-          name: UWH-Release-ZIP-${{ github.run_number }}
+          name: UWH-Windows-Release-ZIP-${{ github.run_number }}
           path: release/UnderwaterHockeyScoringDesk-v${{ env.RELEASE_SERIES }}.${{ github.run_number }}-Windows.zip
           if-no-files-found: error
 
-  # Windows builds can overlap; only publication is serialized. GitHub does
-  # not guarantee concurrency queue ordering, so each job independently
-  # checks main SHA and all existing numeric release versions before posting.
+  build-rpi5:
+    name: Build Raspberry Pi 5 ARM64
+    runs-on: ubuntu-22.04-arm
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zip tk-dev tcl-dev
+          python -m pip install --upgrade pip setuptools wheel
+          pip install pyinstaller
+
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
+
+      - name: Stamp application version
+        env:
+          APP_BUILD_VERSION: ${{ env.RELEASE_SERIES }}.${{ github.run_number }}
+        run: |
+          python - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          path = Path("app_version.py")
+          content = path.read_text(encoding="utf-8")
+          version = os.environ["APP_BUILD_VERSION"]
+          updated, count = re.subn(
+              r'APP_VERSION = "[^"]+"',
+              f'APP_VERSION = "{version}"',
+              content,
+              count=1,
+          )
+          if count != 1:
+              raise SystemExit("Could not stamp APP_VERSION in app_version.py")
+          path.write_text(updated, encoding="utf-8")
+          PY
+
+      - name: Build Raspberry Pi 5 application with PyInstaller
+        run: |
+          pyinstaller uwh.spec
+
+      - name: Verify ARM64 executable and shared libraries
+        run: |
+          app="dist/UnderwaterHockeyScoringDesk/UnderwaterHockeyScoringDesk"
+
+          if [ ! -x "$app" ]; then
+            echo "Expected Raspberry Pi executable was not found or is not executable: $app"
+            exit 1
+          fi
+
+          file "$app"
+          if ! file "$app" | grep -qi "ARM aarch64"; then
+            echo "Built executable is not ARM64/aarch64."
+            exit 1
+          fi
+
+          ldd "$app" | tee /tmp/uwh-rpi5-ldd.txt
+          if grep -q "not found" /tmp/uwh-rpi5-ldd.txt; then
+            echo "One or more shared-library dependencies are unresolved."
+            exit 1
+          fi
+
+      - name: Add Raspberry Pi launcher and user notes
+        run: |
+          bundle="dist/UnderwaterHockeyScoringDesk"
+
+          cat > "$bundle/Start-UWH.sh" <<'EOF'
+          #!/usr/bin/env bash
+          set -e
+          HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+          cd "$HERE"
+          exec "$HERE/UnderwaterHockeyScoringDesk" "$@"
+          EOF
+
+          cat > "$bundle/RASPBERRY_PI_5_README.txt" <<'EOF'
+          Underwater Hockey Scoring Desk Kit - Raspberry Pi 5 ARM64 build
+
+          Intended target:
+            Raspberry Pi 5
+            Raspberry Pi OS Bookworm 64-bit Desktop
+            X11 session (recommended/tested for UWH)
+
+          Start from a Terminal in this folder:
+            ./Start-UWH.sh
+
+          If permission was lost while copying/extracting:
+            chmod +x Start-UWH.sh UnderwaterHockeyScoringDesk
+            ./Start-UWH.sh
+
+          Keep the complete extracted folder together. UWH creates writable
+          settings/data files beside the executable on first use.
+
+          See README.md for Raspberry Pi power, X11, audio/DAC and Zigbee setup.
+          EOF
+
+          cp README.md "$bundle/README.md"
+          cp HARDWARE_SETUP.md "$bundle/HARDWARE_SETUP.md"
+          chmod +x "$bundle/Start-UWH.sh" "$bundle/UnderwaterHockeyScoringDesk"
+
+      - name: Package Raspberry Pi 5 release
+        run: |
+          mkdir -p release
+          cd dist/UnderwaterHockeyScoringDesk
+
+          # -y stores symbolic links as links. PyInstaller POSIX bundles can
+          # contain symlinks and they must remain intact after extraction.
+          zip -yr "../../release/UnderwaterHockeyScoringDesk-v${{ env.RELEASE_SERIES }}.${{ github.run_number }}-RaspberryPi5.zip" .
+
+      - name: Upload Raspberry Pi 5 build artifact
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: UWH-Scoring-Desk-v${{ env.RELEASE_SERIES }}.${{ github.run_number }}-RaspberryPi5
+          path: dist/UnderwaterHockeyScoringDesk/
+          if-no-files-found: error
+
+      - name: Upload Raspberry Pi 5 release ZIP for publication
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: UWH-RaspberryPi5-Release-ZIP-${{ github.run_number }}
+          path: release/UnderwaterHockeyScoringDesk-v${{ env.RELEASE_SERIES }}.${{ github.run_number }}-RaspberryPi5.zip
+          if-no-files-found: error
+
+  # Build both platforms on pull requests, but only publish after a main-branch
+  # push or an explicit workflow dispatch. Publishing is serialized because
+  # GitHub does not guarantee queued jobs run in version order.
   publish:
-    needs: build
+    if: github.event_name != 'pull_request'
+    needs: [build-windows, build-rpi5]
     runs-on: ubuntu-latest
     concurrency:
-      group: uwh-windows-release-publish
+      group: uwh-release-publish
       queue: max
       cancel-in-progress: false
 
@@ -110,14 +242,21 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python .github/scripts/release_gate.py
 
-      - name: Download release ZIP
+      - name: Download Windows release ZIP
         if: steps.freshness.outputs.publish == 'true'
         uses: actions/download-artifact@v8
         with:
-          name: UWH-Release-ZIP-${{ github.run_number }}
+          name: UWH-Windows-Release-ZIP-${{ github.run_number }}
           path: release
 
-      # Recheck after download: main can advance while artifacts transfer.
+      - name: Download Raspberry Pi 5 release ZIP
+        if: steps.freshness.outputs.publish == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: UWH-RaspberryPi5-Release-ZIP-${{ github.run_number }}
+          path: release
+
+      # Recheck after downloads: main can advance while artifacts transfer.
       - name: Recheck immediately before publishing
         if: steps.freshness.outputs.publish == 'true'
         id: final
@@ -133,11 +272,17 @@ jobs:
           target_commitish: ${{ github.sha }}
           name: UWH Scoring Desk v${{ env.RELEASE_SERIES }}.${{ github.run_number }}
           body: |
-            Underwater Hockey Scoring Desk Kit — Windows release.
+            Underwater Hockey Scoring Desk Kit.
+
+            Ready-to-run downloads:
+            - Windows x64: `-Windows.zip`
+            - Raspberry Pi 5 / Linux ARM64: `-RaspberryPi5.zip`
 
             Build number: ${{ github.run_number }}
             Commit: ${{ github.sha }}
-          files: release/UnderwaterHockeyScoringDesk-v${{ env.RELEASE_SERIES }}.${{ github.run_number }}-Windows.zip
+          files: |
+            release/UnderwaterHockeyScoringDesk-v${{ env.RELEASE_SERIES }}.${{ github.run_number }}-Windows.zip
+            release/UnderwaterHockeyScoringDesk-v${{ env.RELEASE_SERIES }}.${{ github.run_number }}-RaspberryPi5.zip
           fail_on_unmatched_files: true
           draft: false
           prerelease: false

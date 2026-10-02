@@ -1,8 +1,8 @@
-"""Only publish a Windows release if it is the newest eligible build.
+"""Only publish a multi-platform release if it is the newest eligible build.
 
-The build workflow may run concurrently, but its release jobs are serialized.
-GitHub Actions does not guarantee that queued jobs run in version order, so
-this check must occur inside the serialized release job, before publication.
+Windows and Raspberry Pi 5 builds may run concurrently, but publication is
+serialized. GitHub Actions does not guarantee that queued jobs run in version
+order, so this check must occur inside the serialized release job.
 """
 import itertools
 import json
@@ -49,7 +49,7 @@ def github_get(path, token):
             "Accept": "application/vnd.github+json",
             "Authorization": f"Bearer {token}",
             "X-GitHub-Api-Version": "2022-11-28",
-            "User-Agent": "UWH-Windows-release-gate",
+            "User-Agent": "UWH-release-gate",
         },
     )
     with urlopen(request, timeout=20) as response:
