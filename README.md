@@ -470,7 +470,9 @@ results computer's combined CSV is the tournament's combined record.
 
 ## Sounds tab
 
-**Save Settings** is a button that stores the user-selected sound files to the JSON file (stored in the same location as the app itself).
+The Sounds tab reports **Audio output in use**. On Raspberry Pi/Linux it identifies the PipeWire system-default output selected when UWH started, including a HiFiBerry DAC+ or compatible I2S DAC when detected; on Windows it reports that the Windows system-default output is in use. UWH does not change the operating system's audio default. If you change the OS default while UWH is running, **restart UWH** so pygame opens the newly selected output.
+
+**Save Settings** stores the selected sound files, Pips/Siren volume levels and siren timing settings in the JSON file (stored in the same location as the app itself).
 
 **Pips** is a dropdown box where a sound file can be selected. Any .MP3 or .WAV file can be placed in the 'assets' folder and these will appear in the 'Pips' dropdown box.
 
@@ -478,7 +480,87 @@ results computer's combined CSV is the tournament's combined record.
 
 The **Open Sounds Folder** button opens the 'assets' folder, where sound files can be added.
 
-The **Air** and **Water** controls are intended for separate above-water and underwater audio channels. Channel routing depends on the operating system, audio device and playback backend; test both outputs on the actual hardware. The Windows Zigbee siren was tested using the same selected sound and matched playback volume as the application/Arduino siren, which does **not** by itself establish that independent Air/Water routing is implemented on every Windows audio device.
+**Pips Vol** and **Siren Vol** are independent in-app volume controls for those two sound types. They remain saved with the Sounds settings. The former **Air** and **Water** volume sliders have been removed because they did not control separate audio outputs. Use the operating-system/DAC/amplifier level as the overall master volume.
+
+### Raspberry Pi 5: Jaycar XC9048 / HiFiBerry-compatible DAC HAT
+
+The Jaycar **XC9048** has been tested on a Raspberry Pi 5 running Raspberry Pi OS Bookworm. The red LED on the HAT only confirms that the board has power; it does not prove that Linux has loaded an audio driver.
+
+With the Pi shut down, fit the DAC to the 40-pin GPIO header. On Bookworm, the boot configuration file is `/boot/firmware/config.txt`. Back it up and edit it:
+
+```bash
+sudo cp /boot/firmware/config.txt /boot/firmware/config.txt.before-dac
+sudo nano /boot/firmware/config.txt
+```
+
+Add these lines, and remove an older plain `dtoverlay=hifiberry-dacplus` line if one was previously added:
+
+```text
+dtparam=i2s=on
+dtoverlay=hifiberry-dacplus-std
+```
+
+Save and reboot:
+
+```bash
+sudo reboot
+```
+
+After reboot, confirm that ALSA can see the DAC:
+
+```bash
+aplay -l
+cat /proc/asound/cards
+```
+
+A working setup should contain a card similar to:
+
+```text
+sndrpihifiberry
+HiFiBerry DAC+ HiFi pcm512x-hifi-0
+```
+
+The card number is not guaranteed. On the tested Pi it appeared as **card 2**. To test the left and right outputs directly, first turn down the amplifier/headphones because the ALSA test tone can be very loud, then run either the card-name form:
+
+```bash
+speaker-test -D plughw:CARD=sndrpihifiberry,DEV=0 -c 2 -t sine -l 1
+```
+
+or, if the card is shown as card 2:
+
+```bash
+speaker-test -D plughw:2,0 -c 2 -t sine -l 1
+```
+
+The tone should alternate between left and right. Stop it with **Ctrl+C** if needed.
+
+Raspberry Pi OS Bookworm uses PipeWire/WirePlumber for the desktop audio default. Show the available sinks with:
+
+```bash
+wpctl status
+```
+
+Find the sink corresponding to the DAC. The numeric sink ID can change, so do not permanently assume the tested value of `66`. Set the current DAC sink as the default and set a comfortable system level; for example, if its current ID is 66:
+
+```bash
+wpctl set-default 66
+wpctl set-volume 66 0.50
+wpctl get-volume 66
+```
+
+Here `0.50` means **50%**. After changing the default audio sink, **completely close and restart UWH**. pygame chooses the system-default output when UWH starts. The Sounds tab then reports **Audio output in use** so the operator can see whether the app started on the DAC or HDMI.
+
+#### DAC troubleshooting
+
+- **Red LED on the HAT, but `aplay -l` shows only HDMI:** the DAC is powered but its driver/overlay is not active. Recheck `/boot/firmware/config.txt`, use `dtoverlay=hifiberry-dacplus-std` on the Pi 5, and reboot.
+- **The direct `speaker-test` works, but UWH is silent:** run `wpctl status`. If the asterisk is still beside an HDMI sink, make the DAC sink the default with `wpctl set-default <sink-id>`, then restart UWH.
+- **UWH plays through the wrong output:** read **Audio output in use** on the Sounds tab. It reports the default that was selected when UWH started. Change the OS default and restart UWH.
+- **Audio is too loud or too quiet overall:** change the PipeWire sink volume, for example `wpctl set-volume <sink-id> 0.50`. The UWH **Pips Vol** and **Siren Vol** sliders can then trim those two sound types independently. The obsolete Air/Water sliders have been removed.
+- **The DAC disappears after an OS/configuration change:** repeat `aplay -l`, `cat /proc/asound/cards`, and `wpctl status` before changing UWH settings. This separates a Linux audio problem from an application problem.
+
+Useful references: [Raspberry Pi `config.txt` documentation](https://www.raspberrypi.com/documentation/computers/config_txt.html), [HiFiBerry Pi 5 driver/overlay change](https://www.hifiberry.com/blog/changes-in-hifiberry-drivers/), and the [Jaycar XC9048 product page](https://www.jaycar.co.nz/digital-audio-converter-raspberry-pi-compatible/p/XC9048).
+
+UWH keeps the working **Pips Vol** and **Siren Vol** sliders for relative cue levels. The operating system, DAC/amplifier or other downstream hardware remains the overall master volume. On Raspberry Pi OS/PipeWire, use `wpctl` for that master level; on Windows, use the normal Windows output and volume controls.
 
 **Pips** play at pre-determined periods.
 
@@ -510,10 +592,9 @@ The system automatically plays audio cues during different periods:
 
 #### Notes:
 
-- Pip sounds use the chosen **Pips** file and the playback settings supported by the installed audio backend.
-- Siren sounds use the chosen **Siren** file. Matching application, Arduino and Zigbee playback levels have been tested on the Windows setup; test Air/Water channel routing separately on the target hardware.
+- Pip sounds use the chosen **Pips** file and **Pips Vol** setting.
+- Siren sounds use the chosen **Siren** file and **Siren Vol** setting. The operating-system/DAC/amplifier volume still acts as the overall master level.
 - **Timed siren playback:** A short sound file loops until the configured duration is reached, subject to **Maximum Siren Duration**. The hardwired Arduino siren instead follows the button's physical press and release.
-- Audio channels (Air/Water) use their respective volume settings
 - Game periods (halves) only play siren at the end, no countdown pips
 - Sudden Death periods have no automatic audio cues. The Sudden Death timer counts upwards from 00:00. A goal scored during Sudden Death immediately ends the game. Sudden Death Start and Sudden Death End messages are logged but do not trigger audio.
 
@@ -893,7 +974,7 @@ The table describes **observed actions and their tested mappings**, not a univer
 
 For example, a configured duration of **1.5 seconds** gives approximately 1.5 seconds for one timed cycle and two consecutive cycles for a mapped `double`. Actual audio-start/stop overhead may cause a small transition between cycles. Different models publish different long-press and release values: inspect each button's log rather than assuming the table applies automatically.
 
-**Important:** On the tested button, the `hold` action arrives **on release**; mapping that action to **One siren cycle** is not continuous press-to-sound. The Zigbee mapping table also offers **Start continuous siren** and **Stop continuous siren**, but these require actual matching press/release messages and are bounded by the hold timer and audio cutoff. The **hardwired Arduino button** instead sounds locally while physically held and stops on release. Timed game and wireless sirens use the selected **Sounds** file and duration, subject to **Maximum Siren Duration (seconds)** (default 10; allowed 1–30 seconds). Confirm Air/Water routing on the actual hardware.
+**Important:** On the tested button, the `hold` action arrives **on release**; mapping that action to **One siren cycle** is not continuous press-to-sound. The Zigbee mapping table also offers **Start continuous siren** and **Stop continuous siren**, but these require actual matching press/release messages and are bounded by the hold timer and audio cutoff. The **hardwired Arduino button** instead sounds locally while physically held and stops on release. Timed game and wireless sirens use the selected **Sounds** file and duration, subject to **Maximum Siren Duration (seconds)** (default 10; allowed 1–30 seconds).
 
 ### Using two computers with the same buttons
 
@@ -996,7 +1077,7 @@ The frontend on port 8080 is **separate from MQTT**. Opening a webpage on PC 2 d
 | Windows broker works but Zigbee2MQTT does not start after boot | Set Mosquitto **Automatic**; confirm `pm2 save` under the task's Windows account and correct `pm2.cmd`/working directory; inspect Scheduler history. Do not run two PM2 instances. |
 | Pi MQTT fails with `ModuleNotFoundError` | Check `.venv/bin/python -m pip show paho-mqtt`, then run UWH using that same virtual environment. |
 | Frontend says adapter missing / port busy | Find the actual COM port or `/dev/serial/by-id`; confirm adapter type and permissions, and close any other program using the coordinator. |
-| Audible siren works but time/volume is different | Check the **Sounds** tab's siren file, **Number of seconds to play Siren**, **Maximum Siren Duration**, and hardware audio routing. Arduino hold-to-sound differs from Zigbee timed actions. |
+| Audible siren works but timing or level is different | Check the **Sounds** tab's siren file, **Siren Vol**, **Number of seconds to play Siren**, **Maximum Siren Duration**, and the operating-system/amplifier master volume. Arduino hold-to-sound differs from Zigbee timed actions. |
 
 **Useful diagnostic commands** (use the correct host and authentication options for your broker):
 

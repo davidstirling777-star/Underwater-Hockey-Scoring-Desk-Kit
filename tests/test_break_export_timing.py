@@ -20,7 +20,7 @@ def load_uwh_methods(*names):
                        body=methods, decorator_list=[])
     compiled = ast.fix_missing_locations(ast.Module(body=[cls], type_ignores=[]))
     namespace = {"game_flow": game_flow,
-                 "play_sound_with_volume": lambda *args: SOUNDS.append(args[1])}
+                 "play_timed_sound": lambda *args: SOUNDS.append(args[1])}
     exec(compile(compiled, str(path), "exec"), namespace)
     return namespace["CountdownCode"]
 
@@ -105,8 +105,6 @@ class Harness(CountdownCode):
         self.enable_sound = Var(True)
         self.pips_volume = Var(50)
         self.siren_volume = Var(50)
-        self.air_volume = Var(50)
-        self.water_volume = Var(50)
         self.siren_duration = Var(1.5)
         self.max_siren_duration = Var("10")
         self.update_timer_display = Mock()

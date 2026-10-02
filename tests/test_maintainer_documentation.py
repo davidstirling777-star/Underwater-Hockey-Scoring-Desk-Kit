@@ -94,6 +94,36 @@ class MaintenanceDocumentationTests(unittest.TestCase):
         self.assertIn("**Detected** ports", readme)
         self.assertIn("`emergency`", readme)
 
+    def test_sounds_tab_reports_the_startup_audio_output(self):
+        sound = source("sound.py")
+        sounds_ui = source("sounds_ui.py")
+        readme = source("README.md")
+        self.assertIn('"@DEFAULT_AUDIO_SINK@"', sound)
+        self.assertIn("HiFiBerry DAC+ / compatible I2S DAC", sound)
+        self.assertIn("AUDIO_OUTPUT_AT_STARTUP", sound)
+        self.assertIn("Audio output in use:", sounds_ui)
+        self.assertIn("(selected when UWH started)", sounds_ui)
+        self.assertIn("restart UWH", readme)
+        self.assertIn("dtoverlay=hifiberry-dacplus-std", readme)
+        self.assertIn("wpctl set-default", readme)
+        self.assertIn("wpctl set-volume", readme)
+
+    def test_only_obsolete_air_water_volume_controls_are_removed(self):
+        for filename in ("uwh.py", "sound.py", "sounds_ui.py", "settings_manager.py"):
+            text = source(filename)
+            for obsolete in ("air_volume", "water_volume"):
+                with self.subTest(filename=filename, obsolete=obsolete):
+                    self.assertNotIn(obsolete, text)
+
+        sounds_ui = source("sounds_ui.py")
+        self.assertEqual(sounds_ui.count("tk.Scale("), 2)
+        self.assertIn("pips_volume", sounds_ui)
+        self.assertIn("siren_volume", sounds_ui)
+        self.assertIn("pips_volume", source("uwh.py"))
+        self.assertIn("siren_volume", source("uwh.py"))
+        self.assertIn('"pips_volume": 50.0', source("settings_manager.py"))
+        self.assertIn('"siren_volume": 50.0', source("settings_manager.py"))
+
     def test_tournament_help_names_the_actual_required_score_columns(self):
         text = source("settings_ui.py")
         self.assertIn(
