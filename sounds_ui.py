@@ -207,13 +207,15 @@ def create_sounds_tab(app):
             borderwidth=1,
             relief="groove",
         )
-        frame.grid_columnconfigure(0, weight=1)
-        frame.grid_columnconfigure(1, weight=0)
+        frame.grid_columnconfigure(0, weight=0)
+        frame.grid_columnconfigure(1, weight=1)
+        frame.grid_columnconfigure(2, weight=0)
 
         tk.Label(
             frame,
-            text="Sound File",
+            text="Use",
             font=("Arial", 10, "bold"),
+            width=5,
             relief="ridge",
             anchor="center",
         ).grid(
@@ -226,6 +228,20 @@ def create_sounds_tab(app):
 
         tk.Label(
             frame,
+            text="Sound File",
+            font=("Arial", 10, "bold"),
+            relief="ridge",
+            anchor="center",
+        ).grid(
+            row=0,
+            column=1,
+            sticky="nsew",
+            padx=(0, 0),
+            pady=(4, 0),
+        )
+
+        tk.Label(
+            frame,
             text="Trim %",
             font=("Arial", 10, "bold"),
             width=8,
@@ -233,7 +249,7 @@ def create_sounds_tab(app):
             anchor="center",
         ).grid(
             row=0,
-            column=1,
+            column=2,
             sticky="nsew",
             padx=(0, 6),
             pady=(4, 0),
@@ -247,25 +263,38 @@ def create_sounds_tab(app):
                 trim_var = tk.StringVar(value=str(trim))
                 app.sound_trim_vars[filename] = trim_var
 
-                file_cell = tk.Radiobutton(
+                select_radio = tk.Radiobutton(
                     frame,
-                    text=filename,
                     variable=selection_var,
                     value=filename,
-                    indicatoron=False,
-                    anchor="w",
-                    relief="groove",
-                    offrelief="groove",
-                    borderwidth=1,
-                    padx=6,
-                    font=("Arial", 10),
+                    anchor="center",
+                    padx=4,
                     command=lambda name=filename: selection_var.set(name),
                 )
-                file_cell.grid(
+                select_radio.grid(
                     row=row,
                     column=0,
                     sticky="nsew",
                     padx=(6, 0),
+                )
+
+                file_cell = tk.Label(
+                    frame,
+                    text=filename,
+                    anchor="w",
+                    relief="groove",
+                    borderwidth=1,
+                    padx=6,
+                    font=("Arial", 10),
+                )
+                file_cell.grid(
+                    row=row,
+                    column=1,
+                    sticky="nsew",
+                )
+                file_cell.bind(
+                    "<Button-1>",
+                    lambda event, name=filename: selection_var.set(name),
                 )
                 file_cell.bind(
                     "<Double-Button-1>",
@@ -284,7 +313,7 @@ def create_sounds_tab(app):
                 )
                 trim_entry.grid(
                     row=row,
-                    column=1,
+                    column=2,
                     sticky="nsew",
                     padx=(0, 6),
                 )
@@ -302,14 +331,23 @@ def create_sounds_tab(app):
                 tk.Label(
                     frame,
                     text="",
-                    relief="groove",
-                    borderwidth=1,
-                    anchor="w",
+                    width=5,
                 ).grid(
                     row=row,
                     column=0,
                     sticky="nsew",
                     padx=(6, 0),
+                )
+                tk.Label(
+                    frame,
+                    text="",
+                    relief="groove",
+                    borderwidth=1,
+                    anchor="w",
+                ).grid(
+                    row=row,
+                    column=1,
+                    sticky="nsew",
                 )
                 blank_trim = tk.Entry(
                     frame,
@@ -321,20 +359,20 @@ def create_sounds_tab(app):
                 blank_trim.config(state="disabled")
                 blank_trim.grid(
                     row=row,
-                    column=1,
+                    column=2,
                     sticky="nsew",
                     padx=(0, 6),
                 )
 
         tk.Label(
             frame,
-            text="Click a file to select it; double-click to preview it.",
+            text="Select one radio button for the active sound; double-click the filename to preview it.",
             font=("Arial", 9),
             anchor="w",
         ).grid(
             row=MAX_SOUND_ROWS + 1,
             column=0,
-            columnspan=2,
+            columnspan=3,
             sticky="ew",
             padx=6,
             pady=(4, 5),
