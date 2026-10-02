@@ -1,4 +1,4 @@
-"""Build the Game Variables, tournament-list and Screens control tabs.
+"""Build the Game Variables, Tournament List, About and Screens control tabs.
 
 The widgets write into GameManagementApp/engine state, not directly into
 settings.json. Automatic edits are queued for a coalesced save; buttons that
@@ -8,13 +8,14 @@ explicitly say Save may use their own immediate persistence path.
 
 import tkinter as tk
 from tkinter import ttk, font, messagebox
+from pathlib import Path
 import re
+import webbrowser
 
 from app_version import APP_VERSION
 
 def create_settings_tab(app):
-    """Create the Game Variables, presets and tournament selection widgets.
-    """
+    """Create the Game Variables, presets and Game Sequence widgets."""
     tab = ttk.Frame(app.notebook)
     app.notebook.add(tab, text="Game Variables")
 
@@ -528,10 +529,108 @@ def create_settings_tab(app):
     )
 
     # ------------------------------------------------------------
-    # Widget 4 - Tournament List
+    # Widget 3 - Game Sequence
+    # ------------------------------------------------------------
+    widget3 = ttk.Frame(tab, borderwidth=1, relief="solid")
+    widget3.grid(
+        row=2,
+        column=1,
+        rowspan=2,
+        sticky="nsew",
+        padx=8,
+        pady=8
+    )
+
+    widget3.grid_columnconfigure(0, weight=1)
+    widget3.grid_rowconfigure(0, weight=0)
+    widget3.grid_rowconfigure(1, weight=1)
+    widget3.grid_rowconfigure(2, weight=0)
+
+    explanation_header = tk.Label(
+        widget3,
+        text="Game Sequence",
+        font=(default_font.cget("family"), new_size, "bold")
+    )
+    explanation_header.grid(
+        row=0,
+        column=0,
+        padx=4,
+        pady=(8, 2),
+        sticky="ew"
+    )
+
+    explanation_text = (
+        "Game Sequence Flow:\n"
+        "1. First Game Starts In: (runs once at app start)\n"
+        "2. First Half → Half Time → Second Half\n"
+        "3. If scores tied: Overtime Game Break → Overtime First Half "
+        "→ Overtime Half Time → Overtime Second Half (if enabled)\n"
+        "4. If still tied: Sudden Death Game Break → Sudden Death (if enabled)\n"
+        "5. Between Game Break (loop back to step 2)\n\n"
+        "Important Notes:\n"
+        "• 'First Game Starts In:' transitions directly to First Half\n"
+        "• Crib time is subtracted from Between Game Break"
+    )
+
+    explanation_label = tk.Label(
+        widget3,
+        text=explanation_text,
+        font=(default_font.cget("family"), small_size),
+        justify="left",
+        anchor="nw"
+    )
+    explanation_label.grid(
+        row=1,
+        column=0,
+        padx=4,
+        pady=(2, 4),
+        sticky="nsew"
+    )
+
+    # Exit control is deliberately kept on the Game Variables tab,
+    # away from the normal match controls.
+    exit_frame = ttk.Frame(widget3)
+    exit_frame.grid(
+        row=2,
+        column=0,
+        sticky="e",
+        padx=8,
+        pady=(2, 8)
+    )
+
+    app.exit_program_button = tk.Button(
+        exit_frame,
+        text="Exit Program",
+        bg="red",
+        fg="white",
+        activebackground="darkred",
+        activeforeground="white",
+        command=app.request_exit,
+        width=14
+    )
+    app.exit_program_button.pack()
+
+    app.update_overtime_variables_state()
+
+
+def create_tournament_tab(app):
+    """Create the standalone Tournament List and results-sync tab."""
+    tab = ttk.Frame(app.notebook)
+    app.tournament_tab = tab
+    app.notebook.add(tab, text="Tournament List")
+
+    tab.grid_rowconfigure(0, weight=1)
+    tab.grid_columnconfigure(0, weight=1)
+
+    default_font = font.nametofont("TkDefaultFont")
+    new_size = default_font.cget("size") + 2
+    small_size = default_font.cget("size") - 1
+
+    # ------------------------------------------------------------
+    # Tournament List controls
     # ------------------------------------------------------------
     widget4 = ttk.Frame(tab, borderwidth=1, relief="solid")
-    widget4.grid(row=2, column=1, sticky="nsew", padx=8, pady=8)
+    widget4.grid(row=0, column=0, sticky="nsew", padx=12, pady=12)
 
     widget4.grid_columnconfigure(0, weight=0)
     widget4.grid_columnconfigure(1, weight=1)
@@ -831,82 +930,123 @@ def create_settings_tab(app):
         sticky="nw", padx=8, pady=(6, 4)
     )
 
-    # ------------------------------------------------------------
-    # Widget 3 - Game Sequence
-    # ------------------------------------------------------------
-    widget3 = ttk.Frame(tab, borderwidth=1, relief="solid")
-    widget3.grid(row=3, column=1, sticky="nsew", padx=8, pady=8)
 
-    widget3.grid_columnconfigure(0, weight=1)
-    widget3.grid_rowconfigure(0, weight=0)
-    widget3.grid_rowconfigure(1, weight=1)
-    widget3.grid_rowconfigure(2, weight=0)
 
-    explanation_header = tk.Label(
-        widget3,
-        text="Game Sequence",
-        font=(default_font.cget("family"), new_size, "bold")
+def create_about_tab(app, readme_path):
+    """Create the About tab with credits and documentation links."""
+    tab = ttk.Frame(app.notebook)
+    app.about_tab = tab
+    app.notebook.add(tab, text="About")
+
+    tab.grid_rowconfigure(0, weight=1)
+    tab.grid_columnconfigure(0, weight=1)
+
+    outer = ttk.Frame(tab, padding=24)
+    outer.grid(row=0, column=0, sticky="nsew")
+    outer.grid_columnconfigure(0, weight=1)
+
+    default_font = font.nametofont("TkDefaultFont")
+    title_font = (
+        default_font.cget("family"),
+        default_font.cget("size") + 5,
+        "bold"
     )
-    explanation_header.grid(
-        row=0,
-        column=0,
-        padx=4,
-        pady=(8, 2),
-        sticky="ew"
+    body_font = (
+        default_font.cget("family"),
+        default_font.cget("size") + 1
     )
-
-    explanation_text = (
-        "Game Sequence Flow:\n"
-        "1. First Game Starts In: (runs once at app start)\n"
-        "2. First Half → Half Time → Second Half\n"
-        "3. If scores tied: Overtime Game Break → Overtime First Half "
-        "→ Overtime Half Time → Overtime Second Half (if enabled)\n"
-        "4. If still tied: Sudden Death Game Break → Sudden Death (if enabled)\n"
-        "5. Between Game Break (loop back to step 2)\n\n"
-        "Important Notes:\n"
-        "• 'First Game Starts In:' transitions directly to First Half\n"
-        "• Crib time is subtracted from Between Game Break"
+    link_font = (
+        default_font.cget("family"),
+        default_font.cget("size") + 1,
+        "underline"
     )
 
-    explanation_label = tk.Label(
-        widget3,
-        text=explanation_text,
-        font=(default_font.cget("family"), small_size),
+    ttk.Label(
+        outer,
+        text="About UWH Scoring Desk",
+        font=title_font
+    ).grid(row=0, column=0, sticky="w", pady=(0, 18))
+
+    ttk.Label(
+        outer,
+        text=f"Version {APP_VERSION}",
+        font=body_font
+    ).grid(row=1, column=0, sticky="w", pady=(0, 18))
+
+    about_text = (
+        "This app was started in Google AI, made workable by GitHub Copilot "
+        "and extensively refactored, tweaked, improved, expanded and tested "
+        "by ChatGPT, conducted by David Stirling (who can't write code) "
+        "davidstirling777@gmail.com.\n\n"
+        "The conductor seems to be the star of the show, even though they do "
+        "not make any noise. They even get to come on to the stage all on "
+        "their own, to rapturous applause."
+    )
+    ttk.Label(
+        outer,
+        text=about_text,
+        font=body_font,
         justify="left",
-        anchor="nw"
+        wraplength=920
+    ).grid(row=2, column=0, sticky="w", pady=(0, 20))
+
+    def open_readme():
+        path = Path(readme_path)
+        if not path.exists():
+            messagebox.showerror(
+                "README not found",
+                f"The README file could not be found:\n{path}"
+            )
+            return
+        webbrowser.open(path.resolve().as_uri())
+
+    readme_link = tk.Label(
+        outer,
+        text="Open the README file in this installation",
+        fg="#0066cc",
+        cursor="hand2",
+        font=link_font
     )
-    explanation_label.grid(
-        row=1,
-        column=0,
-        padx=4,
-        pady=(2, 4),
-        sticky="nsew"
+    readme_link.grid(row=3, column=0, sticky="w", pady=(0, 14))
+    readme_link.bind("<Button-1>", lambda event: open_readme())
+
+    ttk.Label(
+        outer,
+        text="This app can be downloaded free from:",
+        font=body_font
+    ).grid(row=4, column=0, sticky="w")
+
+    repository_url = (
+        "https://github.com/davidstirling777-star/"
+        "Underwater-Hockey-Scoring-Desk-Kit"
+    )
+    repository_link = tk.Label(
+        outer,
+        text=repository_url,
+        fg="#0066cc",
+        cursor="hand2",
+        font=link_font
+    )
+    repository_link.grid(row=5, column=0, sticky="w", pady=(4, 14))
+    repository_link.bind(
+        "<Button-1>",
+        lambda event: webbrowser.open(repository_url)
     )
 
-    # Exit control is deliberately kept on the Game Variables tab,
-    # away from the normal match controls.
-    exit_frame = ttk.Frame(widget3)
-    exit_frame.grid(
-        row=2,
-        column=0,
-        sticky="e",
-        padx=8,
-        pady=(2, 8)
+    email_link = tk.Label(
+        outer,
+        text="davidstirling777@gmail.com",
+        fg="#0066cc",
+        cursor="hand2",
+        font=link_font
     )
-
-    app.exit_program_button = tk.Button(
-        exit_frame,
-        text="Exit Program",
-        bg="red",
-        fg="white",
-        activebackground="darkred",
-        activeforeground="white",
-        command=app.request_exit,
-        width=14
+    email_link.grid(row=6, column=0, sticky="w")
+    email_link.bind(
+        "<Button-1>",
+        lambda event: webbrowser.open(
+            "mailto:davidstirling777@gmail.com"
+        )
     )
-    app.exit_program_button.pack()
-
-    app.update_overtime_variables_state()
 
 
 def create_screen_tab(app):

@@ -94,6 +94,40 @@ class MaintenanceDocumentationTests(unittest.TestCase):
         self.assertIn("**Detected** ports", readme)
         self.assertIn("`emergency`", readme)
 
+    def test_tournament_and_about_are_standalone_tabs(self):
+        settings_ui = source("settings_ui.py")
+        uwh = source("uwh.py")
+        readme = source("README.md")
+
+        self.assertIn('app.notebook.add(tab, text="Tournament List")', settings_ui)
+        self.assertIn('app.notebook.add(tab, text="About")', settings_ui)
+        self.assertIn("def create_tournament_tab(app):", settings_ui)
+        self.assertIn("def create_about_tab(app, readme_path):", settings_ui)
+        self.assertIn("rowspan=2", settings_ui)
+        self.assertIn("Path(readme_path)", settings_ui)
+        self.assertIn("path.resolve().as_uri()", settings_ui)
+        self.assertIn(
+            "https://github.com/davidstirling777-star/",
+            settings_ui,
+        )
+        self.assertIn("davidstirling777@gmail.com", settings_ui)
+        self.assertIn("self.create_tournament_tab()", uwh)
+        self.assertIn("self.create_about_tab()", uwh)
+        self.assertIn("## Tournament List tab", readme)
+        self.assertIn("## About tab", readme)
+
+    def test_zigbee_mapping_toolbar_keeps_all_five_operator_actions(self):
+        zigbee_ui = source("zigbee_ui.py")
+        for label in (
+            "Add Mapping",
+            "Edit Mapping",
+            "Delete Mapping",
+            "Auto-add From Log",
+            "Save Action Mappings",
+        ):
+            with self.subTest(label=label):
+                self.assertIn(f'("{label}"', zigbee_ui)
+
     def test_sounds_tab_reports_the_startup_audio_output(self):
         sound = source("sound.py")
         sounds_ui = source("sounds_ui.py")
