@@ -727,7 +727,7 @@ This table explains the results and progression rules when a goal is added durin
 | Sudden Death Game Break | Even | Remain in Sudden Death Game Break. Proceed to Sudden Death period as scheduled. |
 | | Uneven | Progress directly to Between Game Break. (Skips Sudden Death period.) |
 
-This logic ensures the correct flow for tournament progression based on goals scored during break periods.
+This logic ensures the correct flow for tournament progression based on goals recorded during break periods.
 
 ## Zigbee2MQTT wireless siren setup and operation
 
