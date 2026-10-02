@@ -583,6 +583,7 @@ class GameManagementApp:
             self._wireless_siren_channel = sound.start_timed_siren(
                 self.siren_var.get(),
                 self.enable_sound.get(),
+                self.siren_volume.get(),
                 duration,
                 self.max_siren_duration.get(),
             )
@@ -655,6 +656,7 @@ class GameManagementApp:
         channel = sound.start_timed_siren(
             self.siren_var.get(),
             self.enable_sound.get(),
+            self.siren_volume.get(),
             seconds,
             self.max_siren_duration.get(),
         )
@@ -781,6 +783,8 @@ class GameManagementApp:
         if self.enable_sound.get():
             try:
                 track = self.siren_var.get()
+                volume = self.siren_volume.get()
+                normalized_volume = max(0.0, min(100.0, volume)) / 100.0
                 sound_obj = sound._preloaded_sounds.get(track)
 
                 if sound_obj is None:
@@ -789,7 +793,7 @@ class GameManagementApp:
                         "is not preloaded; MQTT siren will still be requested."
                     )
                 else:
-                    sound_obj.set_volume(1.0)
+                    sound_obj.set_volume(normalized_volume)
                     self._stop_arduino_siren()
                     self.arduino_siren_channel = sound_obj.play(loops=-1)
                     if self.arduino_siren_channel is not None:
@@ -1021,9 +1025,15 @@ class GameManagementApp:
         # Store last position of penalties dialog (None means use default positioning)
         self.penalty_dialog_last_position = None
 
-        # Load sound selections and timing. Playback volume is controlled by
-        # the operating system / amplifier rather than duplicate app sliders.
+        # Load sound selections, independent Pips/Siren levels and timing.
+        # Overall output level is still controlled by the OS/DAC/amplifier.
         sound_settings = load_sound_settings()
+        self.pips_volume = tk.DoubleVar(
+            value=sound_settings.get("pips_volume", 50.0)
+        )
+        self.siren_volume = tk.DoubleVar(
+            value=sound_settings.get("siren_volume", 50.0)
+        )
         self.enable_sound = tk.BooleanVar(value=sound_settings.get("enable_sound", True))
         self.siren_duration = tk.DoubleVar(value=sound_settings.get("siren_duration", 1.5))
         # Separate, user-configurable safety cutoff for timed siren blasts.
@@ -2099,6 +2109,8 @@ class GameManagementApp:
                 self.siren_var.get(),
                 "siren",
                 self.enable_sound,
+                self.pips_volume,
+                self.siren_volume,
                 self.siren_duration,
                 self.max_siren_duration
             )
@@ -3388,6 +3400,8 @@ class GameManagementApp:
                         self.siren_var.get(),
                         "siren",
                         self.enable_sound,
+                        self.pips_volume,
+                        self.siren_volume,
                         self.siren_duration,
                         self.max_siren_duration
                     )
@@ -3404,6 +3418,8 @@ class GameManagementApp:
                         self.pips_var.get(),
                         "pips",
                         self.enable_sound,
+                        self.pips_volume,
+                        self.siren_volume,
                         self.siren_duration,
                         self.max_siren_duration
                     )
@@ -3536,6 +3552,8 @@ class GameManagementApp:
                         self.pips_var.get(),
                         "pips",
                         self.enable_sound,
+                        self.pips_volume,
+                        self.siren_volume,
                         self.siren_duration,
                         self.max_siren_duration
                     )
@@ -3552,6 +3570,8 @@ class GameManagementApp:
                         self.siren_var.get(),
                         "siren",
                         self.enable_sound,
+                        self.pips_volume,
+                        self.siren_volume,
                         self.siren_duration,
                         self.max_siren_duration
                     )
