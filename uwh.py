@@ -1333,11 +1333,15 @@ class GameManagementApp:
         splash_report("Scoreboard tab created", True)
 
         self.create_settings_tab()
-        # The tab's initial selection configures the worker. Starting the
-        # daemon here lets its first network request happen off the Tk thread.
+        splash_report("Game Variables tab created", True)
+
+        self.create_tournament_tab()
+        # The Tournament List tab's initial selection configures the worker.
+        # Starting the daemon here lets its first network request happen off
+        # the Tk thread.
         self.tournament_sync.start()
         self._poll_tournament_sync_status()
-        splash_report("Settings tab created", True)
+        splash_report("Tournament List tab created", True)
 
         self.create_screen_tab()
         splash_report("Screen tab created", True)
@@ -1347,6 +1351,9 @@ class GameManagementApp:
 
         self.create_zigbee_siren_tab()
         splash_report("Siren control tab created", True)
+
+        self.create_about_tab()
+        splash_report("About tab created", True)
 
         # NOW start Zigbee AFTER all widgets exist
         print("STARTUP: Initializing Zigbee connection (MQTT stability verified)")
@@ -1828,8 +1835,14 @@ class GameManagementApp:
     def create_settings_tab(self):
         return settings_ui.create_settings_tab(self)
 
+    def create_tournament_tab(self):
+        return settings_ui.create_tournament_tab(self)
+
     def create_screen_tab(self):
         return settings_ui.create_screen_tab(self)
+
+    def create_about_tab(self):
+        return settings_ui.create_about_tab(self, README_PATH)
 
     def get_csv_files(self):
         return csv_ui.get_csv_files(
