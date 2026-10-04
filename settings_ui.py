@@ -643,42 +643,59 @@ def create_tournament_tab(app):
     """Create the approved two-card Tournament List and results-sync tab."""
     tab = ttk.Frame(app.notebook, style="UWH.Tab.TFrame")
     app.tournament_tab = tab
-    app.notebook.add(tab, text="Tournament List")
+    app.notebook.add(
+        tab,
+        text=ui_theme.tab_label("Tournament List"),
+    )
     tab.grid_columnconfigure(0, weight=1)
     tab.grid_columnconfigure(1, weight=1)
-    tab.grid_rowconfigure(0, weight=1)
-    tab.grid_rowconfigure(1, weight=0)
+    tab.grid_rowconfigure(1, weight=1)
+    tab.grid_rowconfigure(2, weight=0)
+
+    header = ui_theme.page_header(
+        tab,
+        "Tournament List",
+        "Load tournament draw data and manage local/shared result syncing.",
+        symbol="▤",
+    )
+    header.grid(
+        row=0,
+        column=0,
+        columnspan=2,
+        sticky="ew",
+        padx=12,
+        pady=(12, 6),
+    )
 
     setup = ui_theme.card(tab, padding=14)
-    setup.grid(row=0, column=0, sticky="nsew", padx=(12, 6), pady=(12, 6))
+    setup.grid(row=1, column=0, sticky="nsew", padx=(12, 6), pady=(6, 6))
     setup.grid_columnconfigure(0, weight=0)
     setup.grid_columnconfigure(1, weight=1)
     setup.grid_columnconfigure(2, weight=0)
 
     results = ui_theme.card(tab, padding=14)
-    results.grid(row=0, column=1, sticky="nsew", padx=(6, 12), pady=(12, 6))
+    results.grid(row=1, column=1, sticky="nsew", padx=(6, 12), pady=(6, 6))
     results.grid_columnconfigure(0, weight=0)
     results.grid_columnconfigure(1, weight=1)
     results.grid_columnconfigure(2, weight=0)
 
     info = ui_theme.card(tab, padding=14)
-    info.grid(row=1, column=0, columnspan=2, sticky="ew",
+    info.grid(row=2, column=0, columnspan=2, sticky="ew",
               padx=12, pady=(6, 12))
     info.grid_columnconfigure(0, weight=1)
 
-    ui_theme.section_title(setup, "Tournament Setup").grid(
+    ui_theme.section_title(setup, "Tournament Setup", symbol="▣").grid(
         row=0, column=0, columnspan=3, sticky="w", pady=(0, 12)
     )
 
     app.use_tournament_list_var = tk.BooleanVar(
         master=app.master, value=True
     )
-    ttk.Checkbutton(
+    ui_theme.toggle_switch(
         setup,
-        text="Use Tournament List?",
-        variable=app.use_tournament_list_var,
+        app.use_tournament_list_var,
         command=app.on_use_tournament_list_changed,
-        style="UWH.TCheckbutton",
+        text="Use Tournament List?",
     ).grid(row=1, column=0, sticky="w", pady=(0, 2))
 
     ui_theme.muted_label(
@@ -751,7 +768,7 @@ def create_tournament_tab(app):
         justify="left",
     ).grid(row=5, column=0, columnspan=3, sticky="w", pady=(8, 0))
 
-    ui_theme.section_title(results, "Tournament Results").grid(
+    ui_theme.section_title(results, "Tournament Results", symbol="✓").grid(
         row=0, column=0, columnspan=3, sticky="w", pady=(0, 12)
     )
     sync_settings = app.load_unified_settings().get("tournamentSync", {})
@@ -852,7 +869,11 @@ def create_tournament_tab(app):
         wraplength=520,
     ).pack(fill="x")
 
-    ui_theme.section_title(info, "About Tournament List and Results Sync").grid(
+    ui_theme.section_title(
+        info,
+        "About Tournament List and Results Sync",
+        symbol="ⓘ",
+    ).grid(
         row=0, column=0, sticky="w", pady=(0, 8)
     )
     ui_theme.body_label(
@@ -879,7 +900,10 @@ def create_about_tab(app, readme_path):
     """Create the approved v1.3 About tab and its documentation links."""
     tab = ttk.Frame(app.notebook, style="UWH.Tab.TFrame")
     app.about_tab = tab
-    app.notebook.add(tab, text="About")
+    app.notebook.add(
+        tab,
+        text=ui_theme.tab_label("About"),
+    )
     tab.grid_columnconfigure(0, weight=1)
     tab.grid_rowconfigure(1, weight=1)
 
@@ -934,14 +958,14 @@ def create_about_tab(app, readme_path):
     ).grid(row=3, column=1, sticky="w", pady=(4, 0))
 
     body = ttk.Frame(tab, style="UWH.Tab.TFrame")
-    body.grid(row=1, column=0, sticky="nsew", padx=12, pady=(6, 12))
+    body.grid(row=2, column=0, sticky="nsew", padx=12, pady=(6, 12))
     body.grid_columnconfigure(0, weight=1)
     body.grid_columnconfigure(1, weight=1)
     body.grid_rowconfigure(0, weight=1)
 
     project = ui_theme.card(body, padding=16)
     project.grid(row=0, column=0, sticky="nsew", padx=(0, 6))
-    ui_theme.section_title(project, "About This Project").pack(
+    ui_theme.section_title(project, "About This Project", symbol="ⓘ").pack(
         anchor="w", pady=(0, 10)
     )
 
@@ -985,7 +1009,7 @@ def create_about_tab(app, readme_path):
 
     links = ui_theme.card(body, padding=16)
     links.grid(row=0, column=1, sticky="nsew", padx=(6, 0))
-    ui_theme.section_title(links, "Links & Contact").pack(
+    ui_theme.section_title(links, "Links & Contact", symbol="↗").pack(
         anchor="w", pady=(0, 10)
     )
 
@@ -1062,12 +1086,29 @@ def create_screen_tab(app):
     """Create the approved Screens tab without a layout-preview panel."""
     tab = ttk.Frame(app.notebook, style="UWH.Tab.TFrame")
     app.screen_tab = tab
-    app.notebook.add(tab, text="Screens")
+    app.notebook.add(
+        tab,
+        text=ui_theme.tab_label("Screens"),
+    )
     tab.grid_columnconfigure(0, weight=1)
-    tab.grid_rowconfigure(1, weight=1)
+    tab.grid_rowconfigure(2, weight=1)
+
+    header = ui_theme.page_header(
+        tab,
+        "Screens",
+        "Choose operator/player layouts and verify the displays detected by the computer.",
+        symbol="▱",
+    )
+    header.grid(
+        row=0,
+        column=0,
+        sticky="ew",
+        padx=12,
+        pady=(12, 6),
+    )
 
     toolbar = ui_theme.card(tab, padding=10)
-    toolbar.grid(row=0, column=0, sticky="ew", padx=12, pady=(12, 6))
+    toolbar.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 6))
     toolbar.grid_columnconfigure(3, weight=1)
 
     ui_theme.primary_button(
@@ -1103,7 +1144,11 @@ def create_screen_tab(app):
     options.grid(row=0, column=0, sticky="nsew", padx=(0, 6))
     options.grid_columnconfigure(0, weight=1)
 
-    ui_theme.section_title(options, "Display Screen Options").grid(
+    ui_theme.section_title(
+        options,
+        "Display Screen Options",
+        symbol="▣",
+    ).grid(
         row=0, column=0, sticky="w", pady=(0, 10)
     )
 
@@ -1130,21 +1175,19 @@ def create_screen_tab(app):
         font=(ui_theme.FONT_FAMILY, 10, "bold"),
     ).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 6))
 
-    ttk.Radiobutton(
+    ui_theme.radio_button(
         operator_box,
         text="Standard (16:9)",
         variable=app.operator_layout_var,
         value="Standard",
         command=lambda: choose_operator("Standard"),
-        style="UWH.TRadiobutton",
     ).grid(row=1, column=0, sticky="w", padx=(0, 16), pady=4)
-    ttk.Radiobutton(
+    ui_theme.radio_button(
         operator_box,
         text="Widescreen (21:9)",
         variable=app.operator_layout_var,
         value="Widescreen",
         command=lambda: choose_operator("Widescreen"),
-        style="UWH.TRadiobutton",
     ).grid(row=1, column=1, sticky="w", pady=4)
 
     display_options = [
@@ -1200,12 +1243,11 @@ def create_screen_tab(app):
         )
         row.grid(row=index, column=0, sticky="ew", pady=3)
         row.grid_columnconfigure(1, weight=1)
-        ttk.Checkbutton(
+        ui_theme.toggle_switch(
             row,
-            text=option,
-            variable=app.display_layout_check_vars[option],
+            app.display_layout_check_vars[option],
             command=lambda value=option: choose_display(value),
-            style="UWH.TCheckbutton",
+            text=option,
         ).grid(row=0, column=0, sticky="w")
         tk.Label(
             row,
@@ -1217,15 +1259,14 @@ def create_screen_tab(app):
             justify="left",
         ).grid(row=0, column=1, sticky="w", padx=(14, 0))
 
-    ttk.Checkbutton(
+    ui_theme.toggle_switch(
         options,
-        text="Show team names",
-        variable=app.show_display_team_names_var,
+        app.show_display_team_names_var,
         command=lambda: (
             app.toggle_display_team_names(),
             app.save_screen_settings(),
         ),
-        style="UWH.TCheckbutton",
+        text="Show team names",
     ).grid(row=7, column=0, sticky="w", pady=(12, 0))
 
     detected = ui_theme.card(body, padding=14)
@@ -1233,7 +1274,11 @@ def create_screen_tab(app):
     detected.grid_columnconfigure(0, weight=1)
     detected.grid_rowconfigure(2, weight=1)
 
-    ui_theme.section_title(detected, "Detected Displays").grid(
+    ui_theme.section_title(
+        detected,
+        "Detected Displays",
+        symbol="●",
+    ).grid(
         row=0, column=0, sticky="w", pady=(0, 8)
     )
     ui_theme.muted_label(
