@@ -219,7 +219,7 @@ The following example installs the release in `~/UWH-Scoring-Desk`. Replace the 
 rm -rf ~/UWH-Scoring-Desk-new
 mkdir -p ~/UWH-Scoring-Desk-new
 cd ~/UWH-Scoring-Desk-new
-unzip ~/Downloads/UnderwaterHockeyScoringDesk-v1.2.123-RaspberryPi5.zip
+unzip ~/Downloads/UnderwaterHockeyScoringDesk-v1.3.1-RaspberryPi5.zip
 chmod +x Start-UWH.sh UnderwaterHockeyScoringDesk
 ./Start-UWH.sh
 ```
@@ -314,11 +314,11 @@ Version **1.3.1** introduces the approved blue-accent UWH visual style for **Gam
 
 Here, you can set most of the parameters of the games and select whether Team Time-Outs, Overtime and Sudden Death aspects of the game are allowed.
 
-Most period-duration boxes accept decimal **minutes**, e.g. `1.5` (or `1,5`) = 1 minute and 30 seconds. **Crib Time** is in seconds; **Time to Start First Game** is a 24-hour clock time, not a duration.
+Most period-duration boxes accept decimal **minutes**, e.g. `1.5` (or `1,5`) = 1 minute and 30 seconds. **Crib Time** is in seconds; **Clock Time to Start First Game at:** is a 24-hour clock time, not a duration.
 
 **Clock Time to Start First Game at:** schedules the first game against the computer's local clock. The v1.3.1 field is labelled in `HH.mm` form and accepts `H.MM`, `HH.MM`, `H:MM` or `HH:MM`; for example `9.36`, `09.36`, `9:36` and `09:36` all mean 09:36. If the selected time has already passed today, the app schedules it for tomorrow.
 
-**First Game Starts In:** is another way to set when the first game starts, in 'minutes from now'. Entering a value here will wipe the time from 'Time to Start First Game'.
+**First Game Starts In:** is another way to set when the first game starts, in 'minutes from now'. Entering a value here will wipe the value from 'Clock Time to Start First Game at:'.
 
 **Team time-outs allowed?** is a checkbox that, when selected, enables the Team Time-Out buttons in the Scoreboard tab and makes the 'Team Timeout Period' value box able to accept a value.
 
@@ -384,7 +384,7 @@ The **Game Sequence** explanation remains on the **Game Variables** tab and now 
 
 The normal game sequence is:
 
-1. **First Game Starts In / Time to Start First Game** runs once to start the first scheduled match.
+1. **First Game Starts In / Clock Time to Start First Game at:** runs once to start the first scheduled match.
 2. **First Half** → **Half Time** → **Second Half**.
 3. If the score is tied and Overtime is enabled: **Overtime Game Break** → **Overtime First Half** → **Overtime Half Time** → **Overtime Second Half**.
 4. If the score is still tied and Sudden Death is enabled: **Sudden Death Game Break** → **Sudden Death**.
