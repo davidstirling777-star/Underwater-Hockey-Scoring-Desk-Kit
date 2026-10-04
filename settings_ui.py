@@ -67,6 +67,7 @@ def create_settings_tab(app):
     for special_name in [
         "time_to_start_first_game",
         "start_first_game_in",
+        "overtime_allowed",
         "record_scorers_cap_number"
     ]:
         if special_name in entry_order:
@@ -129,37 +130,6 @@ def create_settings_tab(app):
             row_idx += 1
             continue
 
-        if var_name == "overtime_allowed":
-            check_var = app.overtime_allowed_var
-            cb = ttk.Checkbutton(
-                widget1,
-                variable=check_var,
-                style="Large.TCheckbutton"
-            )
-            cb.grid(row=row_idx, column=0, sticky="", pady=5, padx=(10, 0))
-
-            label_widget = tk.Label(
-                widget1,
-                text=var_info.get("label", "Overtime allowed?"),
-                font=(default_font.cget("family"), new_size, "bold")
-            )
-            label_widget.grid(row=row_idx, column=1, sticky="w", pady=4)
-
-            check_var.trace_add(
-                "write",
-                lambda *args: app._on_overtime_change()
-            )
-
-            app.widgets.append({
-                "name": var_name,
-                "entry": None,
-                "checkbox": check_var,
-                "label_widget": label_widget
-            })
-
-            row_idx += 1
-            continue
-
         if var_name == "record_scorers_cap_number":
             check_var = app.record_scorers_cap_number_var
             cb = ttk.Checkbutton(
@@ -193,9 +163,10 @@ def create_settings_tab(app):
             row_idx += 1
             continue
 
-        check_var = tk.BooleanVar(value=True) if var_info["checkbox"] else None
-
-        if check_var:
+        if var_name == "overtime_game_break":
+            # Keep the existing overtime_allowed setting, but place its
+            # checkbox beside Overtime Game Break rather than on its own row.
+            check_var = app.overtime_allowed_var
             cb = ttk.Checkbutton(
                 widget1,
                 variable=check_var,
@@ -204,8 +175,27 @@ def create_settings_tab(app):
             cb.grid(row=row_idx, column=0, sticky="", pady=5, padx=(10, 0))
             check_var.trace_add(
                 "write",
-                lambda *args, name=var_name: app._on_single_variable_change(name)
+                lambda *args: app._on_overtime_change()
             )
+        else:
+            check_var = (
+                tk.BooleanVar(value=True)
+                if var_info["checkbox"]
+                else None
+            )
+
+            if check_var:
+                cb = ttk.Checkbutton(
+                    widget1,
+                    variable=check_var,
+                    style="Large.TCheckbutton"
+                )
+                cb.grid(row=row_idx, column=0, sticky="", pady=5, padx=(10, 0))
+                check_var.trace_add(
+                    "write",
+                    lambda *args, name=var_name:
+                        app._on_single_variable_change(name)
+                )
 
         label_text = var_info.get(
             "label",
@@ -339,12 +329,28 @@ def create_settings_tab(app):
             font=(default_font.cget("family"), new_size, "bold")
         ).grid(row=row_idx, column=3, sticky="w", padx=5, pady=4)
 
-        app.widgets.append({
-            "name": var_name,
-            "entry": entry,
-            "checkbox": check_var,
-            "label_widget": label_widget
-        })
+        if var_name == "overtime_game_break":
+            # Store the enable flag and numeric duration as the same two
+            # runtime/settings variables used by the classic application.
+            app.widgets.append({
+                "name": "overtime_allowed",
+                "entry": None,
+                "checkbox": app.overtime_allowed_var,
+                "label_widget": None
+            })
+            app.widgets.append({
+                "name": var_name,
+                "entry": entry,
+                "checkbox": None,
+                "label_widget": label_widget
+            })
+        else:
+            app.widgets.append({
+                "name": var_name,
+                "entry": entry,
+                "checkbox": check_var,
+                "label_widget": label_widget
+            })
 
         app.last_valid_values[var_name] = entry.get()
 
@@ -443,8 +449,8 @@ def create_settings_tab(app):
     widget2.grid_rowconfigure(0, weight=0)
     widget2.grid_rowconfigure(1, weight=0, minsize=38)
     widget2.grid_rowconfigure(2, weight=0, minsize=38)
-    widget2.grid_rowconfigure(3, weight=1)
-    widget2.grid_rowconfigure(4, weight=0)
+    widget2.grid_rowconfigure(3, weight=0, minsize=38)
+    widget2.grid_rowconfigure(4, weight=1)
     widget2.grid_rowconfigure(5, weight=0)
 
     header_label = tk.Label(
@@ -465,8 +471,8 @@ def create_settings_tab(app):
     preset_data = app.load_preset_settings()
     app.button_data = preset_data.copy()
 
-    for i in range(6):
-        btn_row = 1 if i < 3 else 2
+    for i in range(9):
+        btn_row = 1 + (i // 3)
         btn_col = i % 3
 
         btn = tk.Button(
