@@ -10,14 +10,31 @@ on:
 permissions:
   contents: write
 
-# Explicit semantic version for the approved new-look release.
-# Change this deliberately when preparing the next public release.
+# Change only this line when starting a new release series.
+# Example: "1.0" produces tags such as v1.0.27, v1.0.28, etc.
 env:
-  RELEASE_VERSION: "1.3.6"
+  RELEASE_SERIES: "1.2"
 
 jobs:
+  version:
+    name: Choose next 1.2 release
+    runs-on: ubuntu-latest
+    outputs:
+      release_version: ${{ steps.next.outputs.release_version }}
+
+    steps:
+      - name: Checkout release scripts
+        uses: actions/checkout@v6
+
+      - name: Compute next 1.2 patch number
+        id: next
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python .github/scripts/next_release_version.py
+
   build-windows:
     name: Build Windows x64
+    needs: version
     runs-on: windows-2022
 
     steps:
@@ -41,15 +58,10 @@ jobs:
             pip install -r requirements.txt
           }
 
-      - name: Validate ttkbootstrap compatibility
-        shell: pwsh
-        run: |
-          python -c "import inspect, importlib.metadata as m, ttkbootstrap as tb; v=m.version('ttkbootstrap'); print('ttkbootstrap', v, inspect.signature(tb.Style)); assert int(v.split('.')[0]) == 1; assert 'master' not in inspect.signature(tb.Style).parameters"
-
       - name: Stamp application version
         shell: pwsh
         run: |
-          $version = "${{ env.RELEASE_VERSION }}"
+          $version = "${{ needs.version.outputs.release_version }}"
           $content = Get-Content "app_version.py" -Raw
           $content = $content -replace 'APP_VERSION = "[^"]+"', "APP_VERSION = `"$version`""
           Set-Content -Path "app_version.py" -Value $content -Encoding utf8
@@ -75,13 +87,13 @@ jobs:
 
           Compress-Archive `
             -Path "dist\UnderwaterHockeyScoringDesk\*" `
-            -DestinationPath "release\UnderwaterHockeyScoringDesk-v${{ env.RELEASE_VERSION }}-Windows.zip" `
+            -DestinationPath "release\UnderwaterHockeyScoringDesk-v${{ needs.version.outputs.release_version }}-Windows.zip" `
             -Force
 
       - name: Upload Windows build artifact
         uses: actions/upload-artifact@v7.0.1
         with:
-          name: UWH-Scoring-Desk-v${{ env.RELEASE_VERSION }}-Windows-${{ github.run_number }}
+          name: UWH-Scoring-Desk-v${{ needs.version.outputs.release_version }}-Windows
           path: dist/UnderwaterHockeyScoringDesk/
           if-no-files-found: error
 
@@ -89,11 +101,12 @@ jobs:
         uses: actions/upload-artifact@v7.0.1
         with:
           name: UWH-Windows-Release-ZIP-${{ github.run_number }}
-          path: release/UnderwaterHockeyScoringDesk-v${{ env.RELEASE_VERSION }}-Windows.zip
+          path: release/UnderwaterHockeyScoringDesk-v${{ needs.version.outputs.release_version }}-Windows.zip
           if-no-files-found: error
 
   build-rpi5:
     name: Build Raspberry Pi 5 ARM64
+    needs: version
     runs-on: ubuntu-22.04-arm
 
     steps:
@@ -117,13 +130,9 @@ jobs:
             pip install -r requirements.txt
           fi
 
-      - name: Validate ttkbootstrap compatibility
-        run: |
-          python -c "import inspect, importlib.metadata as m, ttkbootstrap as tb; v=m.version('ttkbootstrap'); print('ttkbootstrap', v, inspect.signature(tb.Style)); assert int(v.split('.')[0]) == 1; assert 'master' not in inspect.signature(tb.Style).parameters"
-
       - name: Stamp application version
         env:
-          APP_BUILD_VERSION: ${{ env.RELEASE_VERSION }}
+          APP_BUILD_VERSION: ${{ needs.version.outputs.release_version }}
         run: |
           python - <<'PY'
           import os
@@ -213,12 +222,12 @@ jobs:
 
           # -y stores symbolic links as links. PyInstaller POSIX bundles can
           # contain symlinks and they must remain intact after extraction.
-          zip -yr "../../release/UnderwaterHockeyScoringDesk-v${{ env.RELEASE_VERSION }}-RaspberryPi5.zip" .
+          zip -yr "../../release/UnderwaterHockeyScoringDesk-v${{ needs.version.outputs.release_version }}-RaspberryPi5.zip" .
 
       - name: Upload Raspberry Pi 5 build artifact
         uses: actions/upload-artifact@v7.0.1
         with:
-          name: UWH-Scoring-Desk-v${{ env.RELEASE_VERSION }}-RaspberryPi5-${{ github.run_number }}
+          name: UWH-Scoring-Desk-v${{ needs.version.outputs.release_version }}-RaspberryPi5
           path: dist/UnderwaterHockeyScoringDesk/
           if-no-files-found: error
 
@@ -226,7 +235,7 @@ jobs:
         uses: actions/upload-artifact@v7.0.1
         with:
           name: UWH-RaspberryPi5-Release-ZIP-${{ github.run_number }}
-          path: release/UnderwaterHockeyScoringDesk-v${{ env.RELEASE_VERSION }}-RaspberryPi5.zip
+          path: release/UnderwaterHockeyScoringDesk-v${{ needs.version.outputs.release_version }}-RaspberryPi5.zip
           if-no-files-found: error
 
   # Build both platforms on pull requests, but only publish after a main-branch
@@ -234,7 +243,7 @@ jobs:
   # GitHub does not guarantee queued jobs run in version order.
   publish:
     if: github.event_name != 'pull_request'
-    needs: [build-windows, build-rpi5]
+    needs: [version, build-windows, build-rpi5]
     runs-on: ubuntu-latest
     concurrency:
       group: uwh-release-publish
@@ -249,6 +258,7 @@ jobs:
         id: freshness
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ needs.version.outputs.release_version }}
         run: python .github/scripts/release_gate.py
 
       - name: Download Windows release ZIP
@@ -271,15 +281,16 @@ jobs:
         id: final
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ needs.version.outputs.release_version }}
         run: python .github/scripts/release_gate.py
 
       - name: Create GitHub Release
         if: steps.final.outputs.publish == 'true'
         uses: softprops/action-gh-release@v3.0.1
         with:
-          tag_name: v${{ env.RELEASE_VERSION }}
+          tag_name: v${{ needs.version.outputs.release_version }}
           target_commitish: ${{ github.sha }}
-          name: UWH Scoring Desk v${{ env.RELEASE_VERSION }}
+          name: UWH Scoring Desk v${{ needs.version.outputs.release_version }}
           body: |
             Underwater Hockey Scoring Desk Kit.
 
@@ -290,8 +301,8 @@ jobs:
             Build number: ${{ github.run_number }}
             Commit: ${{ github.sha }}
           files: |
-            release/UnderwaterHockeyScoringDesk-v${{ env.RELEASE_VERSION }}-Windows.zip
-            release/UnderwaterHockeyScoringDesk-v${{ env.RELEASE_VERSION }}-RaspberryPi5.zip
+            release/UnderwaterHockeyScoringDesk-v${{ needs.version.outputs.release_version }}-Windows.zip
+            release/UnderwaterHockeyScoringDesk-v${{ needs.version.outputs.release_version }}-RaspberryPi5.zip
           fail_on_unmatched_files: true
           draft: false
           prerelease: false

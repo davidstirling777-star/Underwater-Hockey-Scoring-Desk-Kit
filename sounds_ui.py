@@ -14,7 +14,6 @@ import os
 import tkinter as tk
 from tkinter import messagebox, ttk
 
-import ui_theme
 from sound import (
     AUDIO_OUTPUT_AT_STARTUP,
     check_audio_device_available,
@@ -41,36 +40,23 @@ def _visible_files(files, selected):
 
 def create_sounds_tab(app):
     """Create the Sounds tab and its per-file trim tables."""
-    tab = ttk.Frame(app.notebook, style="UWH.Tab.TFrame")
-    app.notebook.add(
-        tab,
-        text=ui_theme.tab_label("Sounds"),
-    )
+    tab = ttk.Frame(app.notebook)
+    app.notebook.add(tab, text="Sounds")
 
-    tab.grid_rowconfigure(1, weight=1)
+    tab.grid_rowconfigure(0, weight=1)
     tab.grid_columnconfigure(0, weight=1)
 
-    header = ui_theme.page_header(
+    sounds_widget = ttk.LabelFrame(
         tab,
-        "Sounds",
-        "Select the active pip and siren files, match their apparent loudness, and test playback.",
-        symbol="♪",
+        text="Sounds",
+        padding=(12, 10),
     )
-    header.grid(
+    sounds_widget.grid(
         row=0,
         column=0,
-        sticky="ew",
-        padx=12,
-        pady=(12, 6),
-    )
-
-    sounds_widget = ui_theme.card(tab, padding=12)
-    sounds_widget.grid(
-        row=1,
-        column=0,
         sticky="nsew",
-        padx=12,
-        pady=(6, 12),
+        padx=8,
+        pady=8,
     )
     sounds_widget.grid_columnconfigure(0, weight=5, minsize=430)
     sounds_widget.grid_columnconfigure(1, weight=3, minsize=300)
@@ -216,22 +202,14 @@ def create_sounds_tab(app):
 
     def build_sound_table(parent, title, files, selection_var, sound_type):
         """Build one polished fixed ten-row selector/filename/trim table."""
-        frame = ui_theme.card(parent, padding=10)
+        frame = ttk.LabelFrame(
+            parent,
+            text=title,
+            padding=(8, 7),
+        )
         frame.grid_columnconfigure(0, weight=0)
         frame.grid_columnconfigure(1, weight=1, minsize=250)
         frame.grid_columnconfigure(2, weight=0)
-
-        ui_theme.section_title(
-            frame,
-            title,
-            symbol="♪" if title == "Pips" else "◉",
-        ).grid(
-            row=0,
-            column=0,
-            columnspan=3,
-            sticky="w",
-            pady=(0, 8),
-        )
 
         # A separate inner frame gives the three columns one continuous table
         # border instead of making each widget look like an unrelated control.
@@ -239,10 +217,10 @@ def create_sounds_tab(app):
             frame,
             borderwidth=1,
             relief="solid",
-            background=ui_theme.COLORS["border"],
+            background="#d6d6d6",
         )
         table.grid(
-            row=1,
+            row=0,
             column=0,
             columnspan=3,
             sticky="nsew",
@@ -252,9 +230,8 @@ def create_sounds_tab(app):
         table.grid_columnconfigure(2, weight=0, minsize=78)
 
         header_options = {
-            "font": (ui_theme.FONT_FAMILY, 10, "bold"),
-            "background": ui_theme.COLORS["primary_soft"],
-            "foreground": ui_theme.COLORS["navy"],
+            "font": ("Arial", 10, "bold"),
+            "background": "#e9e9e9",
             "borderwidth": 1,
             "relief": "solid",
             "pady": 5,
@@ -293,7 +270,7 @@ def create_sounds_tab(app):
 
                 radio_cell = tk.Frame(
                     table,
-                    background=ui_theme.COLORS["surface"],
+                    background="#ffffff",
                     borderwidth=1,
                     relief="solid",
                 )
@@ -303,7 +280,6 @@ def create_sounds_tab(app):
                     variable=selection_var,
                     value=filename,
                     command=lambda name=filename: selection_var.set(name),
-                    style="UWH.TRadiobutton",
                 )
                 select_radio.pack(expand=True)
 
@@ -311,11 +287,11 @@ def create_sounds_tab(app):
                     table,
                     text=filename,
                     anchor="w",
-                    background=ui_theme.COLORS["surface"],
+                    background="#ffffff",
                     borderwidth=1,
                     relief="solid",
                     padx=8,
-                    font=ui_theme.BODY_FONT,
+                    font=("Arial", 10),
                     cursor="hand2",
                 )
                 file_cell.grid(
@@ -335,7 +311,7 @@ def create_sounds_tab(app):
 
                 trim_cell = tk.Frame(
                     table,
-                    background=ui_theme.COLORS["surface"],
+                    background="#ffffff",
                     borderwidth=1,
                     relief="solid",
                     padx=5,
@@ -347,7 +323,7 @@ def create_sounds_tab(app):
                     textvariable=trim_var,
                     width=6,
                     justify="center",
-                    font=ui_theme.BODY_FONT,
+                    font=("Arial", 10),
                     validate="key",
                     validatecommand=trim_validation,
                 )
@@ -379,7 +355,6 @@ def create_sounds_tab(app):
                     radio_cell,
                     variable=selection_var,
                     value=f"__unused_{sound_type}_{index}",
-                    style="UWH.TRadiobutton",
                 )
                 unused_radio.state(["disabled"])
                 unused_radio.pack(expand=True)
@@ -409,28 +384,31 @@ def create_sounds_tab(app):
                     trim_cell,
                     width=6,
                     justify="center",
-                    font=ui_theme.BODY_FONT,
+                    font=("Arial", 10),
                 )
                 blank_trim.insert(0, "100")
                 blank_trim.state(["disabled"])
                 blank_trim.pack(fill="x", expand=True)
 
-        ui_theme.muted_label(
+        ttk.Label(
             frame,
-            "Select one radio button for the active sound; "
-            "double-click the filename to preview it.",
+            text=(
+                "Select one radio button for the active sound; "
+                "double-click the filename to preview it."
+            ),
+            anchor="w",
         ).grid(
-            row=2,
+            row=1,
             column=0,
             columnspan=3,
             sticky="ew",
-            pady=(7, 0),
+            pady=(6, 0),
         )
         return frame
 
     # Top action bar: primary actions on the left, Enable Sound aligned to
     # the right so the controls read as a deliberate toolbar.
-    controls = tk.Frame(sounds_widget, bg=ui_theme.COLORS["surface"])
+    controls = ttk.Frame(sounds_widget)
     controls.grid(
         row=0,
         column=0,
@@ -440,32 +418,33 @@ def create_sounds_tab(app):
     )
     controls.grid_columnconfigure(2, weight=1)
 
-    ui_theme.primary_button(
+    ttk.Button(
         controls,
-        "Save Settings",
-        app.save_sound_settings_method,
-        width=14,
+        text="Save Settings",
+        width=16,
+        command=app.save_sound_settings_method,
     ).grid(row=0, column=0, padx=(0, 8))
 
-    ui_theme.secondary_button(
+    ttk.Button(
         controls,
-        "Open Sounds Folder",
-        open_sounds_folder,
-        width=18,
+        text="Open Sounds Folder",
+        width=20,
+        command=open_sounds_folder,
     ).grid(row=0, column=1, padx=(0, 12))
 
-    ui_theme.toggle_switch(
+    ttk.Checkbutton(
         controls,
-        app.enable_sound,
         text="Enable Sound?",
+        variable=app.enable_sound,
     ).grid(row=0, column=3, padx=(16, 4))
 
     # Keep the diagnostic slightly below the top controls so it reads as
     # status information rather than another editable setting.
-    diagnostic = ui_theme.info_banner(
+    diagnostic = ttk.Frame(
         sounds_widget,
-        f"Audio output in use: {AUDIO_OUTPUT_AT_STARTUP} "
-        "(selected when UWH started)"
+        padding=(8, 5),
+        relief="groove",
+        borderwidth=1,
     )
     diagnostic.grid(
         row=1,
@@ -474,6 +453,15 @@ def create_sounds_tab(app):
         sticky="ew",
         pady=(7, 10),
     )
+    ttk.Label(
+        diagnostic,
+        text=(
+            f"Audio output in use: {AUDIO_OUTPUT_AT_STARTUP} "
+            "(selected when UWH started)"
+        ),
+        justify="left",
+        anchor="w",
+    ).pack(fill="x")
 
     pips_frame = build_sound_table(
         sounds_widget,
@@ -505,9 +493,10 @@ def create_sounds_tab(app):
         pady=(0, 0),
     )
 
-    timing_frame = ui_theme.card(
+    timing_frame = ttk.LabelFrame(
         sounds_widget,
-        padding=12,
+        text="Siren timing",
+        padding=(10, 8),
     )
     timing_frame.grid(
         row=2,
@@ -520,22 +509,11 @@ def create_sounds_tab(app):
     timing_frame.grid_columnconfigure(0, weight=1)
     timing_frame.grid_columnconfigure(1, weight=0)
 
-    ui_theme.section_title(
+    ttk.Label(
         timing_frame,
-        "Siren Timing",
-        symbol="◷",
-    ).grid(
-        row=0,
-        column=0,
-        columnspan=2,
-        sticky="w",
-        pady=(0, 10),
-    )
-
-    ui_theme.body_label(
-        timing_frame,
-        "Number of seconds to play Siren",
-    ).grid(row=1, column=0, sticky="ew", padx=(4, 10), pady=(8, 8))
+        text="Number of seconds to play Siren",
+        anchor="w",
+    ).grid(row=0, column=0, sticky="ew", padx=(4, 10), pady=(12, 8))
 
     siren_duration_entry = ttk.Entry(
         timing_frame,
@@ -543,11 +521,11 @@ def create_sounds_tab(app):
         width=10,
     )
     siren_duration_entry.grid(
-        row=1,
+        row=0,
         column=1,
         sticky="w",
         padx=(0, 10),
-        pady=(8, 8),
+        pady=(12, 8),
     )
 
     def validate_siren_duration(new_value):
@@ -581,10 +559,11 @@ def create_sounds_tab(app):
     siren_duration_entry.bind("<FocusOut>", normalize_siren_duration)
     siren_duration_entry.bind("<Return>", normalize_siren_duration)
 
-    ui_theme.body_label(
+    ttk.Label(
         timing_frame,
-        "Maximum Siren Duration (seconds)",
-    ).grid(row=2, column=0, sticky="ew", padx=(4, 10), pady=8)
+        text="Maximum Siren Duration (seconds)",
+        anchor="w",
+    ).grid(row=1, column=0, sticky="ew", padx=(4, 10), pady=8)
 
     max_siren_duration_entry = ttk.Entry(
         timing_frame,
@@ -592,7 +571,7 @@ def create_sounds_tab(app):
         width=10,
     )
     max_siren_duration_entry.grid(
-        row=2,
+        row=1,
         column=1,
         sticky="w",
         padx=(0, 10),
@@ -633,7 +612,7 @@ def create_sounds_tab(app):
         timing_frame,
         orient="horizontal",
     ).grid(
-        row=3,
+        row=2,
         column=0,
         columnspan=2,
         sticky="ew",
@@ -641,16 +620,18 @@ def create_sounds_tab(app):
         pady=(14, 10),
     )
 
-    ui_theme.muted_label(
+    ttk.Label(
         timing_frame,
-        "Overall loudness is set by the OS/DAC/amplifier. "
-        "Trim % only attenuates individual files: 100% is native level "
-        "and 0% mutes that file.",
+        text=(
+            "Overall loudness is set by the OS/DAC/amplifier. "
+            "Trim % only attenuates individual files: 100% is native level "
+            "and 0% mutes that file."
+        ),
         justify="left",
         anchor="nw",
         wraplength=330,
     ).grid(
-        row=4,
+        row=3,
         column=0,
         columnspan=2,
         sticky="ew",
@@ -659,15 +640,18 @@ def create_sounds_tab(app):
     )
 
     if len(all_pips) > MAX_SOUND_ROWS or len(all_sirens) > MAX_SOUND_ROWS:
-        ui_theme.muted_label(
+        ttk.Label(
             timing_frame,
-            "Up to 10 pip files and 10 siren files are shown. "
-            "If more are present, the active selection is kept visible.",
+            text=(
+                "Up to 10 pip files and 10 siren files are shown. "
+                "If more are present, the active selection is kept visible."
+            ),
+            font=("Arial", 9),
             justify="left",
             anchor="nw",
             wraplength=360,
         ).grid(
-            row=5,
+            row=4,
             column=0,
             columnspan=2,
             sticky="ew",

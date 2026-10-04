@@ -313,12 +313,19 @@ def load_preset_settings(base_dir):
     if not isinstance(presets, list):
         presets = []
 
-    # v1.3.1 expands the preset bank from six to nine.  Existing named
-    # presets are preserved exactly; only missing slots are appended.
-    migrated = [item.copy() if isinstance(item, dict) else {} for item in presets[:9]]
+    # Preserve every existing preset exactly. Older six-slot settings gain
+    # three empty slots without renaming or overwriting the first six.
+    migrated = [
+        item.copy() if isinstance(item, dict) else {}
+        for item in presets[:9]
+    ]
     while len(migrated) < 9:
         number = len(migrated) + 1
-        migrated.append({"text": str(number), "values": {}, "checkboxes": {}})
+        migrated.append({
+            "text": str(number),
+            "values": {},
+            "checkboxes": {},
+        })
 
     for index, item in enumerate(migrated):
         item.setdefault("text", str(index + 1))

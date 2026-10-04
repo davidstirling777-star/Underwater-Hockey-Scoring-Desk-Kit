@@ -1,4 +1,4 @@
-"""Nine editable Game Variables presets, including click versus long hold.
+"""Six editable Game Variables presets, including click versus long hold.
 
 A short release applies the saved preset; a hold opens its editor. Keep
 widget updates and saved preset data coordinated so a dialog cancellation
@@ -49,7 +49,15 @@ def open_button_dialog(app, idx, trigger_button=None):
 
     for widget in app.widgets:
         var_name = widget["name"]
-        label = widget["label_widget"]
+        label = widget.get("label_widget")
+        label_text = (
+            label.cget("text")
+            if label is not None
+            else app.variables.get(var_name, {}).get(
+                "label",
+                f"{var_name.replace('_', ' ').title()}:"
+            )
+        )
 
         if var_name in ["time_to_start_first_game", "start_first_game_in"]:
             continue
@@ -115,7 +123,7 @@ def open_button_dialog(app, idx, trigger_button=None):
 
         tk.Label(
             dlg,
-            text=label.cget("text")
+            text=label_text
         ).grid(row=row_num, column=0, sticky="w", padx=6, pady=4)
 
         if widget["checkbox"] is not None:

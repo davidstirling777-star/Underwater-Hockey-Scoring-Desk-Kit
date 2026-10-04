@@ -30,7 +30,7 @@ operating a match.
 | File | Responsibility and place to begin |
 |---|---|
 | `uwh.py` | Composition root; Tk event handlers, audio dispatch, timers, screen state and serial/MQTT queues. |
-| `app_version.py` | User-visible semantic application version. v1.3.6 is stamped identically into Windows and Raspberry Pi 5 release packages. |
+| `app_version.py` | User-visible application version. Windows release builds stamp this to the GitHub Actions release number before PyInstaller runs. |
 | `game_engine.py` | Period list, period transitions and runtime timer/penalty state. |
 | `game_flow.py` | Tournament selection, advancing games and export-before-reset rule. |
 | `game_logging.py` | Appends the older pipe-delimited `UWH_Game_Data.txt` event log. |
@@ -39,7 +39,6 @@ operating a match.
 | `display_ui.py` | External display window creation, monitor selection and mirrored scoreboard widgets. |
 | `display_manager.py` | Penalty display label/sorting helpers. |
 | `ui_scaling.py` | Operator and external-window font resizing; avoids child-widget Configure storms. |
-| `ui_theme.py` | Shared v1.3.6 ttkbootstrap/Flatly UWH visual system for the six configuration/information tabs. The live Scoreboard and Display Window deliberately retain their classic White / grey / Black presentation palette. Keep ttkbootstrap pinned to the compatible 1.x API unless the UI code is deliberately migrated to 2.x. |
 | `penalties_ui.py` | Penalty-entry dialog and its refresh/removal handlers. |
 | `preset_manager.py` | Nine Game Variables preset buttons and long-hold editor; older six-slot settings are migrated without renaming existing presets. |
 | `csv_ui.py` | Draw-file dropdown refresh. |
@@ -54,7 +53,7 @@ operating a match.
 | `sound.py` | Audio resource loading, pygame/subprocess backends, loop control and timed cutoff. |
 | `zigbee_ui.py` | MQTT connection widgets, device-name field and per-button action mapping table. |
 | `zigbee_siren.py` | Paho MQTT connection/subscription, message filtering and optional siren-device publishes. |
-| `zigbee_control.py` | MQTT connect/refresh, connection testing and watchdog logic; the v1.3.1 operator UI no longer presents a Disconnect action. |
+| `zigbee_control.py` | Operator's Connect/Test/Disconnect buttons and connection watchdog. |
 | `zigbee_hardware_ui.py` | Display-only reporting of enumerated Arduino and coordinator ports. |
 | `serial_siren_listener.py` | COM-port detection/cache and the Arduino serial listener. |
 | `hardware_detection.py` | Hardware enumeration and saved detection metadata. |

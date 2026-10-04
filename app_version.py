@@ -1,7 +1,8 @@
 """Small, user-visible UWH application version identifier.
 
-Version 1.3.6 restores the classic match-display palette and corrects the
-approved v1.3 Game Variables, Screens and About-tab layout details.
+Source installations identify this restored classic-UI branch below. The
+release workflow calculates the next available numeric v1.2 patch release,
+then stamps that same version into both Windows and Raspberry Pi 5 packages.
 """
 
-APP_VERSION = "1.3.6"
+APP_VERSION = "1.2.source.classic"

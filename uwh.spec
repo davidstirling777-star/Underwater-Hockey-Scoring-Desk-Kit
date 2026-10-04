@@ -3,13 +3,7 @@
 import os
 import sys
 
-from PyInstaller.utils.hooks import collect_all
-
 block_cipher = None
-
-ttkbootstrap_datas, ttkbootstrap_binaries, ttkbootstrap_hiddenimports = (
-    collect_all("ttkbootstrap")
-)
 
 if getattr(sys, "frozen", False):
     spec_dir = os.path.dirname(sys.executable)
@@ -40,7 +34,6 @@ a = Analysis(
         "startup_selftest.py",
         "hardware_detection.py",
         "ui_scaling.py",
-        "ui_theme.py",
         "uwh.py",
         "zigbee_control.py",
         "zigbee_hardware_ui.py",
@@ -48,7 +41,7 @@ a = Analysis(
         "zigbee_ui.py",
     ],
     pathex=[spec_dir],
-    binaries=ttkbootstrap_binaries,
+    binaries=[],
     datas=[
         ("assets/pip-beep.mp3", "assets"),
         ("assets/pip-countdown-beep.mp3", "assets"),
@@ -57,7 +50,6 @@ a = Analysis(
         ("assets/siren-car-honk.mp3", "assets"),
         ("assets/siren-machinegun.mp3", "assets"),
         ("assets/siren-police.mp3", "assets"),
-        ("assets/About_hero_logo.png", "assets"),
 
         ("assets/LICENSE", "."),
         ("assets/settings.json", "."),
@@ -67,7 +59,7 @@ a = Analysis(
         ("README.md", "."),
         ("tournament_results_server.py", "."),
         ("HARDWARE_SETUP.md", "."),
-    ] + ttkbootstrap_datas,
+    ],
     hiddenimports=[
         "pygame",
         "paho.mqtt.client",
@@ -94,13 +86,11 @@ a = Analysis(
         "sounds_ui",
         "startup_selftest",
         "ui_scaling",
-        "ui_theme",
-        "ttkbootstrap",
         "zigbee_ui",
         "zigbee_hardware_ui",
         "zigbee_control",
         "zigbee_siren",
-    ] + ttkbootstrap_hiddenimports,
+    ],
     hookspath=[],
     runtime_hooks=[],
     excludes=[],

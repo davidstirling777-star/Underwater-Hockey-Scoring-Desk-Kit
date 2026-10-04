@@ -28,7 +28,6 @@ import settings_manager
 import settings_ui
 import sounds_ui
 import ui_scaling
-import ui_theme
 import zigbee_ui
 import zigbee_control
 import zigbee_hardware_ui
@@ -859,22 +858,10 @@ class GameManagementApp:
         )
         self._pending_settings_sections = {}
         self._settings_autosave_job = None
-        self.master.title("UWH Scoring Desk")
-        self.master.geometry("1280x860")
-        self.master.minsize(1100, 740)
-        ui_theme.configure_styles(self.master)
-        ui_theme.apply_app_icon(self.master)
-        ui_theme.create_app_header(self.master)
-
-        # The Scoreboard content remains unchanged, but all tabs now sit
-        # inside the same ttkbootstrap UWH navigation shell.
-        self.notebook = ttk.Notebook(master, style="UWH.TNotebook")
-        self.notebook.pack(
-            expand=True,
-            fill="both",
-            padx=10,
-            pady=(0, 10),
-        )
+        self.master.title("Underwater Hockey Game Management App")
+        self.master.geometry('1200x800')
+        self.notebook = ttk.Notebook(master)
+        self.notebook.pack(expand=True, fill='both',)
 
         # Ctrl+Q always provides a way out of the application.
         self.master.bind_all(
@@ -883,65 +870,21 @@ class GameManagementApp:
         )
 
         # --- Variable and font setup ---
-        # The UI must present this exact set of real game variables.  Labels
-        # are operator-facing only; keys remain stable for settings/presets.
         self.variables = {
-            "time_to_start_first_game": {
-                "default": "", "checkbox": False, "unit": "HH.mm",
-                "label": "Clock Time to Start First Game at:"
-            },
-            "start_first_game_in": {
-                "default": 1, "checkbox": False, "unit": "minutes",
-                "label": "First Game Starts In:"
-            },
-            "team_timeouts_allowed": {
-                "default": True, "checkbox": True, "unit": "",
-                "label": "Team Time-Outs allowed?"
-            },
-            "team_timeout_period": {
-                "default": 1, "checkbox": False, "unit": "minutes",
-                "label": "Team Time out period:"
-            },
-            "half_period": {
-                "default": 1, "checkbox": False, "unit": "minutes",
-                "label": "Half Period:"
-            },
-            "half_time_break": {
-                "default": 1, "checkbox": False, "unit": "minutes",
-                "label": "Half Time Break:"
-            },
-            "overtime_allowed": {
-                "default": True, "checkbox": True, "unit": "",
-                "label": "Overtime allowed?"
-            },
-            "overtime_game_break": {
-                "default": 1, "checkbox": False, "unit": "minutes",
-                "label": "Overtime Game Break:"
-            },
-            "overtime_half_period": {
-                "default": 1, "checkbox": False, "unit": "minutes",
-                "label": "Overtime Half Period:"
-            },
-            "overtime_half_time_break": {
-                "default": 1, "checkbox": False, "unit": "minutes",
-                "label": "Overtime Half Time Break:"
-            },
-            "sudden_death_game_break": {
-                "default": 1, "checkbox": True, "unit": "minutes",
-                "label": "Sudden Death Game Break:"
-            },
-            "between_game_break": {
-                "default": 1, "checkbox": False, "unit": "minutes",
-                "label": "Between Game Break:"
-            },
-            "record_scorers_cap_number": {
-                "default": False, "checkbox": True, "unit": "",
-                "label": "Record Scorers Cap Number"
-            },
-            "crib_time": {
-                "default": 1, "checkbox": True, "unit": "seconds",
-                "label": "Crib Time:"
-            }
+            "time_to_start_first_game": {"default": "", "checkbox": False, "unit": "HH:mm", "label": "Time to Start First Game:"},
+            "start_first_game_in": {"default": 1, "checkbox": False, "unit": "minutes", "label": "First Game Starts In:"},
+            "team_timeouts_allowed": {"default": True, "checkbox": True, "unit": "", "label": "Team time-outs allowed?"},
+            "team_timeout_period": {"default": 1, "checkbox": False, "unit": "minutes", "label": "Team Time-Out Period:"},
+            "half_period": {"default": 1, "checkbox": False, "unit": "minutes"},
+            "half_time_break": {"default": 1, "checkbox": False, "unit": "minutes"},
+            "overtime_allowed": {"default": True, "checkbox": True, "unit": "", "label": "Overtime allowed?"},
+            "overtime_game_break": {"default": 1, "checkbox": False, "unit": "minutes"},
+            "overtime_half_period": {"default": 1, "checkbox": False, "unit": "minutes"},
+            "overtime_half_time_break": {"default": 1, "checkbox": False, "unit": "minutes"},
+            "sudden_death_game_break": {"default": 1, "checkbox": True, "unit": "minutes"},
+            "between_game_break": {"default": 1, "checkbox": False, "unit": "minutes"},
+            "record_scorers_cap_number": {"default": False, "checkbox": True, "unit": "", "label": "Record Scorers Cap Number"},
+            "crib_time": {"default": 1, "checkbox": True, "unit": "seconds"}
         }
 
         # PATCH: Initialize 'value' and 'used' fields properly for all variables
@@ -1856,15 +1799,9 @@ class GameManagementApp:
         time_val = self.variables.get("time_to_start_first_game", {}).get("value", "")
         game_starts_in_seconds = None
         if time_val:
-            # Accept the established colon form plus the v1.3 UI's HH.mm
-            # display form. Internally both represent the same 24-hour time.
-            normalized_time = time_val.strip().replace(".", ":")
-            match = re.fullmatch(
-                r"(?:[01]?[0-9]|2[0-3]):[0-5][0-9]",
-                normalized_time
-            )
+            match = re.fullmatch(r"(?:[01]?[0-9]|2[0-3]):[0-5][0-9]", time_val.strip())
             if match:
-                hh, mm = map(int, normalized_time.split(":"))
+                hh, mm = map(int, time_val.strip().split(":"))
                 target = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
                 if target < now:
                     target = target + datetime.timedelta(days=1)
@@ -2341,7 +2278,7 @@ class GameManagementApp:
         self.save_game_settings()
     
     def _update_start_first_game_in(self):
-        """Calculate First Game Starts In for H.MM/HH.MM or colon clock times."""
+        """Calculate First Game Starts In for H:MM or HH:MM clock times."""
         time_entry_val = None
         start_first_game_in_widget = None
         
@@ -2356,13 +2293,9 @@ class GameManagementApp:
         now = datetime.datetime.now()
         if time_entry_val:
             try:
-                normalized_time = time_entry_val.replace(".", ":")
-                time_match = re.match(
-                    r"^(?:[01]?[0-9]|2[0-3]):[0-5][0-9]$",
-                    normalized_time
-                )
+                time_match = re.match(r"^(?:[01]?[0-9]|2[0-3]):[0-5][0-9]$", time_entry_val)
                 if time_match:
-                    hh, mm = map(int, normalized_time.split(":"))
+                    hh, mm = map(int, time_entry_val.split(":"))
                     target = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
                     if target < now:
                         target = target + datetime.timedelta(days=1)
@@ -2398,8 +2331,8 @@ class GameManagementApp:
                 now = datetime.datetime.now()
                 target = now + datetime.timedelta(minutes=int(start_minutes))
                 
-                # v1.3 presents clock times as HH.mm.
-                time_str = f"{target.hour:02d}.{target.minute:02d}"
+                # Format as HH:MM
+                time_str = f"{target.hour:02d}:{target.minute:02d}"
                 
                 # Update the widget
                 time_widget.delete(0, tk.END)
@@ -2621,8 +2554,6 @@ class GameManagementApp:
                 self._zigbee_map_dirty = False
             if hasattr(self, "_zigbee_mapping_save_btn"):
                 self._zigbee_mapping_save_btn.config(text="Save Action Mappings")
-            if hasattr(self, "refresh_zigbee_device_list"):
-                self.refresh_zigbee_device_list()
             self.add_to_zigbee_log("Configuration saved")
             messagebox.showinfo("Configuration", "Zigbee configuration saved successfully!")
         except Exception as e:
@@ -2797,28 +2728,22 @@ class GameManagementApp:
         self.save_game_settings()
 
     def update_overtime_variables_state(self):
-        """Enable/disable every overtime value while leaving its switch usable."""
         overtime_enabled = self.overtime_allowed_var.get()
         for widget in self.widgets:
             name = widget.get("name", "")
-            if name in [
-                "overtime_game_break",
-                "overtime_half_period",
-                "overtime_half_time_break",
-            ]:
+            if name in ["overtime_game_break", "overtime_half_period", "overtime_half_time_break"]:
                 label = widget.get("label_widget")
                 entry = widget.get("entry")
-                unit = widget.get("unit_widget")
-                text_colour = "black" if overtime_enabled else "grey"
-
-                if label:
-                    label.config(fg=text_colour)
-                if unit:
-                    unit.config(fg=text_colour)
-                if entry:
-                    entry.config(
-                        state="normal" if overtime_enabled else "disabled"
-                    )
+                if overtime_enabled:
+                    if label:
+                        label.config(fg="black")
+                    if entry:
+                        entry.config(state="normal")
+                else:
+                    if label:
+                        label.config(fg="grey")
+                    if entry:
+                        entry.config(state="disabled")
                         
     def create_display_window(self):
         return display_ui.create_display_window(self)
@@ -3221,9 +3146,9 @@ class GameManagementApp:
                 )
                 self.sudden_death_timer_job = None
 
-            # A normal entry to Sudden Death starts at 00:00. If a deciding
-            # goal was retracted during Between Game Break, keep the elapsed
-            # Sudden Death time that was saved when that goal was recorded.
+            # A normal entry starts at 00:00. If the deciding goal was
+            # retracted during Between Game Break, resume from the saved
+            # Sudden Death elapsed time.
             if (
                 self.engine.sudden_death_restore_active
                 and self.engine.sudden_death_restore_time is not None
@@ -3238,9 +3163,8 @@ class GameManagementApp:
 
             self.engine.start_timer()
 
-            # Arm the first tick before refreshing secondary UI/logging.
-            # A presentation trace or log failure must never prevent the
-            # Sudden Death clock from starting.
+            # Arm the first tick before secondary UI/log work so an unrelated
+            # display callback cannot silently stop the count-up.
             self.sudden_death_timer_job = self.master.after(
                 1000,
                 self.start_sudden_death_timer
@@ -3496,13 +3420,8 @@ class GameManagementApp:
         self.start_current_period()
 
     def start_sudden_death_timer(self):
-        """Advance the Sudden Death count-up and schedule the next tick.
-
-        This callback is owned by the Tk app itself. Keeping the whole
-        lifecycle here avoids the previous split scheduling path between
-        uwh.py and game_flow.py and makes stale/cancelled jobs explicit.
-        """
-        # The callback that invoked us has now fired.
+        """Advance the Sudden Death count-up and schedule the next tick."""
+        # The callback that invoked us has fired; clear the old job id.
         self.sudden_death_timer_job = None
 
         cur_period = self.engine.get_current_period()
@@ -3516,8 +3435,7 @@ class GameManagementApp:
 
         self.engine.sudden_death_seconds += 1
 
-        # Schedule the next tick before touching display callbacks. This makes
-        # the clock resilient to an unexpected presentation/UI trace error.
+        # Schedule the next tick before presentation callbacks.
         self.sudden_death_timer_job = self.master.after(
             1000,
             self.start_sudden_death_timer
