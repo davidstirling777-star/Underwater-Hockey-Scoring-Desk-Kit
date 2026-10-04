@@ -90,13 +90,12 @@ def create_settings_tab(app):
             padx=8,
         ).grid(row=row, column=3, sticky="ew")
 
-    def checkbox_cell(row, variable, command):
+    def checkbox_cell(row, variable):
         frame = tk.Frame(variables_card, bg=ui_theme.COLORS["surface"])
         frame.grid(row=row, column=1, sticky="nsew")
         cb = ttk.Checkbutton(
             frame,
             variable=variable,
-            command=command,
             style="UWH.TCheckbutton",
         )
         cb.pack(expand=True)
@@ -249,11 +248,7 @@ def create_settings_tab(app):
         if var_name == "team_timeout_period":
             # One line in the new UI: the enable switch belongs to
             # team_timeouts_allowed; the value belongs to team_timeout_period.
-            checkbox_cell(
-                row,
-                app.team_timeouts_allowed_var,
-                app._on_team_timeouts_change,
-            )
+            checkbox_cell(row, app.team_timeouts_allowed_var)
             app.team_timeouts_allowed_var.trace_add(
                 "write", lambda *_args: app._on_team_timeouts_change()
             )
@@ -273,11 +268,7 @@ def create_settings_tab(app):
             app.team_timeout_period_label = label
 
         elif var_name == "overtime_allowed":
-            checkbox_cell(
-                row,
-                app.overtime_allowed_var,
-                app._on_overtime_change,
-            )
+            checkbox_cell(row, app.overtime_allowed_var)
             app.overtime_allowed_var.trace_add(
                 "write", lambda *_args: app._on_overtime_change()
             )
@@ -289,13 +280,7 @@ def create_settings_tab(app):
             })
 
         elif var_name == "record_scorers_cap_number":
-            checkbox_cell(
-                row,
-                app.record_scorers_cap_number_var,
-                lambda: app._on_single_variable_change(
-                    "record_scorers_cap_number"
-                ),
-            )
+            checkbox_cell(row, app.record_scorers_cap_number_var)
             app.record_scorers_cap_number_var.trace_add(
                 "write",
                 lambda *_args: app._on_single_variable_change(
@@ -311,11 +296,7 @@ def create_settings_tab(app):
 
         elif info.get("checkbox"):
             check_var = tk.BooleanVar(value=True)
-            checkbox_cell(
-                row,
-                check_var,
-                lambda name=var_name: app._on_single_variable_change(name),
-            )
+            checkbox_cell(row, check_var)
             check_var.trace_add(
                 "write",
                 lambda *_args, name=var_name:
