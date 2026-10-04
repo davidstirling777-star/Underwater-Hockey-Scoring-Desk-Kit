@@ -35,6 +35,8 @@ def _restore_classic_scoreboard_palette(app):
          {"bg": "black", "fg": "white"}),
         (getattr(app, "penalty_background", None),
          {"bg": "lightgrey"}),
+        (getattr(app, "game_label", None),
+         {"bg": "lightgrey", "fg": "black"}),
         (getattr(app, "timer_label", None),
          {"bg": "lightgrey", "fg": "black"}),
         (getattr(app, "white_timeout_button", None),
