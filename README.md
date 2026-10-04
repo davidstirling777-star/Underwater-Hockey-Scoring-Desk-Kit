@@ -323,9 +323,9 @@ Most period-duration boxes accept decimal **minutes**, e.g. `1.5` (or `1,5`) = 1
 
 **Half Time Break:** The time in minutes of the half time break.
 
-**Overtime allowed?** is a checkbox that, when selected, enables the program to enter Overtime if the scores are tied at the end of normal play. It also enables/disables the 'Overtime Game Break:', 'Overtime Half Period' and 'Overtime Half Time Break' value boxes.
+**Overtime** is enabled by the checkbox beside **Overtime Game Break:**. When selected, the program may enter Overtime if the scores are tied at the end of normal play. When it is off, the Overtime Game Break, Overtime Half Period and Overtime Half Time Break values are greyed out and disabled.
 
-**Overtime Game Break:** The time in minutes of the break between the end of the second half and the start of Overtime.
+**Overtime Game Break:** The time in minutes of the break between the end of the second half and the start of Overtime. Its row also contains the Overtime enable checkbox.
 
 **Overtime Half Period:** The time in minutes of the Overtime halves.
 
@@ -343,7 +343,7 @@ Most period-duration boxes accept decimal **minutes**, e.g. `1.5` (or `1,5`) = 1
 
 ### Presets
 
-Here, six buttons are located where commonly used settings can be stored. Holding a preset button for **three seconds** opens its editor, where the button name and saved settings can be changed. Click the stored button to load those settings back into the Game Variables.
+Here, **nine** buttons are available for commonly used settings. Existing six-button settings are preserved; slots 7, 8 and 9 are added empty. Holding a preset button for **three seconds** opens its editor, where the button name and saved settings can be changed. Click the stored button to load those settings back into the Game Variables.
 
 ## Tournament List tab
 
