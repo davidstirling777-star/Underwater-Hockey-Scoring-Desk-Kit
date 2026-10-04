@@ -39,6 +39,7 @@ def load_uwh_methods():
         "add_goal_with_confirmation",
         "adjust_score_with_confirm",
         "restore_sudden_death_after_goal_removal",
+        "start_sudden_death_timer",
         "next_period",
     }
     app_class = next(
@@ -70,6 +71,22 @@ def load_uwh_methods():
     return namespace["SuddenDeathCallbacks"]
 
 
+class FakeClock:
+    def __init__(self):
+        self.callbacks = []
+        self.cancelled = []
+        self.counter = 0
+
+    def after(self, delay_ms, callback):
+        self.counter += 1
+        job = f"after-{self.counter}"
+        self.callbacks.append((job, delay_ms, callback))
+        return job
+
+    def after_cancel(self, job):
+        self.cancelled.append(job)
+
+
 class FakeApp(load_uwh_methods()):
     def __init__(self):
         self.engine = GameEngine()
@@ -88,6 +105,8 @@ class FakeApp(load_uwh_methods()):
         self.referee_timeout_active = False
         self.timer_job = None
         self.sudden_death_timer_job = None
+        self.master = FakeClock()
+        self.displayed_sudden_death_seconds = []
         self._game_export_pending = False
         self._pending_export_game_number = None
         self.next_game_transition_done = False
@@ -113,17 +132,65 @@ class FakeApp(load_uwh_methods()):
         self.events.append((event_type, kwargs))
 
     def start_current_period(self):
-        # The real method configures the appropriate timer. The regression
-        # only needs to prove which period was selected and that it runs.
+        # Mirror the Sudden Death restoration part of the real period-start
+        # method while keeping the test headless.
         period = self.engine.get_current_period()
         self.period_starts.append(period["name"])
+        if (
+            period["name"] == "Sudden Death"
+            and self.engine.sudden_death_restore_active
+            and self.engine.sudden_death_restore_time is not None
+        ):
+            self.engine.sudden_death_seconds = (
+                self.engine.sudden_death_restore_time
+            )
+            self.engine.sudden_death_restore_active = False
+            self.engine.sudden_death_restore_time = None
         self.engine.start_timer()
+
+    def update_timer_display(self):
+        self.displayed_sudden_death_seconds.append(
+            self.engine.sudden_death_seconds
+        )
 
     def get_current_game_number(self):
         return self.starting_game_var.get()
 
 
 class SuddenDeathRecoveryTests(unittest.TestCase):
+    def test_sudden_death_countup_ticks_and_reschedules(self):
+        app = FakeApp()
+        app.engine.go_to_period("Sudden Death")
+        app.engine.sudden_death_seconds = 0
+        app.engine.start_timer()
+
+        app.start_sudden_death_timer()
+
+        self.assertEqual(app.engine.sudden_death_seconds, 1)
+        self.assertEqual(app.displayed_sudden_death_seconds[-1], 1)
+        self.assertIsNotNone(app.sudden_death_timer_job)
+        self.assertEqual(len(app.master.callbacks), 1)
+        _, delay_ms, callback = app.master.callbacks.pop(0)
+        self.assertEqual(delay_ms, 1000)
+
+        callback()
+
+        self.assertEqual(app.engine.sudden_death_seconds, 2)
+        self.assertEqual(app.displayed_sudden_death_seconds[-1], 2)
+        self.assertEqual(len(app.master.callbacks), 1)
+
+    def test_sudden_death_tick_stops_after_period_changes(self):
+        app = FakeApp()
+        app.engine.go_to_period("Between Game Break")
+        app.engine.sudden_death_seconds = 17
+        app.engine.start_timer()
+
+        app.start_sudden_death_timer()
+
+        self.assertEqual(app.engine.sudden_death_seconds, 17)
+        self.assertIsNone(app.sudden_death_timer_job)
+        self.assertEqual(len(app.master.callbacks), 0)
+
     def test_deciding_goal_immediately_enters_between_game_break(self):
         app = FakeApp()
         app.engine.sudden_death_seconds = 725
