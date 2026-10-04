@@ -282,21 +282,79 @@ def save_action_mappings(app):
 
 
 def _create_mapping_table(app, parent, config):
-    """Create the scrollable mapping table with all five operator actions."""
+    """Create the compact, scrollable mapping table and operator actions."""
     mapping = ui_theme.card(parent, padding=10)
     mapping.grid_columnconfigure(0, weight=1)
     mapping.grid_rowconfigure(2, weight=1)
 
-    ui_theme.section_title(mapping, "Button Action Mapping").grid(
-        row=0, column=0, sticky="w", pady=(0, 4)
-    )
-    ui_theme.muted_label(
+    # Keep the section title and actions in one compact header row.  The
+    # buttons must be children of this toolbar; placing them directly in the
+    # mapping card makes column 0 expand into a giant Add Mapping button and
+    # covers the section title.
+    mapping_header = tk.Frame(
         mapping,
+        bg=ui_theme.COLORS["surface"],
+    )
+    mapping_header.grid(row=0, column=0, sticky="ew", pady=(0, 5))
+    mapping_header.grid_columnconfigure(0, weight=1)
+
+    ui_theme.section_title(
+        mapping_header,
+        "Button Action Mapping",
+    ).grid(row=0, column=0, sticky="w")
+
+    toolbar = tk.Frame(
+        mapping_header,
+        bg=ui_theme.COLORS["surface"],
+    )
+    toolbar.grid(row=0, column=1, sticky="e")
+
+    buttons = (
+        ("Add Mapping", lambda: _edit_mapping_dialog(app)),
+        ("Edit Mapping", lambda: (
+            _edit_mapping_dialog(app, index)
+            if (index := _selected_mapping_index(app)) is not None
+            else None
+        )),
+        ("Delete Mapping", lambda: _delete_mapping(app)),
+        ("Auto-add From Log", lambda: _auto_add_from_log(app)),
+        ("Save Action Mappings", lambda: save_action_mappings(app)),
+    )
+
+    for column, (label, command) in enumerate(buttons):
+        if label == "Save Action Mappings":
+            button = ui_theme.primary_button(toolbar, label, command)
+        elif label == "Delete Mapping":
+            button = ui_theme.danger_button(toolbar, label, command)
+        else:
+            button = ui_theme.secondary_button(toolbar, label, command)
+        button.grid(row=0, column=column, padx=3)
+        if label == "Add Mapping":
+            app._zigbee_mapping_add_btn = button
+        elif label == "Edit Mapping":
+            app._zigbee_mapping_edit_btn = button
+        elif label == "Save Action Mappings":
+            app._zigbee_mapping_save_btn = button
+
+    mapping_info = tk.Frame(
+        mapping,
+        bg=ui_theme.COLORS["surface"],
+    )
+    mapping_info.grid(row=1, column=0, sticky="ew", pady=(0, 6))
+    mapping_info.grid_columnconfigure(0, weight=1)
+
+    ui_theme.muted_label(
+        mapping_info,
         "Match each configured device/action to a UWH siren action. "
         "Unrecognised actions are logged and ignored.",
-        wraplength=1050,
+        wraplength=760,
         justify="left",
-    ).grid(row=1, column=0, sticky="w", pady=(0, 6))
+    ).grid(row=0, column=0, sticky="w")
+
+    app._zigbee_mapping_count = ui_theme.muted_label(mapping_info)
+    app._zigbee_mapping_count.grid(
+        row=0, column=1, sticky="e", padx=(12, 0)
+    )
 
     frame = ttk.Frame(mapping, style="UWH.Surface.TFrame")
     frame.grid(row=2, column=0, sticky="nsew")
@@ -308,7 +366,7 @@ def _create_mapping_table(app, parent, config):
         frame,
         columns=columns,
         show="headings",
-        height=5,
+        height=4,
         selectmode="browse",
         style="UWH.Treeview",
     )
@@ -329,41 +387,6 @@ def _create_mapping_table(app, parent, config):
     tree.configure(yscrollcommand=vert.set, xscrollcommand=horiz.set)
     vert.grid(row=0, column=1, sticky="ns")
     horiz.grid(row=1, column=0, sticky="ew")
-
-    toolbar = tk.Frame(mapping, bg=ui_theme.COLORS["surface"])
-    toolbar.grid(row=3, column=0, sticky="ew", pady=(8, 0))
-    for column in range(5):
-        toolbar.grid_columnconfigure(column, weight=1)
-
-    buttons = (
-        ("Add Mapping", lambda: _edit_mapping_dialog(app)),
-        ("Edit Mapping", lambda: (
-            _edit_mapping_dialog(app, index)
-            if (index := _selected_mapping_index(app)) is not None
-            else None
-        )),
-        ("Delete Mapping", lambda: _delete_mapping(app)),
-        ("Auto-add From Log", lambda: _auto_add_from_log(app)),
-        ("Save Action Mappings", lambda: save_action_mappings(app)),
-    )
-
-    for column, (label, command) in enumerate(buttons):
-        if label == "Save Action Mappings":
-            button = ui_theme.primary_button(mapping, label, command)
-        elif label == "Delete Mapping":
-            button = ui_theme.danger_button(mapping, label, command)
-        else:
-            button = ui_theme.secondary_button(mapping, label, command)
-        button.grid(row=0, column=column, sticky="ew", padx=3)
-        if label == "Add Mapping":
-            app._zigbee_mapping_add_btn = button
-        elif label == "Edit Mapping":
-            app._zigbee_mapping_edit_btn = button
-        elif label == "Save Action Mappings":
-            app._zigbee_mapping_save_btn = button
-
-    app._zigbee_mapping_count = ui_theme.muted_label(mapping)
-    app._zigbee_mapping_count.grid(row=4, column=0, sticky="w", pady=(5, 0))
 
     devices = config.get("siren_button_devices", [])
     if not isinstance(devices, list):
