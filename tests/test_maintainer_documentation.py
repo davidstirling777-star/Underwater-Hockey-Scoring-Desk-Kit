@@ -25,7 +25,7 @@ class MaintenanceDocumentationTests(unittest.TestCase):
             "tournament_results_server.py",
             "game_settings_manager.py", "settings_manager.py",
             "settings_ui.py", "scoreboard_ui.py", "display_ui.py",
-            "display_manager.py", "ui_scaling.py", "penalties_ui.py",
+            "display_manager.py", "ui_scaling.py", "ui_theme.py", "penalties_ui.py",
             "preset_manager.py", "sounds_ui.py", "sound.py",
             "startup_selftest.py", "zigbee_siren.py", "zigbee_ui.py",
             "zigbee_control.py", "zigbee_hardware_ui.py",
@@ -103,9 +103,20 @@ class MaintenanceDocumentationTests(unittest.TestCase):
         self.assertIn('app.notebook.add(tab, text="About")', settings_ui)
         self.assertIn("def create_tournament_tab(app):", settings_ui)
         self.assertIn("def create_about_tab(app, readme_path):", settings_ui)
-        self.assertIn("rowspan=2", settings_ui)
         self.assertIn("Path(readme_path)", settings_ui)
-        self.assertIn("path.resolve().as_uri()", settings_ui)
+        self.assertIn("readme.resolve().as_uri()", settings_ui)
+        self.assertIn(
+            "Enables loading of game data from a tournament draw file",
+            settings_ui,
+        )
+        self.assertIn(
+            "A tool for sirens, scoring, penalties and happier players",
+            settings_ui,
+        )
+        self.assertIn(
+            "by ChatGPT. Conducted by David Stirling",
+            settings_ui,
+        )
         self.assertIn(
             "https://github.com/davidstirling777-star/",
             settings_ui,
@@ -127,6 +138,67 @@ class MaintenanceDocumentationTests(unittest.TestCase):
         ):
             with self.subTest(label=label):
                 self.assertIn(f'("{label}"', zigbee_ui)
+
+    def test_game_variables_uses_only_real_runtime_variables(self):
+        uwh = source("uwh.py")
+        settings_ui = source("settings_ui.py")
+        required = (
+            "time_to_start_first_game",
+            "start_first_game_in",
+            "team_timeouts_allowed",
+            "team_timeout_period",
+            "half_period",
+            "half_time_break",
+            "overtime_allowed",
+            "overtime_game_break",
+            "overtime_half_period",
+            "overtime_half_time_break",
+            "sudden_death_game_break",
+            "between_game_break",
+            "record_scorers_cap_number",
+            "crib_time",
+        )
+        for name in required:
+            with self.subTest(name=name):
+                self.assertIn(f'"{name}"', uwh)
+                self.assertIn(f'"{name}"', settings_ui)
+        self.assertIn("Clock Time to Start First Game at:", uwh)
+        self.assertIn('"unit": "HH.mm"', uwh)
+        self.assertIn("Team Time out period:", uwh)
+        self.assertIn("Sudden Death Game Break:", uwh)
+        self.assertNotIn("Referee Time-Out", settings_ui)
+        self.assertNotIn("Start countdown at", settings_ui)
+        self.assertNotIn("Warning pip interval", settings_ui)
+
+    def test_game_variables_has_nine_presets_and_migrates_old_six(self):
+        settings_ui = source("settings_ui.py")
+        settings_manager = source("settings_manager.py")
+        self.assertIn("for index in range(9):", settings_ui)
+        self.assertIn("while len(migrated) < 9:", settings_manager)
+        for number in ("7", "8", "9"):
+            self.assertIn(f'{{"text": "{number}", "values": {{}}, "checkboxes": {{}}}}', settings_manager)
+
+    def test_screens_tab_has_approved_controls_only(self):
+        settings_ui = source("settings_ui.py")
+        self.assertIn('"Auto Detect Screens"', settings_ui)
+        self.assertIn('"Test Displays"', settings_ui)
+        self.assertIn('"Show team names"', settings_ui)
+        self.assertIn('"Detected Displays"', settings_ui)
+        self.assertNotIn("Layout Preview", settings_ui)
+        self.assertNotIn("Close display windows when exiting", settings_ui)
+
+    def test_zigbee_new_look_keeps_real_controls_and_four_visible_devices(self):
+        zigbee_ui = source("zigbee_ui.py")
+        self.assertIn('"Configured Devices"', zigbee_ui)
+        self.assertIn("height=4", zigbee_ui)
+        self.assertIn('"Recent Events"', zigbee_ui)
+        self.assertIn('"Zigbee Dongle"', zigbee_ui)
+        self.assertIn('"Arduino Port"', zigbee_ui)
+        self.assertIn('"Connect / Refresh"', zigbee_ui)
+        self.assertIn('"Test Connection"', zigbee_ui)
+        self.assertIn('"Retest Hardware"', zigbee_ui)
+        self.assertIn('"Open Zigbee2MQTT Frontend"', zigbee_ui)
+        self.assertNotIn('text="Disconnect"', zigbee_ui)
 
     def test_sounds_tab_reports_the_startup_audio_output(self):
         sound = source("sound.py")
@@ -163,18 +235,17 @@ class MaintenanceDocumentationTests(unittest.TestCase):
         self.assertIn("Trim %", source("README.md"))
         self.assertIn("hardware", source("README.md").lower())
 
-    def test_game_variables_shows_user_visible_app_version(self):
+    def test_new_look_uses_explicit_v131_everywhere(self):
         settings_ui = source("settings_ui.py")
         version = source("app_version.py")
         workflow = source(".github/workflows/build-exe.yml")
-        readme = source("README.md")
 
         self.assertIn("from app_version import APP_VERSION", settings_ui)
         self.assertIn('text=f"UWH v{APP_VERSION}"', settings_ui)
-        self.assertIn('APP_VERSION = "1.2.source.', version)
+        self.assertIn('APP_VERSION = "1.3.1"', version)
+        self.assertIn('RELEASE_VERSION: "1.3.1"', workflow)
+        self.assertNotIn("RELEASE_SERIES", workflow)
         self.assertIn("Stamp application version", workflow)
-        self.assertIn("github.run_number", workflow)
-        self.assertIn("lower-right corner", readme)
 
     def test_sounds_tab_has_two_fixed_ten_row_sound_tables(self):
         sounds_ui = source("sounds_ui.py")
