@@ -60,12 +60,11 @@ class ReleaseOrderTests(unittest.TestCase):
         )
         self.assertTrue(allowed)
 
-    def test_release_series_rollback_does_not_override_newer_series(self):
+    def test_deliberate_1_2_restoration_ignores_1_3_series(self):
         allowed, reason = gate.release_is_current(
             "main", "main", "v1.2.742", [release("v1.3.741")]
         )
-        self.assertFalse(allowed)
-        self.assertIn("v1.3.741", reason)
+        self.assertTrue(allowed, reason)
 
     def test_new_release_series_can_publish(self):
         allowed, _ = gate.release_is_current(
@@ -112,8 +111,7 @@ class ReleaseOrderTests(unittest.TestCase):
             env = {
                 "GITHUB_REPOSITORY": "owner/repo",
                 "GITHUB_SHA": "old-commit",
-                "GITHUB_RUN_NUMBER": "740",
-                "RELEASE_SERIES": "1.2",
+                "RELEASE_VERSION": "1.2.740",
                 "GITHUB_TOKEN": "fake-test-token",
                 "GITHUB_OUTPUT": str(output),
             }
@@ -133,8 +131,7 @@ class ReleaseOrderTests(unittest.TestCase):
             env = {
                 "GITHUB_REPOSITORY": "owner/repo",
                 "GITHUB_SHA": "main",
-                "GITHUB_RUN_NUMBER": "740",
-                "RELEASE_SERIES": "1.2",
+                "RELEASE_VERSION": "1.2.740",
                 "GITHUB_TOKEN": "fake-test-token",
                 "GITHUB_OUTPUT": str(output),
             }
@@ -151,8 +148,7 @@ class ReleaseOrderTests(unittest.TestCase):
             env = {
                 "GITHUB_REPOSITORY": "owner/repo",
                 "GITHUB_SHA": "main",
-                "GITHUB_RUN_NUMBER": "742",
-                "RELEASE_SERIES": "1.2",
+                "RELEASE_VERSION": "1.2.742",
                 "GITHUB_TOKEN": "fake-test-token",
                 "GITHUB_OUTPUT": str(output),
             }
@@ -169,7 +165,10 @@ class ReleaseOrderTests(unittest.TestCase):
         self.assertIn("runs-on: windows-2022", source)
         self.assertIn("  build-rpi5:", source)
         self.assertIn("runs-on: ubuntu-22.04-arm", source)
-        self.assertIn("needs: [build-windows, build-rpi5]", source)
+        self.assertIn("  version:", source)
+        self.assertIn("Choose next 1.2 release", source)
+        self.assertIn("needs: [version, build-windows, build-rpi5]", source)
+        self.assertIn("next_release_version.py", source)
         self.assertIn("if: github.event_name != 'pull_request'", source)
         self.assertIn("group: uwh-release-publish", source)
         self.assertIn("queue: max", source)
