@@ -3222,6 +3222,14 @@ class GameManagementApp:
                 self.engine.sudden_death_seconds = 0
 
             self.engine.start_timer()
+
+            # Arm the first tick before refreshing secondary UI/logging.
+            # A presentation trace or log failure must never prevent the
+            # Sudden Death clock from starting.
+            self.sudden_death_timer_job = self.master.after(
+                1000,
+                self.start_sudden_death_timer
+            )
             self.update_timer_display()
 
             event_name = self.engine.period_start_event_name(
@@ -3230,11 +3238,6 @@ class GameManagementApp:
 
             if event_name:
                 self.log_game_event(event_name)
-
-            self.sudden_death_timer_job = self.master.after(
-                1000,
-                self.start_sudden_death_timer
-            )
 
         else:
             self.engine.set_timer_seconds(
@@ -3497,12 +3500,14 @@ class GameManagementApp:
             return
 
         self.engine.sudden_death_seconds += 1
-        self.update_timer_display()
 
+        # Schedule the next tick before touching display callbacks. This makes
+        # the clock resilient to an unexpected presentation/UI trace error.
         self.sudden_death_timer_job = self.master.after(
             1000,
             self.start_sudden_death_timer
         )
+        self.update_timer_display()
 
     def goto_between_game_break(self):
         self.engine.go_to_period('Between Game Break')
