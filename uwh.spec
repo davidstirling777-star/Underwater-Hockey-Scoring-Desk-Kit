@@ -88,6 +88,7 @@ a = Analysis(
         "startup_selftest",
         "ui_scaling",
         "ui_theme",
+        "ttkbootstrap",
         "zigbee_ui",
         "zigbee_hardware_ui",
         "zigbee_control",
