@@ -42,6 +42,11 @@ def export_and_reset_game_at_break(app, game_number=None):
     app.clear_all_penalties()
     app.engine.clear_goal_scorers()
 
+    # Sudden Death restoration remains available only during the correction
+    # window. Once the completed game has been safely committed, clear it so
+    # a later game cannot inherit stale deciding-goal state.
+    app.engine.clear_sudden_death_goal()
+
     # Reselect the completed game if choosing another CSV during recovery
     # altered the tournament dropdown; advance from its original position.
     if current_game in app.game_numbers:
@@ -52,16 +57,8 @@ def export_and_reset_game_at_break(app, game_number=None):
     return True
 
 def start_sudden_death_timer(app):
-    if not app.engine.timer_running:
-        return
-
-    app.engine.sudden_death_seconds += 1
-    app.update_timer_display()
-
-    app.sudden_death_timer_job = app.master.after(
-        1000,
-        lambda: start_sudden_death_timer(app)
-    )
+    """Compatibility wrapper; the Tk application owns the count-up tick."""
+    return app.start_sudden_death_timer()
 
 
 def stop_sudden_death_timer(app):
