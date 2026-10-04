@@ -123,7 +123,7 @@ def open_button_dialog(app, idx, trigger_button=None):
 
         tk.Label(
             dlg,
-            text=label.cget("text")
+            text=label_text
         ).grid(row=row_num, column=0, sticky="w", padx=6, pady=4)
 
         if widget["checkbox"] is not None:
