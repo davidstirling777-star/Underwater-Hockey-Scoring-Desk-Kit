@@ -33,7 +33,14 @@ def release_is_current(build_sha, main_sha, build_tag, releases):
         if release.get("draft") or release.get("prerelease"):
             continue
         published_version = parse_version(release.get("tag_name"))
-        if published_version is not None and published_version >= version:
+        # A deliberate UI-series rollback may coexist briefly with a newer
+        # major/minor release while the replacement build is being published.
+        # Prevent stale releases only within the target major/minor series.
+        if (
+            published_version is not None
+            and published_version[:2] == version[:2]
+            and published_version >= version
+        ):
             return (
                 False,
                 f"release {release['tag_name']} has already been published",
