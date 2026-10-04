@@ -57,16 +57,8 @@ def export_and_reset_game_at_break(app, game_number=None):
     return True
 
 def start_sudden_death_timer(app):
-    if not app.engine.timer_running:
-        return
-
-    app.engine.sudden_death_seconds += 1
-    app.update_timer_display()
-
-    app.sudden_death_timer_job = app.master.after(
-        1000,
-        lambda: start_sudden_death_timer(app)
-    )
+    """Compatibility wrapper for older callers; the Tk app owns the tick."""
+    return app.start_sudden_death_timer()
 
 
 def stop_sudden_death_timer(app):
