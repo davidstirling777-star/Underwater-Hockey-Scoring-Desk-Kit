@@ -2797,22 +2797,28 @@ class GameManagementApp:
         self.save_game_settings()
 
     def update_overtime_variables_state(self):
+        """Enable/disable every overtime value while leaving its switch usable."""
         overtime_enabled = self.overtime_allowed_var.get()
         for widget in self.widgets:
             name = widget.get("name", "")
-            if name in ["overtime_game_break", "overtime_half_period", "overtime_half_time_break"]:
+            if name in [
+                "overtime_game_break",
+                "overtime_half_period",
+                "overtime_half_time_break",
+            ]:
                 label = widget.get("label_widget")
                 entry = widget.get("entry")
-                if overtime_enabled:
-                    if label:
-                        label.config(fg="black")
-                    if entry:
-                        entry.config(state="normal")
-                else:
-                    if label:
-                        label.config(fg="grey")
-                    if entry:
-                        entry.config(state="disabled")
+                unit = widget.get("unit_widget")
+                text_colour = "black" if overtime_enabled else "grey"
+
+                if label:
+                    label.config(fg=text_colour)
+                if unit:
+                    unit.config(fg=text_colour)
+                if entry:
+                    entry.config(
+                        state="normal" if overtime_enabled else "disabled"
+                    )
                         
     def create_display_window(self):
         return display_ui.create_display_window(self)

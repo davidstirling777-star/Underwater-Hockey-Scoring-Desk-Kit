@@ -57,6 +57,7 @@ a = Analysis(
         ("assets/siren-car-honk.mp3", "assets"),
         ("assets/siren-machinegun.mp3", "assets"),
         ("assets/siren-police.mp3", "assets"),
+        ("assets/About_hero_logo.png", "assets"),
 
         ("assets/LICENSE", "."),
         ("assets/settings.json", "."),

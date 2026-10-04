@@ -10,13 +10,21 @@ import tkinter as tk
 from tkinter import ttk, font, messagebox
 from pathlib import Path
 import re
+import sys
 import webbrowser
 
 from app_version import APP_VERSION
 import ui_theme
 
+
+def _resource_file(relative_path):
+    """Resolve a packaged/source resource without changing the writable data path."""
+    base = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
+    return base / relative_path
+
+
 def create_settings_tab(app):
-    """Create the v1.3.5 Game Variables tab using the approved mockup style."""
+    """Create the v1.3.6 Game Variables tab using the approved mockup style."""
     tab = ttk.Frame(app.notebook, style="UWH.Tab.TFrame")
     app.notebook.add(
         tab,
@@ -124,7 +132,7 @@ def create_settings_tab(app):
         return label
 
     def unit_label(row, text):
-        tk.Label(
+        label = tk.Label(
             variables_card,
             text=text,
             bg=ui_theme.COLORS["surface"],
@@ -132,7 +140,9 @@ def create_settings_tab(app):
             font=ui_theme.SMALL_FONT,
             anchor="w",
             padx=8,
-        ).grid(row=row, column=3, sticky="ew")
+        )
+        label.grid(row=row, column=3, sticky="ew")
+        return label
 
     def checkbox_cell(row, variable):
         frame = tk.Frame(
@@ -276,7 +286,6 @@ def create_settings_tab(app):
         "team_timeout_period",
         "half_period",
         "half_time_break",
-        "overtime_allowed",
         "overtime_game_break",
         "overtime_half_period",
         "overtime_half_time_break",
@@ -298,16 +307,14 @@ def create_settings_tab(app):
         )
 
         entry = None
-        if var_name not in (
-            "overtime_allowed",
-            "record_scorers_cap_number",
-        ):
+        unit_widget = None
+        if var_name != "record_scorers_cap_number":
             entry = entry_cell(row)
             entry.insert(
                 0,
                 "" if var_name == "time_to_start_first_game" else "1",
             )
-            unit_label(row, info.get("unit", ""))
+            unit_widget = unit_label(row, info.get("unit", ""))
 
             if var_name == "time_to_start_first_game":
                 bind_clock_entry(entry)
@@ -345,7 +352,10 @@ def create_settings_tab(app):
             app.team_timeout_period_entry = entry
             app.team_timeout_period_label = label
 
-        elif var_name == "overtime_allowed":
+        elif var_name == "overtime_game_break":
+            # Overtime remains the same stored boolean setting, but its switch
+            # now sits beside Overtime Game Break instead of taking a separate
+            # row. The remaining overtime values are greyed/disabled when off.
             checkbox_cell(
                 row,
                 app.overtime_allowed_var,
@@ -355,10 +365,17 @@ def create_settings_tab(app):
                 lambda *_args: app._on_overtime_change(),
             )
             app.widgets.append({
-                "name": var_name,
+                "name": "overtime_allowed",
                 "entry": None,
                 "checkbox": app.overtime_allowed_var,
+                "label_widget": None,
+            })
+            app.widgets.append({
+                "name": "overtime_game_break",
+                "entry": entry,
+                "checkbox": None,
                 "label_widget": label,
+                "unit_widget": unit_widget,
             })
 
         elif var_name == "record_scorers_cap_number":
@@ -401,6 +418,7 @@ def create_settings_tab(app):
                 "entry": entry,
                 "checkbox": None,
                 "label_widget": label,
+                "unit_widget": unit_widget,
             })
 
         row += 1
@@ -455,7 +473,8 @@ def create_settings_tab(app):
     )
 
     # ------------------------------------------------------------------
-    # Right column: sequence above presets, matching the approved mockup.
+    # Right column: Presets above Game Sequence Info, with Exit Program
+    # permanently visible at the bottom.
     # ------------------------------------------------------------------
     right = ttk.Frame(
         content,
@@ -468,15 +487,16 @@ def create_settings_tab(app):
         padx=(6, 0),
     )
     right.grid_columnconfigure(0, weight=1)
-    right.grid_rowconfigure(0, weight=3)
-    right.grid_rowconfigure(1, weight=2)
+    right.grid_rowconfigure(0, weight=2)
+    right.grid_rowconfigure(1, weight=3)
+    right.grid_rowconfigure(2, weight=0)
 
     sequence_card = ui_theme.card(right, padding=12)
     sequence_card.grid(
-        row=0,
+        row=1,
         column=0,
         sticky="nsew",
-        pady=(0, 6),
+        pady=(6, 6),
     )
     sequence_card.grid_columnconfigure(0, weight=1)
     sequence_card.grid_rowconfigure(1, weight=1)
@@ -550,30 +570,12 @@ def create_settings_tab(app):
     sequence_text.insert("1.0", explanation_text)
     sequence_text.config(state="disabled")
 
-    exit_row = tk.Frame(
-        sequence_card,
-        bg=ui_theme.COLORS["surface"],
-    )
-    exit_row.grid(
-        row=2,
-        column=0,
-        sticky="e",
-        pady=(8, 0),
-    )
-    app.exit_program_button = ui_theme.danger_button(
-        exit_row,
-        "Exit Program",
-        app.request_exit,
-        width=13,
-    )
-    app.exit_program_button.pack()
-
     presets_card = ui_theme.card(right, padding=12)
     presets_card.grid(
-        row=1,
+        row=0,
         column=0,
         sticky="nsew",
-        pady=(6, 0),
+        pady=(0, 6),
     )
     presets_card.grid_columnconfigure(0, weight=1)
     presets_card.grid_columnconfigure(1, weight=1)
@@ -634,6 +636,25 @@ def create_settings_tab(app):
         padx=4,
         pady=(8, 0),
     )
+
+    exit_row = tk.Frame(
+        right,
+        bg=ui_theme.COLORS["app_bg"],
+    )
+    exit_row.grid(
+        row=2,
+        column=0,
+        sticky="ew",
+        pady=(6, 0),
+    )
+    exit_row.grid_columnconfigure(0, weight=1)
+    app.exit_program_button = ui_theme.danger_button(
+        exit_row,
+        "Exit Program",
+        app.request_exit,
+        width=15,
+    )
+    app.exit_program_button.grid(row=0, column=0, sticky="e")
 
     app.update_overtime_variables_state()
 
@@ -911,13 +932,26 @@ def create_about_tab(app, readme_path):
     hero.grid(row=0, column=0, sticky="ew", padx=12, pady=(12, 6))
     hero.grid_columnconfigure(1, weight=1)
 
-    icon = getattr(app.master, "_uwh_app_icon", None)
-    if icon is not None:
+    # Keep the About hero as an ordinary packaged image asset rather than
+    # borrowing the window icon object. This makes it easy to replace later.
+    about_logo_path = _resource_file("assets/About_hero_logo.png")
+    try:
+        about_logo = tk.PhotoImage(file=str(about_logo_path))
+        about_logo = about_logo.zoom(3, 3)
+        app.about_hero_logo = about_logo
         tk.Label(
             hero,
-            image=icon,
+            image=about_logo,
             bg=ui_theme.COLORS["surface"],
-        ).grid(row=0, column=0, rowspan=4, sticky="nw", padx=(0, 18))
+        ).grid(row=0, column=0, rowspan=3, sticky="nw", padx=(0, 22))
+    except tk.TclError:
+        icon = getattr(app.master, "_uwh_app_icon", None)
+        if icon is not None:
+            tk.Label(
+                hero,
+                image=icon,
+                bg=ui_theme.COLORS["surface"],
+            ).grid(row=0, column=0, rowspan=3, sticky="nw", padx=(0, 22))
 
     tk.Label(
         hero,
@@ -948,17 +982,8 @@ def create_about_tab(app, readme_path):
         anchor="w",
     ).grid(row=2, column=1, sticky="w", pady=(2, 4))
 
-    ui_theme.muted_label(
-        hero,
-        "The hero area deliberately uses the UWH logo only; a real "
-        "underwater-hockey photograph can be added later without changing "
-        "the About-tab layout.",
-        wraplength=820,
-        justify="left",
-    ).grid(row=3, column=1, sticky="w", pady=(4, 0))
-
     body = ttk.Frame(tab, style="UWH.Tab.TFrame")
-    body.grid(row=2, column=0, sticky="nsew", padx=12, pady=(6, 12))
+    body.grid(row=1, column=0, sticky="nsew", padx=12, pady=(6, 12))
     body.grid_columnconfigure(0, weight=1)
     body.grid_columnconfigure(1, weight=1)
     body.grid_rowconfigure(0, weight=1)
@@ -1135,7 +1160,7 @@ def create_screen_tab(app):
     status.grid(row=0, column=3, sticky="ew", padx=(12, 0))
 
     body = ttk.Frame(tab, style="UWH.Tab.TFrame")
-    body.grid(row=1, column=0, sticky="nsew", padx=12, pady=(6, 12))
+    body.grid(row=2, column=0, sticky="nsew", padx=12, pady=(6, 12))
     body.grid_columnconfigure(0, weight=1)
     body.grid_columnconfigure(1, weight=1)
     body.grid_rowconfigure(0, weight=1)
