@@ -13,550 +13,414 @@ import re
 import webbrowser
 
 from app_version import APP_VERSION
+import ui_theme
 
 def create_settings_tab(app):
-    """Create the Game Variables, presets and Game Sequence widgets."""
-    tab = ttk.Frame(app.notebook)
+    """Create the compact v1.3 Game Variables, presets and sequence tab."""
+    tab = ttk.Frame(app.notebook, style="UWH.Tab.TFrame")
     app.notebook.add(tab, text="Game Variables")
+    tab.grid_columnconfigure(0, weight=5)
+    tab.grid_columnconfigure(1, weight=3)
+    tab.grid_rowconfigure(0, weight=1)
 
-    # Keep enough height for the expanded Tournament List controls while
-    # returning useful vertical space to the full Game Sequence explanation.
-    tab.grid_rowconfigure(0, weight=2)
-    tab.grid_rowconfigure(1, weight=0)
-    tab.grid_rowconfigure(2, weight=2)
-    tab.grid_rowconfigure(3, weight=1)
-    tab.grid_columnconfigure(0, weight=2)
-    tab.grid_columnconfigure(1, weight=1)
+    left = ttk.Frame(tab, style="UWH.Tab.TFrame")
+    left.grid(row=0, column=0, sticky="nsew", padx=(12, 6), pady=12)
+    left.grid_columnconfigure(0, weight=1)
+    left.grid_rowconfigure(0, weight=1)
 
-    default_font = font.nametofont("TkDefaultFont")
-    new_size = default_font.cget("size") + 2
-    small_size = default_font.cget("size") - 1
-    headers = ["Use?", "Variable", "Value", "Units"]
+    right = ttk.Frame(tab, style="UWH.Tab.TFrame")
+    right.grid(row=0, column=1, sticky="nsew", padx=(6, 12), pady=12)
+    right.grid_columnconfigure(0, weight=1)
+    right.grid_rowconfigure(0, weight=3)
+    right.grid_rowconfigure(1, weight=2)
 
-    style = ttk.Style()
-    style.configure(
-        "Large.TCheckbutton",
-        focuscolor="none",
-        font=(default_font.cget("family"), default_font.cget("size") + 2)
+    # ------------------------------------------------------------------
+    # Real Game Variables card.  Every row is backed by app.variables;
+    # there are no display-only or invented timing controls here.
+    # ------------------------------------------------------------------
+    variables_card = ui_theme.card(left, padding=10)
+    variables_card.grid(row=0, column=0, sticky="nsew")
+    variables_card.grid_columnconfigure(0, weight=3)
+    variables_card.grid_columnconfigure(1, weight=0, minsize=58)
+    variables_card.grid_columnconfigure(2, weight=0, minsize=112)
+    variables_card.grid_columnconfigure(3, weight=1, minsize=88)
+
+    ui_theme.section_title(variables_card, "Game Variables").grid(
+        row=0, column=0, columnspan=4, sticky="w", pady=(0, 8)
     )
 
-    # ------------------------------------------------------------
-    # Widget 1 - Game Variables
-    # ------------------------------------------------------------
-    widget1 = ttk.Frame(tab, borderwidth=1, relief="solid")
-    widget1.grid(row=0, column=0, rowspan=4, sticky="nsew", padx=8, pady=8)
-
-    for i in range(4):
-        widget1.grid_columnconfigure(i, weight=1)
-
-    for i in range(17):
-        widget1.grid_rowconfigure(i, weight=1)
-
-    for i, h in enumerate(headers):
+    header_bg = ui_theme.COLORS["primary_soft"]
+    for col, text in enumerate(("Variable", "Use?", "Value", "Units")):
         tk.Label(
-            widget1,
-            text=h,
-            font=(default_font.cget("family"), new_size, "bold")
-        ).grid(row=0, column=i, sticky="w", padx=5, pady=4)
+            variables_card,
+            text=text,
+            bg=header_bg,
+            fg=ui_theme.COLORS["navy"],
+            font=(ui_theme.FONT_FAMILY, 9, "bold"),
+            anchor="w" if col != 1 else "center",
+            padx=8,
+            pady=6,
+        ).grid(row=1, column=col, sticky="nsew")
 
-    row_idx = 1
     app.widgets = []
+    app.last_valid_values = {}
 
-    entry_order = list(app.variables.keys())
+    def variable_label(row, text):
+        label = tk.Label(
+            variables_card,
+            text=text,
+            bg=ui_theme.COLORS["surface"],
+            fg=ui_theme.COLORS["text"],
+            font=ui_theme.BODY_FONT,
+            anchor="w",
+            padx=8,
+            pady=4,
+        )
+        label.grid(row=row, column=0, sticky="ew")
+        return label
 
-    for special_name in [
-        "time_to_start_first_game",
-        "start_first_game_in",
-        "record_scorers_cap_number"
-    ]:
-        if special_name in entry_order:
-            entry_order.remove(special_name)
+    def unit_label(row, text):
+        tk.Label(
+            variables_card,
+            text=text,
+            bg=ui_theme.COLORS["surface"],
+            fg=ui_theme.COLORS["muted"],
+            font=ui_theme.SMALL_FONT,
+            anchor="w",
+            padx=8,
+        ).grid(row=row, column=3, sticky="ew")
 
-    crib_time_index = (
-        entry_order.index("crib_time")
-        if "crib_time" in entry_order
-        else len(entry_order)
-    )
+    def checkbox_cell(row, variable, command):
+        frame = tk.Frame(variables_card, bg=ui_theme.COLORS["surface"])
+        frame.grid(row=row, column=1, sticky="nsew")
+        cb = ttk.Checkbutton(
+            frame,
+            variable=variable,
+            command=command,
+            style="UWH.TCheckbutton",
+        )
+        cb.pack(expand=True)
+        return cb
 
-    entry_order = (
-        ["time_to_start_first_game", "start_first_game_in"]
-        + entry_order[:crib_time_index]
-        + ["record_scorers_cap_number"]
-        + entry_order[crib_time_index:]
-    )
+    def entry_cell(row):
+        entry = ttk.Entry(
+            variables_card,
+            width=10,
+            style="UWH.TEntry",
+            justify="center",
+        )
+        entry.grid(row=row, column=2, sticky="ew", padx=6, pady=3)
+        return entry
 
-    for var_name in entry_order:
-        var_info = app.variables[var_name]
+    def bind_standard_entry(entry, var_name):
+        entry.bind(
+            "<FocusOut>",
+            lambda _event, name=var_name: app._on_single_variable_change(name)
+        )
+        entry.bind(
+            "<Return>",
+            lambda _event, name=var_name: app._on_single_variable_change(name)
+        )
 
-        if (
-            var_info["checkbox"]
-            and var_name in [
-                "team_timeouts_allowed",
-                "overtime_allowed",
-                "record_scorers_cap_number"
-            ]
-        ):
-            var_info["default"] = var_info.get("default", True)
+    def bind_clock_entry(entry):
+        def validate(event):
+            value = event.widget.get().strip()
+            if value == "":
+                app._on_single_variable_change("time_to_start_first_game")
+                return
 
-        if var_name == "team_timeouts_allowed":
-            check_var = app.team_timeouts_allowed_var
-            cb = ttk.Checkbutton(
-                widget1,
-                variable=check_var,
-                style="Large.TCheckbutton"
-            )
-            cb.grid(row=row_idx, column=0, sticky="", pady=5, padx=(10, 0))
-
-            label_widget = tk.Label(
-                widget1,
-                text=var_info.get("label", "Team Time-Outs allowed?"),
-                font=(default_font.cget("family"), new_size, "bold")
-            )
-            label_widget.grid(row=row_idx, column=1, sticky="w", pady=4)
-
-            check_var.trace_add(
-                "write",
-                lambda *args: app._on_team_timeouts_change()
-            )
-
-            app.widgets.append({
-                "name": var_name,
-                "entry": None,
-                "checkbox": check_var,
-                "label_widget": label_widget
-            })
-
-            row_idx += 1
-            continue
-
-        if var_name == "overtime_allowed":
-            check_var = app.overtime_allowed_var
-            cb = ttk.Checkbutton(
-                widget1,
-                variable=check_var,
-                style="Large.TCheckbutton"
-            )
-            cb.grid(row=row_idx, column=0, sticky="", pady=5, padx=(10, 0))
-
-            label_widget = tk.Label(
-                widget1,
-                text=var_info.get("label", "Overtime allowed?"),
-                font=(default_font.cget("family"), new_size, "bold")
-            )
-            label_widget.grid(row=row_idx, column=1, sticky="w", pady=4)
-
-            check_var.trace_add(
-                "write",
-                lambda *args: app._on_overtime_change()
-            )
-
-            app.widgets.append({
-                "name": var_name,
-                "entry": None,
-                "checkbox": check_var,
-                "label_widget": label_widget
-            })
-
-            row_idx += 1
-            continue
-
-        if var_name == "record_scorers_cap_number":
-            check_var = app.record_scorers_cap_number_var
-            cb = ttk.Checkbutton(
-                widget1,
-                variable=check_var,
-                style="Large.TCheckbutton"
-            )
-            cb.grid(row=row_idx, column=0, sticky="", pady=5, padx=(10, 0))
-
-            label_widget = tk.Label(
-                widget1,
-                text=var_info.get("label", "Record Scorers Cap Number"),
-                font=(default_font.cget("family"), new_size, "bold")
-            )
-            label_widget.grid(row=row_idx, column=1, sticky="w", pady=4)
-
-            check_var.trace_add(
-                "write",
-                lambda *args: app._on_single_variable_change(
-                    "record_scorers_cap_number"
+            normalized = value.replace(".", ":")
+            if not re.fullmatch(r"(?:[01]?[0-9]|2[0-3]):[0-5][0-9]", normalized):
+                messagebox.showerror(
+                    "Input Error",
+                    "Please enter a 24-hour time as H.MM, HH.MM, H:MM or HH:MM "
+                    "(for example 9.36, 09.36, 9:36 or 09:36)."
                 )
-            )
+                event.widget.focus_set()
+                event.widget.selection_range(0, tk.END)
+                return
 
-            app.widgets.append({
-                "name": var_name,
-                "entry": None,
-                "checkbox": check_var,
-                "label_widget": label_widget
-            })
+            # Keep the v1.3 display convention (HH.mm) while remaining
+            # backwards-compatible with colon-form settings.
+            hh, mm = normalized.split(":")
+            event.widget.delete(0, tk.END)
+            event.widget.insert(0, f"{int(hh):02d}.{mm}")
+            app._on_single_variable_change("time_to_start_first_game")
 
-            row_idx += 1
-            continue
+        entry.bind("<FocusOut>", validate)
+        entry.bind("<Return>", validate)
 
-        check_var = tk.BooleanVar(value=True) if var_info["checkbox"] else None
+    def bind_guarded_numeric(entry, var_name):
+        def validate(event, field_name=var_name):
+            value = event.widget.get().strip()
+            if value == "":
+                return
+            try:
+                numeric = float(value.replace(",", "."))
+            except ValueError:
+                messagebox.showerror(
+                    "Input Error",
+                    f"Please enter a valid number for "
+                    f"{field_name.replace('_', ' ').title()}."
+                )
+                event.widget.delete(0, tk.END)
+                event.widget.insert(
+                    0, app.last_valid_values.get(field_name, "1")
+                )
+                event.widget.focus_set()
+                event.widget.selection_range(0, tk.END)
+                return
 
-        if check_var:
-            cb = ttk.Checkbutton(
-                widget1,
-                variable=check_var,
-                style="Large.TCheckbutton"
-            )
-            cb.grid(row=row_idx, column=0, sticky="", pady=5, padx=(10, 0))
-            check_var.trace_add(
-                "write",
-                lambda *args, name=var_name: app._on_single_variable_change(name)
-            )
-
-        label_text = var_info.get(
-            "label",
-            f"{var_name.replace('_', ' ').title()}:"
-        )
-
-        label_widget = tk.Label(
-            widget1,
-            text=label_text,
-            font=(default_font.cget("family"), new_size, "bold")
-        )
-        label_widget.grid(row=row_idx, column=1, sticky="w", pady=4)
-
-        entry = ttk.Entry(widget1, width=10)
-
-        if var_name == "time_to_start_first_game":
-            entry.insert(0, "")
-
-            def validate_hhmm_on_focusout(event):
-                val = event.widget.get().strip()
-
-                if val == "":
-                    return
-
-                if not re.fullmatch(
-                    r"(?:[01]?[0-9]|2[0-3]):[0-5][0-9]",
-                    val
+            if field_name == "crib_time":
+                between_game_break_minutes = None
+                for item in app.widgets:
+                    if item["name"] == "between_game_break":
+                        try:
+                            between_game_break_minutes = float(
+                                item["entry"].get().strip().replace(",", ".")
+                            )
+                        except (ValueError, AttributeError):
+                            pass
+                        break
+                if (
+                    between_game_break_minutes is not None
+                    and (between_game_break_minutes * 60) - numeric <= 31
                 ):
                     messagebox.showerror(
                         "Input Error",
-                        "Please enter a 24-hour time as H:MM or HH:MM "
-                        "(e.g., 9:36 or 09:36)."
+                        "Crib time too large. Between Game Break minus Crib "
+                        "time must be more than 31 seconds."
+                    )
+                    event.widget.delete(0, tk.END)
+                    event.widget.insert(
+                        0, app.last_valid_values.get(field_name, "60")
                     )
                     event.widget.focus_set()
                     event.widget.selection_range(0, tk.END)
                     return
 
-                app._on_single_variable_change("time_to_start_first_game")
+            app.last_valid_values[field_name] = value
+            app._on_single_variable_change(field_name)
 
-            entry.bind("<FocusOut>", validate_hhmm_on_focusout)
-            entry.bind("<Return>", validate_hhmm_on_focusout)
+        entry.bind("<FocusOut>", validate)
+        entry.bind("<Return>", validate)
 
-        else:
-            entry.insert(0, "1")
+    # Render in the actual runtime order. Team Time-Out permission and period
+    # intentionally share one visual row, but remain two separate saved keys.
+    render_rows = [
+        "time_to_start_first_game",
+        "start_first_game_in",
+        "team_timeout_period",
+        "half_period",
+        "half_time_break",
+        "overtime_allowed",
+        "overtime_game_break",
+        "overtime_half_period",
+        "overtime_half_time_break",
+        "sudden_death_game_break",
+        "between_game_break",
+        "record_scorers_cap_number",
+        "crib_time",
+    ]
 
-            if var_name in ["crib_time", "sudden_death_game_break"]:
+    row = 2
+    for var_name in render_rows:
+        info = app.variables[var_name]
+        label = variable_label(
+            row,
+            info.get("label", f"{var_name.replace('_', ' ').title()}:")
+        )
 
-                def validate_numeric_on_focusout(event, field_name=var_name):
-                    val = event.widget.get().strip()
+        # Entries are created for all numeric/time variables.
+        entry = None
+        if var_name not in ("overtime_allowed", "record_scorers_cap_number"):
+            entry = entry_cell(row)
+            entry.insert(0, "" if var_name == "time_to_start_first_game" else "1")
+            unit_label(row, info.get("unit", ""))
 
-                    if val == "":
-                        return
-
-                    try:
-                        val_normalized = val.replace(",", ".")
-                        val_float = float(val_normalized)
-
-                        if field_name == "crib_time":
-                            between_game_break_minutes = None
-
-                            for widget in app.widgets:
-                                if widget["name"] == "between_game_break":
-                                    try:
-                                        bgb_val = (
-                                            widget["entry"]
-                                            .get()
-                                            .strip()
-                                            .replace(",", ".")
-                                        )
-                                        between_game_break_minutes = float(bgb_val)
-                                    except (ValueError, AttributeError):
-                                        pass
-                                    break
-
-                            if between_game_break_minutes is not None:
-                                crib_time_seconds = val_float
-
-                                if (
-                                    between_game_break_minutes * 60
-                                ) - crib_time_seconds <= 31:
-                                    messagebox.showerror(
-                                        "Input Error",
-                                        "Crib time too large. Between Game "
-                                        "Break minus Crib time must be > "
-                                        "31 seconds."
-                                    )
-                                    event.widget.delete(0, tk.END)
-                                    event.widget.insert(
-                                        0,
-                                        app.last_valid_values[field_name]
-                                    )
-                                    event.widget.focus_set()
-                                    event.widget.selection_range(0, tk.END)
-                                    return
-
-                        app.last_valid_values[field_name] = val
-                        app._on_single_variable_change(field_name)
-
-                    except ValueError:
-                        messagebox.showerror(
-                            "Input Error",
-                            f"Please enter a valid number for "
-                            f"{field_name.replace('_', ' ').title()}."
-                        )
-                        event.widget.delete(0, tk.END)
-                        event.widget.insert(
-                            0,
-                            app.last_valid_values[field_name]
-                        )
-                        event.widget.focus_set()
-                        event.widget.selection_range(0, tk.END)
-
-                entry.bind("<FocusOut>", validate_numeric_on_focusout)
-                entry.bind("<Return>", validate_numeric_on_focusout)
-
+            if var_name == "time_to_start_first_game":
+                bind_clock_entry(entry)
+            elif var_name in ("crib_time", "sudden_death_game_break"):
+                bind_guarded_numeric(entry, var_name)
             else:
-                entry.bind(
-                    "<FocusOut>",
-                    lambda e, name=var_name: app._on_single_variable_change(name)
-                )
-                entry.bind(
-                    "<Return>",
-                    lambda e, name=var_name: app._on_single_variable_change(name)
-                )
-
-        entry.grid(row=row_idx, column=2, sticky="w", padx=5, pady=4)
-
-        tk.Label(
-            widget1,
-            text=var_info["unit"],
-            font=(default_font.cget("family"), new_size, "bold")
-        ).grid(row=row_idx, column=3, sticky="w", padx=5, pady=4)
-
-        app.widgets.append({
-            "name": var_name,
-            "entry": entry,
-            "checkbox": check_var,
-            "label_widget": label_widget
-        })
-
-        app.last_valid_values[var_name] = entry.get()
+                bind_standard_entry(entry, var_name)
+            app.last_valid_values[var_name] = entry.get()
 
         if var_name == "team_timeout_period":
+            # One line in the new UI: the enable switch belongs to
+            # team_timeouts_allowed; the value belongs to team_timeout_period.
+            checkbox_cell(
+                row,
+                app.team_timeouts_allowed_var,
+                app._on_team_timeouts_change,
+            )
+            app.team_timeouts_allowed_var.trace_add(
+                "write", lambda *_args: app._on_team_timeouts_change()
+            )
+            app.widgets.append({
+                "name": "team_timeouts_allowed",
+                "entry": None,
+                "checkbox": app.team_timeouts_allowed_var,
+                "label_widget": label,
+            })
+            app.widgets.append({
+                "name": "team_timeout_period",
+                "entry": entry,
+                "checkbox": None,
+                "label_widget": label,
+            })
             app.team_timeout_period_entry = entry
-            app.team_timeout_period_label = label_widget
+            app.team_timeout_period_label = label
 
-        row_idx += 1
+        elif var_name == "overtime_allowed":
+            checkbox_cell(
+                row,
+                app.overtime_allowed_var,
+                app._on_overtime_change,
+            )
+            app.overtime_allowed_var.trace_add(
+                "write", lambda *_args: app._on_overtime_change()
+            )
+            app.widgets.append({
+                "name": var_name,
+                "entry": None,
+                "checkbox": app.overtime_allowed_var,
+                "label_widget": label,
+            })
 
-        if var_name == "crib_time":
-            combined_explanation = tk.Label(
-                widget1,
-                text=(
-                    "• Crib Time is a period (in seconds) that is "
-                    "subtracted from the \"Between Game Break\" time at "
-                    "the start of each game\n"
-                    "to try to realign Court Time with Local Computer Time.\n"
-                    "• Value boxes accept decimal time e.g. 1.5 or 1,5 = "
-                    "1 min, 30 sec"
+        elif var_name == "record_scorers_cap_number":
+            checkbox_cell(
+                row,
+                app.record_scorers_cap_number_var,
+                lambda: app._on_single_variable_change(
+                    "record_scorers_cap_number"
                 ),
-                font=(default_font.cget("family"), small_size),
-                anchor="w",
-                justify="left",
-                wraplength=600
             )
-            combined_explanation.grid(
-                row=row_idx,
-                column=0,
-                columnspan=4,
-                pady=3,
-                sticky="nsew"
+            app.record_scorers_cap_number_var.trace_add(
+                "write",
+                lambda *_args: app._on_single_variable_change(
+                    "record_scorers_cap_number"
+                )
             )
+            app.widgets.append({
+                "name": var_name,
+                "entry": None,
+                "checkbox": app.record_scorers_cap_number_var,
+                "label_widget": label,
+            })
 
-            row_idx += 1
-
-            reset_warning_bullet = tk.Label(
-                widget1,
-                text=(
-                    "• If you change any value in here, push the "
-                    "'Reset Timer' Button!"
-                ),
-                font=(default_font.cget("family"), small_size, "bold"),
-                fg="red",
-                anchor="w",
-                justify="left",
-                wraplength=600
+        elif info.get("checkbox"):
+            check_var = tk.BooleanVar(value=True)
+            checkbox_cell(
+                row,
+                check_var,
+                lambda name=var_name: app._on_single_variable_change(name),
             )
-            reset_warning_bullet.grid(
-                row=row_idx,
-                column=0,
-                columnspan=4,
-                pady=3,
-                sticky="nsew"
+            check_var.trace_add(
+                "write",
+                lambda *_args, name=var_name:
+                    app._on_single_variable_change(name)
             )
+            app.widgets.append({
+                "name": var_name,
+                "entry": entry,
+                "checkbox": check_var,
+                "label_widget": label,
+            })
 
-            row_idx += 1
+        else:
+            app.widgets.append({
+                "name": var_name,
+                "entry": entry,
+                "checkbox": None,
+                "label_widget": label,
+            })
 
-    app.reset_timer_button = ttk.Button(
-        widget1,
-        text="Reset Timer",
-        command=app.reset_timer
+        row += 1
+
+    # Actual Crib-Time guidance is kept below the table rather than beside
+    # individual variables, avoiding the invented inline help from mockups.
+    crib_note = ui_theme.info_banner(
+        variables_card,
+        "Crib Time is subtracted from Between Game Break to help realign "
+        "Court Time with local computer time. Decimal values such as 1.5 "
+        "are accepted. After changing Game Variables, press Reset Timer."
     )
-    app.reset_timer_button.grid(
-        row=row_idx,
-        column=0,
-        columnspan=4,
-        pady=8
+    crib_note.grid(
+        row=row, column=0, columnspan=4, sticky="ew", pady=(8, 6)
     )
+    row += 1
 
-    # Keep a small version identifier permanently visible in the lower-right
-    # corner of the Game Variables ("Use?") panel. This is deliberately
-    # unobtrusive but makes it easy to confirm which downloaded build is open.
-    widget1.grid_rowconfigure(row_idx + 1, weight=0)
+    controls = tk.Frame(variables_card, bg=ui_theme.COLORS["surface"])
+    controls.grid(row=row, column=0, columnspan=4, sticky="ew", pady=(2, 0))
+    controls.grid_columnconfigure(1, weight=1)
+
+    app.reset_timer_button = ui_theme.primary_button(
+        controls, "Reset Timer", app.reset_timer
+    )
+    app.reset_timer_button.grid(row=0, column=0, sticky="w")
+
     tk.Label(
-        widget1,
+        controls,
         text=f"UWH v{APP_VERSION}",
-        font=(default_font.cget("family"), small_size),
-        fg="gray"
-    ).grid(
-        row=row_idx + 1,
-        column=3,
-        sticky="se",
-        padx=6,
-        pady=(0, 4)
-    )
+        bg=ui_theme.COLORS["surface"],
+        fg=ui_theme.COLORS["muted"],
+        font=ui_theme.SMALL_FONT,
+    ).grid(row=0, column=2, sticky="e")
 
-    # ------------------------------------------------------------
-    # Widget 2 - Presets
-    # ------------------------------------------------------------
-    widget2 = ttk.Frame(tab, borderwidth=1, relief="solid")
-    widget2.grid(row=0, column=1, sticky="nsew", padx=4, pady=4)
+    # ------------------------------------------------------------------
+    # Presets: nine real editable slots, sourced from settings.json.
+    # ------------------------------------------------------------------
+    presets_card = ui_theme.card(right, padding=10)
+    presets_card.grid(row=0, column=0, sticky="nsew", pady=(0, 6))
+    presets_card.grid_columnconfigure(0, weight=1)
+    presets_card.grid_columnconfigure(1, weight=1)
+    presets_card.grid_columnconfigure(2, weight=1)
 
-    for col in range(3):
-        widget2.grid_columnconfigure(col, weight=1)
-
-    widget2.grid_rowconfigure(0, weight=0)
-    widget2.grid_rowconfigure(1, weight=0, minsize=38)
-    widget2.grid_rowconfigure(2, weight=0, minsize=38)
-    widget2.grid_rowconfigure(3, weight=1)
-    widget2.grid_rowconfigure(4, weight=0)
-    widget2.grid_rowconfigure(5, weight=0)
-
-    header_label = tk.Label(
-        widget2,
-        text="Presets",
-        font=(default_font.cget("family"), new_size, "bold")
-    )
-    header_label.grid(
-        row=0,
-        column=0,
-        columnspan=3,
-        padx=4,
-        pady=(8, 4),
-        sticky="nsew"
+    ui_theme.section_title(presets_card, "Presets").grid(
+        row=0, column=0, columnspan=3, sticky="w", pady=(0, 8)
     )
 
     app.widget2_buttons = []
     preset_data = app.load_preset_settings()
     app.button_data = preset_data.copy()
 
-    for i in range(6):
-        btn_row = 1 if i < 3 else 2
-        btn_col = i % 3
-
-        btn = tk.Button(
-            widget2,
-            text=app.button_data[i]["text"],
-            font=(
-                default_font.cget("family"),
-                default_font.cget("size") + 1,
-                "bold"
-            ),
-            width=12,
-            height=1,
-            relief="raised",
-            borderwidth=2
+    for index in range(9):
+        btn = ui_theme.secondary_button(
+            presets_card,
+            app.button_data[index]["text"],
+            lambda: None,
         )
-
+        btn.configure(font=(ui_theme.FONT_FAMILY, 10, "bold"))
         btn.grid(
-            row=btn_row,
-            column=btn_col,
-            padx=8,
+            row=1 + (index // 3),
+            column=index % 3,
+            sticky="nsew",
+            padx=4,
             pady=4,
-            sticky="nsew"
         )
-
-        btn.bind("<ButtonPress-1>", app._make_press_handler(i))
-        btn.bind("<ButtonRelease-1>", app._make_release_handler(i))
-
+        btn.bind("<ButtonPress-1>", app._make_press_handler(index))
+        btn.bind("<ButtonRelease-1>", app._make_release_handler(index))
         app.widget2_buttons.append(btn)
 
-    instruction1 = tk.Label(
-        widget2,
-        text="Click the buttons above to load preset times and allowed Game Periods",
-        anchor="w",
+    ui_theme.muted_label(
+        presets_card,
+        "Click to load a preset. Press and hold for 3 seconds to edit it.",
         justify="left",
-        font=(default_font.cget("family"), default_font.cget("size"))
-    )
-    instruction1.grid(
-        row=4,
-        column=0,
-        columnspan=3,
-        sticky="w",
-        padx=8,
-        pady=(4, 1)
+    ).grid(
+        row=4, column=0, columnspan=3, sticky="w", padx=4, pady=(8, 0)
     )
 
-    instruction2 = tk.Label(
-        widget2,
-        text="Press and hold a preset for 3 seconds to edit its stored values",
-        anchor="w",
-        justify="left",
-        font=(default_font.cget("family"), default_font.cget("size"))
-    )
-    instruction2.grid(
-        row=5,
-        column=0,
-        columnspan=3,
-        sticky="w",
-        padx=8,
-        pady=(1, 6)
-    )
+    # ------------------------------------------------------------------
+    # Game Sequence: text is the existing real application sequence only.
+    # ------------------------------------------------------------------
+    sequence_card = ui_theme.card(right, padding=10)
+    sequence_card.grid(row=1, column=0, sticky="nsew", pady=(6, 0))
+    sequence_card.grid_columnconfigure(0, weight=1)
+    sequence_card.grid_rowconfigure(1, weight=1)
 
-    # ------------------------------------------------------------
-    # Widget 3 - Game Sequence
-    # ------------------------------------------------------------
-    widget3 = ttk.Frame(tab, borderwidth=1, relief="solid")
-    widget3.grid(
-        row=2,
-        column=1,
-        rowspan=2,
-        sticky="nsew",
-        padx=8,
-        pady=8
-    )
-
-    widget3.grid_columnconfigure(0, weight=1)
-    widget3.grid_rowconfigure(0, weight=0)
-    widget3.grid_rowconfigure(1, weight=1)
-    widget3.grid_rowconfigure(2, weight=0)
-
-    explanation_header = tk.Label(
-        widget3,
-        text="Game Sequence",
-        font=(default_font.cget("family"), new_size, "bold")
-    )
-    explanation_header.grid(
-        row=0,
-        column=0,
-        padx=4,
-        pady=(8, 2),
-        sticky="ew"
+    ui_theme.section_title(sequence_card, "Game Sequence").grid(
+        row=0, column=0, sticky="w", pady=(0, 6)
     )
 
     explanation_text = (
@@ -565,52 +429,38 @@ def create_settings_tab(app):
         "2. First Half → Half Time → Second Half\n"
         "3. If scores tied: Overtime Game Break → Overtime First Half "
         "→ Overtime Half Time → Overtime Second Half (if enabled)\n"
-        "4. If still tied: Sudden Death Game Break → Sudden Death (if enabled)\n"
+        "4. If still tied: Sudden Death Game Break → Sudden Death "
+        "(if enabled)\n"
         "5. Between Game Break (loop back to step 2)\n\n"
         "Important Notes:\n"
         "• 'First Game Starts In:' transitions directly to First Half\n"
         "• Crib time is subtracted from Between Game Break"
     )
 
-    explanation_label = tk.Label(
-        widget3,
-        text=explanation_text,
-        font=(default_font.cget("family"), small_size),
-        justify="left",
-        anchor="nw"
-    )
-    explanation_label.grid(
-        row=1,
-        column=0,
-        padx=4,
-        pady=(2, 4),
-        sticky="nsew"
-    )
-
-    # Exit control is deliberately kept on the Game Variables tab,
-    # away from the normal match controls.
-    exit_frame = ttk.Frame(widget3)
-    exit_frame.grid(
-        row=2,
-        column=0,
-        sticky="e",
+    sequence_text = tk.Text(
+        sequence_card,
+        wrap="word",
+        height=13,
+        bg=ui_theme.COLORS["surface_alt"],
+        fg=ui_theme.COLORS["text"],
+        font=ui_theme.BODY_FONT,
+        relief="flat",
         padx=8,
-        pady=(2, 8)
+        pady=8,
     )
+    sequence_text.grid(row=1, column=0, sticky="nsew")
+    sequence_text.insert("1.0", explanation_text)
+    sequence_text.config(state="disabled")
 
-    app.exit_program_button = tk.Button(
-        exit_frame,
-        text="Exit Program",
-        bg="red",
-        fg="white",
-        activebackground="darkred",
-        activeforeground="white",
-        command=app.request_exit,
-        width=14
+    exit_row = tk.Frame(sequence_card, bg=ui_theme.COLORS["surface"])
+    exit_row.grid(row=2, column=0, sticky="e", pady=(8, 0))
+    app.exit_program_button = ui_theme.danger_button(
+        exit_row, "Exit Program", app.request_exit, width=14
     )
     app.exit_program_button.pack()
 
     app.update_overtime_variables_state()
+
 
 
 def create_tournament_tab(app):
