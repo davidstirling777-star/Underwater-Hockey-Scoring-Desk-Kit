@@ -75,7 +75,7 @@ Why X11 matters for this application: On the tested Pi 5, moving the pointer ove
 2. On the right-hand side of the repository page, find **Releases**.
 3. Click Releases, then select the latest release.
 4. Scroll down to the **Assets** section.
-5. Click the Windows ZIP file. Its name will resemble: `UnderwaterHockeyScoringDesk-v1.3.2-Windows.zip`
+5. Click the Windows ZIP file. Its name will resemble: `UnderwaterHockeyScoringDesk-v1.3.3-Windows.zip`
    (The version and build numbers will vary.)
 6. The ZIP file will download to your computer, normally into your Downloads folder.
 
@@ -107,7 +107,7 @@ Download the newer release and extract it into a **separate folder** first. Do n
 > [!WARNING]
 > **Back up `settings.json` before every update.** It includes your **Zigbee button-name list** (for example, `siren_button, siren_button_2, siren_button_3`), MQTT settings, sound preferences, screen layout and the remembered Display Window open/closed state. Back up tournament CSVs, custom sounds under `assets/`, and game logs too. Replacing UWH's settings can lose button names **or action mappings**, even though the buttons remain paired to Zigbee2MQTT.
 
-After updating, confirm the **Zigbee Siren → Button Device Names** field and test every configured button and its action mapping before using the system at a match. The lower-right corner of the **Game Variables** panel shows the running UWH version so you can confirm which download is actually open. Windows and Raspberry Pi 5 release builds show the same explicit `1.3.2` number used in their release ZIP names. Do not blindly replace a new-format `settings.json` with a very old version; compare and carry forward your customised values where the format has changed. Zigbee2MQTT has a **separate** `data/` directory that should be backed up before Zigbee2MQTT updates; see [the Zigbee section](#zigbee2mqtt-wireless-siren-setup-and-operation).
+After updating, confirm the **Zigbee Siren → Button Device Names** field and test every configured button and its action mapping before using the system at a match. The lower-right corner of the **Game Variables** panel shows the running UWH version so you can confirm which download is actually open. Windows and Raspberry Pi 5 release builds show the same explicit `1.3.3` number used in their release ZIP names. Do not blindly replace a new-format `settings.json` with a very old version; compare and carry forward your customised values where the format has changed. Zigbee2MQTT has a **separate** `data/` directory that should be backed up before Zigbee2MQTT updates; see [the Zigbee section](#zigbee2mqtt-wireless-siren-setup-and-operation).
 
 ## Downloading and installing UWH on a Raspberry Pi 5
 
@@ -204,7 +204,7 @@ The packaged application includes its own Python runtime and Python packages. Yo
 2. Open the [UWH Scoring Desk Kit repository](https://github.com/davidstirling777-star/Underwater-Hockey-Scoring-Desk-Kit).
 3. Open **Releases** and select the latest release.
 4. Under **Assets**, download the file whose name resembles:
-   `UnderwaterHockeyScoringDesk-v1.3.2-RaspberryPi5.zip`
+   `UnderwaterHockeyScoringDesk-v1.3.3-RaspberryPi5.zip`
    (the version/build number will vary).
 5. Save the ZIP to the Pi's Downloads folder.
 
@@ -219,7 +219,7 @@ The following example installs the release in `~/UWH-Scoring-Desk`. Replace the 
 rm -rf ~/UWH-Scoring-Desk-new
 mkdir -p ~/UWH-Scoring-Desk-new
 cd ~/UWH-Scoring-Desk-new
-unzip ~/Downloads/UnderwaterHockeyScoringDesk-v1.3.2-RaspberryPi5.zip
+unzip ~/Downloads/UnderwaterHockeyScoringDesk-v1.3.3-RaspberryPi5.zip
 chmod +x Start-UWH.sh UnderwaterHockeyScoringDesk
 ./Start-UWH.sh
 ```
@@ -273,7 +273,7 @@ Download the newer `-RaspberryPi5.zip` and extract it into a **separate folder f
 
 Run the new version once and confirm its startup self-test, screens, audio and configured siren buttons. Then copy your required user data/settings into the new installation deliberately. Do not copy the old `_internal` directory into a new release.
 
-The lower-right version display uses the same explicit `1.3.2` value as the Raspberry Pi release ZIP, just as the Windows release does.
+The lower-right version display uses the same explicit `1.3.3` value as the Raspberry Pi release ZIP, just as the Windows release does.
 
 ### 6. Advanced/developer alternative: run from Python source
 
@@ -306,6 +306,10 @@ Do not use `sudo pip install` or `pip install --break-system-packages` for the s
 | Need to check OS package updates | Run `sudo apt update` followed by `apt list --upgradable`. An empty list means no upgrades are offered by the configured repositories, not that you are on the newest Raspberry Pi OS release. |
 
 ## Game Variables tab
+
+### v1.3.3 Sudden Death timer fix
+
+Version **1.3.3** consolidates the Sudden Death count-up onto the application's own Tk timer callback and adds regression tests that prove the clock increments once per second and stops cleanly when the period changes. If the deciding Sudden Death goal is retracted during the correction window, the restored Sudden Death period now resumes from the saved elapsed time instead of resetting to 00:00.
 
 ### v1.3.2 bug-fix release
 
