@@ -445,321 +445,238 @@ def create_settings_tab(app):
 
 
 def create_tournament_tab(app):
-    """Create the standalone Tournament List and results-sync tab."""
-    tab = ttk.Frame(app.notebook)
+    """Create the approved two-card Tournament List and results-sync tab."""
+    tab = ttk.Frame(app.notebook, style="UWH.Tab.TFrame")
     app.tournament_tab = tab
     app.notebook.add(tab, text="Tournament List")
-
-    tab.grid_rowconfigure(0, weight=1)
     tab.grid_columnconfigure(0, weight=1)
+    tab.grid_columnconfigure(1, weight=1)
+    tab.grid_rowconfigure(0, weight=1)
+    tab.grid_rowconfigure(1, weight=0)
 
-    default_font = font.nametofont("TkDefaultFont")
-    new_size = default_font.cget("size") + 2
-    small_size = default_font.cget("size") - 1
+    setup = ui_theme.card(tab, padding=14)
+    setup.grid(row=0, column=0, sticky="nsew", padx=(12, 6), pady=(12, 6))
+    setup.grid_columnconfigure(0, weight=0)
+    setup.grid_columnconfigure(1, weight=1)
+    setup.grid_columnconfigure(2, weight=0)
 
-    # ------------------------------------------------------------
-    # Tournament List controls
-    # ------------------------------------------------------------
-    widget4 = ttk.Frame(tab, borderwidth=1, relief="solid")
-    widget4.grid(row=0, column=0, sticky="nsew", padx=12, pady=12)
+    results = ui_theme.card(tab, padding=14)
+    results.grid(row=0, column=1, sticky="nsew", padx=(6, 12), pady=(12, 6))
+    results.grid_columnconfigure(0, weight=0)
+    results.grid_columnconfigure(1, weight=1)
+    results.grid_columnconfigure(2, weight=0)
 
-    widget4.grid_columnconfigure(0, weight=0)
-    widget4.grid_columnconfigure(1, weight=1)
-    widget4.grid_columnconfigure(2, weight=0)
-    widget4.grid_columnconfigure(3, weight=0, minsize=55)
-    widget4.grid_columnconfigure(4, weight=0)
+    info = ui_theme.card(tab, padding=14)
+    info.grid(row=1, column=0, columnspan=2, sticky="ew",
+              padx=12, pady=(6, 12))
+    info.grid_columnconfigure(0, weight=1)
 
-    widget4.grid_rowconfigure(0, weight=0)
-    widget4.grid_rowconfigure(1, weight=0)
-    widget4.grid_rowconfigure(2, weight=0)
-    widget4.grid_rowconfigure(3, weight=0)
-    widget4.grid_rowconfigure(4, weight=0)
-    widget4.grid_rowconfigure(8, weight=0)
-
-    tournament_header = tk.Label(
-        widget4,
-        text="Tournament List",
-        font=(default_font.cget("family"), new_size, "bold")
-    )
-    tournament_header.grid(
-        row=0,
-        column=0,
-        columnspan=5,
-        padx=8,
-        pady=(10, 8),
-        sticky="ew"
+    ui_theme.section_title(setup, "Tournament Setup").grid(
+        row=0, column=0, columnspan=3, sticky="w", pady=(0, 12)
     )
 
-    # ------------------------------------------------------------
-    # Tournament-list enable/disable control
-    # ------------------------------------------------------------
-    #
-    # This deliberately defaults to True each time the application
-    # starts. The checkbox controls whether tournament team names are
-    # used, but does not prevent the CSV folder from being opened.
     app.use_tournament_list_var = tk.BooleanVar(
-        master=app.master,
-        value=True
+        master=app.master, value=True
     )
-
-    use_tournament_list_checkbox = ttk.Checkbutton(
-        widget4,
+    ttk.Checkbutton(
+        setup,
         text="Use Tournament List?",
         variable=app.use_tournament_list_var,
-        command=app.on_use_tournament_list_changed
-    )
-    use_tournament_list_checkbox.grid(
-        row=1,
-        column=0,
-        sticky="w",
-        padx=(8, 4),
-        pady=2
-    )
+        command=app.on_use_tournament_list_changed,
+        style="UWH.TCheckbutton",
+    ).grid(row=1, column=0, sticky="w", pady=(0, 2))
 
-    # ------------------------------------------------------------
-    # Tournament-draw CSV dropdown
-    # ------------------------------------------------------------
+    ui_theme.muted_label(
+        setup,
+        "Enables loading of game data from a tournament draw file",
+    ).grid(row=1, column=1, columnspan=2, sticky="w", padx=(10, 0))
+
+    ui_theme.body_label(setup, "Tournament draw file").grid(
+        row=2, column=0, sticky="w", pady=(14, 4)
+    )
     csv_files = app.get_csv_files()
-
     app.csv_var = tk.StringVar(
         master=app.master,
-        value=(
-            csv_files[0]
-            if csv_files
-            else "No CSV files found"
-        )
+        value=csv_files[0] if csv_files else "No CSV files found",
     )
-
     app.csv_dropdown = ttk.Combobox(
-        widget4,
+        setup,
         textvariable=app.csv_var,
         values=csv_files,
         state="readonly",
-        width=16,
-        postcommand=app.refresh_csv_dropdown
+        postcommand=app.refresh_csv_dropdown,
+        style="UWH.TCombobox",
     )
-    app.csv_dropdown.grid(
-        row=1,
-        column=1,
-        columnspan=3,
-        sticky="ew",
-        padx=(4, 4),
-        pady=2
-    )
-    app.csv_dropdown.bind(
-        "<<ComboboxSelected>>",
-        app.on_csv_file_changed
-    )
+    app.csv_dropdown.grid(row=2, column=1, sticky="ew", padx=8, pady=(14, 4))
+    app.csv_dropdown.bind("<<ComboboxSelected>>", app.on_csv_file_changed)
+    ui_theme.secondary_button(
+        setup, "Open Folder", app.open_csv_folder
+    ).grid(row=2, column=2, sticky="e", pady=(14, 4))
 
-    # ------------------------------------------------------------
-    # Open Folder button — promoted to the tournament CSV line
-    # ------------------------------------------------------------
-    open_folder_btn = tk.Button(
-        widget4,
-        text="Open Folder",
-        font=(
-            default_font.cget("family"),
-            default_font.cget("size")
-        ),
-        command=app.open_csv_folder,
-        width=12
+    ui_theme.body_label(setup, "Starting Game #").grid(
+        row=3, column=0, sticky="w", pady=8
     )
-    open_folder_btn.grid(
-        row=1,
-        column=4,
-        sticky="e",
-        padx=(4, 8),
-        pady=2
-    )
-
-    # ------------------------------------------------------------
-    # Starting game number
-    # ------------------------------------------------------------
-    tk.Label(
-        widget4,
-        text="Starting Game #:",
-        font=(
-            default_font.cget("family"),
-            default_font.cget("size")
-        ),
-        anchor="w"
-    ).grid(
-        row=2,
-        column=0,
-        sticky="w",
-        padx=8,
-        pady=(8, 2)
-    )
-
-    app.starting_game_var = tk.StringVar(
-        master=app.master,
-        value=""
-    )
-
+    app.starting_game_var = tk.StringVar(master=app.master, value="")
     app.starting_game_dropdown = ttk.Combobox(
-        widget4,
+        setup,
         textvariable=app.starting_game_var,
         values=app.game_numbers,
         state="readonly",
-        width=6
+        width=8,
+        style="UWH.TCombobox",
     )
     app.starting_game_dropdown.grid(
-        row=2,
-        column=1,
-        sticky="w",
-        padx=(4, 8),
-        pady=(8, 2)
+        row=3, column=1, sticky="w", padx=8, pady=8
     )
     app.starting_game_dropdown.bind(
-        "<<ComboboxSelected>>",
-        app.on_game_selection_changed
+        "<<ComboboxSelected>>", app.on_game_selection_changed
     )
 
-    # ------------------------------------------------------------
-    # Court CSV numbering mode
-    # ------------------------------------------------------------
-    tk.Label(
-        widget4,
-        text="This court uses numbers:",
-        font=(
-            default_font.cget("family"),
-            default_font.cget("size")
-        ),
-        anchor="w"
-    ).grid(
-        row=2,
-        column=2,
-        sticky="e",
-        padx=(16, 4),
-        pady=(8, 2)
+    ui_theme.body_label(setup, "This court uses numbers").grid(
+        row=4, column=0, sticky="w", pady=8
     )
     app.court_game_mode_dropdown = ttk.Combobox(
-        widget4,
+        setup,
         textvariable=app.court_game_mode_var,
-        values=(
-            "even",
-            "odd",
-            "consecutive"
-        ),
+        values=("even", "odd", "consecutive"),
         state="readonly",
-        width=12
+        width=16,
+        style="UWH.TCombobox",
     )
     app.court_game_mode_dropdown.grid(
-        row=2,
-        column=3,
-        sticky="w",
-        padx=(4, 8),
-        pady=(8, 2)
+        row=4, column=1, sticky="w", padx=8, pady=8
     )
     app.court_game_mode_dropdown.bind(
-        "<<ComboboxSelected>>",
-        app.on_court_game_mode_changed
+        "<<ComboboxSelected>>", app.on_court_game_mode_changed
     )
+    ui_theme.muted_label(
+        setup,
+        "Choose even, odd or consecutive draw game numbers for this court.",
+        wraplength=460,
+        justify="left",
+    ).grid(row=5, column=0, columnspan=3, sticky="w", pady=(8, 0))
 
-    # ------------------------------------------------------------
-    # Results: local file + optional third-computer synchronisation
-    # ------------------------------------------------------------
-    # The result filename is derived from the draw. This read-only dropdown
-    # intentionally cannot select a different file to overwrite.
+    ui_theme.section_title(results, "Tournament Results").grid(
+        row=0, column=0, columnspan=3, sticky="w", pady=(0, 12)
+    )
     sync_settings = app.load_unified_settings().get("tournamentSync", {})
+
+    ui_theme.body_label(results, "Tournament Results").grid(
+        row=1, column=0, sticky="w", pady=6
+    )
     app.tournament_results_var = tk.StringVar(
         master=app.master, value="No results file"
     )
     app.tournament_results_dropdown = ttk.Combobox(
-        widget4, textvariable=app.tournament_results_var,
-        values=(), state="readonly", width=18
-    )
-    ttk.Label(widget4, text="Tournament Results:").grid(
-        row=3, column=0, sticky="w", padx=8, pady=(10, 2)
+        results,
+        textvariable=app.tournament_results_var,
+        values=(),
+        state="readonly",
+        style="UWH.TCombobox",
     )
     app.tournament_results_dropdown.grid(
-        row=3, column=1, columnspan=3,
-        sticky="ew", padx=4, pady=(10, 2)
+        row=1, column=1, sticky="ew", padx=8, pady=6
     )
-    ttk.Button(
-        widget4, text="Results Folder", command=app.open_csv_folder
-    ).grid(row=3, column=4, sticky="ew", padx=(4, 8), pady=(10, 2))
+    ui_theme.secondary_button(
+        results, "Results Folder", app.open_csv_folder
+    ).grid(row=1, column=2, sticky="e", pady=6)
 
     app.tournament_sync_mode_var = tk.StringVar(
         master=app.master,
-        value=sync_settings.get("mode", "Local only")
+        value=sync_settings.get("mode", "Local only"),
     )
-    ttk.Label(widget4, text="Results sync:").grid(
-        row=4, column=0, sticky="w", padx=8, pady=2
+    ui_theme.body_label(results, "Results sync").grid(
+        row=2, column=0, sticky="w", pady=6
     )
     ttk.Combobox(
-        widget4, textvariable=app.tournament_sync_mode_var,
+        results,
+        textvariable=app.tournament_sync_mode_var,
         values=("Local only", "Shared server"),
-        state="readonly", width=18
-    ).grid(row=4, column=1, columnspan=3, sticky="ew", padx=4, pady=2)
+        state="readonly",
+        style="UWH.TCombobox",
+    ).grid(row=2, column=1, columnspan=2, sticky="ew", padx=8, pady=6)
 
     app.tournament_sync_url_var = tk.StringVar(
         master=app.master,
-        value=sync_settings.get("server_url", "")
+        value=sync_settings.get("server_url", ""),
     )
-    ttk.Label(widget4, text="Server URL:").grid(
-        row=5, column=0, sticky="w", padx=8, pady=2
+    ui_theme.body_label(results, "Server URL").grid(
+        row=3, column=0, sticky="w", pady=6
     )
     ttk.Entry(
-        widget4, textvariable=app.tournament_sync_url_var,
-        width=30
-    ).grid(row=5, column=1, columnspan=4,
-           sticky="ew", padx=(4, 8), pady=2)
+        results,
+        textvariable=app.tournament_sync_url_var,
+        style="UWH.TEntry",
+    ).grid(row=3, column=1, columnspan=2, sticky="ew", padx=8, pady=6)
 
     app.tournament_sync_token_var = tk.StringVar(
-        master=app.master, value=sync_settings.get("token", "")
+        master=app.master,
+        value=sync_settings.get("token", ""),
     )
-    ttk.Label(widget4, text="Access token:").grid(
-        row=6, column=0, sticky="w", padx=8, pady=2
+    ui_theme.body_label(results, "Access token").grid(
+        row=4, column=0, sticky="w", pady=6
     )
     ttk.Entry(
-        widget4, textvariable=app.tournament_sync_token_var,
-        show="*", width=20
-    ).grid(row=6, column=1, columnspan=3,
-           sticky="ew", padx=4, pady=2)
-    ttk.Button(
-        widget4, text="Save & Sync",
-        command=app.save_tournament_sync_configuration
-    ).grid(row=6, column=4, sticky="ew", padx=(4, 8), pady=2)
+        results,
+        textvariable=app.tournament_sync_token_var,
+        show="*",
+        style="UWH.TEntry",
+    ).grid(row=4, column=1, columnspan=2, sticky="ew", padx=8, pady=6)
+
+    action_row = tk.Frame(results, bg=ui_theme.COLORS["surface"])
+    action_row.grid(row=5, column=0, columnspan=3, sticky="ew", pady=(14, 6))
+    action_row.grid_columnconfigure(1, weight=1)
+    ui_theme.primary_button(
+        action_row,
+        "Save & Sync",
+        app.save_tournament_sync_configuration,
+    ).grid(row=0, column=0, sticky="w")
+    ui_theme.secondary_button(
+        action_row,
+        "Sync Now",
+        app.tournament_sync.wake,
+    ).grid(row=0, column=2, sticky="e")
 
     app.tournament_sync_status_var = tk.StringVar(
         master=app.master,
-        value="Local results saved · network sync off"
+        value="Local results saved · network sync off",
     )
-    ttk.Label(
-        widget4, textvariable=app.tournament_sync_status_var,
-        font=(default_font.cget("family"), small_size),
-        wraplength=490, justify="left"
-    ).grid(row=7, column=0, columnspan=4,
-           sticky="ew", padx=8, pady=(6, 2))
-    ttk.Button(
-        widget4, text="Sync Now", command=app.tournament_sync.wake
-    ).grid(row=7, column=4, sticky="ew", padx=(4, 8), pady=(6, 2))
+    status = ui_theme.info_banner(results, "")
+    status.grid(row=6, column=0, columnspan=3, sticky="ew", pady=(6, 0))
+    # Replace the banner's static label with one bound to the live status.
+    for child in status.winfo_children():
+        child.destroy()
+    tk.Label(
+        status,
+        textvariable=app.tournament_sync_status_var,
+        bg=ui_theme.COLORS["primary_soft"],
+        fg=ui_theme.COLORS["primary"],
+        font=ui_theme.BODY_FONT,
+        anchor="w",
+        justify="left",
+        wraplength=520,
+    ).pack(fill="x")
 
-    # Create/resume results immediately but never make the network a
-    # prerequisite for selecting or finishing a match.
+    ui_theme.section_title(info, "About Tournament List and Results Sync").grid(
+        row=0, column=0, sticky="w", pady=(0, 8)
+    )
+    ui_theme.body_label(
+        info,
+        "The selected tournament draw is read-only. Completed games are "
+        "saved locally first in a separate _Results.csv file. Shared-server "
+        "sync then sends one completed game at a time and retries every "
+        "10 seconds if the server is unavailable.\n\n"
+        "Expected CSV headers: date,#,White,WScore,Black,BScore,Referees,"
+        "Penalties,Comments\n"
+        "(# is the game number; use quotes around team names containing commas)",
+        justify="left",
+        wraplength=1120,
+    ).grid(row=1, column=0, sticky="w")
+
+    # Initialise draw/result controls immediately; network sync remains
+    # background-only and never blocks selecting or finishing a match.
     app.on_csv_file_changed()
     app.on_use_tournament_list_changed()
-
-    csv_comment = tk.Label(
-        widget4,
-        text=(
-            "Put tournament draw CSVs in the same folder as this program.\n"
-            "The selected draw is read-only; completed games are saved locally "
-            "first in a separate _Results.csv file.\n"
-            "Shared-server sync sends one completed game at a time and retries "
-            "every 10 seconds if the server is unavailable.\n"
-            "Expected CSV headers: date,#,White,WScore,Black,BScore,"
-            "Referees,Penalties,Comments\n"
-            "(# is the game number; use quotes around team names containing commas)"
-        ),
-        font=(default_font.cget("family"), small_size),
-        anchor="nw", justify="left", wraplength=600
-    )
-    csv_comment.grid(
-        row=8, column=0, columnspan=5,
-        sticky="nw", padx=8, pady=(6, 4)
-    )
 
 
 
