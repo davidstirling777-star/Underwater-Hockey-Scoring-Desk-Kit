@@ -75,7 +75,7 @@ Why X11 matters for this application: On the tested Pi 5, moving the pointer ove
 2. On the right-hand side of the repository page, find **Releases**.
 3. Click Releases, then select the latest release.
 4. Scroll down to the **Assets** section.
-5. Click the Windows ZIP file. Its name will resemble: `UnderwaterHockeyScoringDesk-v1.3.6-Windows.zip`
+5. Click the Windows ZIP file. Its name will resemble: `UnderwaterHockeyScoringDesk-v1.2.123-Windows.zip`
    (The version and build numbers will vary.)
 6. The ZIP file will download to your computer, normally into your Downloads folder.
 
@@ -107,7 +107,7 @@ Download the newer release and extract it into a **separate folder** first. Do n
 > [!WARNING]
 > **Back up `settings.json` before every update.** It includes your **Zigbee button-name list** (for example, `siren_button, siren_button_2, siren_button_3`), MQTT settings, sound preferences, screen layout and the remembered Display Window open/closed state. Back up tournament CSVs, custom sounds under `assets/`, and game logs too. Replacing UWH's settings can lose button names **or action mappings**, even though the buttons remain paired to Zigbee2MQTT.
 
-After updating, confirm the **Zigbee Siren → Button Device Names** field and test every configured button and its action mapping before using the system at a match. The lower-right corner of the **Game Variables** panel shows the running UWH version so you can confirm which download is actually open. Windows and Raspberry Pi 5 release builds show the same explicit `1.3.6` number used in their release ZIP names. Do not blindly replace a new-format `settings.json` with a very old version; compare and carry forward your customised values where the format has changed. Zigbee2MQTT has a **separate** `data/` directory that should be backed up before Zigbee2MQTT updates; see [the Zigbee section](#zigbee2mqtt-wireless-siren-setup-and-operation).
+After updating, confirm the **Zigbee Siren → Button Device Names** field and test every configured button and its action mapping before using the system at a match. The lower-right corner of the **Game Variables** panel shows the running UWH version so you can confirm which download is actually open. Windows and Raspberry Pi 5 release builds show the same `1.2.<build>` number used in their release ZIP names; source installations show a source-build identifier. Do not blindly replace a new-format `settings.json` with a very old version; compare and carry forward your customised values where the format has changed. Zigbee2MQTT has a **separate** `data/` directory that should be backed up before Zigbee2MQTT updates; see [the Zigbee section](#zigbee2mqtt-wireless-siren-setup-and-operation).
 
 ## Downloading and installing UWH on a Raspberry Pi 5
 
@@ -204,7 +204,7 @@ The packaged application includes its own Python runtime and Python packages. Yo
 2. Open the [UWH Scoring Desk Kit repository](https://github.com/davidstirling777-star/Underwater-Hockey-Scoring-Desk-Kit).
 3. Open **Releases** and select the latest release.
 4. Under **Assets**, download the file whose name resembles:
-   `UnderwaterHockeyScoringDesk-v1.3.6-RaspberryPi5.zip`
+   `UnderwaterHockeyScoringDesk-v1.2.123-RaspberryPi5.zip`
    (the version/build number will vary).
 5. Save the ZIP to the Pi's Downloads folder.
 
@@ -219,7 +219,7 @@ The following example installs the release in `~/UWH-Scoring-Desk`. Replace the 
 rm -rf ~/UWH-Scoring-Desk-new
 mkdir -p ~/UWH-Scoring-Desk-new
 cd ~/UWH-Scoring-Desk-new
-unzip ~/Downloads/UnderwaterHockeyScoringDesk-v1.3.6-RaspberryPi5.zip
+unzip ~/Downloads/UnderwaterHockeyScoringDesk-v1.2.123-RaspberryPi5.zip
 chmod +x Start-UWH.sh UnderwaterHockeyScoringDesk
 ./Start-UWH.sh
 ```
@@ -273,7 +273,7 @@ Download the newer `-RaspberryPi5.zip` and extract it into a **separate folder f
 
 Run the new version once and confirm its startup self-test, screens, audio and configured siren buttons. Then copy your required user data/settings into the new installation deliberately. Do not copy the old `_internal` directory into a new release.
 
-The lower-right version display uses the same explicit `1.3.6` value as the Raspberry Pi release ZIP, just as the Windows release does.
+The lower-right version display uses the same `1.2.<build>` value as the Raspberry Pi release ZIP, just as the Windows release does.
 
 ### 6. Advanced/developer alternative: run from Python source
 
@@ -307,48 +307,25 @@ Do not use `sudo pip install` or `pip install --break-system-packages` for the s
 
 ## Game Variables tab
 
-### v1.3.6 visual restoration
-
-Version **1.3.6** keeps the blue-accent ttkbootstrap interface for the six configuration/information tabs while restoring the established match presentation. The referee **Scoreboard** again uses the original high-contrast White / grey / Black layout with light-grey goal controls, red Referee Time-Out and orange Penalties. The external **Display Window** again uses White on the left, the grey timer/game centre and Black on the right.
-
-Game Variables now places **Presets above Game Sequence Info**, keeps **Exit Program** permanently visible, and puts the Overtime enable switch beside **Overtime Game Break** while greying/disabling the remaining overtime timing values when Overtime is off. The Screens testing controls remain visible, and the About hero uses the packaged UWH stick logo from `assets/About_hero_logo.png`.
-
-### v1.3.5 ttkbootstrap compatibility
-
-Version **1.3.5** uses the supported `Style(theme="flatly")` constructor and pins ttkbootstrap to the compatible **1.x** API family (`>=1.10.1,<2`).
-
-### v1.3.3 Sudden Death timer fix
-
-Version **1.3.3** consolidates the Sudden Death count-up onto the application's own Tk timer callback and adds regression tests that prove the clock increments once per second and stops cleanly when the period changes. If the deciding Sudden Death goal is retracted during the correction window, the restored Sudden Death period now resumes from the saved elapsed time instead of resetting to 00:00.
-
-### v1.3.2 bug-fix release
-
-Version **1.3.2** includes the Sudden Death recovery fix from PR #290. A deciding Sudden Death goal still moves immediately to Between Game Break; retracting that deciding goal during the correction window restores Sudden Death at the saved elapsed time. Once the completed game is committed, the Sudden Death restoration state is cleared so it cannot leak into a later game.
-
-### v1.3.1 visual refresh
-
-Version **1.3.1** introduces the approved blue-accent UWH visual style for **Game Variables, Tournament List, Screens, Sounds, Zigbee Siren and About**. The Scoreboard layout is deliberately not structurally redesigned in this phase. The new style changes presentation and grouping while keeping the existing game-variable keys and behaviours.
-
-
 Here, you can set most of the parameters of the games and select whether Team Time-Outs, Overtime and Sudden Death aspects of the game are allowed.
 
-Most period-duration boxes accept decimal **minutes**, e.g. `1.5` (or `1,5`) = 1 minute and 30 seconds. **Crib Time** is in seconds; **Clock Time to Start First Game at:** is a 24-hour clock time, not a duration.
+Most period-duration boxes accept decimal **minutes**, e.g. `1.5` (or `1,5`) = 1 minute and 30 seconds. **Crib Time** is in seconds; **Time to Start First Game** is a 24-hour clock time, not a duration.
 
-**Clock Time to Start First Game at:** schedules the first game against the computer's local clock. The v1.3.1 field is labelled in `HH.mm` form and accepts `H.MM`, `HH.MM`, `H:MM` or `HH:MM`; for example `9.36`, `09.36`, `9:36` and `09:36` all mean 09:36. If the selected time has already passed today, the app schedules it for tomorrow.
+**Time to Start First Game** schedules the first game against the computer's local clock. Enter a 24-hour time as `H:MM` or `HH:MM`: both `9:36` and `09:36` mean 09:36. The minutes must have two digits (for example, `9:06`). If the selected time has already passed today, the app schedules it for tomorrow.
 
-**First Game Starts In:** is another way to set when the first game starts, in 'minutes from now'. Entering a value here will wipe the value from 'Clock Time to Start First Game at:'.
+**First Game Starts In:** is another way to set when the first game starts, in 'minutes from now'. Entering a value here will wipe the time from 'Time to Start First Game'.
 
 **Team time-outs allowed?** is a checkbox that, when selected, enables the Team Time-Out buttons in the Scoreboard tab and makes the 'Team Timeout Period' value box able to accept a value.
 
-**Team Time out period:** combines the existing Team Time-Out enable control and its duration on one line. The value is in minutes.
+**Team Time-Out Period** is the value in minutes allowed for the 'Team Time-out'.
 
 **Half Period:** The time in minutes of the first and second halves.
 
 **Half Time Break:** The time in minutes of the half time break.
 
-**Overtime allowed?** is a checkbox that, when selected, enables the program to enter Overtime if the scores are tied at the end of normal play. It also enables/disables the 'Overtime Game Break:', 'Overtime Half Period' and 'Overtime Half Time Break' value boxes.
+**Overtime** is enabled by the checkbox beside **Overtime Game Break:**. When selected, the program may enter Overtime if the scores are tied at the end of normal play. When it is off, the Overtime Game Break, Overtime Half Period and Overtime Half Time Break values are greyed out and disabled.
 
-**Overtime Game Break:** The time in minutes of the break between the end of the second half and the start of Overtime.
+**Overtime Game Break:** The time in minutes of the break between the end of the second half and the start of Overtime. Its row also contains the Overtime enable checkbox.
 
 **Overtime Half Period:** The time in minutes of the Overtime halves.
 
@@ -366,12 +343,9 @@ Most period-duration boxes accept decimal **minutes**, e.g. `1.5` (or `1,5`) = 1
 
 ### Presets
 
-Here, **nine** buttons are available for commonly used settings. The existing stored presets are preserved when upgrading from the older six-button layout; slots 7, 8 and 9 start empty. Holding a preset button for **three seconds** opens its editor, where the button name and saved settings can be changed. Click the stored button to load those settings back into the Game Variables.
+Here, **nine** buttons are available for commonly used settings. Existing six-button settings are preserved; slots 7, 8 and 9 are added empty. Holding a preset button for **three seconds** opens its editor, where the button name and saved settings can be changed. Click the stored button to load those settings back into the Game Variables.
 
 ## Tournament List tab
-
-The tab's enable control is described as **“Enables loading of game data from a tournament draw file”**.
-
 
 Tournament draw selection and results synchronisation are on their own **Tournament List** tab, leaving more room for Game Variables and its Game Sequence explanation.
 
@@ -402,7 +376,7 @@ The **Game Sequence** explanation remains on the **Game Variables** tab and now 
 
 The normal game sequence is:
 
-1. **First Game Starts In / Clock Time to Start First Game at:** runs once to start the first scheduled match.
+1. **First Game Starts In / Time to Start First Game** runs once to start the first scheduled match.
 2. **First Half** → **Half Time** → **Second Half**.
 3. If the score is tied and Overtime is enabled: **Overtime Game Break** → **Overtime First Half** → **Overtime Half Time** → **Overtime Second Half**.
 4. If the score is still tied and Sudden Death is enabled: **Sudden Death Game Break** → **Sudden Death**.
@@ -1265,12 +1239,9 @@ If MQTT authentication is enabled, use authenticated client options or the UWH U
 
 ## About tab
 
-The v1.3.1 About banner uses the tagline **“A tool for sirens, scoring, penalties and happier players”**.
-
-
 The **About** tab shows the running application version and the project credits. It includes clickable links to the local `README.md` in the installed UWH folder, the project repository, and the project contact email.
 
-This app was started in Google AI, made workable by GitHub Copilot and extensively refactored, tweaked, improved, expanded and tested by ChatGPT. Conducted by David Stirling (who can't write code), davidstirling777@gmail.com.
+This app was started in Google AI, made workable by GitHub Copilot and extensively refactored, tweaked, improved, expanded and tested by ChatGPT, conducted by David Stirling (who can't write code), davidstirling777@gmail.com.
 
 The conductor seems to be the star of the show, even though they do not make any noise. They even get to come on to the stage all on their own, to rapturous applause.
 
@@ -1286,7 +1257,7 @@ The source remains a Python/Tkinter program and can be run from a virtual enviro
 - **Windows x64:** `UnderwaterHockeyScoringDesk-v<version>-Windows.zip`
 - **Raspberry Pi 5 / Linux ARM64:** `UnderwaterHockeyScoringDesk-v<version>-RaspberryPi5.zip`
 
-Both packages are produced from the same commit and use the same explicit **1.3.1** version. Windows 11 has been tested end-to-end with Zigbee2MQTT; Raspberry Pi 5 has been tested as a Bookworm/X11 desktop application. The full Pi MQTT/Zigbee installation still has not received the same end-to-end deployment verification as Windows.
+Both packages are produced from the same commit and use the same displayed `1.2.<build>` version. Windows 11 has been tested end-to-end with Zigbee2MQTT; Raspberry Pi 5 has been tested as a Bookworm/X11 desktop application. The full Pi MQTT/Zigbee installation still has not received the same end-to-end deployment verification as Windows.
 
 For a source installation on Raspberry Pi OS Bookworm, use a project virtual environment rather than a system-wide `pip install`. `paho-mqtt` is the Python MQTT client, not the MQTT broker; Zigbee2MQTT remains a separate Node.js program.
 
