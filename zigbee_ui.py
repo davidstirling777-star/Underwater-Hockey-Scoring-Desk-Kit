@@ -77,6 +77,8 @@ def _draw_action_mappings(app, selected=None):
     app._zigbee_mapping_count.config(
         text=f"{len(app._zigbee_action_mappings_draft)} saved/draft mappings"
     )
+    if hasattr(app, "refresh_zigbee_device_list"):
+        app.refresh_zigbee_device_list()
 
 
 def _selected_mapping_index(app):
