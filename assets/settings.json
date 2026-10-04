@@ -139,6 +139,21 @@
         "sudden_death_game_break": true,
         "crib_time": true
       }
+    },
+    {
+      "text": "7",
+      "values": {},
+      "checkboxes": {}
+    },
+    {
+      "text": "8",
+      "values": {},
+      "checkboxes": {}
+    },
+    {
+      "text": "9",
+      "values": {},
+      "checkboxes": {}
     }
   ],
   "hardwareDetection": {

@@ -72,10 +72,9 @@ def published_releases(repository, token):
 def main():
     repository = os.environ["GITHUB_REPOSITORY"]
     build_sha = os.environ["GITHUB_SHA"]
-    run_number = int(os.environ["GITHUB_RUN_NUMBER"])
-    release_series = os.environ["RELEASE_SERIES"]
+    release_version = os.environ["RELEASE_VERSION"]
     token = os.environ["GITHUB_TOKEN"]
-    version = f"v{release_series}.{run_number}"
+    version = f"v{release_version}"
 
     # Do not call the release API for builds already known to be outdated.
     main_sha = github_get(f"repos/{repository}/commits/main", token)["sha"]

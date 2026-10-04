@@ -1,4 +1,4 @@
-"""H:MM and HH:MM must agree in UI validation and both start-time paths.
+"""Dot and colon 24-hour clock forms must agree in both start-time paths.
 
 Extract the real methods as AST so these tests need no Tk display, pygame,
 serial device or installed MQTT broker.
@@ -133,11 +133,14 @@ class StartTimeFormatsTests(unittest.TestCase):
         app = SimpleNamespace(_on_single_variable_change=Mock())
         errors = Mock()
         validator = load_real_entry_validator(app, errors)
-        for time_text in ("9:36", "09:36", "0:05", "00:05",
-                          "19:36", "23:59"):
+        for time_text in (
+            "9:36", "09:36", "9.36", "09.36",
+            "0:05", "00:05", "0.05", "00.05",
+            "19:36", "19.36", "23:59", "23.59",
+        ):
             with self.subTest(time=time_text):
                 validator(SimpleNamespace(widget=Entry(time_text)))
-        self.assertEqual(app._on_single_variable_change.call_count, 6)
+        self.assertEqual(app._on_single_variable_change.call_count, 12)
         errors.assert_not_called()
 
     def test_invalid_clock_values_remain_rejected(self):
@@ -154,7 +157,7 @@ class StartTimeFormatsTests(unittest.TestCase):
         app._on_single_variable_change.assert_not_called()
 
     def test_live_minutes_field_accepts_both_equivalent_forms(self):
-        for time_text in ("9:36", "09:36"):
+        for time_text in ("9:36", "09:36", "9.36", "09.36"):
             with self.subTest(time=time_text):
                 app = FakeApp(time_text)
                 app._update_start_first_game_in()
@@ -181,6 +184,16 @@ class StartTimeFormatsTests(unittest.TestCase):
             with self.subTest(time=time_text):
                 app = FakeApp(time_text)
                 self.assertEqual(app.first_period_seconds(), 96 * 60)
+
+    def test_dot_forms_schedule_the_same_instant(self):
+        for time_text in ("9.36", "09.36", "0.05", "00.05"):
+            with self.subTest(time=time_text):
+                app = FakeApp(time_text)
+                app._update_start_first_game_in()
+                hour, minute = map(int, time_text.split("."))
+                expected = (hour * 60 + minute - 8 * 60) % (24 * 60)
+                self.assertEqual(app.minutes_entry.get(), str(expected))
+                self.assertEqual(app.first_period_seconds(), expected * 60)
 
     def test_both_forms_roll_over_to_tomorrow_after_time_passed(self):
         FixedDatetime.current = real_datetime.datetime(
