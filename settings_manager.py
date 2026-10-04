@@ -282,7 +282,10 @@ def get_default_unified_settings():
             {"text": "3", "values": {}, "checkboxes": {}},
             {"text": "4", "values": {}, "checkboxes": {}},
             {"text": "5", "values": {}, "checkboxes": {}},
-            {"text": "6", "values": {}, "checkboxes": {}}
+            {"text": "6", "values": {}, "checkboxes": {}},
+            {"text": "7", "values": {}, "checkboxes": {}},
+            {"text": "8", "values": {}, "checkboxes": {}},
+            {"text": "9", "values": {}, "checkboxes": {}}
         ]
     }
 
@@ -301,12 +304,35 @@ def save_sound_settings(base_dir, settings):
 
 
 def load_preset_settings(base_dir):
-    """Load preset settings from unified JSON file."""
+    """Load presets and migrate older six-button settings to nine buttons."""
     unified_settings = load_unified_settings(base_dir)
-    return unified_settings.get(
+    presets = unified_settings.get(
         "presetSettings",
         get_default_unified_settings()["presetSettings"]
     )
+    if not isinstance(presets, list):
+        presets = []
+
+    # Preserve every existing preset exactly. Older six-slot settings gain
+    # three empty slots without renaming or overwriting the first six.
+    migrated = [
+        item.copy() if isinstance(item, dict) else {}
+        for item in presets[:9]
+    ]
+    while len(migrated) < 9:
+        number = len(migrated) + 1
+        migrated.append({
+            "text": str(number),
+            "values": {},
+            "checkboxes": {},
+        })
+
+    for index, item in enumerate(migrated):
+        item.setdefault("text", str(index + 1))
+        item.setdefault("values", {})
+        item.setdefault("checkboxes", {})
+
+    return migrated
 
 
 def save_preset_settings(base_dir, presets):
