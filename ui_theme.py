@@ -10,6 +10,8 @@ import base64
 import tkinter as tk
 from tkinter import ttk
 
+import ttkbootstrap as tb
+
 
 COLORS = {
     "app_bg": "#f3f7fb",
@@ -43,30 +45,54 @@ _APP_ICON_B64 = """iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAaXUlEQVR42s17a
 
 
 def configure_styles(root):
-    """Register UWH-specific styles while leaving legacy widgets untouched."""
+    """Install the real ttkbootstrap UWH visual system.
+
+    The original v1.3.x styling used native ttk with custom colours.  v1.3.4
+    deliberately uses ttkbootstrap's Flatly theme so buttons, entries,
+    checkbuttons, comboboxes, tables and scrollbars share the polished visual
+    language shown in the approved mockups.
+    """
     root.configure(background=COLORS["app_bg"])
-    style = ttk.Style(root)
+
+    # Pass the existing root as master so ttkbootstrap styles this application
+    # rather than creating another Tk instance.
+    style = tb.Style(theme="flatly", master=root)
+    root._uwh_bootstrap_style = style
 
     style.configure(
         "UWH.TNotebook",
         background=COLORS["app_bg"],
         borderwidth=0,
-        tabmargins=(8, 6, 8, 0),
+        tabmargins=(12, 4, 12, 0),
     )
     style.configure(
         "UWH.TNotebook.Tab",
         font=(FONT_FAMILY, 10, "bold"),
-        padding=(14, 8),
-        foreground=COLORS["text"],
+        padding=(18, 11),
+        foreground=COLORS["navy"],
+        background=COLORS["surface"],
+        borderwidth=0,
     )
     style.map(
         "UWH.TNotebook.Tab",
-        foreground=[("selected", COLORS["primary"])],
-        background=[("selected", COLORS["primary_soft"])],
+        foreground=[
+            ("selected", COLORS["primary"]),
+            ("active", COLORS["primary"]),
+        ],
+        background=[
+            ("selected", COLORS["primary_soft"]),
+            ("active", "#f5f9ff"),
+        ],
     )
 
     style.configure("UWH.Tab.TFrame", background=COLORS["app_bg"])
     style.configure("UWH.Surface.TFrame", background=COLORS["surface"])
+    style.configure(
+        "UWH.Card.TFrame",
+        background=COLORS["surface"],
+        borderwidth=1,
+        relief="solid",
+    )
     style.configure("UWH.Info.TFrame", background=COLORS["primary_soft"])
 
     style.configure(
@@ -111,6 +137,7 @@ def configure_styles(root):
         foreground=COLORS["danger"],
         font=BODY_FONT,
     )
+
     style.configure(
         "UWH.TCheckbutton",
         background=COLORS["surface"],
@@ -123,22 +150,23 @@ def configure_styles(root):
         background=COLORS["surface"],
         foreground=COLORS["text"],
         font=BODY_FONT,
+        padding=(2, 4),
     )
     style.configure(
         "UWH.TEntry",
-        padding=(6, 5),
+        padding=(8, 7),
         fieldbackground=COLORS["surface"],
         foreground=COLORS["text"],
     )
     style.configure(
         "UWH.TCombobox",
-        padding=(6, 4),
+        padding=(8, 6),
         fieldbackground=COLORS["surface"],
         foreground=COLORS["text"],
     )
     style.configure(
         "UWH.Treeview",
-        rowheight=28,
+        rowheight=30,
         font=BODY_FONT,
         background=COLORS["surface"],
         fieldbackground=COLORS["surface"],
@@ -151,11 +179,11 @@ def configure_styles(root):
         foreground=COLORS["navy"],
         background=COLORS["primary_soft"],
         relief="flat",
-        padding=(6, 6),
+        padding=(8, 7),
     )
     style.map(
         "UWH.Treeview",
-        background=[("selected", "#d8eaff")],
+        background=[("selected", "#dcecff")],
         foreground=[("selected", COLORS["navy"])],
     )
 
@@ -174,25 +202,118 @@ def apply_app_icon(root):
         return None
 
 
-def card(parent, *, padding=12):
-    """Return a white card with the blue-grey border used across new-look tabs."""
-    frame = tk.Frame(
-        parent,
+def create_app_header(root):
+    """Create the persistent UWH logo/title strip above the tab navigation."""
+    header = tk.Frame(
+        root,
         bg=COLORS["surface"],
+        height=64,
         highlightbackground=COLORS["border"],
-        highlightcolor=COLORS["border"],
-        highlightthickness=1,
+        highlightthickness=0,
         bd=0,
-        padx=padding,
-        pady=padding,
+    )
+    header.pack(fill="x", side="top")
+    header.pack_propagate(False)
+
+    content = tk.Frame(header, bg=COLORS["surface"])
+    content.pack(fill="both", expand=True, padx=18, pady=8)
+
+    icon = getattr(root, "_uwh_app_icon", None)
+    if icon is not None:
+        try:
+            small_icon = icon.subsample(2, 2)
+            root._uwh_header_icon = small_icon
+            tk.Label(
+                content,
+                image=small_icon,
+                bg=COLORS["surface"],
+                bd=0,
+            ).pack(side="left", padx=(0, 10))
+        except tk.TclError:
+            pass
+
+    tk.Label(
+        content,
+        text="UWH Scoring Desk",
+        bg=COLORS["surface"],
+        fg=COLORS["navy"],
+        font=(FONT_FAMILY, 20, "bold"),
+        anchor="w",
+    ).pack(side="left")
+
+    separator = tk.Frame(root, bg=COLORS["border"], height=1)
+    separator.pack(fill="x", side="top")
+    return header
+
+
+def tab_label(name):
+    """Return the compact icon/text labels used by the new-look navigation."""
+    icons = {
+        "Scoreboard": "▣",
+        "Game Variables": "⚙",
+        "Tournament List": "▤",
+        "Screens": "▱",
+        "Sounds": "♪",
+        "Zigbee Siren": "⌁",
+        "About": "ⓘ",
+    }
+    icon = icons.get(name, "•")
+    return f"{icon}  {name}"
+
+
+def card(parent, *, padding=14):
+    """Return a clean white card used throughout the six redesigned tabs."""
+    frame = tb.Frame(
+        parent,
+        padding=padding,
+        style="UWH.Card.TFrame",
     )
     return frame
 
 
-def section_title(parent, text):
+def page_header(parent, title, subtitle=None, symbol="●"):
+    """Create a compact card header matching the approved mockup hierarchy."""
+    frame = card(parent, padding=12)
+    frame.grid_columnconfigure(1, weight=1)
+
+    tk.Label(
+        frame,
+        text=symbol,
+        bg=COLORS["surface"],
+        fg=COLORS["primary"],
+        font=(FONT_FAMILY, 20, "bold"),
+        width=2,
+        anchor="w",
+    ).grid(row=0, column=0, rowspan=2, sticky="nw", padx=(0, 8))
+
+    tk.Label(
+        frame,
+        text=title,
+        bg=COLORS["surface"],
+        fg=COLORS["navy"],
+        font=(FONT_FAMILY, 15, "bold"),
+        anchor="w",
+    ).grid(row=0, column=1, sticky="ew")
+
+    if subtitle:
+        tk.Label(
+            frame,
+            text=subtitle,
+            bg=COLORS["surface"],
+            fg=COLORS["muted"],
+            font=SMALL_FONT,
+            anchor="w",
+            justify="left",
+        ).grid(row=1, column=1, sticky="ew", pady=(2, 0))
+
+    return frame
+
+
+def section_title(parent, text, symbol=None):
+    text_value = f"{symbol}  {text}" if symbol else text
     return tk.Label(
         parent,
-        text=text,
+        text=text_value,
         bg=COLORS["surface"],
         fg=COLORS["navy"],
         font=SECTION_FONT,
@@ -231,8 +352,15 @@ def info_banner(parent, text):
         highlightbackground=COLORS["border"],
         highlightthickness=1,
         padx=12,
-        pady=8,
+        pady=9,
     )
+    tk.Label(
+        frame,
+        text="ⓘ",
+        bg=COLORS["primary_soft"],
+        fg=COLORS["primary"],
+        font=(FONT_FAMILY, 12, "bold"),
+    ).pack(side="left", padx=(0, 9))
     tk.Label(
         frame,
         text=text,
@@ -241,65 +369,71 @@ def info_banner(parent, text):
         font=BODY_FONT,
         justify="left",
         anchor="w",
-    ).pack(fill="x")
+    ).pack(side="left", fill="x", expand=True)
     return frame
 
 
 def primary_button(parent, text, command, *, width=None):
-    button = tk.Button(
+    return tb.Button(
         parent,
         text=text,
         command=command,
-        bg=COLORS["primary"],
-        fg="white",
-        activebackground=COLORS["primary_hover"],
-        activeforeground="white",
-        relief="flat",
-        bd=0,
-        padx=14,
-        pady=7,
-        font=(FONT_FAMILY, 10, "bold"),
-        cursor="hand2",
+        bootstyle="primary",
         width=width,
+        padding=(14, 8),
     )
-    return button
 
 
 def secondary_button(parent, text, command, *, width=None):
-    button = tk.Button(
+    return tb.Button(
         parent,
         text=text,
         command=command,
-        bg=COLORS["surface"],
-        fg=COLORS["primary"],
-        activebackground=COLORS["primary_soft"],
-        activeforeground=COLORS["primary_hover"],
-        relief="solid",
-        bd=1,
-        highlightthickness=0,
-        padx=12,
-        pady=6,
-        font=BODY_FONT,
-        cursor="hand2",
+        bootstyle="primary-outline",
         width=width,
+        padding=(12, 7),
     )
-    return button
 
 
 def danger_button(parent, text, command, *, width=None):
-    return tk.Button(
+    return tb.Button(
         parent,
         text=text,
         command=command,
-        bg=COLORS["surface"],
-        fg=COLORS["danger"],
-        activebackground=COLORS["danger_soft"],
-        activeforeground=COLORS["danger"],
-        relief="solid",
-        bd=1,
-        padx=12,
-        pady=6,
-        font=BODY_FONT,
-        cursor="hand2",
+        bootstyle="danger-outline",
         width=width,
+        padding=(12, 7),
+    )
+
+
+def success_button(parent, text, command, *, width=None):
+    return tb.Button(
+        parent,
+        text=text,
+        command=command,
+        bootstyle="success",
+        width=width,
+        padding=(12, 7),
+    )
+
+
+def toggle_switch(parent, variable, command=None, text=""):
+    """Return a modern blue round toggle matching the approved mockups."""
+    return tb.Checkbutton(
+        parent,
+        text=text,
+        variable=variable,
+        command=command,
+        bootstyle="primary-round-toggle",
+    )
+
+
+def radio_button(parent, *, text, variable, value, command=None):
+    return tb.Radiobutton(
+        parent,
+        text=text,
+        variable=variable,
+        value=value,
+        command=command,
+        bootstyle="primary",
     )

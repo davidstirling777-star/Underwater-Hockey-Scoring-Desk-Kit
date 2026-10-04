@@ -386,17 +386,34 @@ def _create_mapping_table(app, parent, config):
 def create_zigbee_siren_tab(app):
     """Create the approved v1.3 Zigbee/Arduino siren control dashboard."""
     tab = ttk.Frame(app.notebook, style="UWH.Tab.TFrame")
-    app.notebook.add(tab, text="Zigbee Siren")
+    app.notebook.add(
+        tab,
+        text=ui_theme.tab_label("Zigbee Siren"),
+    )
     tab.grid_columnconfigure(0, weight=1)
-    tab.grid_rowconfigure(1, weight=1)
-    tab.grid_rowconfigure(2, weight=0)
+    tab.grid_rowconfigure(2, weight=1)
+    tab.grid_rowconfigure(3, weight=0)
+
+    header = ui_theme.page_header(
+        tab,
+        "Zigbee and Arduino Siren Control",
+        "Manage Zigbee buttons, MQTT mappings and the Arduino siren hardware.",
+        symbol="⌁",
+    )
+    header.grid(
+        row=0,
+        column=0,
+        sticky="ew",
+        padx=12,
+        pady=(12, 6),
+    )
 
     config = app.zigbee_controller.config
     app.config_widgets = {}
 
     # Top toolbar keeps the three high-frequency actions permanently visible.
     toolbar = ui_theme.card(tab, padding=10)
-    toolbar.grid(row=0, column=0, sticky="ew", padx=12, pady=(12, 6))
+    toolbar.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 6))
     toolbar.grid_columnconfigure(3, weight=1)
 
     ui_theme.primary_button(
@@ -439,7 +456,7 @@ def create_zigbee_siren_tab(app):
     app.zigbee_status_label.grid(row=0, column=1, sticky="w")
 
     body = ttk.Frame(tab, style="UWH.Tab.TFrame")
-    body.grid(row=1, column=0, sticky="nsew", padx=12, pady=6)
+    body.grid(row=2, column=0, sticky="nsew", padx=12, pady=6)
     body.grid_columnconfigure(0, weight=5)
     body.grid_columnconfigure(1, weight=7)
     body.grid_rowconfigure(0, weight=1)
@@ -457,7 +474,11 @@ def create_zigbee_siren_tab(app):
     connections = ui_theme.card(left, padding=12)
     connections.grid(row=0, column=0, sticky="ew", pady=(0, 8))
     connections.grid_columnconfigure(1, weight=1)
-    ui_theme.section_title(connections, "Connections").grid(
+    ui_theme.section_title(
+        connections,
+        "Connections",
+        symbol="●",
+    ).grid(
         row=0, column=0, columnspan=3, sticky="w", pady=(0, 8)
     )
 
@@ -546,7 +567,11 @@ def create_zigbee_siren_tab(app):
     config_card.grid(row=1, column=0, sticky="nsew")
     config_card.grid_columnconfigure(1, weight=1)
     config_card.grid_columnconfigure(3, weight=1)
-    ui_theme.section_title(config_card, "MQTT Configuration").grid(
+    ui_theme.section_title(
+        config_card,
+        "MQTT Configuration",
+        symbol="⚙",
+    ).grid(
         row=0, column=0, columnspan=4, sticky="w", pady=(0, 8)
     )
 
@@ -635,7 +660,11 @@ def create_zigbee_siren_tab(app):
     device_header = tk.Frame(devices_card, bg=ui_theme.COLORS["surface"])
     device_header.grid(row=0, column=0, sticky="ew", pady=(0, 6))
     device_header.grid_columnconfigure(0, weight=1)
-    ui_theme.section_title(device_header, "Configured Devices").grid(
+    ui_theme.section_title(
+        device_header,
+        "Configured Devices",
+        symbol="▤",
+    ).grid(
         row=0, column=0, sticky="w"
     )
 
@@ -686,7 +715,11 @@ def create_zigbee_siren_tab(app):
     log_card.grid(row=1, column=0, sticky="nsew")
     log_card.grid_columnconfigure(0, weight=1)
     log_card.grid_rowconfigure(1, weight=1)
-    ui_theme.section_title(log_card, "Recent Events").grid(
+    ui_theme.section_title(
+        log_card,
+        "Recent Events",
+        symbol="◷",
+    ).grid(
         row=0, column=0, sticky="w", pady=(0, 6)
     )
 
@@ -714,7 +747,7 @@ def create_zigbee_siren_tab(app):
 
     mapping = _create_mapping_table(app, tab, config)
     mapping.grid(
-        row=2, column=0, sticky="nsew", padx=12, pady=(6, 12)
+        row=3, column=0, sticky="nsew", padx=12, pady=(6, 12)
     )
     refresh_devices()
 

@@ -42,18 +42,35 @@ def _visible_files(files, selected):
 def create_sounds_tab(app):
     """Create the Sounds tab and its per-file trim tables."""
     tab = ttk.Frame(app.notebook, style="UWH.Tab.TFrame")
-    app.notebook.add(tab, text="Sounds")
+    app.notebook.add(
+        tab,
+        text=ui_theme.tab_label("Sounds"),
+    )
 
-    tab.grid_rowconfigure(0, weight=1)
+    tab.grid_rowconfigure(1, weight=1)
     tab.grid_columnconfigure(0, weight=1)
+
+    header = ui_theme.page_header(
+        tab,
+        "Sounds",
+        "Select the active pip and siren files, match their apparent loudness, and test playback.",
+        symbol="♪",
+    )
+    header.grid(
+        row=0,
+        column=0,
+        sticky="ew",
+        padx=12,
+        pady=(12, 6),
+    )
 
     sounds_widget = ui_theme.card(tab, padding=12)
     sounds_widget.grid(
-        row=0,
+        row=1,
         column=0,
         sticky="nsew",
-        padx=8,
-        pady=8,
+        padx=12,
+        pady=(6, 12),
     )
     sounds_widget.grid_columnconfigure(0, weight=5, minsize=430)
     sounds_widget.grid_columnconfigure(1, weight=3, minsize=300)
@@ -199,14 +216,22 @@ def create_sounds_tab(app):
 
     def build_sound_table(parent, title, files, selection_var, sound_type):
         """Build one polished fixed ten-row selector/filename/trim table."""
-        frame = ttk.LabelFrame(
-            parent,
-            text=title,
-            padding=(8, 7),
-        )
+        frame = ui_theme.card(parent, padding=10)
         frame.grid_columnconfigure(0, weight=0)
         frame.grid_columnconfigure(1, weight=1, minsize=250)
         frame.grid_columnconfigure(2, weight=0)
+
+        ui_theme.section_title(
+            frame,
+            title,
+            symbol="♪" if title == "Pips" else "◉",
+        ).grid(
+            row=0,
+            column=0,
+            columnspan=3,
+            sticky="w",
+            pady=(0, 8),
+        )
 
         # A separate inner frame gives the three columns one continuous table
         # border instead of making each widget look like an unrelated control.
@@ -217,7 +242,7 @@ def create_sounds_tab(app):
             background=ui_theme.COLORS["border"],
         )
         table.grid(
-            row=0,
+            row=1,
             column=0,
             columnspan=3,
             sticky="nsew",
@@ -390,19 +415,16 @@ def create_sounds_tab(app):
                 blank_trim.state(["disabled"])
                 blank_trim.pack(fill="x", expand=True)
 
-        ttk.Label(
+        ui_theme.muted_label(
             frame,
-            text=(
-                "Select one radio button for the active sound; "
-                "double-click the filename to preview it."
-            ),
-            anchor="w",
+            "Select one radio button for the active sound; "
+            "double-click the filename to preview it.",
         ).grid(
-            row=1,
+            row=2,
             column=0,
             columnspan=3,
             sticky="ew",
-            pady=(6, 0),
+            pady=(7, 0),
         )
         return frame
 
@@ -432,11 +454,10 @@ def create_sounds_tab(app):
         width=18,
     ).grid(row=0, column=1, padx=(0, 12))
 
-    ttk.Checkbutton(
+    ui_theme.toggle_switch(
         controls,
+        app.enable_sound,
         text="Enable Sound?",
-        variable=app.enable_sound,
-        style="UWH.TCheckbutton",
     ).grid(row=0, column=3, padx=(16, 4))
 
     # Keep the diagnostic slightly below the top controls so it reads as
@@ -484,10 +505,9 @@ def create_sounds_tab(app):
         pady=(0, 0),
     )
 
-    timing_frame = ttk.LabelFrame(
+    timing_frame = ui_theme.card(
         sounds_widget,
-        text="Siren timing",
-        padding=(10, 8),
+        padding=12,
     )
     timing_frame.grid(
         row=2,
@@ -500,11 +520,22 @@ def create_sounds_tab(app):
     timing_frame.grid_columnconfigure(0, weight=1)
     timing_frame.grid_columnconfigure(1, weight=0)
 
-    ttk.Label(
+    ui_theme.section_title(
         timing_frame,
-        text="Number of seconds to play Siren",
-        anchor="w",
-    ).grid(row=0, column=0, sticky="ew", padx=(4, 10), pady=(12, 8))
+        "Siren Timing",
+        symbol="◷",
+    ).grid(
+        row=0,
+        column=0,
+        columnspan=2,
+        sticky="w",
+        pady=(0, 10),
+    )
+
+    ui_theme.body_label(
+        timing_frame,
+        "Number of seconds to play Siren",
+    ).grid(row=1, column=0, sticky="ew", padx=(4, 10), pady=(8, 8))
 
     siren_duration_entry = ttk.Entry(
         timing_frame,
@@ -512,11 +543,11 @@ def create_sounds_tab(app):
         width=10,
     )
     siren_duration_entry.grid(
-        row=0,
+        row=1,
         column=1,
         sticky="w",
         padx=(0, 10),
-        pady=(12, 8),
+        pady=(8, 8),
     )
 
     def validate_siren_duration(new_value):
@@ -550,11 +581,10 @@ def create_sounds_tab(app):
     siren_duration_entry.bind("<FocusOut>", normalize_siren_duration)
     siren_duration_entry.bind("<Return>", normalize_siren_duration)
 
-    ttk.Label(
+    ui_theme.body_label(
         timing_frame,
-        text="Maximum Siren Duration (seconds)",
-        anchor="w",
-    ).grid(row=1, column=0, sticky="ew", padx=(4, 10), pady=8)
+        "Maximum Siren Duration (seconds)",
+    ).grid(row=2, column=0, sticky="ew", padx=(4, 10), pady=8)
 
     max_siren_duration_entry = ttk.Entry(
         timing_frame,
@@ -562,7 +592,7 @@ def create_sounds_tab(app):
         width=10,
     )
     max_siren_duration_entry.grid(
-        row=1,
+        row=2,
         column=1,
         sticky="w",
         padx=(0, 10),
@@ -603,7 +633,7 @@ def create_sounds_tab(app):
         timing_frame,
         orient="horizontal",
     ).grid(
-        row=2,
+        row=3,
         column=0,
         columnspan=2,
         sticky="ew",
@@ -611,18 +641,16 @@ def create_sounds_tab(app):
         pady=(14, 10),
     )
 
-    ttk.Label(
+    ui_theme.muted_label(
         timing_frame,
-        text=(
-            "Overall loudness is set by the OS/DAC/amplifier. "
-            "Trim % only attenuates individual files: 100% is native level "
-            "and 0% mutes that file."
-        ),
+        "Overall loudness is set by the OS/DAC/amplifier. "
+        "Trim % only attenuates individual files: 100% is native level "
+        "and 0% mutes that file.",
         justify="left",
         anchor="nw",
         wraplength=330,
     ).grid(
-        row=3,
+        row=4,
         column=0,
         columnspan=2,
         sticky="ew",
@@ -631,18 +659,15 @@ def create_sounds_tab(app):
     )
 
     if len(all_pips) > MAX_SOUND_ROWS or len(all_sirens) > MAX_SOUND_ROWS:
-        ttk.Label(
+        ui_theme.muted_label(
             timing_frame,
-            text=(
-                "Up to 10 pip files and 10 siren files are shown. "
-                "If more are present, the active selection is kept visible."
-            ),
-            font=("Arial", 9),
+            "Up to 10 pip files and 10 siren files are shown. "
+            "If more are present, the active selection is kept visible.",
             justify="left",
             anchor="nw",
             wraplength=360,
         ).grid(
-            row=4,
+            row=5,
             column=0,
             columnspan=2,
             sticky="ew",

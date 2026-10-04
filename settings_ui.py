@@ -16,37 +16,81 @@ from app_version import APP_VERSION
 import ui_theme
 
 def create_settings_tab(app):
-    """Create the compact v1.3 Game Variables, presets and sequence tab."""
+    """Create the v1.3.4 Game Variables tab using the approved mockup style."""
     tab = ttk.Frame(app.notebook, style="UWH.Tab.TFrame")
-    app.notebook.add(tab, text="Game Variables")
-    tab.grid_columnconfigure(0, weight=5)
-    tab.grid_columnconfigure(1, weight=3)
-    tab.grid_rowconfigure(0, weight=1)
+    app.notebook.add(
+        tab,
+        text=ui_theme.tab_label("Game Variables"),
+    )
+    tab.grid_columnconfigure(0, weight=1)
+    tab.grid_rowconfigure(2, weight=1)
 
-    left = ttk.Frame(tab, style="UWH.Tab.TFrame")
-    left.grid(row=0, column=0, sticky="nsew", padx=(12, 6), pady=12)
-    left.grid_columnconfigure(0, weight=1)
-    left.grid_rowconfigure(0, weight=1)
+    header = ui_theme.page_header(
+        tab,
+        "Game Variables",
+        "Configure match timing, overtime, breaks and scoring options.",
+        symbol="⚙",
+    )
+    header.grid(
+        row=0,
+        column=0,
+        sticky="ew",
+        padx=12,
+        pady=(12, 6),
+    )
 
-    right = ttk.Frame(tab, style="UWH.Tab.TFrame")
-    right.grid(row=0, column=1, sticky="nsew", padx=(6, 12), pady=12)
-    right.grid_columnconfigure(0, weight=1)
-    right.grid_rowconfigure(0, weight=3)
-    right.grid_rowconfigure(1, weight=2)
+    info = ui_theme.info_banner(
+        tab,
+        "Game Variable changes are saved automatically. "
+        "Press Reset Timer after changing match timing so the active "
+        "game sequence is rebuilt from the new values."
+    )
+    info.grid(
+        row=1,
+        column=0,
+        sticky="ew",
+        padx=12,
+        pady=(0, 6),
+    )
+
+    content = ttk.Frame(tab, style="UWH.Tab.TFrame")
+    content.grid(
+        row=2,
+        column=0,
+        sticky="nsew",
+        padx=12,
+        pady=(6, 12),
+    )
+    content.grid_columnconfigure(0, weight=6)
+    content.grid_columnconfigure(1, weight=4)
+    content.grid_rowconfigure(0, weight=1)
 
     # ------------------------------------------------------------------
-    # Real Game Variables card.  Every row is backed by app.variables;
-    # there are no display-only or invented timing controls here.
+    # Real Game Variables card. Every row maps to the actual runtime model;
+    # the visual redesign deliberately introduces no mockup-only variables.
     # ------------------------------------------------------------------
-    variables_card = ui_theme.card(left, padding=10)
-    variables_card.grid(row=0, column=0, sticky="nsew")
+    variables_card = ui_theme.card(content, padding=12)
+    variables_card.grid(
+        row=0,
+        column=0,
+        sticky="nsew",
+        padx=(0, 6),
+    )
     variables_card.grid_columnconfigure(0, weight=3)
-    variables_card.grid_columnconfigure(1, weight=0, minsize=58)
-    variables_card.grid_columnconfigure(2, weight=0, minsize=112)
-    variables_card.grid_columnconfigure(3, weight=1, minsize=88)
+    variables_card.grid_columnconfigure(1, weight=0, minsize=72)
+    variables_card.grid_columnconfigure(2, weight=0, minsize=110)
+    variables_card.grid_columnconfigure(3, weight=1, minsize=82)
 
-    ui_theme.section_title(variables_card, "Game Variables").grid(
-        row=0, column=0, columnspan=4, sticky="w", pady=(0, 8)
+    ui_theme.section_title(
+        variables_card,
+        "Game Variables",
+        symbol="⚙",
+    ).grid(
+        row=0,
+        column=0,
+        columnspan=4,
+        sticky="w",
+        pady=(0, 10),
     )
 
     header_bg = ui_theme.COLORS["primary_soft"]
@@ -58,8 +102,8 @@ def create_settings_tab(app):
             fg=ui_theme.COLORS["navy"],
             font=(ui_theme.FONT_FAMILY, 9, "bold"),
             anchor="w" if col != 1 else "center",
-            padx=8,
-            pady=6,
+            padx=9,
+            pady=7,
         ).grid(row=1, column=col, sticky="nsew")
 
     app.widgets = []
@@ -73,8 +117,8 @@ def create_settings_tab(app):
             fg=ui_theme.COLORS["text"],
             font=ui_theme.BODY_FONT,
             anchor="w",
-            padx=8,
-            pady=4,
+            padx=9,
+            pady=3,
         )
         label.grid(row=row, column=0, sticky="ew")
         return label
@@ -91,60 +135,72 @@ def create_settings_tab(app):
         ).grid(row=row, column=3, sticky="ew")
 
     def checkbox_cell(row, variable):
-        frame = tk.Frame(variables_card, bg=ui_theme.COLORS["surface"])
-        frame.grid(row=row, column=1, sticky="nsew")
-        cb = ttk.Checkbutton(
-            frame,
-            variable=variable,
-            style="UWH.TCheckbutton",
+        frame = tk.Frame(
+            variables_card,
+            bg=ui_theme.COLORS["surface"],
         )
-        cb.pack(expand=True)
+        frame.grid(row=row, column=1, sticky="nsew")
+        cb = ui_theme.toggle_switch(frame, variable)
+        cb.pack(expand=True, padx=4, pady=2)
         return cb
 
     def entry_cell(row):
         entry = ttk.Entry(
             variables_card,
-            width=10,
+            width=9,
             style="UWH.TEntry",
             justify="center",
         )
-        entry.grid(row=row, column=2, sticky="ew", padx=6, pady=3)
+        entry.grid(
+            row=row,
+            column=2,
+            sticky="ew",
+            padx=7,
+            pady=3,
+        )
         return entry
 
     def bind_standard_entry(entry, var_name):
         entry.bind(
             "<FocusOut>",
-            lambda _event, name=var_name: app._on_single_variable_change(name)
+            lambda _event, name=var_name:
+                app._on_single_variable_change(name)
         )
         entry.bind(
             "<Return>",
-            lambda _event, name=var_name: app._on_single_variable_change(name)
+            lambda _event, name=var_name:
+                app._on_single_variable_change(name)
         )
 
     def validate_hhmm_on_focusout(event):
         """Validate either dot or colon 24-hour clock notation."""
         value = event.widget.get().strip()
         if value == "":
-            app._on_single_variable_change("time_to_start_first_game")
+            app._on_single_variable_change(
+                "time_to_start_first_game"
+            )
             return
 
         normalized = value.replace(".", ":")
-        if not re.fullmatch(r"(?:[01]?[0-9]|2[0-3]):[0-5][0-9]", normalized):
+        if not re.fullmatch(
+            r"(?:[01]?[0-9]|2[0-3]):[0-5][0-9]",
+            normalized,
+        ):
             messagebox.showerror(
                 "Input Error",
-                "Please enter a 24-hour time as H.MM, HH.MM, H:MM or HH:MM "
-                "(for example 9.36, 09.36, 9:36 or 09:36)."
+                "Please enter a 24-hour time as H.MM, HH.MM, H:MM or "
+                "HH:MM (for example 9.36, 09.36, 9:36 or 09:36)."
             )
             event.widget.focus_set()
             event.widget.selection_range(0, tk.END)
             return
 
-        # Keep the v1.3 display convention (HH.mm) while remaining
-        # backwards-compatible with colon-form settings.
         hh, mm = normalized.split(":")
         event.widget.delete(0, tk.END)
         event.widget.insert(0, f"{int(hh):02d}.{mm}")
-        app._on_single_variable_change("time_to_start_first_game")
+        app._on_single_variable_change(
+            "time_to_start_first_game"
+        )
 
     def bind_clock_entry(entry):
         entry.bind("<FocusOut>", validate_hhmm_on_focusout)
@@ -155,6 +211,7 @@ def create_settings_tab(app):
             value = event.widget.get().strip()
             if value == "":
                 return
+
             try:
                 numeric = float(value.replace(",", "."))
             except ValueError:
@@ -165,7 +222,8 @@ def create_settings_tab(app):
                 )
                 event.widget.delete(0, tk.END)
                 event.widget.insert(
-                    0, app.last_valid_values.get(field_name, "1")
+                    0,
+                    app.last_valid_values.get(field_name, "1"),
                 )
                 event.widget.focus_set()
                 event.widget.selection_range(0, tk.END)
@@ -177,23 +235,30 @@ def create_settings_tab(app):
                     if item["name"] == "between_game_break":
                         try:
                             between_game_break_minutes = float(
-                                item["entry"].get().strip().replace(",", ".")
+                                item["entry"].get().strip().replace(
+                                    ",", "."
+                                )
                             )
                         except (ValueError, AttributeError):
                             pass
                         break
+
                 if (
                     between_game_break_minutes is not None
                     and (between_game_break_minutes * 60) - numeric <= 31
                 ):
                     messagebox.showerror(
                         "Input Error",
-                        "Crib time too large. Between Game Break minus Crib "
-                        "time must be more than 31 seconds."
+                        "Crib time too large. Between Game Break minus "
+                        "Crib time must be more than 31 seconds."
                     )
                     event.widget.delete(0, tk.END)
                     event.widget.insert(
-                        0, app.last_valid_values.get(field_name, "60")
+                        0,
+                        app.last_valid_values.get(
+                            field_name,
+                            "60",
+                        ),
                     )
                     event.widget.focus_set()
                     event.widget.selection_range(0, tk.END)
@@ -205,8 +270,6 @@ def create_settings_tab(app):
         entry.bind("<FocusOut>", validate)
         entry.bind("<Return>", validate)
 
-    # Render in the actual runtime order. Team Time-Out permission and period
-    # intentionally share one visual row, but remain two separate saved keys.
     render_rows = [
         "time_to_start_first_game",
         "start_first_game_in",
@@ -228,30 +291,44 @@ def create_settings_tab(app):
         info = app.variables[var_name]
         label = variable_label(
             row,
-            info.get("label", f"{var_name.replace('_', ' ').title()}:")
+            info.get(
+                "label",
+                f"{var_name.replace('_', ' ').title()}:",
+            ),
         )
 
-        # Entries are created for all numeric/time variables.
         entry = None
-        if var_name not in ("overtime_allowed", "record_scorers_cap_number"):
+        if var_name not in (
+            "overtime_allowed",
+            "record_scorers_cap_number",
+        ):
             entry = entry_cell(row)
-            entry.insert(0, "" if var_name == "time_to_start_first_game" else "1")
+            entry.insert(
+                0,
+                "" if var_name == "time_to_start_first_game" else "1",
+            )
             unit_label(row, info.get("unit", ""))
 
             if var_name == "time_to_start_first_game":
                 bind_clock_entry(entry)
-            elif var_name in ("crib_time", "sudden_death_game_break"):
+            elif var_name in (
+                "crib_time",
+                "sudden_death_game_break",
+            ):
                 bind_guarded_numeric(entry, var_name)
             else:
                 bind_standard_entry(entry, var_name)
+
             app.last_valid_values[var_name] = entry.get()
 
         if var_name == "team_timeout_period":
-            # One line in the new UI: the enable switch belongs to
-            # team_timeouts_allowed; the value belongs to team_timeout_period.
-            checkbox_cell(row, app.team_timeouts_allowed_var)
+            checkbox_cell(
+                row,
+                app.team_timeouts_allowed_var,
+            )
             app.team_timeouts_allowed_var.trace_add(
-                "write", lambda *_args: app._on_team_timeouts_change()
+                "write",
+                lambda *_args: app._on_team_timeouts_change(),
             )
             app.widgets.append({
                 "name": "team_timeouts_allowed",
@@ -269,9 +346,13 @@ def create_settings_tab(app):
             app.team_timeout_period_label = label
 
         elif var_name == "overtime_allowed":
-            checkbox_cell(row, app.overtime_allowed_var)
+            checkbox_cell(
+                row,
+                app.overtime_allowed_var,
+            )
             app.overtime_allowed_var.trace_add(
-                "write", lambda *_args: app._on_overtime_change()
+                "write",
+                lambda *_args: app._on_overtime_change(),
             )
             app.widgets.append({
                 "name": var_name,
@@ -281,12 +362,16 @@ def create_settings_tab(app):
             })
 
         elif var_name == "record_scorers_cap_number":
-            checkbox_cell(row, app.record_scorers_cap_number_var)
+            checkbox_cell(
+                row,
+                app.record_scorers_cap_number_var,
+            )
             app.record_scorers_cap_number_var.trace_add(
                 "write",
-                lambda *_args: app._on_single_variable_change(
-                    "record_scorers_cap_number"
-                )
+                lambda *_args:
+                    app._on_single_variable_change(
+                        "record_scorers_cap_number"
+                    ),
             )
             app.widgets.append({
                 "name": var_name,
@@ -301,7 +386,7 @@ def create_settings_tab(app):
             check_var.trace_add(
                 "write",
                 lambda *_args, name=var_name:
-                    app._on_single_variable_change(name)
+                    app._on_single_variable_change(name),
             )
             app.widgets.append({
                 "name": var_name,
@@ -320,89 +405,91 @@ def create_settings_tab(app):
 
         row += 1
 
-    # Actual Crib-Time guidance is kept below the table rather than beside
-    # individual variables, avoiding the invented inline help from mockups.
-    crib_note = ui_theme.info_banner(
+    footer = tk.Frame(
         variables_card,
-        "Crib Time is subtracted from Between Game Break to help realign "
-        "Court Time with local computer time. Decimal values such as 1.5 "
-        "are accepted. After changing Game Variables, press Reset Timer."
+        bg=ui_theme.COLORS["surface"],
     )
-    crib_note.grid(
-        row=row, column=0, columnspan=4, sticky="ew", pady=(8, 6)
+    footer.grid(
+        row=row,
+        column=0,
+        columnspan=4,
+        sticky="ew",
+        pady=(9, 0),
     )
-    row += 1
-
-    controls = tk.Frame(variables_card, bg=ui_theme.COLORS["surface"])
-    controls.grid(row=row, column=0, columnspan=4, sticky="ew", pady=(2, 0))
-    controls.grid_columnconfigure(1, weight=1)
+    footer.grid_columnconfigure(1, weight=1)
 
     app.reset_timer_button = ui_theme.primary_button(
-        controls, "Reset Timer", app.reset_timer
+        footer,
+        "Reset Timer",
+        app.reset_timer,
     )
-    app.reset_timer_button.grid(row=0, column=0, sticky="w")
+    app.reset_timer_button.grid(
+        row=0,
+        column=0,
+        sticky="w",
+    )
+
+    ui_theme.muted_label(
+        footer,
+        "Crib Time is subtracted from Between Game Break. "
+        "Decimal values such as 1.5 are accepted.",
+        wraplength=470,
+        justify="left",
+    ).grid(
+        row=0,
+        column=1,
+        sticky="w",
+        padx=12,
+    )
 
     tk.Label(
-        controls,
+        footer,
         text=f"UWH v{APP_VERSION}",
         bg=ui_theme.COLORS["surface"],
         fg=ui_theme.COLORS["muted"],
         font=ui_theme.SMALL_FONT,
-    ).grid(row=0, column=2, sticky="e")
-
-    # ------------------------------------------------------------------
-    # Presets: nine real editable slots, sourced from settings.json.
-    # ------------------------------------------------------------------
-    presets_card = ui_theme.card(right, padding=10)
-    presets_card.grid(row=0, column=0, sticky="nsew", pady=(0, 6))
-    presets_card.grid_columnconfigure(0, weight=1)
-    presets_card.grid_columnconfigure(1, weight=1)
-    presets_card.grid_columnconfigure(2, weight=1)
-
-    ui_theme.section_title(presets_card, "Presets").grid(
-        row=0, column=0, columnspan=3, sticky="w", pady=(0, 8)
-    )
-
-    app.widget2_buttons = []
-    preset_data = app.load_preset_settings()
-    app.button_data = preset_data.copy()
-
-    for index in range(9):
-        btn = ui_theme.secondary_button(
-            presets_card,
-            app.button_data[index]["text"],
-            lambda: None,
-        )
-        btn.configure(font=(ui_theme.FONT_FAMILY, 10, "bold"))
-        btn.grid(
-            row=1 + (index // 3),
-            column=index % 3,
-            sticky="nsew",
-            padx=4,
-            pady=4,
-        )
-        btn.bind("<ButtonPress-1>", app._make_press_handler(index))
-        btn.bind("<ButtonRelease-1>", app._make_release_handler(index))
-        app.widget2_buttons.append(btn)
-
-    ui_theme.muted_label(
-        presets_card,
-        "Click a preset to load it. Press and hold a preset for 3 seconds to edit it.",
-        justify="left",
     ).grid(
-        row=4, column=0, columnspan=3, sticky="w", padx=4, pady=(8, 0)
+        row=0,
+        column=2,
+        sticky="e",
     )
 
     # ------------------------------------------------------------------
-    # Game Sequence: text is the existing real application sequence only.
+    # Right column: sequence above presets, matching the approved mockup.
     # ------------------------------------------------------------------
-    sequence_card = ui_theme.card(right, padding=10)
-    sequence_card.grid(row=1, column=0, sticky="nsew", pady=(6, 0))
+    right = ttk.Frame(
+        content,
+        style="UWH.Tab.TFrame",
+    )
+    right.grid(
+        row=0,
+        column=1,
+        sticky="nsew",
+        padx=(6, 0),
+    )
+    right.grid_columnconfigure(0, weight=1)
+    right.grid_rowconfigure(0, weight=3)
+    right.grid_rowconfigure(1, weight=2)
+
+    sequence_card = ui_theme.card(right, padding=12)
+    sequence_card.grid(
+        row=0,
+        column=0,
+        sticky="nsew",
+        pady=(0, 6),
+    )
     sequence_card.grid_columnconfigure(0, weight=1)
     sequence_card.grid_rowconfigure(1, weight=1)
 
-    ui_theme.section_title(sequence_card, "Game Sequence").grid(
-        row=0, column=0, sticky="w", pady=(0, 6)
+    ui_theme.section_title(
+        sequence_card,
+        "Game Sequence Info",
+        symbol="ⓘ",
+    ).grid(
+        row=0,
+        column=0,
+        sticky="w",
+        pady=(0, 8),
     )
 
     explanation_text = (
@@ -415,31 +502,138 @@ def create_settings_tab(app):
         "(if enabled)\n"
         "5. Between Game Break (loop back to step 2)\n\n"
         "Important Notes:\n"
-        "• 'First Game Starts In:' transitions directly to First Half\n"
+        "• First Game Starts In: transitions directly to First Half\n"
         "• Crib time is subtracted from Between Game Break"
     )
 
-    sequence_text = tk.Text(
+    sequence_wrap = ttk.Frame(
         sequence_card,
+        style="UWH.Surface.TFrame",
+    )
+    sequence_wrap.grid(
+        row=1,
+        column=0,
+        sticky="nsew",
+    )
+    sequence_wrap.grid_columnconfigure(0, weight=1)
+    sequence_wrap.grid_rowconfigure(0, weight=1)
+
+    sequence_text = tk.Text(
+        sequence_wrap,
         wrap="word",
-        height=13,
+        height=11,
         bg=ui_theme.COLORS["surface_alt"],
         fg=ui_theme.COLORS["text"],
         font=ui_theme.BODY_FONT,
         relief="flat",
-        padx=8,
-        pady=8,
+        padx=10,
+        pady=10,
     )
-    sequence_text.grid(row=1, column=0, sticky="nsew")
+    sequence_text.grid(
+        row=0,
+        column=0,
+        sticky="nsew",
+    )
+    sequence_scroll = ttk.Scrollbar(
+        sequence_wrap,
+        orient="vertical",
+        command=sequence_text.yview,
+    )
+    sequence_scroll.grid(
+        row=0,
+        column=1,
+        sticky="ns",
+    )
+    sequence_text.configure(
+        yscrollcommand=sequence_scroll.set,
+    )
     sequence_text.insert("1.0", explanation_text)
     sequence_text.config(state="disabled")
 
-    exit_row = tk.Frame(sequence_card, bg=ui_theme.COLORS["surface"])
-    exit_row.grid(row=2, column=0, sticky="e", pady=(8, 0))
+    exit_row = tk.Frame(
+        sequence_card,
+        bg=ui_theme.COLORS["surface"],
+    )
+    exit_row.grid(
+        row=2,
+        column=0,
+        sticky="e",
+        pady=(8, 0),
+    )
     app.exit_program_button = ui_theme.danger_button(
-        exit_row, "Exit Program", app.request_exit, width=14
+        exit_row,
+        "Exit Program",
+        app.request_exit,
+        width=13,
     )
     app.exit_program_button.pack()
+
+    presets_card = ui_theme.card(right, padding=12)
+    presets_card.grid(
+        row=1,
+        column=0,
+        sticky="nsew",
+        pady=(6, 0),
+    )
+    presets_card.grid_columnconfigure(0, weight=1)
+    presets_card.grid_columnconfigure(1, weight=1)
+    presets_card.grid_columnconfigure(2, weight=1)
+
+    ui_theme.section_title(
+        presets_card,
+        "Presets",
+        symbol="▤",
+    ).grid(
+        row=0,
+        column=0,
+        columnspan=3,
+        sticky="w",
+        pady=(0, 8),
+    )
+
+    app.widget2_buttons = []
+    preset_data = app.load_preset_settings()
+    app.button_data = preset_data.copy()
+
+    for index in range(9):
+        btn = ui_theme.secondary_button(
+            presets_card,
+            f"{index + 1}.  {app.button_data[index]['text']}",
+            lambda: None,
+        )
+        btn.configure(
+            width=17,
+        )
+        btn.grid(
+            row=1 + (index // 3),
+            column=index % 3,
+            sticky="nsew",
+            padx=4,
+            pady=4,
+        )
+        btn.bind(
+            "<ButtonPress-1>",
+            app._make_press_handler(index),
+        )
+        btn.bind(
+            "<ButtonRelease-1>",
+            app._make_release_handler(index),
+        )
+        app.widget2_buttons.append(btn)
+
+    ui_theme.muted_label(
+        presets_card,
+        "Click a preset to load it. Press and hold a preset for 3 seconds "
+        "to edit it.",
+        justify="left",
+    ).grid(
+        row=4,
+        column=0,
+        columnspan=3,
+        sticky="w",
+        padx=4,
+        pady=(8, 0),
+    )
 
     app.update_overtime_variables_state()
 
@@ -449,42 +643,59 @@ def create_tournament_tab(app):
     """Create the approved two-card Tournament List and results-sync tab."""
     tab = ttk.Frame(app.notebook, style="UWH.Tab.TFrame")
     app.tournament_tab = tab
-    app.notebook.add(tab, text="Tournament List")
+    app.notebook.add(
+        tab,
+        text=ui_theme.tab_label("Tournament List"),
+    )
     tab.grid_columnconfigure(0, weight=1)
     tab.grid_columnconfigure(1, weight=1)
-    tab.grid_rowconfigure(0, weight=1)
-    tab.grid_rowconfigure(1, weight=0)
+    tab.grid_rowconfigure(1, weight=1)
+    tab.grid_rowconfigure(2, weight=0)
+
+    header = ui_theme.page_header(
+        tab,
+        "Tournament List",
+        "Load tournament draw data and manage local/shared result syncing.",
+        symbol="▤",
+    )
+    header.grid(
+        row=0,
+        column=0,
+        columnspan=2,
+        sticky="ew",
+        padx=12,
+        pady=(12, 6),
+    )
 
     setup = ui_theme.card(tab, padding=14)
-    setup.grid(row=0, column=0, sticky="nsew", padx=(12, 6), pady=(12, 6))
+    setup.grid(row=1, column=0, sticky="nsew", padx=(12, 6), pady=(6, 6))
     setup.grid_columnconfigure(0, weight=0)
     setup.grid_columnconfigure(1, weight=1)
     setup.grid_columnconfigure(2, weight=0)
 
     results = ui_theme.card(tab, padding=14)
-    results.grid(row=0, column=1, sticky="nsew", padx=(6, 12), pady=(12, 6))
+    results.grid(row=1, column=1, sticky="nsew", padx=(6, 12), pady=(6, 6))
     results.grid_columnconfigure(0, weight=0)
     results.grid_columnconfigure(1, weight=1)
     results.grid_columnconfigure(2, weight=0)
 
     info = ui_theme.card(tab, padding=14)
-    info.grid(row=1, column=0, columnspan=2, sticky="ew",
+    info.grid(row=2, column=0, columnspan=2, sticky="ew",
               padx=12, pady=(6, 12))
     info.grid_columnconfigure(0, weight=1)
 
-    ui_theme.section_title(setup, "Tournament Setup").grid(
+    ui_theme.section_title(setup, "Tournament Setup", symbol="▣").grid(
         row=0, column=0, columnspan=3, sticky="w", pady=(0, 12)
     )
 
     app.use_tournament_list_var = tk.BooleanVar(
         master=app.master, value=True
     )
-    ttk.Checkbutton(
+    ui_theme.toggle_switch(
         setup,
-        text="Use Tournament List?",
-        variable=app.use_tournament_list_var,
+        app.use_tournament_list_var,
         command=app.on_use_tournament_list_changed,
-        style="UWH.TCheckbutton",
+        text="Use Tournament List?",
     ).grid(row=1, column=0, sticky="w", pady=(0, 2))
 
     ui_theme.muted_label(
@@ -557,7 +768,7 @@ def create_tournament_tab(app):
         justify="left",
     ).grid(row=5, column=0, columnspan=3, sticky="w", pady=(8, 0))
 
-    ui_theme.section_title(results, "Tournament Results").grid(
+    ui_theme.section_title(results, "Tournament Results", symbol="✓").grid(
         row=0, column=0, columnspan=3, sticky="w", pady=(0, 12)
     )
     sync_settings = app.load_unified_settings().get("tournamentSync", {})
@@ -658,7 +869,11 @@ def create_tournament_tab(app):
         wraplength=520,
     ).pack(fill="x")
 
-    ui_theme.section_title(info, "About Tournament List and Results Sync").grid(
+    ui_theme.section_title(
+        info,
+        "About Tournament List and Results Sync",
+        symbol="ⓘ",
+    ).grid(
         row=0, column=0, sticky="w", pady=(0, 8)
     )
     ui_theme.body_label(
@@ -685,7 +900,10 @@ def create_about_tab(app, readme_path):
     """Create the approved v1.3 About tab and its documentation links."""
     tab = ttk.Frame(app.notebook, style="UWH.Tab.TFrame")
     app.about_tab = tab
-    app.notebook.add(tab, text="About")
+    app.notebook.add(
+        tab,
+        text=ui_theme.tab_label("About"),
+    )
     tab.grid_columnconfigure(0, weight=1)
     tab.grid_rowconfigure(1, weight=1)
 
@@ -740,14 +958,14 @@ def create_about_tab(app, readme_path):
     ).grid(row=3, column=1, sticky="w", pady=(4, 0))
 
     body = ttk.Frame(tab, style="UWH.Tab.TFrame")
-    body.grid(row=1, column=0, sticky="nsew", padx=12, pady=(6, 12))
+    body.grid(row=2, column=0, sticky="nsew", padx=12, pady=(6, 12))
     body.grid_columnconfigure(0, weight=1)
     body.grid_columnconfigure(1, weight=1)
     body.grid_rowconfigure(0, weight=1)
 
     project = ui_theme.card(body, padding=16)
     project.grid(row=0, column=0, sticky="nsew", padx=(0, 6))
-    ui_theme.section_title(project, "About This Project").pack(
+    ui_theme.section_title(project, "About This Project", symbol="ⓘ").pack(
         anchor="w", pady=(0, 10)
     )
 
@@ -791,7 +1009,7 @@ def create_about_tab(app, readme_path):
 
     links = ui_theme.card(body, padding=16)
     links.grid(row=0, column=1, sticky="nsew", padx=(6, 0))
-    ui_theme.section_title(links, "Links & Contact").pack(
+    ui_theme.section_title(links, "Links & Contact", symbol="↗").pack(
         anchor="w", pady=(0, 10)
     )
 
@@ -868,12 +1086,29 @@ def create_screen_tab(app):
     """Create the approved Screens tab without a layout-preview panel."""
     tab = ttk.Frame(app.notebook, style="UWH.Tab.TFrame")
     app.screen_tab = tab
-    app.notebook.add(tab, text="Screens")
+    app.notebook.add(
+        tab,
+        text=ui_theme.tab_label("Screens"),
+    )
     tab.grid_columnconfigure(0, weight=1)
-    tab.grid_rowconfigure(1, weight=1)
+    tab.grid_rowconfigure(2, weight=1)
+
+    header = ui_theme.page_header(
+        tab,
+        "Screens",
+        "Choose operator/player layouts and verify the displays detected by the computer.",
+        symbol="▱",
+    )
+    header.grid(
+        row=0,
+        column=0,
+        sticky="ew",
+        padx=12,
+        pady=(12, 6),
+    )
 
     toolbar = ui_theme.card(tab, padding=10)
-    toolbar.grid(row=0, column=0, sticky="ew", padx=12, pady=(12, 6))
+    toolbar.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 6))
     toolbar.grid_columnconfigure(3, weight=1)
 
     ui_theme.primary_button(
@@ -909,7 +1144,11 @@ def create_screen_tab(app):
     options.grid(row=0, column=0, sticky="nsew", padx=(0, 6))
     options.grid_columnconfigure(0, weight=1)
 
-    ui_theme.section_title(options, "Display Screen Options").grid(
+    ui_theme.section_title(
+        options,
+        "Display Screen Options",
+        symbol="▣",
+    ).grid(
         row=0, column=0, sticky="w", pady=(0, 10)
     )
 
@@ -936,21 +1175,19 @@ def create_screen_tab(app):
         font=(ui_theme.FONT_FAMILY, 10, "bold"),
     ).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 6))
 
-    ttk.Radiobutton(
+    ui_theme.radio_button(
         operator_box,
         text="Standard (16:9)",
         variable=app.operator_layout_var,
         value="Standard",
         command=lambda: choose_operator("Standard"),
-        style="UWH.TRadiobutton",
     ).grid(row=1, column=0, sticky="w", padx=(0, 16), pady=4)
-    ttk.Radiobutton(
+    ui_theme.radio_button(
         operator_box,
         text="Widescreen (21:9)",
         variable=app.operator_layout_var,
         value="Widescreen",
         command=lambda: choose_operator("Widescreen"),
-        style="UWH.TRadiobutton",
     ).grid(row=1, column=1, sticky="w", pady=4)
 
     display_options = [
@@ -1006,12 +1243,11 @@ def create_screen_tab(app):
         )
         row.grid(row=index, column=0, sticky="ew", pady=3)
         row.grid_columnconfigure(1, weight=1)
-        ttk.Checkbutton(
+        ui_theme.toggle_switch(
             row,
-            text=option,
-            variable=app.display_layout_check_vars[option],
+            app.display_layout_check_vars[option],
             command=lambda value=option: choose_display(value),
-            style="UWH.TCheckbutton",
+            text=option,
         ).grid(row=0, column=0, sticky="w")
         tk.Label(
             row,
@@ -1023,15 +1259,14 @@ def create_screen_tab(app):
             justify="left",
         ).grid(row=0, column=1, sticky="w", padx=(14, 0))
 
-    ttk.Checkbutton(
+    ui_theme.toggle_switch(
         options,
-        text="Show team names",
-        variable=app.show_display_team_names_var,
+        app.show_display_team_names_var,
         command=lambda: (
             app.toggle_display_team_names(),
             app.save_screen_settings(),
         ),
-        style="UWH.TCheckbutton",
+        text="Show team names",
     ).grid(row=7, column=0, sticky="w", pady=(12, 0))
 
     detected = ui_theme.card(body, padding=14)
@@ -1039,7 +1274,11 @@ def create_screen_tab(app):
     detected.grid_columnconfigure(0, weight=1)
     detected.grid_rowconfigure(2, weight=1)
 
-    ui_theme.section_title(detected, "Detected Displays").grid(
+    ui_theme.section_title(
+        detected,
+        "Detected Displays",
+        symbol="●",
+    ).grid(
         row=0, column=0, sticky="w", pady=(0, 8)
     )
     ui_theme.muted_label(

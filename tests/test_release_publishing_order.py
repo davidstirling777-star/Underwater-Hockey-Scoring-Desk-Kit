@@ -112,7 +112,7 @@ class ReleaseOrderTests(unittest.TestCase):
             env = {
                 "GITHUB_REPOSITORY": "owner/repo",
                 "GITHUB_SHA": "old-commit",
-                "RELEASE_VERSION": "1.3.3",
+                "RELEASE_VERSION": "1.3.4",
                 "GITHUB_TOKEN": "fake-test-token",
                 "GITHUB_OUTPUT": str(output),
             }
@@ -132,14 +132,14 @@ class ReleaseOrderTests(unittest.TestCase):
             env = {
                 "GITHUB_REPOSITORY": "owner/repo",
                 "GITHUB_SHA": "main",
-                "RELEASE_VERSION": "1.3.3",
+                "RELEASE_VERSION": "1.3.4",
                 "GITHUB_TOKEN": "fake-test-token",
                 "GITHUB_OUTPUT": str(output),
             }
             with patch.dict(os.environ, env):
                 with patch.object(gate, "github_get",
                                   side_effect=[{"sha": "main"},
-                                               [release("v1.3.4")]]):
+                                               [release("v1.3.5")]]):
                     gate.main()
             self.assertEqual(output.read_text(), "publish=false\n")
 
@@ -149,7 +149,7 @@ class ReleaseOrderTests(unittest.TestCase):
             env = {
                 "GITHUB_REPOSITORY": "owner/repo",
                 "GITHUB_SHA": "main",
-                "RELEASE_VERSION": "1.3.3",
+                "RELEASE_VERSION": "1.3.4",
                 "GITHUB_TOKEN": "fake-test-token",
                 "GITHUB_OUTPUT": str(output),
             }
@@ -181,7 +181,7 @@ class ReleaseOrderTests(unittest.TestCase):
         )
         self.assertIn("if: steps.final.outputs.publish == 'true'", source)
         self.assertIn("make_latest: true", source)
-        self.assertIn('RELEASE_VERSION: "1.3.3"', source)
+        self.assertIn('RELEASE_VERSION: "1.3.4"', source)
         self.assertNotIn("RELEASE_SERIES", source)
         self.assertIn("UnderwaterHockeyScoringDesk-v${{ env.RELEASE_VERSION }}-Windows.zip", source)
         self.assertIn("UnderwaterHockeyScoringDesk-v${{ env.RELEASE_VERSION }}-RaspberryPi5.zip", source)
