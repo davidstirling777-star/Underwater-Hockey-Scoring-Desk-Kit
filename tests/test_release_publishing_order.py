@@ -112,8 +112,7 @@ class ReleaseOrderTests(unittest.TestCase):
             env = {
                 "GITHUB_REPOSITORY": "owner/repo",
                 "GITHUB_SHA": "old-commit",
-                "GITHUB_RUN_NUMBER": "740",
-                "RELEASE_SERIES": "1.2",
+                "RELEASE_VERSION": "1.3.1",
                 "GITHUB_TOKEN": "fake-test-token",
                 "GITHUB_OUTPUT": str(output),
             }
@@ -133,8 +132,7 @@ class ReleaseOrderTests(unittest.TestCase):
             env = {
                 "GITHUB_REPOSITORY": "owner/repo",
                 "GITHUB_SHA": "main",
-                "GITHUB_RUN_NUMBER": "740",
-                "RELEASE_SERIES": "1.2",
+                "RELEASE_VERSION": "1.3.1",
                 "GITHUB_TOKEN": "fake-test-token",
                 "GITHUB_OUTPUT": str(output),
             }
@@ -151,8 +149,7 @@ class ReleaseOrderTests(unittest.TestCase):
             env = {
                 "GITHUB_REPOSITORY": "owner/repo",
                 "GITHUB_SHA": "main",
-                "GITHUB_RUN_NUMBER": "742",
-                "RELEASE_SERIES": "1.2",
+                "RELEASE_VERSION": "1.3.1",
                 "GITHUB_TOKEN": "fake-test-token",
                 "GITHUB_OUTPUT": str(output),
             }
@@ -184,8 +181,11 @@ class ReleaseOrderTests(unittest.TestCase):
         )
         self.assertIn("if: steps.final.outputs.publish == 'true'", source)
         self.assertIn("make_latest: true", source)
-        self.assertIn("-Windows.zip", source)
-        self.assertIn("-RaspberryPi5.zip", source)
+        self.assertIn('RELEASE_VERSION: "1.3.1"', source)
+        self.assertNotIn("RELEASE_SERIES", source)
+        self.assertIn("UnderwaterHockeyScoringDesk-v${{ env.RELEASE_VERSION }}-Windows.zip", source)
+        self.assertIn("UnderwaterHockeyScoringDesk-v${{ env.RELEASE_VERSION }}-RaspberryPi5.zip", source)
+        self.assertIn("tag_name: v${{ env.RELEASE_VERSION }}", source)
         self.assertIn("zip -yr", source)
         self.assertIn("Start-UWH.sh", source)
 
