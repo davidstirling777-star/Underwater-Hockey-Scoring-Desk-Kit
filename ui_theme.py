@@ -47,16 +47,17 @@ _APP_ICON_B64 = """iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAaXUlEQVR42s17a
 def configure_styles(root):
     """Install the real ttkbootstrap UWH visual system.
 
-    The original v1.3.x styling used native ttk with custom colours.  v1.3.4
+    The original v1.3.x styling used native ttk with custom colours.  v1.3.5
     deliberately uses ttkbootstrap's Flatly theme so buttons, entries,
     checkbuttons, comboboxes, tables and scrollbars share the polished visual
     language shown in the approved mockups.
     """
     root.configure(background=COLORS["app_bg"])
 
-    # Pass the existing root as master so ttkbootstrap styles this application
-    # rather than creating another Tk instance.
-    style = tb.Style(theme="flatly", master=root)
+    # The Tk root already exists at this point. ttkbootstrap 1.x Style takes
+    # the theme name only; passing master= raises TypeError at application
+    # startup.
+    style = tb.Style(theme="flatly")
     root._uwh_bootstrap_style = style
 
     style.configure(
