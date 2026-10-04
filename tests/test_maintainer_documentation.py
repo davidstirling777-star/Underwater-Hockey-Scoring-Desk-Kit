@@ -235,15 +235,15 @@ class MaintenanceDocumentationTests(unittest.TestCase):
         self.assertIn("Trim %", source("README.md"))
         self.assertIn("hardware", source("README.md").lower())
 
-    def test_new_look_uses_explicit_v131_everywhere(self):
+    def test_release_uses_explicit_v132_everywhere(self):
         settings_ui = source("settings_ui.py")
         version = source("app_version.py")
         workflow = source(".github/workflows/build-exe.yml")
 
         self.assertIn("from app_version import APP_VERSION", settings_ui)
         self.assertIn('text=f"UWH v{APP_VERSION}"', settings_ui)
-        self.assertIn('APP_VERSION = "1.3.1"', version)
-        self.assertIn('RELEASE_VERSION: "1.3.1"', workflow)
+        self.assertIn('APP_VERSION = "1.3.2"', version)
+        self.assertIn('RELEASE_VERSION: "1.3.2"', workflow)
         self.assertNotIn("RELEASE_SERIES", workflow)
         self.assertIn("Stamp application version", workflow)
 
