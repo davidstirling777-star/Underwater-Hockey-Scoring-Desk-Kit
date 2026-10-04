@@ -1,9 +1,8 @@
 """Small, user-visible UWH application version identifier.
 
-Source installations show the committed source revision below. The release
-workflow replaces APP_VERSION independently in the Windows and Raspberry Pi 5
-build workspaces with the published v1.2.<GitHub Actions run number>, so both
-ready-to-run ZIPs display the same version as their GitHub Release.
+Source installations identify this restored classic-UI branch below. The
+release workflow calculates the next available numeric v1.2 patch release,
+then stamps that same version into both Windows and Raspberry Pi 5 packages.
 """
 
-APP_VERSION = "1.2.source.20261002.2"
+APP_VERSION = "1.2.source.classic"
