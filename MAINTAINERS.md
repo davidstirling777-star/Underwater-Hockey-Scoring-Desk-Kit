@@ -30,7 +30,7 @@ operating a match.
 | File | Responsibility and place to begin |
 |---|---|
 | `uwh.py` | Composition root; Tk event handlers, audio dispatch, timers, screen state and serial/MQTT queues. |
-| `app_version.py` | User-visible semantic application version. v1.3.1 is stamped identically into Windows and Raspberry Pi 5 release packages. |
+| `app_version.py` | User-visible semantic application version. v1.3.2 is stamped identically into Windows and Raspberry Pi 5 release packages. |
 | `game_engine.py` | Period list, period transitions and runtime timer/penalty state. |
 | `game_flow.py` | Tournament selection, advancing games and export-before-reset rule. |
 | `game_logging.py` | Appends the older pipe-delimited `UWH_Game_Data.txt` event log. |
