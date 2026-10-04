@@ -2857,7 +2857,7 @@ class GameManagementApp:
 
         self.engine.reset_to_first_period()
         self.engine.start_timer()
-        self.engine.sudden_death_goal_scored = False
+        self.engine.clear_sudden_death_goal()
 
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
@@ -2871,7 +2871,8 @@ class GameManagementApp:
             self.master.after_cancel(self.sudden_death_timer_job)
             self.sudden_death_timer_job = None
 
-        self.engine.sudden_death_seconds = 0
+        # clear_sudden_death_goal() above also resets the count-up seconds
+        # and any correction-window restoration timestamp.
 
         # Rebuild game sequence to reflect any settings changes
         self.build_game_sequence()
