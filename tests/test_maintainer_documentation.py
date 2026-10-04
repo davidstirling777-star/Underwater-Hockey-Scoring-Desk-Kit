@@ -184,8 +184,65 @@ class MaintenanceDocumentationTests(unittest.TestCase):
         self.assertIn('"Test Displays"', settings_ui)
         self.assertIn('"Show team names"', settings_ui)
         self.assertIn('"Detected Displays"', settings_ui)
+        self.assertIn(
+            'body.grid(row=2, column=0, sticky="nsew"',
+            settings_ui,
+        )
         self.assertNotIn("Layout Preview", settings_ui)
         self.assertNotIn("Close display windows when exiting", settings_ui)
+
+    def test_v136_restores_requested_visual_boundaries(self):
+        settings_ui = source("settings_ui.py")
+        scoreboard_ui = source("scoreboard_ui.py")
+        display_ui = source("display_ui.py")
+        spec = source("uwh.spec")
+        readme = source("README.md")
+
+        render_start = settings_ui.index("render_rows = [")
+        render_end = settings_ui.index("]", render_start)
+        render_block = settings_ui[render_start:render_end]
+        self.assertNotIn('"overtime_allowed"', render_block)
+        self.assertIn('elif var_name == "overtime_game_break":', settings_ui)
+        self.assertIn("app.overtime_allowed_var", settings_ui)
+        self.assertIn('"name": "overtime_allowed"', settings_ui)
+
+        self.assertIn(
+            "presets_card.grid(\n        row=0,",
+            settings_ui,
+        )
+        self.assertIn(
+            "sequence_card.grid(\n        row=1,",
+            settings_ui,
+        )
+        self.assertIn('"Exit Program"', settings_ui)
+
+        self.assertIn(
+            'assets/About_hero_logo.png',
+            settings_ui,
+        )
+        self.assertIn(
+            '("assets/About_hero_logo.png", "assets")',
+            spec,
+        )
+        self.assertTrue(
+            (ROOT / "assets" / "About_hero_logo.png").is_file()
+        )
+
+        self.assertIn(
+            "def _restore_classic_scoreboard_palette(app):",
+            scoreboard_ui,
+        )
+        self.assertIn('"bg": "black", "fg": "white"', scoreboard_ui)
+        self.assertIn('"bg": "orange", "fg": "black"', scoreboard_ui)
+        self.assertIn('"bg": "lightgrey", "fg": "black"', scoreboard_ui)
+
+        self.assertIn(
+            "def _restore_classic_display_palette(app):",
+            display_ui,
+        )
+        self.assertIn('"bg": "black", "fg": "white"', display_ui)
+        self.assertIn('{"bg": DISPLAY_GREY, "fg": "black"}', display_ui)
+        self.assertNotIn("v1.3.4", readme)
 
     def test_zigbee_new_look_keeps_real_controls_and_four_visible_devices(self):
         zigbee_ui = source("zigbee_ui.py")
@@ -262,7 +319,7 @@ class MaintenanceDocumentationTests(unittest.TestCase):
             uwh,
         )
 
-    def test_v135_uses_compatible_ttkbootstrap_visual_system(self):
+    def test_v136_uses_compatible_ttkbootstrap_visual_system(self):
         theme = source("ui_theme.py")
         requirements = source("requirements.txt")
         spec = source("uwh.spec")
@@ -287,15 +344,15 @@ class MaintenanceDocumentationTests(unittest.TestCase):
         self.assertIn("ui_theme.toggle_switch(", settings_ui)
         self.assertIn("Game Sequence Info", settings_ui)
 
-    def test_release_uses_explicit_v135_everywhere(self):
+    def test_release_uses_explicit_v136_everywhere(self):
         settings_ui = source("settings_ui.py")
         version = source("app_version.py")
         workflow = source(".github/workflows/build-exe.yml")
 
         self.assertIn("from app_version import APP_VERSION", settings_ui)
         self.assertIn('text=f"UWH v{APP_VERSION}"', settings_ui)
-        self.assertIn('APP_VERSION = "1.3.5"', version)
-        self.assertIn('RELEASE_VERSION: "1.3.5"', workflow)
+        self.assertIn('APP_VERSION = "1.3.6"', version)
+        self.assertIn('RELEASE_VERSION: "1.3.6"', workflow)
         self.assertNotIn("RELEASE_SERIES", workflow)
         self.assertIn("Stamp application version", workflow)
 
