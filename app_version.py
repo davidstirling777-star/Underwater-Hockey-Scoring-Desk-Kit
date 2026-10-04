@@ -1,8 +1,7 @@
 """Small, user-visible UWH application version identifier.
 
-Version 1.3.4 is the full ttkbootstrap visual refresh. GitHub Actions stamps
-the Windows and Raspberry Pi 5 build workspaces with this same explicit
-version so the in-app label, release tag and both ZIP filenames agree.
+Version 1.3.5 fixes the ttkbootstrap startup compatibility issue introduced
+in v1.3.4 while retaining the full new-look interface.
 """
 
-APP_VERSION = "1.3.4"
+APP_VERSION = "1.3.5"
