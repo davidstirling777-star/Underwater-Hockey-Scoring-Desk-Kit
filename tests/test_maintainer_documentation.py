@@ -81,7 +81,7 @@ class MaintenanceDocumentationTests(unittest.TestCase):
         self.assertIn("queues the closed state", readme)
         self.assertIn("or on normal program exit", readme)
         self.assertIn("Maximum Siren Duration (seconds)", readme)
-        self.assertIn("both `9:36` and `09:36` mean 09:36", readme)
+        self.assertIn("`9.36`, `09.36`, `9:36` and `09:36` all mean 09:36", readme)
         self.assertNotIn("use the two-digit form until", readme)
 
     def test_readme_zigbee_section_explains_mapping_and_auto_add_safety(self):
