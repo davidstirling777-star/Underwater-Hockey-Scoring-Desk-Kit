@@ -1,4 +1,4 @@
-"""Shared visual language for the v1.3.1 UWH operator interface.
+"""Shared visual language for the v1.3.5 UWH operator interface.
 
 The Scoreboard layout deliberately remains outside this visual redesign.
 The helpers here are used by Game Variables, Tournament List, Screens,
