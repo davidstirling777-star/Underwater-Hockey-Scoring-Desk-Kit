@@ -681,120 +681,186 @@ def create_tournament_tab(app):
 
 
 def create_about_tab(app, readme_path):
-    """Create the About tab with credits and documentation links."""
-    tab = ttk.Frame(app.notebook)
+    """Create the approved v1.3 About tab and its documentation links."""
+    tab = ttk.Frame(app.notebook, style="UWH.Tab.TFrame")
     app.about_tab = tab
     app.notebook.add(tab, text="About")
-
-    tab.grid_rowconfigure(0, weight=1)
     tab.grid_columnconfigure(0, weight=1)
+    tab.grid_rowconfigure(1, weight=1)
 
-    outer = ttk.Frame(tab, padding=24)
-    outer.grid(row=0, column=0, sticky="nsew")
-    outer.grid_columnconfigure(0, weight=1)
+    hero = ui_theme.card(tab, padding=18)
+    hero.grid(row=0, column=0, sticky="ew", padx=12, pady=(12, 6))
+    hero.grid_columnconfigure(1, weight=1)
 
-    default_font = font.nametofont("TkDefaultFont")
-    title_font = (
-        default_font.cget("family"),
-        default_font.cget("size") + 5,
-        "bold"
-    )
-    body_font = (
-        default_font.cget("family"),
-        default_font.cget("size") + 1
-    )
-    link_font = (
-        default_font.cget("family"),
-        default_font.cget("size") + 1,
-        "underline"
-    )
+    icon = getattr(app.master, "_uwh_app_icon", None)
+    if icon is not None:
+        tk.Label(
+            hero,
+            image=icon,
+            bg=ui_theme.COLORS["surface"],
+        ).grid(row=0, column=0, rowspan=4, sticky="nw", padx=(0, 18))
 
-    ttk.Label(
-        outer,
-        text="About UWH Scoring Desk",
-        font=title_font
-    ).grid(row=0, column=0, sticky="w", pady=(0, 18))
+    tk.Label(
+        hero,
+        text="Underwater Hockey\nGame Management App",
+        bg=ui_theme.COLORS["surface"],
+        fg=ui_theme.COLORS["navy"],
+        font=(ui_theme.FONT_FAMILY, 22, "bold"),
+        justify="left",
+        anchor="w",
+    ).grid(row=0, column=1, sticky="w")
 
-    ttk.Label(
-        outer,
+    tk.Label(
+        hero,
         text=f"Version {APP_VERSION}",
-        font=body_font
-    ).grid(row=1, column=0, sticky="w", pady=(0, 18))
+        bg=ui_theme.COLORS["primary"],
+        fg="white",
+        font=(ui_theme.FONT_FAMILY, 10, "bold"),
+        padx=12,
+        pady=4,
+    ).grid(row=1, column=1, sticky="w", pady=(8, 6))
+
+    tk.Label(
+        hero,
+        text="A tool for sirens, scoring, penalties and happier players",
+        bg=ui_theme.COLORS["surface"],
+        fg=ui_theme.COLORS["primary"],
+        font=(ui_theme.FONT_FAMILY, 12, "bold"),
+        anchor="w",
+    ).grid(row=2, column=1, sticky="w", pady=(2, 4))
+
+    ui_theme.muted_label(
+        hero,
+        "The hero area deliberately uses the UWH logo only; a real "
+        "underwater-hockey photograph can be added later without changing "
+        "the About-tab layout.",
+        wraplength=820,
+        justify="left",
+    ).grid(row=3, column=1, sticky="w", pady=(4, 0))
+
+    body = ttk.Frame(tab, style="UWH.Tab.TFrame")
+    body.grid(row=1, column=0, sticky="nsew", padx=12, pady=(6, 12))
+    body.grid_columnconfigure(0, weight=1)
+    body.grid_columnconfigure(1, weight=1)
+    body.grid_rowconfigure(0, weight=1)
+
+    project = ui_theme.card(body, padding=16)
+    project.grid(row=0, column=0, sticky="nsew", padx=(0, 6))
+    ui_theme.section_title(project, "About This Project").pack(
+        anchor="w", pady=(0, 10)
+    )
 
     about_text = (
         "This app was started in Google AI, made workable by GitHub Copilot "
         "and extensively refactored, tweaked, improved, expanded and tested "
-        "by ChatGPT, conducted by David Stirling (who can't write code) "
-        "davidstirling777@gmail.com.\n\n"
+        "by ChatGPT. Conducted by David Stirling (who can't write code).\n\n"
         "The conductor seems to be the star of the show, even though they do "
         "not make any noise. They even get to come on to the stage all on "
         "their own, to rapturous applause."
     )
-    ttk.Label(
-        outer,
-        text=about_text,
-        font=body_font,
+    ui_theme.body_label(
+        project,
+        about_text,
         justify="left",
-        wraplength=920
-    ).grid(row=2, column=0, sticky="w", pady=(0, 20))
+        wraplength=540,
+    ).pack(anchor="w", fill="x")
+
+    credits = (
+        ("Initial concept and ideas", "Google AI"),
+        ("Made workable", "GitHub Copilot"),
+        ("Refactoring, improvements, testing and expansion", "ChatGPT"),
+        ("Conducted by", "David Stirling (who cannot write code)"),
+    )
+    credits_frame = tk.Frame(project, bg=ui_theme.COLORS["surface"])
+    credits_frame.pack(fill="x", pady=(18, 0))
+    credits_frame.grid_columnconfigure(0, weight=1)
+    credits_frame.grid_columnconfigure(1, weight=1)
+    for row, (role, name) in enumerate(credits):
+        ui_theme.muted_label(credits_frame, role).grid(
+            row=row, column=0, sticky="w", pady=4
+        )
+        tk.Label(
+            credits_frame,
+            text=name,
+            bg=ui_theme.COLORS["surface"],
+            fg=ui_theme.COLORS["navy"],
+            font=(ui_theme.FONT_FAMILY, 10, "bold"),
+            anchor="w",
+        ).grid(row=row, column=1, sticky="w", pady=4)
+
+    links = ui_theme.card(body, padding=16)
+    links.grid(row=0, column=1, sticky="nsew", padx=(6, 0))
+    ui_theme.section_title(links, "Links & Contact").pack(
+        anchor="w", pady=(0, 10)
+    )
 
     def open_readme():
-        path = Path(readme_path)
-        if not path.exists():
+        readme = Path(readme_path)
+        if not readme.exists():
             messagebox.showerror(
                 "README not found",
-                f"The README file could not be found:\n{path}"
+                f"The README file could not be found:\n{readme}",
             )
             return
-        webbrowser.open(path.resolve().as_uri())
-
-    readme_link = tk.Label(
-        outer,
-        text="Open the README file in this installation",
-        fg="#0066cc",
-        cursor="hand2",
-        font=link_font
-    )
-    readme_link.grid(row=3, column=0, sticky="w", pady=(0, 14))
-    readme_link.bind("<Button-1>", lambda event: open_readme())
-
-    ttk.Label(
-        outer,
-        text="This app can be downloaded free from:",
-        font=body_font
-    ).grid(row=4, column=0, sticky="w")
+        webbrowser.open(readme.resolve().as_uri())
 
     repository_url = (
         "https://github.com/davidstirling777-star/"
         "Underwater-Hockey-Scoring-Desk-Kit"
     )
-    repository_link = tk.Label(
-        outer,
-        text=repository_url,
-        fg="#0066cc",
-        cursor="hand2",
-        font=link_font
-    )
-    repository_link.grid(row=5, column=0, sticky="w", pady=(4, 14))
-    repository_link.bind(
-        "<Button-1>",
-        lambda event: webbrowser.open(repository_url)
-    )
 
-    email_link = tk.Label(
-        outer,
-        text="davidstirling777@gmail.com",
-        fg="#0066cc",
-        cursor="hand2",
-        font=link_font
-    )
-    email_link.grid(row=6, column=0, sticky="w")
-    email_link.bind(
-        "<Button-1>",
-        lambda event: webbrowser.open(
-            "mailto:davidstirling777@gmail.com"
+    def link_card(title, detail, command):
+        frame = tk.Frame(
+            links,
+            bg=ui_theme.COLORS["surface_alt"],
+            highlightbackground=ui_theme.COLORS["border"],
+            highlightthickness=1,
+            padx=14,
+            pady=12,
+            cursor="hand2",
         )
-    )
+        tk.Label(
+            frame,
+            text=title,
+            bg=ui_theme.COLORS["surface_alt"],
+            fg=ui_theme.COLORS["primary"],
+            font=(ui_theme.FONT_FAMILY, 11, "bold"),
+            anchor="w",
+            cursor="hand2",
+        ).pack(anchor="w")
+        tk.Label(
+            frame,
+            text=detail,
+            bg=ui_theme.COLORS["surface_alt"],
+            fg=ui_theme.COLORS["text"],
+            font=ui_theme.BODY_FONT,
+            justify="left",
+            anchor="w",
+            wraplength=500,
+            cursor="hand2",
+        ).pack(anchor="w", pady=(4, 0))
+        for widget in (frame, *frame.winfo_children()):
+            widget.bind("<Button-1>", lambda _event, fn=command: fn())
+        return frame
+
+    link_card(
+        "View README",
+        "Open the local README file for full setup and usage information.",
+        open_readme,
+    ).pack(fill="x", pady=(0, 10))
+
+    link_card(
+        "GitHub Repository",
+        repository_url,
+        lambda: webbrowser.open(repository_url),
+    ).pack(fill="x", pady=10)
+
+    link_card(
+        "Contact",
+        "davidstirling777@gmail.com",
+        lambda: webbrowser.open("mailto:davidstirling777@gmail.com"),
+    ).pack(fill="x", pady=10)
+
 
 
 def create_screen_tab(app):
