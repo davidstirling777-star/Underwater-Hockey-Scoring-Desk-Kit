@@ -171,9 +171,9 @@ class MaintenanceDocumentationTests(unittest.TestCase):
 
         self.assertIn("from app_version import APP_VERSION", settings_ui)
         self.assertIn('text=f"UWH v{APP_VERSION}"', settings_ui)
-        self.assertIn('APP_VERSION = "1.2.source.', version)
+        self.assertIn('APP_VERSION = "1.2.source.classic"', version)
         self.assertIn("Stamp application version", workflow)
-        self.assertIn("github.run_number", workflow)
+        self.assertIn("next_release_version.py", workflow)
         self.assertIn("lower-right corner", readme)
 
     def test_sounds_tab_has_two_fixed_ten_row_sound_tables(self):
