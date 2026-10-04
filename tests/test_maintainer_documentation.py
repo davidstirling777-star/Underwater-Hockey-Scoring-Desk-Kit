@@ -99,8 +99,8 @@ class MaintenanceDocumentationTests(unittest.TestCase):
         uwh = source("uwh.py")
         readme = source("README.md")
 
-        self.assertIn('app.notebook.add(tab, text="Tournament List")', settings_ui)
-        self.assertIn('app.notebook.add(tab, text="About")', settings_ui)
+        self.assertIn('text=ui_theme.tab_label("Tournament List")', settings_ui)
+        self.assertIn('text=ui_theme.tab_label("About")', settings_ui)
         self.assertIn("def create_tournament_tab(app):", settings_ui)
         self.assertIn("def create_about_tab(app, readme_path):", settings_ui)
         self.assertIn("Path(readme_path)", settings_ui)
@@ -262,15 +262,39 @@ class MaintenanceDocumentationTests(unittest.TestCase):
             uwh,
         )
 
-    def test_release_uses_explicit_v133_everywhere(self):
+    def test_v134_uses_real_ttkbootstrap_visual_system(self):
+        theme = source("ui_theme.py")
+        requirements = source("requirements.txt")
+        spec = source("uwh.spec")
+        uwh = source("uwh.py")
+        settings_ui = source("settings_ui.py")
+        sounds_ui = source("sounds_ui.py")
+        zigbee_ui = source("zigbee_ui.py")
+
+        self.assertIn("import ttkbootstrap as tb", theme)
+        self.assertIn('tb.Style(theme="flatly", master=root)', theme)
+        self.assertIn('bootstyle="primary-round-toggle"', theme)
+        self.assertIn("def create_app_header(root):", theme)
+        self.assertIn("def page_header(", theme)
+        self.assertIn("ttkbootstrap>=1.10.1", requirements)
+        self.assertIn('"ttkbootstrap",', spec)
+        self.assertIn("ui_theme.create_app_header(self.master)", uwh)
+        self.assertIn('text=ui_theme.tab_label("Game Variables")', settings_ui)
+        self.assertIn('text=ui_theme.tab_label("Screens")', settings_ui)
+        self.assertIn('text=ui_theme.tab_label("Sounds")', sounds_ui)
+        self.assertIn('text=ui_theme.tab_label("Zigbee Siren")', zigbee_ui)
+        self.assertIn("ui_theme.toggle_switch(", settings_ui)
+        self.assertIn("Game Sequence Info", settings_ui)
+
+    def test_release_uses_explicit_v134_everywhere(self):
         settings_ui = source("settings_ui.py")
         version = source("app_version.py")
         workflow = source(".github/workflows/build-exe.yml")
 
         self.assertIn("from app_version import APP_VERSION", settings_ui)
         self.assertIn('text=f"UWH v{APP_VERSION}"', settings_ui)
-        self.assertIn('APP_VERSION = "1.3.3"', version)
-        self.assertIn('RELEASE_VERSION: "1.3.3"', workflow)
+        self.assertIn('APP_VERSION = "1.3.4"', version)
+        self.assertIn('RELEASE_VERSION: "1.3.4"', workflow)
         self.assertNotIn("RELEASE_SERIES", workflow)
         self.assertIn("Stamp application version", workflow)
 
