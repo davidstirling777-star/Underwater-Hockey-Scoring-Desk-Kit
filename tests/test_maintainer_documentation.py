@@ -262,7 +262,7 @@ class MaintenanceDocumentationTests(unittest.TestCase):
             uwh,
         )
 
-    def test_v134_uses_real_ttkbootstrap_visual_system(self):
+    def test_v135_uses_compatible_ttkbootstrap_visual_system(self):
         theme = source("ui_theme.py")
         requirements = source("requirements.txt")
         spec = source("uwh.spec")
@@ -272,11 +272,12 @@ class MaintenanceDocumentationTests(unittest.TestCase):
         zigbee_ui = source("zigbee_ui.py")
 
         self.assertIn("import ttkbootstrap as tb", theme)
-        self.assertIn('tb.Style(theme="flatly", master=root)', theme)
+        self.assertIn('tb.Style(theme="flatly")', theme)
+        self.assertNotIn("master=root", theme)
         self.assertIn('bootstyle="primary-round-toggle"', theme)
         self.assertIn("def create_app_header(root):", theme)
         self.assertIn("def page_header(", theme)
-        self.assertIn("ttkbootstrap>=1.10.1", requirements)
+        self.assertIn("ttkbootstrap>=1.10.1,<2", requirements)
         self.assertIn('"ttkbootstrap",', spec)
         self.assertIn("ui_theme.create_app_header(self.master)", uwh)
         self.assertIn('text=ui_theme.tab_label("Game Variables")', settings_ui)
@@ -286,15 +287,15 @@ class MaintenanceDocumentationTests(unittest.TestCase):
         self.assertIn("ui_theme.toggle_switch(", settings_ui)
         self.assertIn("Game Sequence Info", settings_ui)
 
-    def test_release_uses_explicit_v134_everywhere(self):
+    def test_release_uses_explicit_v135_everywhere(self):
         settings_ui = source("settings_ui.py")
         version = source("app_version.py")
         workflow = source(".github/workflows/build-exe.yml")
 
         self.assertIn("from app_version import APP_VERSION", settings_ui)
         self.assertIn('text=f"UWH v{APP_VERSION}"', settings_ui)
-        self.assertIn('APP_VERSION = "1.3.4"', version)
-        self.assertIn('RELEASE_VERSION: "1.3.4"', workflow)
+        self.assertIn('APP_VERSION = "1.3.5"', version)
+        self.assertIn('RELEASE_VERSION: "1.3.5"', workflow)
         self.assertNotIn("RELEASE_SERIES", workflow)
         self.assertIn("Stamp application version", workflow)
 
