@@ -35,6 +35,12 @@ class Engine:
         self.sudden_death_seconds = 725
         self.clear_goal_scorers = Mock()
 
+    def clear_sudden_death_goal(self):
+        self.sudden_death_restore_time = None
+        self.sudden_death_restore_active = False
+        self.sudden_death_goal_scored = False
+        self.sudden_death_seconds = 0
+
     def stop_timer(self):
         self.timer_running = False
 
