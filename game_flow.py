@@ -45,10 +45,7 @@ def export_and_reset_game_at_break(app, game_number=None):
     # A deciding Sudden Death goal remains reversible during the early
     # Between Game Break. Once this completed game is successfully committed,
     # however, none of that restoration state may leak into the next game.
-    app.engine.sudden_death_goal_scored = False
-    app.engine.sudden_death_restore_active = False
-    app.engine.sudden_death_restore_time = None
-    app.engine.sudden_death_seconds = 0
+    app.engine.clear_sudden_death_goal()
 
     # Reselect the completed game if choosing another CSV during recovery
     # altered the tournament dropdown; advance from its original position.
