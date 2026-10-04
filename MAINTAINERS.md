@@ -40,7 +40,7 @@ operating a match.
 | `display_manager.py` | Penalty display label/sorting helpers. |
 | `ui_scaling.py` | Operator and external-window font resizing; avoids child-widget Configure storms. |
 | `penalties_ui.py` | Penalty-entry dialog and its refresh/removal handlers. |
-| `preset_manager.py` | Six Game Variables preset buttons and long-hold editor. |
+| `preset_manager.py` | Nine Game Variables preset buttons and long-hold editor; older six-slot settings are migrated without renaming existing presets. |
 | `csv_ui.py` | Draw-file dropdown refresh. |
 | `tournament_files.py` | Protect input draw, create/resume results CSV, and seed sample for source installs. |
 | `tournament_sync.py` | Worker: completed local game discovery, 10 s retries, receipts, HTTP client; never touch Tk from worker. |
