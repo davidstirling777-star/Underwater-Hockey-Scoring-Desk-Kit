@@ -3,7 +3,13 @@
 import os
 import sys
 
+from PyInstaller.utils.hooks import collect_all
+
 block_cipher = None
+
+ttkbootstrap_datas, ttkbootstrap_binaries, ttkbootstrap_hiddenimports = (
+    collect_all("ttkbootstrap")
+)
 
 if getattr(sys, "frozen", False):
     spec_dir = os.path.dirname(sys.executable)
@@ -42,7 +48,7 @@ a = Analysis(
         "zigbee_ui.py",
     ],
     pathex=[spec_dir],
-    binaries=[],
+    binaries=ttkbootstrap_binaries,
     datas=[
         ("assets/pip-beep.mp3", "assets"),
         ("assets/pip-countdown-beep.mp3", "assets"),
@@ -60,7 +66,7 @@ a = Analysis(
         ("README.md", "."),
         ("tournament_results_server.py", "."),
         ("HARDWARE_SETUP.md", "."),
-    ],
+    ] + ttkbootstrap_datas,
     hiddenimports=[
         "pygame",
         "paho.mqtt.client",
@@ -93,7 +99,7 @@ a = Analysis(
         "zigbee_hardware_ui",
         "zigbee_control",
         "zigbee_siren",
-    ],
+    ] + ttkbootstrap_hiddenimports,
     hookspath=[],
     runtime_hooks=[],
     excludes=[],
