@@ -14,6 +14,7 @@ import os
 import tkinter as tk
 from tkinter import messagebox, ttk
 
+import ui_theme
 from sound import (
     AUDIO_OUTPUT_AT_STARTUP,
     check_audio_device_available,
@@ -40,17 +41,13 @@ def _visible_files(files, selected):
 
 def create_sounds_tab(app):
     """Create the Sounds tab and its per-file trim tables."""
-    tab = ttk.Frame(app.notebook)
+    tab = ttk.Frame(app.notebook, style="UWH.Tab.TFrame")
     app.notebook.add(tab, text="Sounds")
 
     tab.grid_rowconfigure(0, weight=1)
     tab.grid_columnconfigure(0, weight=1)
 
-    sounds_widget = ttk.LabelFrame(
-        tab,
-        text="Sounds",
-        padding=(12, 10),
-    )
+    sounds_widget = ui_theme.card(tab, padding=12)
     sounds_widget.grid(
         row=0,
         column=0,
@@ -217,7 +214,7 @@ def create_sounds_tab(app):
             frame,
             borderwidth=1,
             relief="solid",
-            background="#d6d6d6",
+            background=ui_theme.COLORS["border"],
         )
         table.grid(
             row=0,
@@ -230,8 +227,9 @@ def create_sounds_tab(app):
         table.grid_columnconfigure(2, weight=0, minsize=78)
 
         header_options = {
-            "font": ("Arial", 10, "bold"),
-            "background": "#e9e9e9",
+            "font": (ui_theme.FONT_FAMILY, 10, "bold"),
+            "background": ui_theme.COLORS["primary_soft"],
+            "foreground": ui_theme.COLORS["navy"],
             "borderwidth": 1,
             "relief": "solid",
             "pady": 5,
@@ -270,7 +268,7 @@ def create_sounds_tab(app):
 
                 radio_cell = tk.Frame(
                     table,
-                    background="#ffffff",
+                    background=ui_theme.COLORS["surface"],
                     borderwidth=1,
                     relief="solid",
                 )
@@ -280,6 +278,7 @@ def create_sounds_tab(app):
                     variable=selection_var,
                     value=filename,
                     command=lambda name=filename: selection_var.set(name),
+                    style="UWH.TRadiobutton",
                 )
                 select_radio.pack(expand=True)
 
@@ -287,11 +286,11 @@ def create_sounds_tab(app):
                     table,
                     text=filename,
                     anchor="w",
-                    background="#ffffff",
+                    background=ui_theme.COLORS["surface"],
                     borderwidth=1,
                     relief="solid",
                     padx=8,
-                    font=("Arial", 10),
+                    font=ui_theme.BODY_FONT,
                     cursor="hand2",
                 )
                 file_cell.grid(
@@ -311,7 +310,7 @@ def create_sounds_tab(app):
 
                 trim_cell = tk.Frame(
                     table,
-                    background="#ffffff",
+                    background=ui_theme.COLORS["surface"],
                     borderwidth=1,
                     relief="solid",
                     padx=5,
@@ -323,7 +322,7 @@ def create_sounds_tab(app):
                     textvariable=trim_var,
                     width=6,
                     justify="center",
-                    font=("Arial", 10),
+                    font=ui_theme.BODY_FONT,
                     validate="key",
                     validatecommand=trim_validation,
                 )
@@ -355,6 +354,7 @@ def create_sounds_tab(app):
                     radio_cell,
                     variable=selection_var,
                     value=f"__unused_{sound_type}_{index}",
+                    style="UWH.TRadiobutton",
                 )
                 unused_radio.state(["disabled"])
                 unused_radio.pack(expand=True)
@@ -384,7 +384,7 @@ def create_sounds_tab(app):
                     trim_cell,
                     width=6,
                     justify="center",
-                    font=("Arial", 10),
+                    font=ui_theme.BODY_FONT,
                 )
                 blank_trim.insert(0, "100")
                 blank_trim.state(["disabled"])
@@ -408,7 +408,7 @@ def create_sounds_tab(app):
 
     # Top action bar: primary actions on the left, Enable Sound aligned to
     # the right so the controls read as a deliberate toolbar.
-    controls = ttk.Frame(sounds_widget)
+    controls = tk.Frame(sounds_widget, bg=ui_theme.COLORS["surface"])
     controls.grid(
         row=0,
         column=0,
@@ -418,33 +418,33 @@ def create_sounds_tab(app):
     )
     controls.grid_columnconfigure(2, weight=1)
 
-    ttk.Button(
+    ui_theme.primary_button(
         controls,
-        text="Save Settings",
-        width=16,
-        command=app.save_sound_settings_method,
+        "Save Settings",
+        app.save_sound_settings_method,
+        width=14,
     ).grid(row=0, column=0, padx=(0, 8))
 
-    ttk.Button(
+    ui_theme.secondary_button(
         controls,
-        text="Open Sounds Folder",
-        width=20,
-        command=open_sounds_folder,
+        "Open Sounds Folder",
+        open_sounds_folder,
+        width=18,
     ).grid(row=0, column=1, padx=(0, 12))
 
     ttk.Checkbutton(
         controls,
         text="Enable Sound?",
         variable=app.enable_sound,
+        style="UWH.TCheckbutton",
     ).grid(row=0, column=3, padx=(16, 4))
 
     # Keep the diagnostic slightly below the top controls so it reads as
     # status information rather than another editable setting.
-    diagnostic = ttk.Frame(
+    diagnostic = ui_theme.info_banner(
         sounds_widget,
-        padding=(8, 5),
-        relief="groove",
-        borderwidth=1,
+        f"Audio output in use: {AUDIO_OUTPUT_AT_STARTUP} "
+        "(selected when UWH started)"
     )
     diagnostic.grid(
         row=1,
@@ -453,15 +453,6 @@ def create_sounds_tab(app):
         sticky="ew",
         pady=(7, 10),
     )
-    ttk.Label(
-        diagnostic,
-        text=(
-            f"Audio output in use: {AUDIO_OUTPUT_AT_STARTUP} "
-            "(selected when UWH started)"
-        ),
-        justify="left",
-        anchor="w",
-    ).pack(fill="x")
 
     pips_frame = build_sound_table(
         sounds_widget,
