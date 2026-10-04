@@ -49,7 +49,15 @@ def open_button_dialog(app, idx, trigger_button=None):
 
     for widget in app.widgets:
         var_name = widget["name"]
-        label = widget["label_widget"]
+        label = widget.get("label_widget")
+        label_text = (
+            label.cget("text")
+            if label is not None
+            else app.variables.get(var_name, {}).get(
+                "label",
+                f"{var_name.replace('_', ' ').title()}:"
+            )
+        )
 
         if var_name in ["time_to_start_first_game", "start_first_game_in"]:
             continue
