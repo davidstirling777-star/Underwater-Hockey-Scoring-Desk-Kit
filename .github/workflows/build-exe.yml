@@ -13,7 +13,7 @@ permissions:
 # Explicit semantic version for the approved new-look release.
 # Change this deliberately when preparing the next public release.
 env:
-  RELEASE_VERSION: "1.3.4"
+  RELEASE_VERSION: "1.3.5"
 
 jobs:
   build-windows:
