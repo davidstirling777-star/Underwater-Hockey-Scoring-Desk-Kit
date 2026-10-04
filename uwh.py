@@ -4293,7 +4293,7 @@ class GameManagementApp:
                 return
         if score_var.get() > 0:
             if (cur_period['name'] == 'Between Game Break'
-                and getattr(self, 'sudden_death_restore_active', False)
+                and self.engine.sudden_death_restore_active
                 and self.engine.sudden_death_restore_time is not None
                 and self.engine.timer_seconds > 30):
                 score_var.set(score_var.get() - 1)
