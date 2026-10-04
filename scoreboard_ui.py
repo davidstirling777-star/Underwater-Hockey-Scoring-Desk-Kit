@@ -8,11 +8,13 @@ sync when moving a handler between modules.
 import tkinter as tk
 from tkinter import ttk
 
+import ui_theme
+
 
 def create_scoreboard_tab(app):
     tab = ttk.Frame(app.notebook)
     app.scoreboard_tab = tab
-    app.notebook.add(tab, text="Scoreboard")
+    app.notebook.add(tab, text=ui_theme.tab_label("Scoreboard"))
 
     for i in range(11):
         tab.grid_rowconfigure(i, weight=1)
