@@ -860,12 +860,21 @@ class GameManagementApp:
         self._pending_settings_sections = {}
         self._settings_autosave_job = None
         self.master.title("UWH Scoring Desk")
-        self.master.geometry("1280x840")
-        self.master.minsize(1100, 720)
+        self.master.geometry("1280x860")
+        self.master.minsize(1100, 740)
         ui_theme.configure_styles(self.master)
         ui_theme.apply_app_icon(self.master)
+        ui_theme.create_app_header(self.master)
+
+        # The Scoreboard content remains unchanged, but all tabs now sit
+        # inside the same ttkbootstrap UWH navigation shell.
         self.notebook = ttk.Notebook(master, style="UWH.TNotebook")
-        self.notebook.pack(expand=True, fill="both")
+        self.notebook.pack(
+            expand=True,
+            fill="both",
+            padx=10,
+            pady=(0, 10),
+        )
 
         # Ctrl+Q always provides a way out of the application.
         self.master.bind_all(
