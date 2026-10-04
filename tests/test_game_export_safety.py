@@ -27,6 +27,12 @@ class Engine:
         self.stored_penalties = [{"team": "White", "cap": "7", "duration": 120}]
         self.timer_running = True
         self.timer_seconds = 60
+        # Model a just-finished Sudden Death game. These fields must remain
+        # available while export is pending, then be cleared after commit.
+        self.sudden_death_goal_scored = True
+        self.sudden_death_restore_active = True
+        self.sudden_death_restore_time = 725
+        self.sudden_death_seconds = 725
         self.clear_goal_scorers = Mock()
 
     def stop_timer(self):
@@ -70,6 +76,10 @@ class ExportTests(unittest.TestCase):
         app.engine.clear_goal_scorers.assert_not_called()
         app.advance_to_next_game.assert_not_called()
         app.log_game_event.assert_not_called()
+        self.assertTrue(app.engine.sudden_death_goal_scored)
+        self.assertTrue(app.engine.sudden_death_restore_active)
+        self.assertEqual(app.engine.sudden_death_restore_time, 725)
+        self.assertEqual(app.engine.sudden_death_seconds, 725)
 
     def test_write_exception_preserves_results(self):
         app = FakeApp()
@@ -90,6 +100,10 @@ class ExportTests(unittest.TestCase):
         app.log_game_event.assert_called_once_with("Game End")
         app.clear_all_penalties.assert_called_once_with()
         app.engine.clear_goal_scorers.assert_called_once_with()
+        self.assertFalse(app.engine.sudden_death_goal_scored)
+        self.assertFalse(app.engine.sudden_death_restore_active)
+        self.assertIsNone(app.engine.sudden_death_restore_time)
+        self.assertEqual(app.engine.sudden_death_seconds, 0)
         app.advance_to_next_game.assert_called_once_with()
 
     def test_no_csv_manual_mode_preserves_existing_workflow(self):
