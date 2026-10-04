@@ -14,7 +14,7 @@ def start_zigbee_connection(app):
 
     try:
         if app.zigbee_controller.start():
-            app.toggle_connection_btn.config(text="Connect / Refresh", state="normal")
+            app.toggle_connection_btn.config(text="Disconnect", state="normal")
             app.add_to_zigbee_log("Starting Zigbee connection...")
         else:
             app.add_to_zigbee_log("Failed to start Zigbee connection")
@@ -38,7 +38,7 @@ def stop_zigbee_connection(app):
 
     try:
         app.zigbee_controller.stop()
-        app.toggle_connection_btn.config(text="Connect / Refresh", state="normal")
+        app.toggle_connection_btn.config(text="Connect", state="normal")
         app.add_to_zigbee_log("Zigbee connection stopped")
     except Exception as e:
         app.add_to_zigbee_log(f"Error stopping connection: {e}")
@@ -144,7 +144,7 @@ def check_connection_status(app):
             f"Watchdog: Max connection attempts "
             f"({app.connection_watchdog_max_attempts}) reached. Giving up."
         )
-        app.toggle_connection_btn.config(text="Connect / Refresh", state="normal")
+        app.toggle_connection_btn.config(text="Connect", state="normal")
         app.stop_connection_watchdog()
 
 
@@ -153,7 +153,7 @@ def update_zigbee_status(app, connected: bool, message: str = ""):
         if connected:
             status_text = "Connected"
             app.zigbee_status_label.config(fg="green")
-            app.toggle_connection_btn.config(text="Connect / Refresh", state="normal")
+            app.toggle_connection_btn.config(text="Disconnect", state="normal")
 
             if app.connection_watchdog_active and not app.user_initiated_action:
                 app.add_to_zigbee_log("Watchdog: Connection established successfully")
@@ -166,9 +166,9 @@ def update_zigbee_status(app, connected: bool, message: str = ""):
             if not app.connection_watchdog_active or (
                 app.connection_watchdog_attempts >= app.connection_watchdog_max_attempts
             ):
-                app.toggle_connection_btn.config(text="Connect / Refresh", state="normal")
+                app.toggle_connection_btn.config(text="Connect", state="normal")
             else:
-                app.toggle_connection_btn.config(text="Connect / Refresh", state="normal")
+                app.toggle_connection_btn.config(text="Disconnect", state="normal")
 
         app.zigbee_status_var.set(status_text)
 
