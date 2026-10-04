@@ -13,6 +13,45 @@ import display_manager
 
 DISPLAY_GREY = "#d3d3d3"
 
+
+def _restore_classic_display_palette(app):
+    """Keep the spectator display in the original White / grey / Black style."""
+    widget_colours = (
+        (getattr(app, "display_white_label", None),
+         {"bg": "white", "fg": "black"}),
+        (getattr(app, "display_white_team_name_widget", None),
+         {"bg": "white", "fg": "black"}),
+        (getattr(app, "display_white_score", None),
+         {"bg": "white", "fg": "black"}),
+        (getattr(app, "display_black_label", None),
+         {"bg": "black", "fg": "white"}),
+        (getattr(app, "display_black_team_name_widget", None),
+         {"bg": "black", "fg": "white"}),
+        (getattr(app, "display_black_score", None),
+         {"bg": "black", "fg": "white"}),
+        (getattr(app, "display_game_label", None),
+         {"bg": DISPLAY_GREY, "fg": "black"}),
+        (getattr(app, "display_penalty_area_frame", None),
+         {"bg": DISPLAY_GREY}),
+        (getattr(app, "display_penalty_grid_frame", None),
+         {"bg": DISPLAY_GREY}),
+        (getattr(app, "display_timer_panel", None),
+         {"bg": DISPLAY_GREY}),
+        (getattr(app, "display_timer_label", None),
+         {"bg": DISPLAY_GREY, "fg": "black"}),
+        (getattr(app, "display_referee_timeout_timer_label", None),
+         {"bg": "red", "fg": "white"}),
+    )
+
+    for widget, options in widget_colours:
+        if widget is None:
+            continue
+        try:
+            widget.configure(**options)
+        except tk.TclError:
+            pass
+
+
 def _largest_fitting_font_size(
     widget,
     sample_text,
@@ -766,6 +805,7 @@ def create_display_window(app):
     )
 
     app.sync_display_widgets()
+    _restore_classic_display_palette(app)
     refresh_presentation_timer()
 
     def force_presentation_rescale():
@@ -794,9 +834,13 @@ def create_display_window(app):
     # The first call handles normal creation. The delayed calls cover
     # final monitor placement and later startup data refreshes.
     force_presentation_rescale()
+    _restore_classic_display_palette(app)
 
     app.display_window.after_idle(
         force_presentation_rescale
+    )
+    app.display_window.after_idle(
+        lambda: _restore_classic_display_palette(app)
     )
     app.display_window.after(
         100,
@@ -809,6 +853,14 @@ def create_display_window(app):
     app.display_window.after(
         800,
         force_presentation_rescale
+    )
+    app.display_window.after(
+        100,
+        lambda: _restore_classic_display_palette(app)
+    )
+    app.display_window.after(
+        300,
+        lambda: _restore_classic_display_palette(app)
     )
 
     def refresh_display_team_names():
