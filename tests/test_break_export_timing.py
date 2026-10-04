@@ -63,6 +63,9 @@ class FakeEngine:
     def decrement_timer(self):
         self.timer_seconds -= 1
 
+    def clear_sudden_death_goal(self):
+        pass
+
     def stop_timer(self):
         self.timer_running = False
 
