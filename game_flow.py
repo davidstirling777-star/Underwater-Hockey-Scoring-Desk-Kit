@@ -42,9 +42,9 @@ def export_and_reset_game_at_break(app, game_number=None):
     app.clear_all_penalties()
     app.engine.clear_goal_scorers()
 
-    # A deciding Sudden Death goal remains reversible during the early
-    # Between Game Break. Once this completed game is successfully committed,
-    # however, none of that restoration state may leak into the next game.
+    # Sudden Death restoration remains available only during the correction
+    # window. Once the completed game has been safely committed, clear it so
+    # a later game cannot inherit stale deciding-goal state.
     app.engine.clear_sudden_death_goal()
 
     # Reselect the completed game if choosing another CSV during recovery
@@ -57,7 +57,7 @@ def export_and_reset_game_at_break(app, game_number=None):
     return True
 
 def start_sudden_death_timer(app):
-    """Compatibility wrapper for older callers; the Tk app owns the tick."""
+    """Compatibility wrapper; the Tk application owns the count-up tick."""
     return app.start_sudden_death_timer()
 
 
