@@ -24,7 +24,7 @@ def _resource_file(relative_path):
 
 
 def create_settings_tab(app):
-    """Create the v1.3.5 Game Variables tab using the approved mockup style."""
+    """Create the v1.3.6 Game Variables tab using the approved mockup style."""
     tab = ttk.Frame(app.notebook, style="UWH.Tab.TFrame")
     app.notebook.add(
         tab,
