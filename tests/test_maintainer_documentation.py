@@ -235,15 +235,42 @@ class MaintenanceDocumentationTests(unittest.TestCase):
         self.assertIn("Trim %", source("README.md"))
         self.assertIn("hardware", source("README.md").lower())
 
-    def test_release_uses_explicit_v132_everywhere(self):
+    def test_sudden_death_timer_uses_bound_tk_callback(self):
+        uwh = source("uwh.py")
+        game_flow = source("game_flow.py")
+        self.assertIn(
+            "self.sudden_death_timer_job = self.master.after(\n"
+            "                1000,\n"
+            "                self.start_sudden_death_timer\n"
+            "            )",
+            uwh,
+        )
+        self.assertNotIn(
+            "lambda: game_flow.start_sudden_death_timer(self)",
+            uwh,
+        )
+        self.assertIn(
+            "return app.start_sudden_death_timer()",
+            game_flow,
+        )
+        self.assertIn(
+            "self.engine.sudden_death_restore_active",
+            uwh,
+        )
+        self.assertIn(
+            "self.engine.sudden_death_restore_time",
+            uwh,
+        )
+
+    def test_release_uses_explicit_v133_everywhere(self):
         settings_ui = source("settings_ui.py")
         version = source("app_version.py")
         workflow = source(".github/workflows/build-exe.yml")
 
         self.assertIn("from app_version import APP_VERSION", settings_ui)
         self.assertIn('text=f"UWH v{APP_VERSION}"', settings_ui)
-        self.assertIn('APP_VERSION = "1.3.2"', version)
-        self.assertIn('RELEASE_VERSION: "1.3.2"', workflow)
+        self.assertIn('APP_VERSION = "1.3.3"', version)
+        self.assertIn('RELEASE_VERSION: "1.3.3"', workflow)
         self.assertNotIn("RELEASE_SERIES", workflow)
         self.assertIn("Stamp application version", workflow)
 
