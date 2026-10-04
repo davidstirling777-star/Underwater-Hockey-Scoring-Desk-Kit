@@ -41,6 +41,11 @@ jobs:
             pip install -r requirements.txt
           }
 
+      - name: Validate ttkbootstrap compatibility
+        shell: pwsh
+        run: |
+          python -c "import inspect, importlib.metadata as m, ttkbootstrap as tb; v=m.version('ttkbootstrap'); print('ttkbootstrap', v, inspect.signature(tb.Style)); assert int(v.split('.')[0]) == 1; assert 'master' not in inspect.signature(tb.Style).parameters"
+
       - name: Stamp application version
         shell: pwsh
         run: |
@@ -111,6 +116,10 @@ jobs:
           if [ -f requirements.txt ]; then
             pip install -r requirements.txt
           fi
+
+      - name: Validate ttkbootstrap compatibility
+        run: |
+          python -c "import inspect, importlib.metadata as m, ttkbootstrap as tb; v=m.version('ttkbootstrap'); print('ttkbootstrap', v, inspect.signature(tb.Style)); assert int(v.split('.')[0]) == 1; assert 'master' not in inspect.signature(tb.Style).parameters"
 
       - name: Stamp application version
         env:
