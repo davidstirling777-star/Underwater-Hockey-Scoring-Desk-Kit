@@ -33,7 +33,14 @@ def release_is_current(build_sha, main_sha, build_tag, releases):
         if release.get("draft") or release.get("prerelease"):
             continue
         published_version = parse_version(release.get("tag_name"))
-        if published_version is not None and published_version >= version:
+        # A deliberate UI-series rollback may coexist briefly with a newer
+        # major/minor release while the replacement build is being published.
+        # Prevent stale releases only within the target major/minor series.
+        if (
+            published_version is not None
+            and published_version[:2] == version[:2]
+            and published_version >= version
+        ):
             return (
                 False,
                 f"release {release['tag_name']} has already been published",
@@ -72,10 +79,9 @@ def published_releases(repository, token):
 def main():
     repository = os.environ["GITHUB_REPOSITORY"]
     build_sha = os.environ["GITHUB_SHA"]
-    run_number = int(os.environ["GITHUB_RUN_NUMBER"])
-    release_series = os.environ["RELEASE_SERIES"]
+    release_version = os.environ["RELEASE_VERSION"]
     token = os.environ["GITHUB_TOKEN"]
-    version = f"v{release_series}.{run_number}"
+    version = f"v{release_version}"
 
     # Do not call the release API for builds already known to be outdated.
     main_sha = github_get(f"repos/{repository}/commits/main", token)["sha"]
