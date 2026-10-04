@@ -88,6 +88,9 @@ class FakeApp(load_uwh_methods()):
         self.referee_timeout_active = False
         self.timer_job = None
         self.sudden_death_timer_job = None
+        self._game_export_pending = False
+        self._pending_export_game_number = None
+        self.next_game_transition_done = False
 
         # Minimal tournament/export surface used by game_flow.
         self.csv_var = Var("")
