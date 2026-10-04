@@ -42,6 +42,11 @@ def export_and_reset_game_at_break(app, game_number=None):
     app.clear_all_penalties()
     app.engine.clear_goal_scorers()
 
+    # A deciding Sudden Death goal remains reversible during the early
+    # Between Game Break. Once this completed game is successfully committed,
+    # however, none of that restoration state may leak into the next game.
+    app.engine.clear_sudden_death_goal()
+
     # Reselect the completed game if choosing another CSV during recovery
     # altered the tournament dropdown; advance from its original position.
     if current_game in app.game_numbers:
