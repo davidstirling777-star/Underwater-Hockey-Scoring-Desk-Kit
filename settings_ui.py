@@ -864,33 +864,53 @@ def create_about_tab(app, readme_path):
 
 
 def create_screen_tab(app):
-    """Create the Screens tab and its operator/display layout controls."""
-    tab = ttk.Frame(app.notebook)
+    """Create the approved Screens tab without a layout-preview panel."""
+    tab = ttk.Frame(app.notebook, style="UWH.Tab.TFrame")
     app.screen_tab = tab
     app.notebook.add(tab, text="Screens")
-
     tab.grid_columnconfigure(0, weight=1)
-    tab.grid_rowconfigure(0, weight=1)
+    tab.grid_rowconfigure(1, weight=1)
 
-    outer = ttk.Frame(tab, padding=18)
-    outer.grid(row=0, column=0, sticky="nsew", padx=12, pady=12)
-    outer.grid_columnconfigure(0, weight=1)
+    toolbar = ui_theme.card(tab, padding=10)
+    toolbar.grid(row=0, column=0, sticky="ew", padx=12, pady=(12, 6))
+    toolbar.grid_columnconfigure(3, weight=1)
 
-    default_font = font.nametofont("TkDefaultFont")
-    title_font = (default_font.cget("family"), default_font.cget("size") + 4, "bold")
-    label_font = (default_font.cget("family"), default_font.cget("size") + 2, "bold")
+    ui_theme.primary_button(
+        toolbar, "Auto Detect Screens", app.auto_detect_screens
+    ).grid(row=0, column=0, padx=(0, 8))
+    ui_theme.secondary_button(
+        toolbar, "Test Displays", app.test_displays
+    ).grid(row=0, column=1, padx=(0, 8))
 
-    tk.Label(outer, text="Screen Configuration", font=title_font).grid(
-        row=0, column=0, sticky="w", pady=(0, 14)
+    app.detected_screens_var = tk.StringVar(
+        value=app.get_detected_screens_text()
     )
+    status = tk.Label(
+        toolbar,
+        textvariable=app.detected_screens_var,
+        bg=ui_theme.COLORS["primary_soft"],
+        fg=ui_theme.COLORS["primary"],
+        font=ui_theme.SMALL_FONT,
+        justify="left",
+        anchor="w",
+        padx=10,
+        pady=6,
+    )
+    status.grid(row=0, column=3, sticky="ew", padx=(12, 0))
 
-    operator_frame = ttk.LabelFrame(outer, text="Operator Screen", padding=12)
-    operator_frame.grid(row=1, column=0, sticky="ew", pady=(0, 12))
-    operator_frame.grid_columnconfigure(0, weight=1)
+    body = ttk.Frame(tab, style="UWH.Tab.TFrame")
+    body.grid(row=1, column=0, sticky="nsew", padx=12, pady=(6, 12))
+    body.grid_columnconfigure(0, weight=1)
+    body.grid_columnconfigure(1, weight=1)
+    body.grid_rowconfigure(0, weight=1)
 
-    display_frame = ttk.LabelFrame(outer, text="Display Screen Options", padding=12)
-    display_frame.grid(row=2, column=0, sticky="ew", pady=(0, 12))
-    display_frame.grid_columnconfigure(0, weight=1)
+    options = ui_theme.card(body, padding=14)
+    options.grid(row=0, column=0, sticky="nsew", padx=(0, 6))
+    options.grid_columnconfigure(0, weight=1)
+
+    ui_theme.section_title(options, "Display Screen Options").grid(
+        row=0, column=0, sticky="w", pady=(0, 10)
+    )
 
     app.operator_standard_check_var = tk.BooleanVar(
         value=app.operator_layout_var.get() == "Standard"
@@ -905,21 +925,32 @@ def create_screen_tab(app):
         app.operator_widescreen_check_var.set(value == "Widescreen")
         app.apply_screen_configuration()
 
-    ttk.Checkbutton(
-        operator_frame,
-        text="Standard (16:9)",
-        variable=app.operator_standard_check_var,
-        command=lambda: choose_operator("Standard"),
-        style="Large.TCheckbutton"
-    ).grid(row=0, column=0, sticky="w", pady=5)
+    operator_box = tk.Frame(options, bg=ui_theme.COLORS["surface"])
+    operator_box.grid(row=1, column=0, sticky="ew", pady=(0, 12))
+    tk.Label(
+        operator_box,
+        text="Operator Screen",
+        bg=ui_theme.COLORS["surface"],
+        fg=ui_theme.COLORS["navy"],
+        font=(ui_theme.FONT_FAMILY, 10, "bold"),
+    ).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 6))
 
-    ttk.Checkbutton(
-        operator_frame,
+    ttk.Radiobutton(
+        operator_box,
+        text="Standard (16:9)",
+        variable=app.operator_layout_var,
+        value="Standard",
+        command=lambda: choose_operator("Standard"),
+        style="UWH.TRadiobutton",
+    ).grid(row=1, column=0, sticky="w", padx=(0, 16), pady=4)
+    ttk.Radiobutton(
+        operator_box,
         text="Widescreen (21:9)",
-        variable=app.operator_widescreen_check_var,
+        variable=app.operator_layout_var,
+        value="Widescreen",
         command=lambda: choose_operator("Widescreen"),
-        style="Large.TCheckbutton"
-    ).grid(row=1, column=0, sticky="w", pady=5)
+        style="UWH.TRadiobutton",
+    ).grid(row=1, column=1, sticky="w", pady=4)
 
     display_options = [
         "Single Standard",
@@ -927,27 +958,6 @@ def create_screen_tab(app):
         "Dual Standard",
         "Dual Widescreen",
     ]
-    app.display_layout_check_vars = {
-        option: tk.BooleanVar(
-            value=(app.show_display_screen_var.get()
-                   and app.display_layout_var.get() == option)
-        )
-        for option in display_options
-    }
-
-    def choose_display(value):
-        # Tkinter has already toggled the clicked checkbox at this point.
-        # Clicking the selected (ticked) layout again therefore turns it OFF.
-        enabled = app.display_layout_check_vars[value].get()
-        app.show_display_screen_var.set(enabled)
-        if enabled:
-            app.display_layout_var.set(value)
-        # Keep the previously selected layout when disabled so it can be
-        # restored next time without having to reconfigure the display.
-        for option, var in app.display_layout_check_vars.items():
-            var.set(enabled and option == app.display_layout_var.get())
-        app.apply_screen_configuration()
-
     descriptions = {
         "Single Standard": "One complete 16:9 scoreboard on one external display.",
         "Single Widescreen": "One complete scoreboard sized for one 21:9 external display.",
@@ -955,73 +965,121 @@ def create_screen_tab(app):
         "Dual Widescreen": "Two identical complete scoreboards on two 21:9 external displays.",
     }
 
-    for row, option in enumerate(display_options):
-        line = ttk.Frame(display_frame)
-        line.grid(row=row, column=0, sticky="ew", pady=4)
-        line.grid_columnconfigure(1, weight=1)
+    app.display_layout_check_vars = {
+        option: tk.BooleanVar(
+            value=(
+                app.show_display_screen_var.get()
+                and app.display_layout_var.get() == option
+            )
+        )
+        for option in display_options
+    }
+
+    def choose_display(value):
+        enabled = app.display_layout_check_vars[value].get()
+        app.show_display_screen_var.set(enabled)
+        if enabled:
+            app.display_layout_var.set(value)
+        for option, variable in app.display_layout_check_vars.items():
+            variable.set(
+                enabled and option == app.display_layout_var.get()
+            )
+        app.apply_screen_configuration()
+
+    tk.Label(
+        options,
+        text="Player / spectator display",
+        bg=ui_theme.COLORS["surface"],
+        fg=ui_theme.COLORS["navy"],
+        font=(ui_theme.FONT_FAMILY, 10, "bold"),
+    ).grid(row=2, column=0, sticky="w", pady=(2, 6))
+
+    for index, option in enumerate(display_options, start=3):
+        row = tk.Frame(
+            options,
+            bg=ui_theme.COLORS["surface_alt"],
+            highlightbackground=ui_theme.COLORS["border"],
+            highlightthickness=1,
+            padx=10,
+            pady=8,
+        )
+        row.grid(row=index, column=0, sticky="ew", pady=3)
+        row.grid_columnconfigure(1, weight=1)
         ttk.Checkbutton(
-            line,
+            row,
             text=option,
             variable=app.display_layout_check_vars[option],
             command=lambda value=option: choose_display(value),
-            style="Large.TCheckbutton"
+            style="UWH.TCheckbutton",
         ).grid(row=0, column=0, sticky="w")
         tk.Label(
-            line,
+            row,
             text=descriptions[option],
+            bg=ui_theme.COLORS["surface_alt"],
+            fg=ui_theme.COLORS["muted"],
+            font=ui_theme.SMALL_FONT,
+            anchor="w",
             justify="left",
-            anchor="w"
         ).grid(row=0, column=1, sticky="w", padx=(14, 0))
 
     ttk.Checkbutton(
-        outer,
-        text="Show Team Names",
+        options,
+        text="Show team names",
         variable=app.show_display_team_names_var,
-        command=lambda: (app.toggle_display_team_names(), app.save_screen_settings()),
-        style="Large.TCheckbutton"
-    ).grid(row=3, column=0, sticky="w", pady=(2, 12))
-
-    button_row = ttk.Frame(outer)
-    button_row.grid(row=4, column=0, sticky="w", pady=(4, 10))
-
-    ttk.Button(
-        button_row,
-        text="Auto Detect Screens",
-        command=app.auto_detect_screens
-    ).grid(row=0, column=0, sticky="w", padx=(0, 10))
-
-    ttk.Button(
-        button_row,
-        text="Test Displays",
-        command=app.test_displays
-    ).grid(row=0, column=1, sticky="w")
-
-    detected_frame = ttk.LabelFrame(outer, text="These screens were detected", padding=12)
-    detected_frame.grid(row=5, column=0, sticky="ew", pady=(0, 10))
-    detected_frame.grid_columnconfigure(0, weight=1)
-
-    app.detected_screens_var = tk.StringVar(value=app.get_detected_screens_text())
-    tk.Label(
-        detected_frame,
-        textvariable=app.detected_screens_var,
-        justify="left",
-        anchor="nw",
-        font=("Consolas", default_font.cget("size")),
-        wraplength=900,
-    ).grid(row=0, column=0, sticky="ew")
-
-    tk.Label(
-        outer,
-        text=(
-            "Auto Detect uses the native Windows monitor list. "
-            "On Raspberry Pi OS Bookworm/X11, it uses xrandr. "
-            "If automatic detection is unavailable, select the screen layout manually. "
-            "Test Displays labels every screen for eight seconds and can be closed "
-            "by clicking or pressing Esc."
+        command=lambda: (
+            app.toggle_display_team_names(),
+            app.save_screen_settings(),
         ),
+        style="UWH.TCheckbutton",
+    ).grid(row=7, column=0, sticky="w", pady=(12, 0))
+
+    detected = ui_theme.card(body, padding=14)
+    detected.grid(row=0, column=1, sticky="nsew", padx=(6, 0))
+    detected.grid_columnconfigure(0, weight=1)
+    detected.grid_rowconfigure(2, weight=1)
+
+    ui_theme.section_title(detected, "Detected Displays").grid(
+        row=0, column=0, sticky="w", pady=(0, 8)
+    )
+    ui_theme.muted_label(
+        detected,
+        "Auto Detect Screens updates the list below. Test Displays labels "
+        "each physical screen for eight seconds.",
+        wraplength=520,
         justify="left",
-        anchor="nw",
-        wraplength=900,
-        font=(default_font.cget("family"), default_font.cget("size"))
-    ).grid(row=6, column=0, sticky="w", pady=(4, 0))
+    ).grid(row=1, column=0, sticky="w", pady=(0, 10))
+
+    output = tk.Text(
+        detected,
+        wrap="word",
+        state="normal",
+        bg=ui_theme.COLORS["surface_alt"],
+        fg=ui_theme.COLORS["text"],
+        font=("Consolas", 10),
+        relief="flat",
+        padx=10,
+        pady=10,
+    )
+    output.grid(row=2, column=0, sticky="nsew")
+    output.insert("1.0", app.detected_screens_var.get())
+    output.config(state="disabled")
+    app.detected_screens_output = output
+
+    def refresh_output(*_args):
+        try:
+            output.config(state="normal")
+            output.delete("1.0", "end")
+            output.insert("1.0", app.detected_screens_var.get())
+            output.config(state="disabled")
+        except tk.TclError:
+            pass
+
+    app.detected_screens_var.trace_add("write", refresh_output)
+
+    ui_theme.info_banner(
+        detected,
+        "Windows uses the native monitor list. Raspberry Pi OS "
+        "Bookworm/X11 uses xrandr. If automatic detection is unavailable, "
+        "select the required display layout manually."
+    ).grid(row=3, column=0, sticky="ew", pady=(10, 0))
 
