@@ -139,7 +139,7 @@ class ReleaseOrderTests(unittest.TestCase):
             with patch.dict(os.environ, env):
                 with patch.object(gate, "github_get",
                                   side_effect=[{"sha": "main"},
-                                               [release("v1.2.741")]]):
+                                               [release("v1.3.2")]]):
                     gate.main()
             self.assertEqual(output.read_text(), "publish=false\n")
 
