@@ -2612,6 +2612,8 @@ class GameManagementApp:
                 self._zigbee_map_dirty = False
             if hasattr(self, "_zigbee_mapping_save_btn"):
                 self._zigbee_mapping_save_btn.config(text="Save Action Mappings")
+            if hasattr(self, "refresh_zigbee_device_list"):
+                self.refresh_zigbee_device_list()
             self.add_to_zigbee_log("Configuration saved")
             messagebox.showinfo("Configuration", "Zigbee configuration saved successfully!")
         except Exception as e:
