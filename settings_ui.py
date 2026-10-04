@@ -386,7 +386,7 @@ def create_settings_tab(app):
 
     ui_theme.muted_label(
         presets_card,
-        "Click to load a preset. Press and hold for 3 seconds to edit it.",
+        "Click a preset to load it. Press and hold a preset for 3 seconds to edit it.",
         justify="left",
     ).grid(
         row=4, column=0, columnspan=3, sticky="w", padx=4, pady=(8, 0)
