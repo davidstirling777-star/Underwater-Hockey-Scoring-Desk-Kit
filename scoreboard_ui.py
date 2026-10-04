@@ -8,106 +8,11 @@ sync when moving a handler between modules.
 import tkinter as tk
 from tkinter import ttk
 
-import ui_theme
-
-
-def _restore_classic_scoreboard_palette(app):
-    """Keep the referee scoreboard in its original white/grey/black colours.
-
-    ttkbootstrap is intentionally limited to the configuration tabs. The live
-    scoreboard remains a classic Tk presentation surface because the team
-    colours and high-visibility referee controls carry operational meaning.
-    """
-    widget_colours = (
-        (getattr(app, "court_time_label", None),
-         {"bg": "lightgrey", "fg": "black"}),
-        (getattr(app, "white_label", None),
-         {"bg": "white", "fg": "black"}),
-        (getattr(app, "white_team_name_widget", None),
-         {"bg": "white", "fg": "black"}),
-        (getattr(app, "white_score", None),
-         {"bg": "white", "fg": "black"}),
-        (getattr(app, "black_label", None),
-         {"bg": "black", "fg": "white"}),
-        (getattr(app, "black_team_name_widget", None),
-         {"bg": "black", "fg": "white"}),
-        (getattr(app, "black_score", None),
-         {"bg": "black", "fg": "white"}),
-        (getattr(app, "penalty_background", None),
-         {"bg": "lightgrey"}),
-        (getattr(app, "timer_label", None),
-         {"bg": "lightgrey", "fg": "black"}),
-        (getattr(app, "white_timeout_button", None),
-         {
-             "bg": "white", "fg": "black",
-             "activebackground": "white", "activeforeground": "black",
-         }),
-        (getattr(app, "white_goal_button", None),
-         {
-             "bg": "lightgrey", "fg": "black",
-             "activebackground": "lightgrey", "activeforeground": "black",
-         }),
-        (getattr(app, "white_minus_button", None),
-         {
-             "bg": "lightgrey", "fg": "black",
-             "activebackground": "lightgrey", "activeforeground": "black",
-         }),
-        (getattr(app, "penalties_button", None),
-         {
-             "bg": "orange", "fg": "black",
-             "activebackground": "orange", "activeforeground": "black",
-         }),
-        (getattr(app, "black_goal_button", None),
-         {
-             "bg": "lightgrey", "fg": "black",
-             "activebackground": "lightgrey", "activeforeground": "black",
-         }),
-        (getattr(app, "black_minus_button", None),
-         {
-             "bg": "lightgrey", "fg": "black",
-             "activebackground": "lightgrey", "activeforeground": "black",
-         }),
-        (getattr(app, "black_timeout_button", None),
-         {
-             "bg": "black", "fg": "white",
-             "activebackground": "black", "activeforeground": "white",
-         }),
-    )
-
-    for widget, options in widget_colours:
-        if widget is None:
-            continue
-        try:
-            widget.configure(**options)
-        except tk.TclError:
-            pass
-
-    # Referee Time-Out deliberately changes colours while active.
-    button = getattr(app, "referee_timeout_button", None)
-    if button is not None:
-        try:
-            if getattr(app, "referee_timeout_active", False):
-                button.configure(
-                    bg=app.referee_timeout_active_bg,
-                    fg=app.referee_timeout_active_fg,
-                    activebackground=app.referee_timeout_active_bg,
-                    activeforeground=app.referee_timeout_active_fg,
-                )
-            else:
-                button.configure(
-                    bg=app.referee_timeout_default_bg,
-                    fg=app.referee_timeout_default_fg,
-                    activebackground=app.referee_timeout_default_bg,
-                    activeforeground=app.referee_timeout_default_fg,
-                )
-        except tk.TclError:
-            pass
-
 
 def create_scoreboard_tab(app):
     tab = ttk.Frame(app.notebook)
     app.scoreboard_tab = tab
-    app.notebook.add(tab, text=ui_theme.tab_label("Scoreboard"))
+    app.notebook.add(tab, text="Scoreboard")
 
     for i in range(11):
         tab.grid_rowconfigure(i, weight=1)
@@ -519,22 +424,3 @@ def create_scoreboard_tab(app):
     )
 
     app.update_team_timeouts_allowed()
-
-    # Flatly styles the configuration tabs, but the live referee scoreboard
-    # must retain its established high-contrast match colours.
-    _restore_classic_scoreboard_palette(app)
-    tab.after_idle(lambda: _restore_classic_scoreboard_palette(app))
-    tab.after(150, lambda: _restore_classic_scoreboard_palette(app))
-
-    def restore_when_selected(_event=None):
-        try:
-            if app.notebook.select() == str(tab):
-                _restore_classic_scoreboard_palette(app)
-        except tk.TclError:
-            pass
-
-    app.notebook.bind(
-        "<<NotebookTabChanged>>",
-        restore_when_selected,
-        add="+",
-    )
