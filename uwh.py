@@ -2332,7 +2332,7 @@ class GameManagementApp:
         self.save_game_settings()
     
     def _update_start_first_game_in(self):
-        """Calculate First Game Starts In for H:MM or HH:MM clock times."""
+        """Calculate First Game Starts In for H.MM/HH.MM or colon clock times."""
         time_entry_val = None
         start_first_game_in_widget = None
         
@@ -2347,9 +2347,13 @@ class GameManagementApp:
         now = datetime.datetime.now()
         if time_entry_val:
             try:
-                time_match = re.match(r"^(?:[01]?[0-9]|2[0-3]):[0-5][0-9]$", time_entry_val)
+                normalized_time = time_entry_val.replace(".", ":")
+                time_match = re.match(
+                    r"^(?:[01]?[0-9]|2[0-3]):[0-5][0-9]$",
+                    normalized_time
+                )
                 if time_match:
-                    hh, mm = map(int, time_entry_val.split(":"))
+                    hh, mm = map(int, normalized_time.split(":"))
                     target = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
                     if target < now:
                         target = target + datetime.timedelta(days=1)
@@ -2385,8 +2389,8 @@ class GameManagementApp:
                 now = datetime.datetime.now()
                 target = now + datetime.timedelta(minutes=int(start_minutes))
                 
-                # Format as HH:MM
-                time_str = f"{target.hour:02d}:{target.minute:02d}"
+                # v1.3 presents clock times as HH.mm.
+                time_str = f"{target.hour:02d}.{target.minute:02d}"
                 
                 # Update the widget
                 time_widget.delete(0, tk.END)
