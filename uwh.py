@@ -3206,8 +3206,22 @@ class GameManagementApp:
                 )
                 self.sudden_death_timer_job = None
 
+            # A normal entry to Sudden Death starts at 00:00. If a deciding
+            # goal was retracted during Between Game Break, keep the elapsed
+            # Sudden Death time that was saved when that goal was recorded.
+            if (
+                self.engine.sudden_death_restore_active
+                and self.engine.sudden_death_restore_time is not None
+            ):
+                self.engine.sudden_death_seconds = (
+                    self.engine.sudden_death_restore_time
+                )
+                self.engine.sudden_death_restore_active = False
+                self.engine.sudden_death_restore_time = None
+            else:
+                self.engine.sudden_death_seconds = 0
+
             self.engine.start_timer()
-            self.engine.sudden_death_seconds = 0
             self.update_timer_display()
 
             event_name = self.engine.period_start_event_name(
@@ -3219,7 +3233,7 @@ class GameManagementApp:
 
             self.sudden_death_timer_job = self.master.after(
                 1000,
-                lambda: game_flow.start_sudden_death_timer(self)
+                self.start_sudden_death_timer
             )
 
         else:
@@ -3464,7 +3478,22 @@ class GameManagementApp:
         self.start_current_period()
 
     def start_sudden_death_timer(self):
-        if not self.engine.timer_running:
+        """Advance the Sudden Death count-up and schedule the next tick.
+
+        This callback is owned by the Tk app itself. Keeping the whole
+        lifecycle here avoids the previous split scheduling path between
+        uwh.py and game_flow.py and makes stale/cancelled jobs explicit.
+        """
+        # The callback that invoked us has now fired.
+        self.sudden_death_timer_job = None
+
+        cur_period = self.engine.get_current_period()
+        if (
+            not self.engine.timer_running
+            or not cur_period
+            or not self.engine.is_sudden_death(cur_period["name"])
+        ):
+            self.update_timer_display()
             return
 
         self.engine.sudden_death_seconds += 1
@@ -3472,7 +3501,7 @@ class GameManagementApp:
 
         self.sudden_death_timer_job = self.master.after(
             1000,
-            lambda: game_flow.start_sudden_death_timer(self)
+            self.start_sudden_death_timer
         )
 
     def goto_between_game_break(self):
@@ -4222,7 +4251,7 @@ class GameManagementApp:
             elif was_sudden_death and self.engine.timer_running:
                 self.sudden_death_timer_job = self.master.after(
                     1000,
-                    lambda: game_flow.start_sudden_death_timer(self)
+                    self.start_sudden_death_timer
                 )
 
             elif self.engine.timer_running:
@@ -4255,12 +4284,12 @@ class GameManagementApp:
 
     def restore_sudden_death_after_goal_removal(self):
         """Restore Sudden Death after correcting the deciding goal.
+
+        start_current_period() consumes the saved restoration timestamp and
+        resumes the count-up from that elapsed value.
         """
         self.engine.sudden_death_goal_scored = False
         self.engine.go_to_period('Sudden Death')
-        self.engine.sudden_death_seconds = self.engine.sudden_death_restore_time
-        self.engine.sudden_death_restore_active = False
-        self.engine.sudden_death_restore_time = None
         self.start_current_period()
 
     def adjust_score_with_confirm(self, score_var, team_name):
