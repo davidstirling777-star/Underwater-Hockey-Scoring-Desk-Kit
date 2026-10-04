@@ -121,33 +121,34 @@ def create_settings_tab(app):
             lambda _event, name=var_name: app._on_single_variable_change(name)
         )
 
-    def bind_clock_entry(entry):
-        def validate(event):
-            value = event.widget.get().strip()
-            if value == "":
-                app._on_single_variable_change("time_to_start_first_game")
-                return
-
-            normalized = value.replace(".", ":")
-            if not re.fullmatch(r"(?:[01]?[0-9]|2[0-3]):[0-5][0-9]", normalized):
-                messagebox.showerror(
-                    "Input Error",
-                    "Please enter a 24-hour time as H.MM, HH.MM, H:MM or HH:MM "
-                    "(for example 9.36, 09.36, 9:36 or 09:36)."
-                )
-                event.widget.focus_set()
-                event.widget.selection_range(0, tk.END)
-                return
-
-            # Keep the v1.3 display convention (HH.mm) while remaining
-            # backwards-compatible with colon-form settings.
-            hh, mm = normalized.split(":")
-            event.widget.delete(0, tk.END)
-            event.widget.insert(0, f"{int(hh):02d}.{mm}")
+    def validate_hhmm_on_focusout(event):
+        """Validate either dot or colon 24-hour clock notation."""
+        value = event.widget.get().strip()
+        if value == "":
             app._on_single_variable_change("time_to_start_first_game")
+            return
 
-        entry.bind("<FocusOut>", validate)
-        entry.bind("<Return>", validate)
+        normalized = value.replace(".", ":")
+        if not re.fullmatch(r"(?:[01]?[0-9]|2[0-3]):[0-5][0-9]", normalized):
+            messagebox.showerror(
+                "Input Error",
+                "Please enter a 24-hour time as H.MM, HH.MM, H:MM or HH:MM "
+                "(for example 9.36, 09.36, 9:36 or 09:36)."
+            )
+            event.widget.focus_set()
+            event.widget.selection_range(0, tk.END)
+            return
+
+        # Keep the v1.3 display convention (HH.mm) while remaining
+        # backwards-compatible with colon-form settings.
+        hh, mm = normalized.split(":")
+        event.widget.delete(0, tk.END)
+        event.widget.insert(0, f"{int(hh):02d}.{mm}")
+        app._on_single_variable_change("time_to_start_first_game")
+
+    def bind_clock_entry(entry):
+        entry.bind("<FocusOut>", validate_hhmm_on_focusout)
+        entry.bind("<Return>", validate_hhmm_on_focusout)
 
     def bind_guarded_numeric(entry, var_name):
         def validate(event, field_name=var_name):
