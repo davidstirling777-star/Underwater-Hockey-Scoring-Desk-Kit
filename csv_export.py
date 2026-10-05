@@ -18,12 +18,7 @@ import tournament_files
 
 
 def _write_csv_atomically(csv_file, rows):
-    """Stage a complete RESULTS file before replacing the prior results.
-
-    The selected source draw is never passed to this function. The temporary
-    file lives next to the results file so os.replace is atomic on both
-    Windows and Linux. A failed write leaves prior results and the live game.
-    """
+    """Stage a complete RESULTS file before replacing the prior results."""
     directory = os.path.dirname(os.path.abspath(csv_file))
     original_mode = stat.S_IMODE(os.stat(csv_file).st_mode)
     staged_path = None
@@ -43,7 +38,6 @@ def _write_csv_atomically(csv_file, rows):
             staged.flush()
             os.fsync(staged.fileno())
 
-        # Preserve the results file's permissions on Windows and Linux.
         os.chmod(staged_path, original_mode)
         os.replace(staged_path, csv_file)
         staged_path = None
@@ -57,44 +51,61 @@ def _write_csv_atomically(csv_file, rows):
                 print(f"CSV UPDATE: Could not remove temporary file: {error}")
 
 
-def sort_cap_key(cap):
-    text = str(cap)
+def sort_cap_key(cap_number):
+    """Sort numeric caps first, followed by the two special goal labels."""
+    if cap_number == "Penalty Goal":
+        return (1, 100)
+    if cap_number == "Unknown":
+        return (1, 101)
 
-    if text.isdigit():
-        return 0, int(text)
-
-    return 1, text
+    try:
+        return (0, int(cap_number))
+    except (TypeError, ValueError):
+        return (2, 0)
 
 
 def build_penalties_text(penalties):
     penalty_entries = []
 
-    for p in penalties:
-        team_prefix = "W" if p["team"] == "White" else "B"
+    for penalty in penalties:
+        team_prefix = "W" if penalty["team"] == "White" else "B"
         penalty_entries.append(
-            f"{team_prefix}#{p['cap']}({p['duration']})"
+            f"{team_prefix}#{penalty['cap']}({penalty['duration']})"
         )
 
     return ", ".join(penalty_entries)
 
 
-def build_scorer_comments(record_scorers, white_goal_scorers, black_goal_scorers):
+def format_goal_scorers_comment(scorers):
+    """Return the established scorer-comment notation without spaces."""
+    comment_parts = []
+    labels = {"Penalty Goal": "PG", "Unknown": "UNK"}
+
+    for team, prefix in (("White", "W"), ("Black", "B")):
+        team_scorers = scorers.get(team, {})
+        for cap_number, count in sorted(
+            team_scorers.items(), key=lambda item: sort_cap_key(item[0])
+        ):
+            label = labels.get(cap_number, cap_number)
+            comment_parts.append(f"{prefix}#{label}({count})")
+
+    return ",".join(comment_parts)
+
+
+def build_scorer_comments(
+    record_scorers,
+    white_goal_scorers,
+    black_goal_scorers,
+):
+    """Build CSV scorer comments using the same notation as the display."""
     if not record_scorers:
         return ""
 
-    scorer_entries = []
-
-    # The scorer dialog stores these full labels, while the established
-    # scorer-comment notation uses PG and UNK (as in the display formatter).
-    cap_labels = {"Penalty Goal": "PG", "Unknown": "UNK"}
-
-    for cap, goals in sorted(white_goal_scorers.items(), key=lambda x: sort_cap_key(x[0])):
-        scorer_entries.append(f"W#{cap_labels.get(cap, cap)}({goals})")
-
-    for cap, goals in sorted(black_goal_scorers.items(), key=lambda x: sort_cap_key(x[0])):
-        scorer_entries.append(f"B#{cap_labels.get(cap, cap)}({goals})")
-
-    return ", ".join(scorer_entries)
+    formatted = format_goal_scorers_comment({
+        "White": white_goal_scorers,
+        "Black": black_goal_scorers,
+    })
+    return formatted.replace(",", ", ")
 
 
 def write_game_results_to_csv(
@@ -107,7 +118,7 @@ def write_game_results_to_csv(
     record_scorers,
     white_goal_scorers,
     black_goal_scorers,
-    debug_mode=False
+    debug_mode=False,
 ):
     if debug_mode:
         print(f"CSV UPDATE: csv_file={csv_file}")
@@ -125,9 +136,6 @@ def write_game_results_to_csv(
             print(f"CSV UPDATE: Draw not found: {csv_file}")
         return False
 
-    # Create a sibling results file only if it does not already exist.
-    # Revalidate the schedule against the original draw on every export:
-    # restarting or changing the selection must never reset recorded games.
     try:
         results_file = tournament_files.ensure_results_file(csv_file)
     except ValueError as error:
@@ -135,33 +143,29 @@ def write_game_results_to_csv(
         return False
 
     penalties_text = build_penalties_text(penalties)
-
     comments_text = build_scorer_comments(
         record_scorers,
         white_goal_scorers,
-        black_goal_scorers
+        black_goal_scorers,
     )
 
-    rows = []
-
-    with open(results_file, "r", newline="", encoding="utf-8-sig") as f:
-        reader = csv.reader(f)
-        for row in reader:
-            rows.append(row)
+    with open(results_file, "r", newline="", encoding="utf-8-sig") as source:
+        rows = list(csv.reader(source))
 
     if not rows:
         if debug_mode:
             print("CSV UPDATE: CSV file is empty")
         return False
 
-    header = [str(h).strip() for h in rows[0]]
+    header = [str(value).strip() for value in rows[0]]
     header_keys = [name.casefold() for name in header]
 
-    # The draw reader already recognises these headers anywhere in the
-    # file. Results must find the SAME game column, not assume row[1].
     game_col = next(
-        (index for index, name in enumerate(header_keys)
-         if name in ("#", "game", "game#", "game_number")),
+        (
+            index
+            for index, name in enumerate(header_keys)
+            if name in ("#", "game", "game#", "game_number")
+        ),
         None,
     )
     if game_col is None:
@@ -174,19 +178,9 @@ def write_game_results_to_csv(
         bscore_col = header_keys.index("bscore")
         penalties_col = header_keys.index("penalties")
         comments_col = header_keys.index("comments")
-
+    except ValueError as error:
         if debug_mode:
-            print(
-                f"CSV COLUMNS: "
-                f"WScore={wscore_col} "
-                f"BScore={bscore_col} "
-                f"Penalties={penalties_col} "
-                f"Comments={comments_col}"
-            )
-
-    except ValueError as e:
-        if debug_mode:
-            print(f"CSV UPDATE: Missing required column: {e}")
+            print(f"CSV UPDATE: Missing required column: {error}")
         return False
 
     target = str(game_number).strip()
@@ -195,8 +189,6 @@ def write_game_results_to_csv(
             print("CSV UPDATE: No game number supplied")
         return False
 
-    # Like the draw reader, allow numeric game IDs such as 007 to match 7.
-    # Preserve the prior exact-match behavior for nonnumeric IDs.
     try:
         target_numeric = int(target)
     except ValueError:
@@ -206,6 +198,7 @@ def write_game_results_to_csv(
     for row in rows[1:]:
         if len(row) <= game_col:
             continue
+
         stored = row[game_col].strip()
         matched = stored == target
         if not matched and target_numeric is not None:
@@ -213,6 +206,7 @@ def write_game_results_to_csv(
                 matched = int(stored) == target_numeric
             except ValueError:
                 pass
+
         if matched:
             matches.append(row)
 
@@ -221,9 +215,6 @@ def write_game_results_to_csv(
             print(f"CSV UPDATE: Game {game_number} not found")
         return False
 
-    # Never guess which row to overwrite when an ID appears twice, including
-    # variants such as 7 and 007. Leave results and live scores
-    # untouched so the operator can resolve the ambiguous draw.
     if len(matches) != 1:
         print(
             f"CSV UPDATE: Game {game_number} occurs in multiple rows; "
@@ -234,6 +225,7 @@ def write_game_results_to_csv(
     row = matches[0]
     if len(row) < len(header):
         row.extend([""] * (len(header) - len(row)))
+
     row[wscore_col] = str(white_score)
     row[bscore_col] = str(black_score)
     row[penalties_col] = penalties_text
@@ -254,81 +246,21 @@ def write_game_results_to_csv(
     return True
 
 
-def sort_cap_key(cap_number):
-    if cap_number == "Penalty Goal":
-        return (1, 100)
-
-    if cap_number == "Unknown":
-        return (1, 101)
-
-    try:
-        return (0, int(cap_number))
-    except ValueError:
-        return (2, 0)
-
-
-def format_goal_scorers_comment(scorers):
-    comment_parts = []
-
-    if "White" in scorers and scorers["White"]:
-        white_parts = []
-
-        for cap_number, count in sorted(
-            scorers["White"].items(),
-            key=lambda x: sort_cap_key(x[0])
-        ):
-            if cap_number == "Penalty Goal":
-                white_parts.append(f"W#PG({count})")
-            elif cap_number == "Unknown":
-                white_parts.append(f"W#UNK({count})")
-            else:
-                white_parts.append(
-                    f"W#{cap_number}({count})"
-                )
-
-        comment_parts.extend(white_parts)
-
-    if "Black" in scorers and scorers["Black"]:
-        black_parts = []
-
-        for cap_number, count in sorted(
-            scorers["Black"].items(),
-            key=lambda x: sort_cap_key(x[0])
-        ):
-            if cap_number == "Penalty Goal":
-                black_parts.append(f"B#PG({count})")
-            elif cap_number == "Unknown":
-                black_parts.append(f"B#UNK({count})")
-            else:
-                black_parts.append(
-                    f"B#{cap_number}({count})"
-                )
-
-        comment_parts.extend(black_parts)
-
-    return ",".join(comment_parts)
-
-
 def aggregate_goal_scorers(goal_events):
-    scorers = {
-        "White": {},
-        "Black": {}
-    }
+    scorers = {"White": {}, "Black": {}}
 
     for event in goal_events:
         team = event.get("team", "")
         cap_number = event.get("cap_number", "")
 
         if team in scorers and cap_number:
-            if cap_number not in scorers[team]:
-                scorers[team][cap_number] = 0
-
-            scorers[team][cap_number] += 1
+            scorers[team][cap_number] = scorers[team].get(cap_number, 0) + 1
 
     return scorers
 
 
 def get_goal_events_for_game(base_dir, game_number):
+    """Read legacy goal events; the legacy file has no game-number field."""
     txt_file = os.path.join(base_dir, "UWH_Game_Data.txt")
     goal_events = []
 
@@ -336,30 +268,21 @@ def get_goal_events_for_game(base_dir, game_number):
         return goal_events
 
     try:
-        with open(txt_file, "r", encoding="utf-8") as f:
-            for line in f:
+        with open(txt_file, "r", encoding="utf-8") as source:
+            for line in source:
                 line = line.strip()
-
                 if not line:
                     continue
 
                 fields = line.split("|")
-
-                if len(fields) < 5:
+                if len(fields) < 5 or fields[2].strip() != "Goal":
                     continue
 
-                event_type = fields[2].strip()
-
-                if event_type == "Goal":
-                    team = fields[3].strip()
-                    cap_number = fields[4].strip()
-
-                    goal_events.append({
-                        "team": team,
-                        "cap_number": cap_number
-                    })
-
-    except Exception as e:
-        print(f"Error reading goal events from {txt_file}: {e}")
+                goal_events.append({
+                    "team": fields[3].strip(),
+                    "cap_number": fields[4].strip(),
+                })
+    except Exception as error:
+        print(f"Error reading goal events from {txt_file}: {error}")
 
     return goal_events
