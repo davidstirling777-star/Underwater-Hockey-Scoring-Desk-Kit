@@ -30,6 +30,7 @@ operating a match.
 | File | Responsibility and place to begin |
 |---|---|
 | `uwh.py` | Composition root; Tk event handlers, audio dispatch, timers, screen state and serial/MQTT queues. |
+| `app_icon.py` | Embedded UWH stick badge applied to the Tk window and taskbar without reintroducing the v1.3 visual theme. |
 | `app_version.py` | User-visible application version. Windows release builds stamp this to the GitHub Actions release number before PyInstaller runs. |
 | `game_engine.py` | Period list, period transitions and runtime timer/penalty state. |
 | `game_flow.py` | Tournament selection, advancing games and export-before-reset rule. |
