@@ -2,9 +2,10 @@
 
 Zigbee2MQTT owns the coordinator radio/serial port and publishes per-device
 MQTT actions. This Paho client never opens that port. Only devices listed in
-Button Device Names are accepted; only explicit per-device action mappings
-may create events. Unknown actions are logged and held for Auto-add From Log,
-which starts them as Ignore. Callbacks run on a background thread and must
+Button Device Names are accepted for siren actions; only explicit per-device
+action mappings may create events. Unknown device/action observations are
+logged and held for Auto-add From Log, which starts them as Ignore. Callbacks
+run on a background thread and must
 queue UI/audio events rather than directly operate Tk or pygame.
 
 The separately named Siren Device is an optional MQTT OUTPUT for hardware
@@ -523,6 +524,18 @@ class ZigbeeSirenController:
                     self.logger.warning(msg)
                     if self.gui_log_callback:
                         self.gui_log_callback(msg)
+
+                    # Record the observed action for the operator's explicit
+                    # Auto-add From Log workflow. This remains fail-closed:
+                    # merely observing an unlisted device never enables it or
+                    # plays a siren.
+                    action_name = action.strip().lower()
+                    try:
+                        self.unmapped_actions.put_nowait(
+                            (device_name, action_name)
+                        )
+                    except queue.Full:
+                        pass
 
         except Exception as e:
             self.logger.error(f"Error processing message: {e}")
