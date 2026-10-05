@@ -71,6 +71,23 @@ jobs:
         run: |
           pyinstaller uwh.spec
 
+      - name: Add visible Sounds and Tournament data folders
+        shell: pwsh
+        run: |
+          $bundle = "dist\UnderwaterHockeyScoringDesk"
+          $sounds = Join-Path $bundle "Sounds"
+          $tournament = Join-Path $bundle "Tournament data"
+
+          New-Item -ItemType Directory -Force -Path $sounds | Out-Null
+          New-Item -ItemType Directory -Force -Path $tournament | Out-Null
+
+          Get-ChildItem "assets" -File | Where-Object {
+            $_.Extension -in ".mp3", ".wav"
+          } | Copy-Item -Destination $sounds -Force
+
+          Copy-Item "assets\Tournament_Draw.csv" (Join-Path $tournament "Tournament_Draw.csv") -Force
+          Copy-Item "assets\Tournament_Draw.csv" (Join-Path $tournament "Tournament_Results.csv") -Force
+
       - name: Verify Windows executable exists
         shell: pwsh
         run: |
@@ -156,6 +173,14 @@ jobs:
       - name: Build Raspberry Pi 5 application with PyInstaller
         run: |
           pyinstaller uwh.spec
+
+      - name: Add visible Sounds and Tournament data folders
+        run: |
+          bundle="dist/UnderwaterHockeyScoringDesk"
+          mkdir -p "$bundle/Sounds" "$bundle/Tournament data"
+          find assets -maxdepth 1 -type f \( -iname '*.mp3' -o -iname '*.wav' \) -exec cp -f {} "$bundle/Sounds/" \;
+          cp -f assets/Tournament_Draw.csv "$bundle/Tournament data/Tournament_Draw.csv"
+          cp -f assets/Tournament_Draw.csv "$bundle/Tournament data/Tournament_Results.csv"
 
       - name: Verify ARM64 executable and shared libraries
         run: |
