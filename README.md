@@ -1241,7 +1241,7 @@ If MQTT authentication is enabled, use authenticated client options or the UWH U
 
 The **About** tab shows the running application version and the project credits. It includes clickable links to the local `README.md` in the installed UWH folder, the project repository, and the project contact email.
 
-This app was started in Google AI, made workable by GitHub Copilot and extensively refactored, tweaked, improved, expanded and tested by ChatGPT, conducted by David Stirling (who can't write code), davidstirling777@gmail.com.
+This app was started in Google AI, made workable by GitHub Copilot and extensively refactored, tweaked, improved, expanded and tested by ChatGPT. Conducted by David Stirling (who can't write code), davidstirling777@gmail.com.
 
 The conductor seems to be the star of the show, even though they do not make any noise. They even get to come on to the stage all on their own, to rapturous applause.
 
