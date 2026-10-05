@@ -56,6 +56,26 @@ class ClassicUiRetainedFixesTests(unittest.TestCase):
                 manager,
             )
 
+    def test_team_timeout_switch_is_on_period_row_not_separate_row(self):
+        text = source("settings_ui.py")
+        self.assertIn(
+            '"team_timeouts_allowed",\n        "overtime_allowed"',
+            text,
+        )
+        self.assertNotIn('if var_name == "team_timeouts_allowed":', text)
+        self.assertIn('if var_name == "team_timeout_period":', text)
+        self.assertIn("check_var = app.team_timeouts_allowed_var", text)
+        self.assertIn('"name": "team_timeouts_allowed"', text)
+
+    def test_readme_matches_relocated_team_timeout_control(self):
+        readme = source("README.md")
+        self.assertIn(
+            "checkbox beside **Team Time-Out Period**",
+            readme,
+        )
+        self.assertNotIn("**Team time-outs allowed?**", readme)
+        self.assertNotIn("'Team time-outs allowed?' check box", readme)
+
     def test_overtime_switch_is_on_game_break_row_not_separate_row(self):
         text = source("settings_ui.py")
         self.assertIn('"overtime_allowed",\n        "record_scorers_cap_number"', text)
