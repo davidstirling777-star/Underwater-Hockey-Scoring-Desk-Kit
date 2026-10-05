@@ -60,7 +60,10 @@ if getattr(sys, 'frozen', False):
 
 # Final, writable paths where the files SHOULD live for the user
 SETTINGS_PATH = os.path.join(BASE_DIR, 'settings.json')
-DRAW_PATH = os.path.join(BASE_DIR, 'Tournament_Draw.csv')
+TOURNAMENT_DATA_DIR = os.path.join(
+    BASE_DIR,
+    tournament_files.TOURNAMENT_DATA_FOLDER,
+)
 LICENSE_PATH = os.path.join(BASE_DIR, 'LICENSE')
 INO_PATH = os.path.join(BASE_DIR, 'arduino_siren_button.ino')
 README_PATH = os.path.join(BASE_DIR, 'README.md')
@@ -73,7 +76,6 @@ if getattr(sys, 'frozen', False):
     # List of files we want to push out to the root directory
     files_to_extract = [
         ('settings.json', SETTINGS_PATH),
-        ('Tournament_Draw.csv', DRAW_PATH),
         ('LICENSE', LICENSE_PATH),
         ('arduino_siren_button.ino', INO_PATH),
         ('README.md', README_PATH)
@@ -90,16 +92,23 @@ if getattr(sys, 'frozen', False):
     # Tell Python to check the '_internal' folder for your helper modules
     sys.path.insert(0, internal_dir)
 
-# In a source ZIP the sample draw lives under assets/, not the root
-# scanned by the tournament selector. Seed a working DRAW once on either OS.
-# An existing draw or previously recorded _Results.csv is never replaced.
+# Tournament files now live in a visible app-level "Tournament data" folder.
+# Copy forward any legacy root-level CSVs and ensure the demo draw/results pair
+# exists without overwriting operator data.
 try:
-    tournament_files.seed_sample_draw(BASE_DIR)
-except OSError as error:
-    print(f"TOURNAMENT DRAW: Could not install sample: {error}")
+    tournament_files.prepare_tournament_data(BASE_DIR)
+except (OSError, ValueError) as error:
+    print(f"TOURNAMENT DATA: Could not prepare folder: {error}")
 
 # NOW you can safely import your custom helper modules
 import sound
+
+# Sound files now live in a visible app-level "Sounds" folder. Existing files
+# are retained; bundled defaults are copied out only when missing.
+try:
+    sound.prepare_sounds_directory(BASE_DIR)
+except OSError as error:
+    print(f"SOUNDS: Could not prepare folder: {error}")
 import zigbee_siren
 import serial_siren_listener
 import tkinter as tk
@@ -1446,7 +1455,7 @@ class GameManagementApp:
         # submission happens later and cannot delay game advancement.
         saved = csv_export.write_game_results_to_csv(
             csv_file=self.csv_var.get(),
-            base_dir=BASE_DIR,
+            base_dir=TOURNAMENT_DATA_DIR,
             game_number=game_number,
             white_score=white_score,
             black_score=black_score,
@@ -1847,7 +1856,7 @@ class GameManagementApp:
 
     def get_csv_files(self):
         return csv_ui.get_csv_files(
-            BASE_DIR
+            TOURNAMENT_DATA_DIR
         )
 
     def refresh_csv_dropdown(self):
@@ -1856,7 +1865,7 @@ class GameManagementApp:
     def parse_csv_game_numbers(self, csv_filename):
         return csv_helpers.parse_csv_game_numbers(
             csv_filename,
-            BASE_DIR
+            TOURNAMENT_DATA_DIR
         )
 
     def parse_csv_team_names(
@@ -1867,7 +1876,7 @@ class GameManagementApp:
         return csv_helpers.parse_csv_team_names(
             csv_filename,
             game_number,
-            BASE_DIR
+            TOURNAMENT_DATA_DIR
         )
 
     def get_goal_events_for_game(self, game_number):
@@ -1894,7 +1903,7 @@ class GameManagementApp:
         filename = self.csv_var.get()
         if filename in ("", "No CSV files found"):
             return ""
-        return os.path.join(BASE_DIR, filename)
+        return os.path.join(TOURNAMENT_DATA_DIR, filename)
 
     def _configure_tournament_sync(self):
         """Read SAVED options; uncommitted UI text cannot redirect results."""
@@ -2132,10 +2141,24 @@ class GameManagementApp:
         return game_flow.on_game_selection_changed(self, event)
 
     def open_csv_folder(self):
-        """Open the folder containing CSV files in the system file manager."""
-        # CHANGED: Use BASE_DIR instead of os.getcwd() so it always opens the folder containing the EXE and CSVs
-        csv_folder = BASE_DIR
-        open_folder_in_file_manager(csv_folder)
+        """Open the visible Tournament data folder."""
+        os.makedirs(TOURNAMENT_DATA_DIR, exist_ok=True)
+        open_folder_in_file_manager(TOURNAMENT_DATA_DIR)
+
+    def save_manual_tournament_draw(self, draw_name, rows):
+        """Create a new manual draw/results pair and select it immediately."""
+        draw_path, results_path = tournament_files.save_manual_draw(
+            TOURNAMENT_DATA_DIR,
+            draw_name,
+            rows,
+        )
+
+        filename = os.path.basename(draw_path)
+        self.refresh_csv_dropdown()
+        self.csv_var.set(filename)
+        self.on_csv_file_changed()
+
+        return draw_path, results_path
 
     def get_sound_trim(self, filename):
         """Return one file's attenuation trim; unknown files default to 100%."""
