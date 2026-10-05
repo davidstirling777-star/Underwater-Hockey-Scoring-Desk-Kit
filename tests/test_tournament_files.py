@@ -132,19 +132,98 @@ class TournamentFileSeparationTests(unittest.TestCase):
             ["Court_B_Draw.csv", "Tournament_Draw.csv"]
         )
 
-    def test_sample_copy_places_draw_in_app_root_once(self):
+    def test_sample_copy_places_draw_and_results_in_visible_folder_once(self):
         root = self.folder / "source"
         assets = root / "assets"
         assets.mkdir(parents=True)
         template = assets / "Tournament_Draw.csv"
         template.write_bytes(self.draw.read_bytes())
-        self.assertTrue(tournament_files.seed_sample_draw(str(root)))
-        sample = root / "Tournament_Draw.csv"
+
+        sample_path = Path(tournament_files.seed_sample_draw(str(root)))
+        data_folder = root / "Tournament data"
+        sample = data_folder / "Tournament_Draw.csv"
+        results = data_folder / "Tournament_Results.csv"
+
+        self.assertEqual(sample_path, sample)
         self.assertEqual(sample.read_bytes(), template.read_bytes())
+        self.assertEqual(results.read_bytes(), template.read_bytes())
+
         sample.write_bytes(b"operator-modified-draw")
-        self.assertFalse(tournament_files.seed_sample_draw(str(root)))
+        with self.assertRaises(ValueError):
+            tournament_files.seed_sample_draw(str(root))
         self.assertEqual(sample.read_bytes(), b"operator-modified-draw")
         self.assertEqual(template.read_bytes(), self.draw.read_bytes())
+
+    def test_prepare_folder_copies_legacy_root_csvs_without_deleting_them(self):
+        root = self.folder / "legacy"
+        root.mkdir()
+        legacy_draw = root / "Club_Draw.csv"
+        legacy_results = root / "Club_Results.csv"
+        legacy_draw.write_bytes(self.draw.read_bytes())
+        legacy_results.write_bytes(self.draw.read_bytes())
+
+        destination = Path(tournament_files.prepare_tournament_data(str(root)))
+
+        self.assertEqual(destination, root / "Tournament data")
+        self.assertTrue(legacy_draw.exists())
+        self.assertTrue(legacy_results.exists())
+        self.assertEqual(
+            (destination / "Club_Draw.csv").read_bytes(),
+            legacy_draw.read_bytes(),
+        )
+        self.assertEqual(
+            (destination / "Club_Results.csv").read_bytes(),
+            legacy_results.read_bytes(),
+        )
+
+    def test_manual_draw_writes_editable_game_numbers_and_separate_results(self):
+        folder = self.folder / "manual"
+        draw, results = tournament_files.save_manual_draw(
+            folder,
+            "Club Night",
+            [
+                ("7A", "White Team", "Black Team"),
+                ("12", "A" * 16, "B" * 16),
+                ("13", "", ""),
+            ],
+        )
+
+        self.assertEqual(Path(draw).name, "Club Night_Draw.csv")
+        self.assertEqual(Path(results).name, "Club Night_Results.csv")
+        rows = self.read(Path(draw))
+        self.assertEqual(rows[0], tournament_files.MANUAL_DRAW_HEADER)
+        self.assertEqual(rows[1][1:6], ["7A", "White Team", "", "Black Team", ""])
+        self.assertEqual(rows[2][1], "12")
+        self.assertEqual(len(rows), 3)
+        self.assertEqual(Path(results).read_bytes(), Path(draw).read_bytes())
+
+    def test_manual_draw_rejects_long_cells_duplicates_and_overwrite(self):
+        folder = self.folder / "manual-errors"
+        with self.assertRaisesRegex(ValueError, "longer than 16"):
+            tournament_files.save_manual_draw(
+                folder,
+                "Too Long",
+                [("1", "A" * 17, "Black")],
+            )
+
+        with self.assertRaisesRegex(ValueError, "duplicated"):
+            tournament_files.save_manual_draw(
+                folder,
+                "Duplicate",
+                [("1", "White", "Black"), ("1", "Other", "Team")],
+            )
+
+        tournament_files.save_manual_draw(
+            folder,
+            "Existing",
+            [("1", "White", "Black")],
+        )
+        with self.assertRaises(FileExistsError):
+            tournament_files.save_manual_draw(
+                folder,
+                "Existing",
+                [("2", "White", "Black")],
+            )
 
     def test_failed_results_update_preserves_draw_and_prior_results(self):
         self.assertTrue(self.export(1))
