@@ -79,9 +79,10 @@ successful serial open, and a broker connection is not a mapped button press.
    `zigbee_siren.py` subscribes and filters by the exact UWH **Button Device
    Names**. Its separate **Button Action Mapping** table resolves
    (device name, received action) to a UWH event. Unknown devices/actions
-   fail closed and are logged. **Auto-add From Log** imports observed unmapped
-   actions as **Ignore**; an operator must edit and save them before they
-   produce audio. The MQTT worker queues the event; it must not manipulate Tk
+   fail closed and are logged. **Auto-add From Log** may copy an observed new
+   device into Button Device Names and imports its action as **Ignore**; an
+   operator must edit and save it before it can produce audio. The MQTT worker
+   queues the observation/event; it must not manipulate Tk
    widgets or pygame audio directly.
 3. **Automatic game siren/pips:** `uwh.py`'s countdown checks period policy
    in `game_engine.py` and calls `sound.py`. Timed sirens loop short sound
