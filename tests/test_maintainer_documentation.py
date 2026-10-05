@@ -196,6 +196,40 @@ class MaintenanceDocumentationTests(unittest.TestCase):
         self.assertIn("Exactly **one Pip** and **one Siren**", readme)
         self.assertIn("`pips_sound` and `siren_sound`", readme)
 
+    def test_tournament_tab_includes_manual_draw_creator(self):
+        settings_ui = source("settings_ui.py")
+        readme = source("README.md")
+        tournament_files = source("tournament_files.py")
+
+        self.assertIn("Create Tournament Draw Manually", settings_ui)
+        self.assertIn('text="Draw Name:"', settings_ui)
+        self.assertIn('("Game number", "White", "Black")', settings_ui)
+        self.assertIn("for index in range(20):", settings_ui)
+        self.assertIn("width=16", settings_ui)
+        self.assertIn("Game numbers are editable", settings_ui)
+        self.assertIn("save_manual_tournament_draw", settings_ui)
+        self.assertIn("def save_manual_draw(", tournament_files)
+        self.assertIn("MANUAL_DRAW_HEADER", tournament_files)
+        self.assertIn("### Create a draw manually", readme)
+        self.assertIn("All three cells are editable", readme)
+        self.assertIn("16 characters including spaces", readme)
+
+    def test_operator_data_folders_are_visible_beside_app(self):
+        uwh = source("uwh.py")
+        sound = source("sound.py")
+        workflow = source(".github/workflows/build-exe.yml")
+        readme = source("README.md")
+
+        self.assertIn('TOURNAMENT_DATA_FOLDER = "Tournament data"', source("tournament_files.py"))
+        self.assertIn("TOURNAMENT_DATA_DIR", uwh)
+        self.assertIn('return os.path.join(root, "Sounds")', sound)
+        self.assertIn("prepare_sounds_directory(BASE_DIR)", uwh)
+        self.assertIn("Tournament data", workflow)
+        self.assertIn("Sounds", workflow)
+        self.assertIn("demo `Tournament_Draw.csv`", readme)
+        self.assertIn("matching `Tournament_Results.csv`", readme)
+        self.assertIn("visible app-level `Sounds` folder", readme)
+
     def test_tournament_help_names_the_actual_required_score_columns(self):
         text = source("settings_ui.py")
         self.assertIn(
