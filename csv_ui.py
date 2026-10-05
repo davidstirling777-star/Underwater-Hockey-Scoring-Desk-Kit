@@ -9,7 +9,7 @@ import os
 
 def get_csv_files(base_dir):
     """
-    List only draw CSVs in the application folder, not generated results.
+    List only draw CSVs in the Tournament data folder, not generated results.
     Returns a list of CSV files found.
     """
     csv_files = []
