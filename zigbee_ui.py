@@ -225,48 +225,93 @@ def _delete_mapping(app):
 
 
 def _auto_add_from_log(app):
-    """Import only actually observed, unknown actions; they start at Ignore."""
+    """Import observed buttons/actions safely; every new mapping starts Ignore."""
     found = app.zigbee_controller.consume_unmapped_actions()
-    existing = {(row["device"], row["action"])
-                for row in app._zigbee_action_mappings_draft}
-    added = 0
+    existing = {
+        (row["device"], row["action"])
+        for row in app._zigbee_action_mappings_draft
+    }
+    friendly_names = _friendly_names(app)
+    new_devices = []
+    added_mappings = 0
+
     for device, action in found:
-        if device not in _friendly_names(app) or (device, action) in existing:
+        if device not in friendly_names:
+            friendly_names.append(device)
+            new_devices.append(device)
+
+        if (device, action) in existing:
             continue
+
         app._zigbee_action_mappings_draft.append({
-            "device": device, "action": action,
-            "uwh_action": "ignore", "notes": "Discovered from MQTT log",
+            "device": device,
+            "action": action,
+            "uwh_action": "ignore",
+            "notes": "Discovered from MQTT log",
         })
         existing.add((device, action))
-        added += 1
-    if added:
-        _draw_action_mappings(app)
+        added_mappings += 1
+
+    if new_devices:
+        widget = app.config_widgets.get("siren_button_devices")
+        if widget is not None:
+            widget.delete(0, tk.END)
+            widget.insert(0, ", ".join(friendly_names))
+
+    if new_devices or added_mappings:
+        if added_mappings:
+            _draw_action_mappings(app)
         _mark_mappings_dirty(app)
+
+        parts = []
+        if new_devices:
+            parts.append(
+                f"added {len(new_devices)} new button name(s)"
+            )
+        if added_mappings:
+            parts.append(
+                f"added {added_mappings} observed action(s) as Ignore"
+            )
         app.add_to_zigbee_log(
-            f"Auto-add: added {added} observed action(s) as Ignore; "
-            "edit and save them to enable sound."
+            "Auto-add: " + " and ".join(parts)
+            + "; edit the mapping if needed, then Save Action Mappings."
         )
     else:
-        messagebox.showinfo("Auto-add From Log", (
-            "No new unmapped actions have been received from configured buttons. "
-            "Press a button first, then try again."
-        ), parent=app.master)
+        messagebox.showinfo(
+            "Auto-add From Log",
+            "No new button/action observations are waiting. "
+            "Press the button first, then try again.",
+            parent=app.master,
+        )
 
 
 def save_action_mappings(app):
-    """Save mappings in unified settings.json without modifying other sections."""
+    """Save mappings plus the visible input-button allow-list."""
     mappings = normalize_action_mappings(app._zigbee_action_mappings_draft)
     if len(mappings) != len(app._zigbee_action_mappings_draft):
         messagebox.showerror("Invalid mappings", (
             "Mapping rows contain duplicates or invalid values. Correct them before saving."
         ), parent=app.master)
         return
+
+    devices = _friendly_names(app)
+
     try:
         settings = app.load_unified_settings()
-        settings.setdefault("zigbeeSettings", {})["action_mappings"] = mappings
+        zigbee_settings = settings.setdefault("zigbeeSettings", {})
+        zigbee_settings["action_mappings"] = mappings
+        zigbee_settings["siren_button_devices"] = devices
+        zigbee_settings["siren_button_device"] = (
+            devices[0] if devices else ""
+        )
         app.save_unified_settings(settings)
+
         # Replace atomically for the MQTT worker; never expose half-edited rows.
         app.zigbee_controller.config["action_mappings"] = mappings
+        app.zigbee_controller.config["siren_button_devices"] = list(devices)
+        app.zigbee_controller.config["siren_button_device"] = (
+            devices[0] if devices else ""
+        )
     except Exception as error:
         messagebox.showerror("Save Action Mappings", str(error), parent=app.master)
         app.add_to_zigbee_log(f"Error saving action mappings: {error}")
