@@ -84,7 +84,7 @@ def create_sounds_tab(app):
 
     # Tk variables exist only for currently displayed files. app.sound_trims
     # remains the persistent in-memory dictionary, including trims for files
-    # temporarily removed from the assets folder.
+    # temporarily removed from the Sounds folder.
     app.sound_trim_vars = {}
 
     def app_log(message):
