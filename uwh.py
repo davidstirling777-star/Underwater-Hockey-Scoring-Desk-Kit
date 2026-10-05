@@ -9,6 +9,7 @@ Tk event loop should touch Tk variables and pygame sound. settings_manager
 owns the unified settings.json. See MAINTAINERS.md for a complete source map.
 """
 
+import app_icon
 import csv_export
 import startup_selftest
 import csv_helpers
@@ -4463,6 +4464,7 @@ if __name__ == "__main__":
         start_zigbee2mqtt()
     
     root = tk.Tk()
+    app_icon.apply_app_icon(root)
     app = GameManagementApp(root)
     
     # The title-bar close button, Exit Program button and Ctrl+Q
