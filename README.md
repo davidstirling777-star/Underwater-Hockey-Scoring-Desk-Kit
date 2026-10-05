@@ -315,9 +315,9 @@ Most period-duration boxes accept decimal **minutes**, e.g. `1.5` (or `1,5`) = 1
 
 **First Game Starts In:** is another way to set when the first game starts, in 'minutes from now'. Entering a value here will wipe the time from 'Time to Start First Game'.
 
-**Team time-outs allowed?** is a checkbox that, when selected, enables the Team Time-Out buttons in the Scoreboard tab and makes the 'Team Timeout Period' value box able to accept a value.
+**Team Time-Outs** are enabled by the checkbox beside **Team Time-Out Period**. When selected, the Team Time-Out buttons in the Scoreboard tab are enabled and the Team Time-Out Period value box can be edited. When it is off, the Team Time-Out Period value is greyed out and disabled.
 
-**Team Time-Out Period** is the value in minutes allowed for the 'Team Time-out'.
+**Team Time-Out Period** is the value in minutes allowed for the Team Time-Out. Its row also contains the Team Time-Out enable checkbox.
 
 **Half Period:** The time in minutes of the first and second halves.
 
@@ -727,7 +727,7 @@ The system automatically plays audio cues during different periods:
 
 **Scores:** The Scores, which will get written to the CSV file when the 'Between Game Break' timer reaches 30 seconds after a game ends, are displayed next.
 
-If the 'Team time-outs allowed?' check box is selected, the Team Time-Out buttons are selectable. Only one team time-out per half, no team time-outs are permitted in Overtime or Sudden Death according to CMAS rules.
+If the checkbox beside **Team Time-Out Period** is selected, the Team Time-Out buttons are selectable. Only one team time-out per half is permitted; no team time-outs are permitted in Overtime or Sudden Death according to CMAS rules.
 
 **Add Goal White** adds a goal to White and, if the 'Record Scorers Cap Number' checkbox is ticked, opens a popup dialogue box where the cap number of the player scoring the goal can be entered. Unknown and Penalty Goal options are provided.
 
