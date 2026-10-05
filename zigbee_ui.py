@@ -1,7 +1,8 @@
 """Zigbee/MQTT tab and the editable, per-device siren action table.
 
 The device-name list is the first allow-list; action mappings are a second,
-explicit per-device allow-list. Auto-add From Log creates safe Ignore entries,
+explicit per-device allow-list. Auto-add From Log can copy an observed new
+button into the first list and always creates a safe Ignore action mapping,
 which the operator must deliberately edit and save. This module constructs
 Tk widgets only: network callbacks belong in zigbee_siren.py and local audio
 and queued events belong in uwh.py.
