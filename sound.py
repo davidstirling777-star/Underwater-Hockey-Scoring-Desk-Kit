@@ -12,6 +12,7 @@ import subprocess
 import os
 import sys
 import platform
+import shutil
 import threading
 import math
 from tkinter import messagebox
@@ -92,13 +93,59 @@ def get_audio_output_description():
 
 
 def resource_path(relative_path):
-    """Get absolute path to resource, works for dev and PyInstaller."""
+    """Get an internal bundled-resource path for dev or PyInstaller."""
     try:
         base_path = sys._MEIPASS
     except Exception:
-        base_path = os.path.abspath(".")
+        base_path = os.path.dirname(os.path.abspath(__file__))
 
     return os.path.join(base_path, relative_path)
+
+
+def application_directory():
+    """Return the writable folder containing the app/executable."""
+    if getattr(sys, "frozen", False):
+        return os.path.dirname(os.path.abspath(sys.executable))
+    return os.path.dirname(os.path.abspath(__file__))
+
+
+def sounds_directory(base_dir=None):
+    """Return the visible app-level Sounds folder."""
+    root = application_directory() if base_dir is None else os.path.abspath(base_dir)
+    return os.path.join(root, "Sounds")
+
+
+def prepare_sounds_directory(base_dir=None):
+    """Create visible Sounds and copy bundled defaults only when missing."""
+    root = application_directory() if base_dir is None else os.path.abspath(base_dir)
+    destination = sounds_directory(root)
+    os.makedirs(destination, exist_ok=True)
+
+    source_folders = (
+        os.path.join(root, "assets"),
+        os.path.join(root, "_internal", "assets"),
+        os.path.join(root, "_internal", "Sounds"),
+        resource_path("assets"),
+        resource_path("Sounds"),
+    )
+
+    for source_folder in dict.fromkeys(source_folders):
+        if not os.path.isdir(source_folder):
+            continue
+        for filename in os.listdir(source_folder):
+            if not filename.lower().endswith((".wav", ".mp3")):
+                continue
+            source = os.path.join(source_folder, filename)
+            target = os.path.join(destination, filename)
+            if os.path.isfile(source) and not os.path.exists(target):
+                shutil.copy2(source, target)
+
+    return destination
+
+
+def sound_file_path(filename):
+    """Return one operator-visible sound file path."""
+    return os.path.join(sounds_directory(), _normalise_filename(filename))
 
 
 try:
@@ -289,11 +336,11 @@ def get_sound_files():
     supported_extensions = [".wav", ".mp3"]
 
     try:
-        assets_dir = resource_path("assets")
+        sounds_dir = sounds_directory()
 
-        if os.path.exists(assets_dir):
-            for filename in os.listdir(assets_dir):
-                file_path = os.path.join(assets_dir, filename)
+        if os.path.exists(sounds_dir):
+            for filename in os.listdir(sounds_dir):
+                file_path = os.path.join(sounds_dir, filename)
 
                 if (
                     os.path.isfile(file_path)
@@ -327,7 +374,7 @@ def preload_sounds():
 
     for filename in sound_files:
         try:
-            file_path = resource_path(os.path.join("assets", filename))
+            file_path = sound_file_path(filename)
 
             if os.path.exists(file_path):
                 sound_obj = pygame.mixer.Sound(file_path)
@@ -354,7 +401,7 @@ def _play_sound_sync(filename, enable_sound):
         return
 
     try:
-        file_path = resource_path(os.path.join("assets", filename))
+        file_path = sound_file_path(filename)
 
         if not os.path.exists(file_path):
             print(
@@ -465,7 +512,7 @@ def _play_timed_sound_sync(
         return
 
     try:
-        file_path = resource_path(os.path.join("assets", filename))
+        file_path = sound_file_path(filename)
 
         if not os.path.exists(file_path):
             print(
