@@ -982,7 +982,7 @@ def create_about_tab(app, readme_path):
     about_text = (
         "This app was started in Google AI, made workable by GitHub Copilot "
         "and extensively refactored, tweaked, improved, expanded and tested "
-        "by ChatGPT, conducted by David Stirling (who can't write code) "
+        "by ChatGPT. Conducted by David Stirling (who can't write code) "
         "davidstirling777@gmail.com.\n\n"
         "The conductor seems to be the star of the show, even though they do "
         "not make any noise. They even get to come on to the stage all on "
