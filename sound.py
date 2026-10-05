@@ -149,11 +149,6 @@ def prepare_sounds_directory(base_dir=None):
     return destination
 
 
-def resource_path(os.path.join("Sounds", filename)):
-    """Return one operator-visible sound file path."""
-    return os.path.join(sounds_directory(), _normalise_filename(filename))
-
-
 try:
     import pygame.mixer
 
