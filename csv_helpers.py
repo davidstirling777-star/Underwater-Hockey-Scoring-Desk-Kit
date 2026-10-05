@@ -20,11 +20,7 @@ def _read_tournament_rows(csv_path):
 
 
 def parse_csv_game_numbers(csv_filename, base_dir):
-    """
-    Parse CSV file and extract game numbers from the '#' column.
-    Expected header:
-    date,#,White,Score,Black,Score,Referees,Penalties
-    """
+    """Parse a draw and return its game numbers in numeric order."""
     game_numbers = []
 
     if csv_filename == "No CSV files found" or not csv_filename:
@@ -43,9 +39,9 @@ def parse_csv_game_numbers(csv_filename, base_dir):
         header_cols = [col.strip().lower() for col in rows[0]]
         game_num_col_idx = -1
 
-        for i, col in enumerate(header_cols):
-            if col in ["#", "game", "game#", "game_number"]:
-                game_num_col_idx = i
+        for index, column in enumerate(header_cols):
+            if column in ["#", "game", "game#", "game_number"]:
+                game_num_col_idx = index
                 break
 
         if game_num_col_idx == -1:
@@ -56,10 +52,7 @@ def parse_csv_game_numbers(csv_filename, base_dir):
             return game_numbers
 
         for row in rows[1:]:
-            if not row:
-                continue
-
-            if len(row) <= game_num_col_idx:
+            if not row or len(row) <= game_num_col_idx:
                 continue
 
             try:
@@ -68,21 +61,14 @@ def parse_csv_game_numbers(csv_filename, base_dir):
             except ValueError:
                 pass
 
-    except Exception as e:
-        print(f"Error parsing CSV file {csv_filename}: {e}")
+    except Exception as error:
+        print(f"Error parsing CSV file {csv_filename}: {error}")
 
-    return (
-        sorted(set(game_numbers), key=int)
-        if game_numbers
-        else []
-    )
+    return sorted(set(game_numbers), key=int) if game_numbers else []
 
 
 def parse_csv_team_names(csv_filename, game_number, base_dir):
-    """
-    Parse CSV file and extract team names for a specific game number.
-    Returns: (white_team_name, black_team_name)
-    """
+    """Return the White and Black team names for one game."""
     if (
         csv_filename == "No CSV files found"
         or not csv_filename
@@ -101,18 +87,17 @@ def parse_csv_team_names(csv_filename, game_number, base_dir):
             return (None, None)
 
         header_cols = [col.strip().lower() for col in rows[0]]
-
         game_num_col_idx = -1
         white_team_col_idx = -1
         black_team_col_idx = -1
 
-        for i, col in enumerate(header_cols):
-            if col in ["#", "game", "game#", "game_number"]:
-                game_num_col_idx = i
-            elif col == "white":
-                white_team_col_idx = i
-            elif col == "black":
-                black_team_col_idx = i
+        for index, column in enumerate(header_cols):
+            if column in ["#", "game", "game#", "game_number"]:
+                game_num_col_idx = index
+            elif column == "white":
+                white_team_col_idx = index
+            elif column == "black":
+                black_team_col_idx = index
 
         if (
             game_num_col_idx == -1
@@ -121,54 +106,29 @@ def parse_csv_team_names(csv_filename, game_number, base_dir):
         ):
             return (None, None)
 
-        for row in rows[1:]:
-            if not row:
-                continue
+        required_index = max(
+            game_num_col_idx,
+            white_team_col_idx,
+            black_team_col_idx,
+        )
 
-            if len(row) <= max(
-                game_num_col_idx,
-                white_team_col_idx,
-                black_team_col_idx
-            ):
+        for row in rows[1:]:
+            if not row or len(row) <= required_index:
                 continue
 
             try:
-                if (
-                    str(int(row[game_num_col_idx].strip()))
-                    == str(game_number)
-                ):
+                if str(int(row[game_num_col_idx].strip())) == str(game_number):
                     return (
                         row[white_team_col_idx].strip(),
-                        row[black_team_col_idx].strip()
+                        row[black_team_col_idx].strip(),
                     )
-
             except (ValueError, IndexError):
                 pass
 
-    except Exception as e:
+    except Exception as error:
         print(
             f"Error parsing team names from CSV "
-            f"file {csv_filename}: {e}"
+            f"file {csv_filename}: {error}"
         )
 
     return (None, None)
-
-
-def get_csv_files(base_dir):
-    """
-    Scan the application folder for CSV files.
-    Returns a sorted list of CSV files found.
-    """
-
-    csv_files = []
-
-    try:
-        for filename in os.listdir(base_dir):
-            if filename.lower().endswith(".csv"):
-                csv_files.append(filename)
-
-    except Exception as e:
-        print(f"Error scanning for CSV files: {e}")
-
-    return sorted(csv_files) if csv_files else ["No CSV files found"]
-
