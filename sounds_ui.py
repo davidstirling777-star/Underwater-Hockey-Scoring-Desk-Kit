@@ -1,6 +1,6 @@
 """Sounds tab: per-file trims, selection, output reporting and timing.
 
-The tab lists up to ten pip files and ten siren files discovered in assets/.
+The tab lists up to ten pip files and ten siren files discovered in Sounds/.
 Each row always shows a radio selector, filename cell and Trim % cell so the
 tables retain a deliberate fixed-grid appearance. Unused rows are disabled.
 Each file has an attenuation-only Trim % (0-100). Overall system loudness is
@@ -19,7 +19,7 @@ from sound import (
     check_audio_device_available,
     get_sound_files,
     play_timed_sound,
-    resource_path,
+    sounds_directory,
 )
 
 
@@ -84,7 +84,7 @@ def create_sounds_tab(app):
 
     # Tk variables exist only for currently displayed files. app.sound_trims
     # remains the persistent in-memory dictionary, including trims for files
-    # temporarily removed from the assets folder.
+    # temporarily removed from the Sounds folder.
     app.sound_trim_vars = {}
 
     def app_log(message):
@@ -107,8 +107,8 @@ def create_sounds_tab(app):
         return False
 
     def open_sounds_folder():
-        """Open the same assets folder that get_sound_files() scans."""
-        sounds_folder = resource_path("assets")
+        """Open the visible app-level Sounds folder scanned by UWH."""
+        sounds_folder = sounds_directory()
 
         try:
             os.makedirs(sounds_folder, exist_ok=True)

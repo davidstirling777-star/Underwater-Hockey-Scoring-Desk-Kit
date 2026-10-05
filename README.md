@@ -89,7 +89,7 @@ Why X11 matters for this application: On the tested Pi 5, moving the pointer ove
 4. Choose a permanent folder, such as `Documents\UWH Scoring Desk`.
 5. Click Extract.
 
-The extracted folder contains `UnderwaterHockeyScoringDesk.exe` and its supporting files. Keep these together.
+The extracted folder contains `UnderwaterHockeyScoringDesk.exe`, the visible `Tournament data` and `Sounds` folders, and its supporting files. Keep these together.
 
 ### Run the application
 1. Open the extracted folder.
@@ -105,7 +105,7 @@ You can create a desktop shortcut by right-clicking the executable and selecting
 Download the newer release and extract it into a **separate folder** first. Do not overwrite a working installation without a backup.
 
 > [!WARNING]
-> **Back up `settings.json` before every update.** It includes your **Zigbee button-name list** (for example, `siren_button, siren_button_2, siren_button_3`), MQTT settings, sound preferences, screen layout and the remembered Display Window open/closed state. Back up tournament CSVs, custom sounds under `assets/`, and game logs too. Replacing UWH's settings can lose button names **or action mappings**, even though the buttons remain paired to Zigbee2MQTT.
+> **Back up `settings.json` before every update.** It includes your **Zigbee button-name list** (for example, `siren_button, siren_button_2, siren_button_3`), MQTT settings, sound preferences, screen layout and the remembered Display Window open/closed state. Back up tournament CSVs, custom sounds in the app-level `Sounds` folder, and game logs too. Replacing UWH's settings can lose button names **or action mappings**, even though the buttons remain paired to Zigbee2MQTT.
 
 After updating, confirm the **Zigbee Siren → Button Device Names** field and test every configured button and its action mapping before using the system at a match. The lower-right corner of the **Game Variables** panel shows the running UWH version so you can confirm which download is actually open. Windows and Raspberry Pi 5 release builds show the same `1.2.<build>` number used in their release ZIP names; source installations show a source-build identifier. Do not blindly replace a new-format `settings.json` with a very old version; compare and carry forward your customised values where the format has changed. Zigbee2MQTT has a **separate** `data/` directory that should be backed up before Zigbee2MQTT updates; see [the Zigbee section](#zigbee2mqtt-wireless-siren-setup-and-operation).
 
@@ -269,7 +269,7 @@ If the desktop asks you to **Allow Launching** or mark the shortcut as trusted, 
 Download the newer `-RaspberryPi5.zip` and extract it into a **separate folder first**. Do not unzip it over a working installation.
 
 > [!WARNING]
-> Before changing versions, back up `settings.json`, both tournament draw/results CSV files, custom sounds under `assets/`, game logs, and any other locally edited files. In particular, `settings.json` contains the Zigbee button names/action mappings, MQTT settings, sound selections/trims and screen settings.
+> Before changing versions, back up `settings.json`, both tournament draw/results CSV files, custom sounds in the app-level `Sounds` folder, game logs, and any other locally edited files. In particular, `settings.json` contains the Zigbee button names/action mappings, MQTT settings, sound selections/trims and screen settings.
 
 Run the new version once and confirm its startup self-test, screens, audio and configured siren buttons. Then copy your required user data/settings into the new installation deliberately. Do not copy the old `_internal` directory into a new release.
 
@@ -315,9 +315,9 @@ Most period-duration boxes accept decimal **minutes**, e.g. `1.5` (or `1,5`) = 1
 
 **First Game Starts In:** is another way to set when the first game starts, in 'minutes from now'. Entering a value here will wipe the time from 'Time to Start First Game'.
 
-**Team time-outs allowed?** is a checkbox that, when selected, enables the Team Time-Out buttons in the Scoreboard tab and makes the 'Team Timeout Period' value box able to accept a value.
+**Team Time-Outs** are enabled by the checkbox beside **Team Time-Out Period**. When selected, the Team Time-Out buttons in the Scoreboard tab are enabled and the Team Time-Out Period value box can be edited. When it is off, the Team Time-Out Period value is greyed out and disabled.
 
-**Team Time-Out Period** is the value in minutes allowed for the 'Team Time-out'.
+**Team Time-Out Period** is the value in minutes allowed for the Team Time-Out. Its row also contains the Team Time-Out enable checkbox.
 
 **Half Period:** The time in minutes of the first and second halves.
 
@@ -349,9 +349,15 @@ Here, **nine** buttons are available for commonly used settings. Existing six-bu
 
 Tournament draw selection and results synchronisation are on their own **Tournament List** tab, leaving more room for Game Variables and its Game Sequence explanation.
 
-A sample `assets/Tournament_Draw.csv` is included with the distribution. On a source installation (including Raspberry Pi 5), UWH copies it once beside `uwh.py` as `Tournament_Draw.csv` if no root copy exists. Windows builds also make their bundled sample available in the application folder. Existing draw and results files are never replaced by this sample installation. Select an original draw from the dropdown; its `White` and `Black` columns supply the displayed team names.
+Tournament files now live in the visible **`Tournament data`** folder beside the application. The release package includes a demo `Tournament_Draw.csv` and matching `Tournament_Results.csv` there. On first run after upgrading from an older version, UWH copies legacy root-level CSVs into `Tournament data` when a file of the same name is not already present; the old files are left untouched.
 
-The CSV File dropdown automatically refreshes when clicked. New original draw CSV files copied into the application folder can be selected without restarting the application. Generated results CSVs are excluded from the dropdown.
+The CSV File dropdown automatically refreshes when clicked. New original draw CSV files copied into `Tournament data` can be selected without restarting the application. Generated `_Results.csv` files are excluded from the draw dropdown.
+
+### Create a draw manually
+
+For club nights or other simple local events, the lower part of **Tournament List** contains **Create Tournament Draw Manually**. Enter a **Draw Name** and fill the three-column table headed **Game number**, **White** and **Black**. All three cells are editable. Game numbers and team names accept up to **16 characters including spaces**. The table provides twenty rows; unused rows are ignored as long as both team-name cells are blank.
+
+Click **Save Draw** to create a new `<Draw Name>_Draw.csv` and its separate `<Draw Name>_Results.csv` in `Tournament data`. Existing files are never overwritten. The new draw is then selected automatically in the Tournament List dropdown.
 
 **Expected CSV headers:** `date,#,White,WScore,Black,BScore,Referees,Penalties,Comments`
 
@@ -439,10 +445,10 @@ permanent folder containing the **source ZIP** files:
     tournament_results_server.py
     tournament_files.py
     csv_export.py
-    Tournament_Draw.csv
+    Tournament data/Tournament_Draw.csv
 
 The easiest route is to extract the full updated GitHub source ZIP on the
-third computer and copy the same original draw beside these Python files.
+third computer and put the same original draw in its `Tournament data` folder.
 The packaged Windows UWH application (`UnderwaterHockeyScoringDesk.exe`) is
 the court/operator program and cannot run the shared tournament-results
 server. On the third results computer, download/extract the GitHub source ZIP
@@ -468,7 +474,7 @@ In PowerShell in the extracted project folder (for example C:\UWH):
 
     cd C:\UWH
     $env:UWH_SYNC_TOKEN = Read-Host "Shared results token"
-    python tournament_results_server.py --draw "C:\UWH\Tournament_Draw.csv" --bind 0.0.0.0 --port 8765
+    python tournament_results_server.py --draw "C:\UWH\Tournament data\Tournament_Draw.csv" --bind 0.0.0.0 --port 8765
 
 The 0.0.0.0 option lets other computers connect; the default is localhost
 only. On a **private LAN** you may need an administrator PowerShell to allow
@@ -487,7 +493,7 @@ In a Terminal in the extracted project folder:
     read -r -s -p "Shared results token: " UWH_SYNC_TOKEN
     echo
     export UWH_SYNC_TOKEN
-    python3 tournament_results_server.py --draw /home/uwh/UWH/Tournament_Draw.csv --bind 0.0.0.0 --port 8765
+    python3 tournament_results_server.py --draw "/home/uwh/UWH/Tournament data/Tournament_Draw.csv" --bind 0.0.0.0 --port 8765
 
 Adapt the path to where you extracted the source. On Linux, also restrict
 firewall access to the scoring computers on the local network. The service
@@ -501,7 +507,7 @@ protect that file from other users and back it up.
 
 ### 2. Configure the two court computers
 
-Copy the same original draw to each updated court installation. Back up each
+Copy the same original draw into each updated court installation's `Tournament data` folder. Back up each
 court's settings.json, original draw and any existing local results file
 before installing a new release/source ZIP.
 
@@ -584,7 +590,7 @@ The Sounds tab reports **Audio output in use**. On Raspberry Pi/Linux it identif
 
 The old Pips and Siren dropdown boxes have been replaced by two fixed tables. Each table shows up to **10 sound files** with the columns **Sound File** and **Trim %**:
 
-- The **Pips** table lists supported `.MP3` and `.WAV` files from the `assets` folder whose filename contains `pip` (case-insensitive). For clarity, custom pip files should use names such as `pip-short-beep.mp3` or `pip-countdown.wav`.
+- The **Pips** table lists supported `.MP3` and `.WAV` files from the app-level `Sounds` folder whose filename contains `pip` (case-insensitive). For clarity, custom pip files should use names such as `pip-short-beep.mp3` or `pip-countdown.wav`.
 - The **Sirens** table lists supported files whose filename contains `siren` (case-insensitive). For clarity, custom siren files should use names such as `siren-air-horn.wav` or `siren-classic.mp3`.
 - A sound file that does not contain `pip` or `siren` in its filename will not appear in the corresponding table.
 - Each of the 10 rows has a radio-button position on the left. Exactly **one Pip** and **one Siren** can be selected at a time. Rows without a sound file remain visible but their radio button and Trim % field are disabled/greyed, keeping the table layout consistent. The selections are stored as `pips_sound` and `siren_sound` in `settings.json` and are restored when UWH starts.
@@ -593,11 +599,11 @@ The old Pips and Siren dropdown boxes have been replaced by two fixed tables. Ea
 
 **Trim %** is an attenuation-only correction for differences in the apparent loudness of individual sound files. The accepted range is **0–100%**: `100%` plays the file at its native level, `50%` attenuates it to half the playback amplitude used by UWH, and `0%` mutes that file. UWH deliberately does not boost files above their native level, avoiding a digital-gain stage that could introduce clipping.
 
-A practical way to balance a set of sounds is to use the **quietest native file as the reference**, leave it at 100%, trim the louder files down until they sound similar, and then raise or lower the overall **hardware/DAC/operating-system master volume** to suit the pool or venue. If a source file itself needs to be made louder, normalized, compressed or otherwise processed, edit that file in suitable specialist audio software and then place the revised file in the `assets` folder.
+A practical way to balance a set of sounds is to use the **quietest native file as the reference**, leave it at 100%, trim the louder files down until they sound similar, and then raise or lower the overall **hardware/DAC/operating-system master volume** to suit the pool or venue. If a source file itself needs to be made louder, normalized, compressed or otherwise processed, edit that file in suitable specialist audio software and then place the revised file in the `Sounds` folder.
 
 There are no longer separate **Pips Vol** or **Siren Vol** master sliders in UWH. Overall level is controlled by the downstream audio hardware or operating-system/DAC level; **Trim %** is only for matching individual files to one another.
 
-The **Open Sounds Folder** button, immediately to the right of **Save Settings**, opens the `assets` folder so sound files can be added or replaced.
+The **Open Sounds Folder** button, immediately to the right of **Save Settings**, opens the visible app-level `Sounds` folder so sound files can be added or replaced.
 
 ### Raspberry Pi 5: duinotech Digital Audio Converter / HiFiBerry-compatible DAC HAT
 
@@ -727,7 +733,7 @@ The system automatically plays audio cues during different periods:
 
 **Scores:** The Scores, which will get written to the CSV file when the 'Between Game Break' timer reaches 30 seconds after a game ends, are displayed next.
 
-If the 'Team time-outs allowed?' check box is selected, the Team Time-Out buttons are selectable. Only one team time-out per half, no team time-outs are permitted in Overtime or Sudden Death according to CMAS rules.
+If the checkbox beside **Team Time-Out Period** is selected, the Team Time-Out buttons are selectable. Only one team time-out per half is permitted; no team time-outs are permitted in Overtime or Sudden Death according to CMAS rules.
 
 **Add Goal White** adds a goal to White and, if the 'Record Scorers Cap Number' checkbox is ticked, opens a popup dialogue box where the cap number of the player scoring the goal can be entered. Unknown and Penalty Goal options are provided.
 
@@ -1064,12 +1070,12 @@ Open UWH → **Zigbee Siren**. Configure the application against the broker you 
 | **Button Device Names (comma-separated)** | Enter the buttons in use; up to three have been tested together: `siren_button, siren_button_2, siren_button_3` | Names this UWH computer should respond to |
 | **Siren Device Name** | Leave unchanged for ordinary **local audio** triggering | Not the input button-name list |
 
-1. Enter the exact friendly names in **Button Device Names**, separated by commas; enter only the buttons in use.
-2. Click **Save Configuration**. If you changed the broker, topic or device names while connected, reconnect or restart UWH so the active connection uses the new configuration.
+1. Enter any already-known friendly names in **Button Device Names**, separated by commas; enter only the buttons this UWH computer should use.
+2. Click **Save Configuration** after changing the broker, topic or manually entered device names. If you changed connection details while connected, reconnect or restart UWH so the active connection uses the new configuration.
 3. Click **Test App Siren** to check the selected local sound independently of Zigbee reception.
-4. Press each physical button and inspect **Activity Log**. For example, `Button 'siren_button_2' action 'single' received via Zigbee/MQTT.` confirms UWH received that message, **not** that the action is mapped to make sound.
-5. In **Button Action Mapping**, find the row for the exact button name and received action. To add an unfamiliar action, press that configured button and click **Auto-add From Log**. The new row is deliberately set to **Ignore**; select **Edit Mapping** and choose the intended action, such as **One siren cycle**.
-6. Click **Save Action Mappings**. This is distinct from saving the device-name list with **Save Configuration**. Test each button again and confirm its intended response. For a new button, check what it actually publishes; for example, a tested button uses `emergency` rather than `single`.
+4. Press each physical button and inspect **Activity Log**. A brand-new button may initially be logged as **Ignored Zigbee button ... device is not in Button Device Names**. That observation is still captured for discovery and cannot sound the siren yet.
+5. Click **Auto-add From Log**. For a newly observed button, UWH adds its friendly name to **Button Device Names** and adds the observed action to **Button Action Mapping** as **Ignore**. For an already listed button with a new action, only the new Ignore mapping is added. Select **Edit Mapping** and choose the intended response, such as **One siren cycle**.
+6. Click **Save Action Mappings**. This saves both the displayed button-name allow-list and the action mappings created by Auto-add. Test each button again and confirm its intended response. A newly discovered button stays silent until you deliberately map and save its action. For example, one tested button publishes `emergency` rather than `single`.
 7. For a continuous-press mapping, provide the correct release action as a separate **Stop continuous siren** mapping and check the **Maximum hold (s)** cutoff (default 10; allowed 1–30 seconds). Only use that mode after checking the device's actual press/release messages.
 
 UWH stores these values in the **`zigbeeSettings` section of `settings.json`**. A representative extract is:
@@ -1186,7 +1192,7 @@ The frontend on port 8080 is **separate from MQTT**. Opening a webpage on PC 2 d
 | Item | What it contains | Important distinction |
 |---|---|---|
 | **UWH `settings.json`** | Siren files/duration, MQTT broker, button-name list, **action mappings**, display settings and other app preferences | Restoring its names **and mappings** can recover UWH recognition without re-pairing. Back it up before replacing a UWH ZIP; UWH also retains up to five recent `settings_old_*.json` backups. |
-| **UWH tournament CSVs, custom `assets/` sounds, logs** | Tournament/game data and custom audio | A UWH update must not overwrite them. |
+| **`Tournament data/`, `Sounds/`, logs** | Draws/results, custom audio and local records | These folders sit beside the app so operators can find and back them up easily. A UWH update must not overwrite operator-created files. |
 | **Zigbee2MQTT `data/` folder** | Zigbee2MQTT configuration and network/device database | Back up before changing Zigbee2MQTT or moving installations; preserving the coordinator/network data matters for retained pairing. |
 | **PM2 process list on Windows** | Saved Zigbee2MQTT startup process for that Windows user | Run `pm2 save` after setup. A Task Scheduler task alone does not recreate a missing PM2 saved process. |
 
@@ -1196,7 +1202,7 @@ The frontend on port 8080 is **separate from MQTT**. Opening a webpage on PC 2 d
 |---|---|
 | Frontend does not open at `localhost:8080` | Is Zigbee2MQTT actually running? On the **Windows computer that runs Zigbee2MQTT**, open **Command Prompt** or **PowerShell** while signed in as the **same Windows account that was used to set up and save the PM2 process list**, then type `pm2 list` to see whether the `zigbee2mqtt` process is online. Type `pm2 logs zigbee2mqtt` to view its recent/startup log messages; press **Ctrl+C** when you have finished viewing the live log. Also check Task Scheduler's **Last Run Result** for the Zigbee2MQTT startup task. On Raspberry Pi/Linux, open a Terminal and run `systemctl status zigbee2mqtt`. Check frontend enablement and port as well. |
 | UWH displays **Connected** but no button appears in the activity log | **Connected** means the MQTT broker session is up, not that a button is paired or mapped. Press the button and inspect Zigbee2MQTT's log; compare the **friendly name**, MQTT topic (`zigbee2mqtt/+`), and **Button Device Names**. UWH's Arduino/USB labels report **Detected** ports, not proof that an Arduino COM port was opened. |
-| One button works but another does not | Check that each button's exact friendly name appears in **Button Device Names** and click **Save Configuration**. Press it and check the **Activity Log**. If it says **Unmapped action**, use **Auto-add From Log**, change **Ignore** to the desired response and **Save Action Mappings**. Missing settings do not necessarily mean the device needs re-pairing. |
+| One button works but another does not | Press the non-working button and check **Activity Log**. If UWH logs **Ignored Zigbee button ... device is not in Button Device Names** or **Unmapped action**, click **Auto-add From Log**. UWH will add an observed new button name and/or action as a safe **Ignore** entry. Edit it to the desired response and click **Save Action Mappings**. Missing UWH settings do not necessarily mean the device needs re-pairing. |
 | Zigbee2MQTT publishes `{"battery":...}` but UWH is silent | A battery-only update has **no `action`**; it is device status rather than a button press. |
 | A newly named button stops working | A frontend rename changes the device MQTT topic. Update UWH's exact friendly-name list. |
 | One PC sees the events, the other does not | PC 2 must connect to PC 1's *LAN broker address*, not its own `localhost`. Check Mosquitto listener/authentication, firewall, subnet and MQTT topic. |
@@ -1241,7 +1247,7 @@ If MQTT authentication is enabled, use authenticated client options or the UWH U
 
 The **About** tab shows the running application version and the project credits. It includes clickable links to the local `README.md` in the installed UWH folder, the project repository, and the project contact email.
 
-This app was started in Google AI, made workable by GitHub Copilot and extensively refactored, tweaked, improved, expanded and tested by ChatGPT, conducted by David Stirling (who can't write code), davidstirling777@gmail.com.
+This app was started in Google AI, made workable by GitHub Copilot and extensively refactored, tweaked, improved, expanded and tested by ChatGPT. Conducted by David Stirling (who can't write code), davidstirling777@gmail.com.
 
 The conductor seems to be the star of the show, even though they do not make any noise. They even get to come on to the stage all on their own, to rapturous applause.
 

@@ -60,6 +60,10 @@ class UnrecognisedZigbeeButtonTests(unittest.TestCase):
             "device is not in Button Device Names."
         )
         self.app._trigger_siren.assert_not_called()
+        self.assertEqual(
+            self.app.unmapped_actions.get_nowait(),
+            ("siren_button_3", "emergency"),
+        )
 
     def test_unlisted_sensor_telemetry_does_not_spam_log(self):
         self.send("temperature", {"temperature": 20})

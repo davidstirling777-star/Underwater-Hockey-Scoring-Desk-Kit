@@ -30,6 +30,7 @@ operating a match.
 | File | Responsibility and place to begin |
 |---|---|
 | `uwh.py` | Composition root; Tk event handlers, audio dispatch, timers, screen state and serial/MQTT queues. |
+| `app_icon.py` | Embedded UWH stick badge applied to the Tk window and taskbar without reintroducing the v1.3 visual theme. |
 | `app_version.py` | User-visible application version. Windows release builds stamp this to the GitHub Actions release number before PyInstaller runs. |
 | `game_engine.py` | Period list, period transitions and runtime timer/penalty state. |
 | `game_flow.py` | Tournament selection, advancing games and export-before-reset rule. |
@@ -42,7 +43,7 @@ operating a match.
 | `penalties_ui.py` | Penalty-entry dialog and its refresh/removal handlers. |
 | `preset_manager.py` | Nine Game Variables preset buttons and long-hold editor; older six-slot settings are migrated without renaming existing presets. |
 | `csv_ui.py` | Draw-file dropdown refresh. |
-| `tournament_files.py` | Protect input draw, create/resume results CSV, and seed sample for source installs. |
+| `tournament_files.py` | Protect input draw, create/resume results CSV, manage the visible `Tournament data` folder, migrate legacy root CSVs, and write manual draws. |
 | `tournament_sync.py` | Worker: completed local game discovery, 10 s retries, receipts, HTTP client; never touch Tk from worker. |
 | `tournament_results_server.py` | Standalone authenticated third-computer writer, serialised result merges and conflict detection. |
 | `csv_helpers.py` | CSV draw game-number list and team-name retrieval; handles quoted fields. |
@@ -50,7 +51,7 @@ operating a match.
 | `game_settings_manager.py` | Translate between Game Variables widgets and the persisted gameSettings section. |
 | `settings_manager.py` | The unified settings.json reader, locked merge and atomic replacement/backups. |
 | `sounds_ui.py` | Sounds-tab file-selection/preview tables, per-file Trim % editing and siren timing controls. |
-| `sound.py` | Audio resource loading, pygame/subprocess backends, loop control and timed cutoff. |
+| `sound.py` | Audio resource loading from the visible app-level `Sounds` folder, pygame/subprocess backends, loop control and timed cutoff. |
 | `zigbee_ui.py` | MQTT connection widgets, device-name field and per-button action mapping table. |
 | `zigbee_siren.py` | Paho MQTT connection/subscription, message filtering and optional siren-device publishes. |
 | `zigbee_control.py` | Operator's Connect/Test/Disconnect buttons and connection watchdog. |
@@ -78,9 +79,10 @@ successful serial open, and a broker connection is not a mapped button press.
    `zigbee_siren.py` subscribes and filters by the exact UWH **Button Device
    Names**. Its separate **Button Action Mapping** table resolves
    (device name, received action) to a UWH event. Unknown devices/actions
-   fail closed and are logged. **Auto-add From Log** imports observed unmapped
-   actions as **Ignore**; an operator must edit and save them before they
-   produce audio. The MQTT worker queues the event; it must not manipulate Tk
+   fail closed and are logged. **Auto-add From Log** may copy an observed new
+   device into Button Device Names and imports its action as **Ignore**; an
+   operator must edit and save it before it can produce audio. The MQTT worker
+   queues the observation/event; it must not manipulate Tk
    widgets or pygame audio directly.
 3. **Automatic game siren/pips:** `uwh.py`'s countdown checks period policy
    in `game_engine.py` and calls `sound.py`. Timed sirens loop short sound
@@ -104,9 +106,11 @@ with `csv.reader`, never `line.split(',')`: quoted team names can contain
 commas, apostrophes, quotes and embedded newlines. A duplicated numeric game
 ID, including `7` and `007`, must not be guessed or overwritten.
 
-`tournament_files.py` owns the draw/output boundary. A source ZIP copies
-`assets/Tournament_Draw.csv` into the application folder **only if missing**.
-`results_path_for_draw` derives the sibling `_Results.csv`, and
+`tournament_files.py` owns the draw/output boundary. Tournament CSVs live in
+the app-level `Tournament data` folder. Startup copies legacy root-level CSVs
+there only when the same filename is absent, and seeds the demo draw/results
+pair without overwriting operator data. `results_path_for_draw` derives the
+sibling `_Results.csv`, and
 `ensure_results_file` copies the source *only on first selection*. It checks
 that non-result columns still match the draw on every subsequent access.
 Never replace an existing results file from the sample or the selected draw:

@@ -67,6 +67,7 @@ def create_settings_tab(app):
     for special_name in [
         "time_to_start_first_game",
         "start_first_game_in",
+        "team_timeouts_allowed",
         "overtime_allowed",
         "record_scorers_cap_number"
     ]:
@@ -98,37 +99,6 @@ def create_settings_tab(app):
             ]
         ):
             var_info["default"] = var_info.get("default", True)
-
-        if var_name == "team_timeouts_allowed":
-            check_var = app.team_timeouts_allowed_var
-            cb = ttk.Checkbutton(
-                widget1,
-                variable=check_var,
-                style="Large.TCheckbutton"
-            )
-            cb.grid(row=row_idx, column=0, sticky="", pady=5, padx=(10, 0))
-
-            label_widget = tk.Label(
-                widget1,
-                text=var_info.get("label", "Team Time-Outs allowed?"),
-                font=(default_font.cget("family"), new_size, "bold")
-            )
-            label_widget.grid(row=row_idx, column=1, sticky="w", pady=4)
-
-            check_var.trace_add(
-                "write",
-                lambda *args: app._on_team_timeouts_change()
-            )
-
-            app.widgets.append({
-                "name": var_name,
-                "entry": None,
-                "checkbox": check_var,
-                "label_widget": label_widget
-            })
-
-            row_idx += 1
-            continue
 
         if var_name == "record_scorers_cap_number":
             check_var = app.record_scorers_cap_number_var
@@ -163,7 +133,22 @@ def create_settings_tab(app):
             row_idx += 1
             continue
 
-        if var_name == "overtime_game_break":
+        if var_name == "team_timeout_period":
+            # Keep team_timeouts_allowed as its own saved setting, but place
+            # its checkbox beside Team Time-Out Period rather than on a
+            # separate row.
+            check_var = app.team_timeouts_allowed_var
+            cb = ttk.Checkbutton(
+                widget1,
+                variable=check_var,
+                style="Large.TCheckbutton"
+            )
+            cb.grid(row=row_idx, column=0, sticky="", pady=5, padx=(10, 0))
+            check_var.trace_add(
+                "write",
+                lambda *args: app._on_team_timeouts_change()
+            )
+        elif var_name == "overtime_game_break":
             # Keep the existing overtime_allowed setting, but place its
             # checkbox beside Overtime Game Break rather than on its own row.
             check_var = app.overtime_allowed_var
@@ -329,7 +314,22 @@ def create_settings_tab(app):
             font=(default_font.cget("family"), new_size, "bold")
         ).grid(row=row_idx, column=3, sticky="w", padx=5, pady=4)
 
-        if var_name == "overtime_game_break":
+        if var_name == "team_timeout_period":
+            # Store the enable flag separately from the duration even though
+            # both controls now share one visible row.
+            app.widgets.append({
+                "name": "team_timeouts_allowed",
+                "entry": None,
+                "checkbox": app.team_timeouts_allowed_var,
+                "label_widget": None
+            })
+            app.widgets.append({
+                "name": var_name,
+                "entry": entry,
+                "checkbox": None,
+                "label_widget": label_widget
+            })
+        elif var_name == "overtime_game_break":
             # Store the enable flag and numeric duration as the same two
             # runtime/settings variables used by the classic application.
             app.widgets.append({
@@ -919,7 +919,7 @@ def create_tournament_tab(app):
     csv_comment = tk.Label(
         widget4,
         text=(
-            "Put tournament draw CSVs in the same folder as this program.\n"
+            "Tournament draw CSVs are stored in the Tournament data folder beside this program.\n"
             "The selected draw is read-only; completed games are saved locally "
             "first in a separate _Results.csv file.\n"
             "Shared-server sync sends one completed game at a time and retries "
@@ -934,6 +934,192 @@ def create_tournament_tab(app):
     csv_comment.grid(
         row=8, column=0, columnspan=5,
         sticky="nw", padx=8, pady=(6, 4)
+    )
+
+    # ------------------------------------------------------------
+    # Manual tournament draw creator
+    # ------------------------------------------------------------
+    manual_draw = ttk.LabelFrame(
+        widget4,
+        text="Create Tournament Draw Manually",
+        padding=(8, 7),
+    )
+    manual_draw.grid(
+        row=9,
+        column=0,
+        columnspan=5,
+        sticky="ew",
+        padx=8,
+        pady=(8, 10),
+    )
+    manual_draw.grid_columnconfigure(1, weight=1)
+
+    ttk.Label(
+        manual_draw,
+        text="Draw Name:",
+        font=(default_font.cget("family"), default_font.cget("size"), "bold"),
+    ).grid(row=0, column=0, sticky="w", padx=(4, 8), pady=(2, 7))
+
+    app.manual_draw_name_var = tk.StringVar(master=app.master, value="")
+    ttk.Entry(
+        manual_draw,
+        textvariable=app.manual_draw_name_var,
+        width=34,
+    ).grid(row=0, column=1, sticky="w", padx=(0, 8), pady=(2, 7))
+
+    # The table contains twenty editable rows but shows a compact viewport so
+    # the current Tournament List controls remain visible above it.
+    table_shell = ttk.Frame(manual_draw)
+    table_shell.grid(
+        row=1,
+        column=0,
+        columnspan=3,
+        sticky="w",
+        padx=4,
+        pady=(0, 5),
+    )
+
+    table_canvas = tk.Canvas(
+        table_shell,
+        width=570,
+        height=235,
+        highlightthickness=0,
+        borderwidth=0,
+    )
+    table_scroll = ttk.Scrollbar(
+        table_shell,
+        orient="vertical",
+        command=table_canvas.yview,
+    )
+    table_canvas.configure(yscrollcommand=table_scroll.set)
+    table_canvas.grid(row=0, column=0, sticky="nsew")
+    table_scroll.grid(row=0, column=1, sticky="ns")
+
+    table = ttk.Frame(table_canvas)
+    table_window = table_canvas.create_window(
+        (0, 0),
+        window=table,
+        anchor="nw",
+    )
+
+    def resize_manual_table(_event=None):
+        table_canvas.configure(scrollregion=table_canvas.bbox("all"))
+
+    def match_manual_table_width(event):
+        table_canvas.itemconfigure(table_window, width=event.width)
+
+    table.bind("<Configure>", resize_manual_table)
+    table_canvas.bind("<Configure>", match_manual_table_width)
+
+    header_options = {
+        "font": (
+            default_font.cget("family"),
+            default_font.cget("size"),
+            "bold",
+        ),
+        "anchor": "center",
+        "relief": "solid",
+        "borderwidth": 1,
+        "padding": (4, 3),
+    }
+    for column, heading in enumerate(("Game number", "White", "Black")):
+        ttk.Label(
+            table,
+            text=heading,
+            width=16,
+            **header_options,
+        ).grid(row=0, column=column, sticky="nsew")
+
+    def validate_manual_cell(value):
+        return len(value) <= 16
+
+    manual_validation = (
+        table.register(validate_manual_cell),
+        "%P",
+    )
+
+    app.manual_draw_rows = []
+    for index in range(20):
+        game_var = tk.StringVar(master=app.master, value=str(index + 1))
+        white_var = tk.StringVar(master=app.master, value="")
+        black_var = tk.StringVar(master=app.master, value="")
+        app.manual_draw_rows.append((game_var, white_var, black_var))
+
+        for column, variable in enumerate(
+            (game_var, white_var, black_var)
+        ):
+            ttk.Entry(
+                table,
+                textvariable=variable,
+                width=16,
+                validate="key",
+                validatecommand=manual_validation,
+            ).grid(
+                row=index + 1,
+                column=column,
+                sticky="nsew",
+                padx=0,
+                pady=0,
+            )
+
+    ttk.Label(
+        manual_draw,
+        text=(
+            "Game numbers are editable. Game number, White and Black fields "
+            "accept up to 16 characters including spaces. Empty team rows "
+            "are ignored when the draw is saved."
+        ),
+        font=(default_font.cget("family"), small_size),
+        justify="left",
+        wraplength=570,
+    ).grid(
+        row=2,
+        column=0,
+        columnspan=2,
+        sticky="w",
+        padx=4,
+        pady=(3, 4),
+    )
+
+    def save_manual_draw_from_table():
+        rows = [
+            (game.get(), white.get(), black.get())
+            for game, white, black in app.manual_draw_rows
+        ]
+        try:
+            draw_path, results_path = app.save_manual_tournament_draw(
+                app.manual_draw_name_var.get(),
+                rows,
+            )
+        except (OSError, ValueError) as error:
+            messagebox.showerror(
+                "Save Draw",
+                str(error),
+                parent=app.master,
+            )
+            return
+
+        messagebox.showinfo(
+            "Draw saved",
+            (
+                f"Draw saved as {Path(draw_path).name}\n"
+                f"Results file: {Path(results_path).name}\n\n"
+                "Both files are in the Tournament data folder."
+            ),
+            parent=app.master,
+        )
+
+    ttk.Button(
+        manual_draw,
+        text="Save Draw",
+        command=save_manual_draw_from_table,
+        width=14,
+    ).grid(
+        row=0,
+        column=2,
+        sticky="w",
+        padx=(4, 4),
+        pady=(2, 7),
     )
 
 
@@ -982,7 +1168,7 @@ def create_about_tab(app, readme_path):
     about_text = (
         "This app was started in Google AI, made workable by GitHub Copilot "
         "and extensively refactored, tweaked, improved, expanded and tested "
-        "by ChatGPT, conducted by David Stirling (who can't write code) "
+        "by ChatGPT. Conducted by David Stirling (who can't write code) "
         "davidstirling777@gmail.com.\n\n"
         "The conductor seems to be the star of the show, even though they do "
         "not make any noise. They even get to come on to the stage all on "

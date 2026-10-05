@@ -21,6 +21,22 @@ class ClassicUiRetainedFixesTests(unittest.TestCase):
         self.assertNotIn("import ui_theme", source("settings_ui.py"))
         self.assertNotIn("ttkbootstrap", source("requirements.txt"))
 
+    def test_uwh_stick_replaces_default_tk_icon(self):
+        uwh = source("uwh.py")
+        icon = source("app_icon.py")
+        self.assertIn("import app_icon", uwh)
+        self.assertIn("app_icon.apply_app_icon(root)", uwh)
+        self.assertIn("root.iconphoto(True, icon)", icon)
+        self.assertIn("_uwh_app_icon = icon", icon)
+
+    def test_about_credit_uses_sentence_break_before_conducted_by(self):
+        settings = source("settings_ui.py")
+        readme = source("README.md")
+        expected = "by ChatGPT. Conducted by David Stirling"
+        self.assertIn(expected, settings)
+        self.assertIn(expected, readme)
+        self.assertNotIn("by ChatGPT, conducted by David Stirling", settings)
+
     def test_tournament_and_about_tabs_remain_separate(self):
         text = source("settings_ui.py")
         self.assertIn("def create_tournament_tab(app):", text)
@@ -39,6 +55,26 @@ class ClassicUiRetainedFixesTests(unittest.TestCase):
                 f'{{"text": "{number}", "values": {{}}, "checkboxes": {{}}}}',
                 manager,
             )
+
+    def test_team_timeout_switch_is_on_period_row_not_separate_row(self):
+        text = source("settings_ui.py")
+        self.assertIn(
+            '"team_timeouts_allowed",\n        "overtime_allowed"',
+            text,
+        )
+        self.assertNotIn('if var_name == "team_timeouts_allowed":', text)
+        self.assertIn('if var_name == "team_timeout_period":', text)
+        self.assertIn("check_var = app.team_timeouts_allowed_var", text)
+        self.assertIn('"name": "team_timeouts_allowed"', text)
+
+    def test_readme_matches_relocated_team_timeout_control(self):
+        readme = source("README.md")
+        self.assertIn(
+            "checkbox beside **Team Time-Out Period**",
+            readme,
+        )
+        self.assertNotIn("**Team time-outs allowed?**", readme)
+        self.assertNotIn("'Team time-outs allowed?' check box", readme)
 
     def test_overtime_switch_is_on_game_break_row_not_separate_row(self):
         text = source("settings_ui.py")

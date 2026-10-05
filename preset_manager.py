@@ -1,4 +1,4 @@
-"""Six editable Game Variables presets, including click versus long hold.
+"""Nine editable Game Variables presets, including click versus long hold.
 
 A short release applies the saved preset; a hold opens its editor. Keep
 widget updates and saved preset data coordinated so a dialog cancellation
