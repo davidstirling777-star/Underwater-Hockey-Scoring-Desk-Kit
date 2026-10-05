@@ -253,6 +253,7 @@ def write_game_results_to_csv(
 
     return True
 
+
 def sort_cap_key(cap_number):
     if cap_number == "Penalty Goal":
         return (1, 100)
@@ -264,6 +265,7 @@ def sort_cap_key(cap_number):
         return (0, int(cap_number))
     except ValueError:
         return (2, 0)
+
 
 def format_goal_scorers_comment(scorers):
     comment_parts = []
@@ -306,6 +308,7 @@ def format_goal_scorers_comment(scorers):
 
     return ",".join(comment_parts)
 
+
 def aggregate_goal_scorers(goal_events):
     scorers = {
         "White": {},
@@ -323,6 +326,7 @@ def aggregate_goal_scorers(goal_events):
             scorers[team][cap_number] += 1
 
     return scorers
+
 
 def get_goal_events_for_game(base_dir, game_number):
     txt_file = os.path.join(base_dir, "UWH_Game_Data.txt")
@@ -353,39 +357,6 @@ def get_goal_events_for_game(base_dir, game_number):
                     goal_events.append({
                         "team": team,
                         "cap_number": cap_number
-                    })
-
-    except Exception as e:
-        print(f"Error reading goal events from {txt_file}: {e}")
-
-    return goal_events
-
-def get_goal_events_for_game(base_dir, game_number):
-    txt_file = os.path.join(base_dir, "UWH_Game_Data.txt")
-    goal_events = []
-
-    if not os.path.exists(txt_file):
-        return goal_events
-
-    try:
-        with open(txt_file, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-
-                if not line:
-                    continue
-
-                fields = line.split("|")
-
-                if len(fields) < 5:
-                    continue
-
-                event_type = fields[2].strip()
-
-                if event_type == "Goal":
-                    goal_events.append({
-                        "team": fields[3].strip(),
-                        "cap_number": fields[4].strip()
                     })
 
     except Exception as e:
