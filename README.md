@@ -89,7 +89,7 @@ Why X11 matters for this application: On the tested Pi 5, moving the pointer ove
 4. Choose a permanent folder, such as `Documents\UWH Scoring Desk`.
 5. Click Extract.
 
-The extracted folder contains `UnderwaterHockeyScoringDesk.exe` and its supporting files. Keep these together.
+The extracted folder contains `UnderwaterHockeyScoringDesk.exe`, the visible `Tournament data` and `Sounds` folders, and its supporting files. Keep these together.
 
 ### Run the application
 1. Open the extracted folder.
@@ -448,7 +448,7 @@ permanent folder containing the **source ZIP** files:
     Tournament data/Tournament_Draw.csv
 
 The easiest route is to extract the full updated GitHub source ZIP on the
-third computer and copy the same original draw beside these Python files.
+third computer and put the same original draw in its `Tournament data` folder.
 The packaged Windows UWH application (`UnderwaterHockeyScoringDesk.exe`) is
 the court/operator program and cannot run the shared tournament-results
 server. On the third results computer, download/extract the GitHub source ZIP
@@ -507,7 +507,7 @@ protect that file from other users and back it up.
 
 ### 2. Configure the two court computers
 
-Copy the same original draw to each updated court installation. Back up each
+Copy the same original draw into each updated court installation's `Tournament data` folder. Back up each
 court's settings.json, original draw and any existing local results file
 before installing a new release/source ZIP.
 
