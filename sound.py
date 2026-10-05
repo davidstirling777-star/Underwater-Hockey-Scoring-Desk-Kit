@@ -93,7 +93,13 @@ def get_audio_output_description():
 
 
 def resource_path(relative_path):
-    """Get an internal bundled-resource path for dev or PyInstaller."""
+    """Resolve bundled resources, except operator-visible Sounds files."""
+    relative_path = os.fspath(relative_path)
+
+    first_part = relative_path.replace("\\", "/").split("/", 1)[0].casefold()
+    if first_part == "sounds":
+        return os.path.join(application_directory(), relative_path)
+
     try:
         base_path = sys._MEIPASS
     except Exception:
@@ -143,7 +149,7 @@ def prepare_sounds_directory(base_dir=None):
     return destination
 
 
-def sound_file_path(filename):
+def resource_path(os.path.join("Sounds", filename)):
     """Return one operator-visible sound file path."""
     return os.path.join(sounds_directory(), _normalise_filename(filename))
 
@@ -374,7 +380,7 @@ def preload_sounds():
 
     for filename in sound_files:
         try:
-            file_path = sound_file_path(filename)
+            file_path = resource_path(os.path.join("Sounds", filename))
 
             if os.path.exists(file_path):
                 sound_obj = pygame.mixer.Sound(file_path)
@@ -401,7 +407,7 @@ def _play_sound_sync(filename, enable_sound):
         return
 
     try:
-        file_path = sound_file_path(filename)
+        file_path = resource_path(os.path.join("Sounds", filename))
 
         if not os.path.exists(file_path):
             print(
@@ -512,7 +518,7 @@ def _play_timed_sound_sync(
         return
 
     try:
-        file_path = sound_file_path(filename)
+        file_path = resource_path(os.path.join("Sounds", filename))
 
         if not os.path.exists(file_path):
             print(
