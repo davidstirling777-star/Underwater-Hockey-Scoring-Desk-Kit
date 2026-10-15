@@ -10,6 +10,13 @@ This document describes the **current Raspberry Pi 5 test installation** and dis
 | Item | Present setup / status |
 | --- | --- |
 | Scoring computer | **Raspberry Pi 5, 8 GB RAM**, running UWH |
+| Storage / boot | **NVMe SSD via an NVMe Base**, with the RP5 booting from the SSD |
+| Motherboard | **UWH Scoring Desk motherboard Rev B** (current assembly) |
+| PDM DC-DC revision | **Rev B currently installed**; **Rev C or later is required** for the RP5 5.1 V power-supply option |
+| Current RP5 power | **Separate USB-C power supply**, not yet powered by the motherboard/PDM |
+| Display currently used | **LG 24MP400-B** monitor |
+| Other LG displays considered | **LG 29U511A-B (29-inch ultrawide)** and **LG 32U631A-B (31.5-inch QHD)**; candidate options, not confirmed installed |
+| Zigbee coordinator | **SONOFF Zigbee 3.0 USB Dongle Plus (ZBDongle-P)** plugged into the RP5 |
 | Operating system | **Raspberry Pi OS Bookworm Desktop (64-bit), X11** |
 | RAM usage | Approximately **1.7 GB observed with UWH running** on the 8 GB Pi |
 | 2 GB Pi 5 | **Expected to be sufficient** for this workload from the observed memory use, but **not yet separately tested**; verify headroom under the full intended display, audio, USB and Zigbee workload |
@@ -24,6 +31,8 @@ This document describes the **current Raspberry Pi 5 test installation** and dis
 
 The current 8 GB machine has demonstrated that the application does **not** need 8 GB solely to accommodate its observed RAM use. The proposed 2 GB configuration still needs a full real-world check; the 1.7 GB observation is **not** a guaranteed maximum and leaves less margin for the desktop, caches and other services.
 
+**Monitor status:** the current display is an **LG 24MP400-B**. Two other LG models have been discussed as alternatives: **LG 29U511A-B**, a 29-inch ultrawide option for an operator display, and **LG 32U631A-B**, a 31.5-inch QHD option for larger viewing. These are **possibilities, not tested or fitted monitors** in the present assembly. The proposed motherboard 19 V monitor-output arrangement and monitor DC connector/polarity/current requirements must be verified for each exact model before wiring; do not assume that the present LG 24MP400-B is powered from the motherboard.
+
 For final production installation, the selected monitors, mounting and power arrangement must be checked against the as-built motherboard. Do not treat proposed monitor models or daughterboard designs as a verified equipment list.
 
 ## 2. Raspberry Pi 5 software and displays
@@ -37,7 +46,7 @@ To select X11:
 3. Finish and reboot.
 4. Verify with `echo $XDG_SESSION_TYPE` (expected: `x11`).
 
-UWH supports operator and external display windows; select the required layout in the **Screens** tab and use **Auto Detect Screens** and **Test Displays** to check the actual monitor assignments. See [README.md](README.md#raspberry-pi-5-tested-configuration-september-2026) and its Screens instructions for details.
+UWH supports operator and external display windows; the currently used monitor is the LG 24MP400-B, while the LG 29U511A-B ultrawide and LG 32U631A-B QHD are options under consideration, not confirmed equipment. Select the required layout in the **Screens** tab and use **Auto Detect Screens** and **Test Displays** to check the actual monitor assignments. See [README.md](README.md#raspberry-pi-5-tested-configuration-september-2026) and its Screens instructions for details.
 
 ## 3. Audio hardware and connections
 
@@ -124,7 +133,9 @@ The early standalone Arduino/NeoPixel/voltage-monitoring demonstration is **obso
 
 ### Optional Zigbee referee buttons
 
-Zigbee inputs use a compatible USB coordinator, Zigbee2MQTT, an MQTT broker and UWH's **Zigbee Siren** settings. On Windows 11, UWH has been tested with **up to three working Zigbee buttons** on one coordinator. A complete equivalent Raspberry Pi coordinator/broker deployment should be validated separately before relying on it at a competition.
+**Hardware currently connected to the RP5:** a **SONOFF Zigbee 3.0 USB Dongle Plus (ZBDongle-P)** coordinator. Zigbee input also requires a correctly configured Zigbee2MQTT service, an MQTT broker and UWH's **Zigbee Siren** settings. Merely plugging in the dongle does **not** establish that the complete RP5 Zigbee/MQTT system has passed a full operational test.
+
+On Windows 11, UWH has been tested with **up to three working Zigbee buttons** on one coordinator. The Raspberry Pi coordinator/broker setup should be validated separately before relying on it at a competition.
 
 Each Zigbee device belongs to one coordinator network at a time. Different button models emit different events; map each device's actual actions in the UWH interface. Read the [Zigbee section of README.md](README.md#zigbee2mqtt-wireless-siren-setup-and-operation) for tested behaviour, pairing and maintenance.
 
@@ -134,16 +145,18 @@ UWH scans for candidate Arduino serial ports and Zigbee adapters and remembers r
 
 ## 6. Motherboard and DC-DC supplies — design versus test status
 
-The project includes a custom UWH motherboard and plug-in power/audio circuitry, including separate DC-DC outputs for the monitor(s), pool audio and the future integrated RP5 supply. These are evolving hardware designs, not all of which are present in or verified by the current bench installation.
+The **current motherboard assembly is Rev B**, with the **Rev B PDM power-supply board**. These are *different boards*: a motherboard revision is not the same as a PDM revision. The project includes plug-in power/audio circuitry with separate DC-DC outputs for the monitor(s), pool audio and the future integrated RP5 supply. The designs remain under development, so not every proposed supply is present or verified in the current bench assembly.
 
-**Current RP5 test power:** the Raspberry Pi 5 is presently powered through its **own USB-C power supply**, not yet through the proposed motherboard 5.1 V GPIO feed.
+**Current RP5 storage:** the Raspberry Pi 5 boots from an **NVMe SSD mounted on an NVMe Base**.
 
-**Production power plan:** the motherboard is designed to provide a regulated **5.1 V at least 5 A** to the RP5's 5 V GPIO header pins from a dedicated **LMQ61460-based PDM-Audio DC-DC daughterboard**. This bypasses USB-C power negotiation. The README explains the required bootloader configuration, including `PSU_MAX_CURRENT=5000`, and the warning not to claim 5 A unless the **entire** power path has been verified.
+**Current RP5 test power:** the Raspberry Pi 5 is presently powered through its **own USB-C power supply**, not yet through the proposed motherboard 5.1 V GPIO feed. The **current Rev B PDM is not suitable for the intended RP5 low-voltage supply option**; **PDM Rev C or later is required** to provide that option. The latest suitable PDM revision has **not yet been obtained and tested**.
+
+**Production power plan:** with a suitable **PDM Rev C or later**, the motherboard design is intended to provide a regulated **5.1 V at least 5 A** to the RP5's 5 V GPIO header pins from a dedicated **LMQ61460-based PDM-Audio DC-DC daughterboard**. The PDM revision is a **necessary design requirement, not proof** that the assembled output has passed voltage, load and startup testing. This power approach bypasses USB-C power negotiation. The README explains the required bootloader configuration, including `PSU_MAX_CURRENT=5000`, and the warning not to claim 5 A unless the **entire** power path has been verified.
 
 > [!WARNING]
 > Do not use the proposed GPIO power arrangement until its voltage, current capability, start-up behaviour and all relevant connections have been verified. Do not power the Pi simultaneously through the proposed GPIO feed and another USB-C supply.
 
-Other PDM boards, fused 24 V inputs, monitor supplies, battery-backup switching and mounting arrangements are part of the hardware design and must be documented against the final manufactured assembly before making a production wiring guide. The existing CAD and schematic files take precedence over old prototype photos or assumptions.
+Other PDM boards, fused 24 V inputs, monitor supplies, battery-backup switching and mounting arrangements are part of the hardware design and must be documented against the final manufactured assembly before making a production wiring guide. The **currently fitted Rev B motherboard and Rev B PDM** must not be represented as an already validated 5.1 V RP5 GPIO supply. The existing CAD and schematic files take precedence over old prototype photos or assumptions.
 
 For full power supply setup and bootloader commands, consult [README.md — Raspberry Pi 5 power supply configurations](README.md#raspberry-pi-5-power-supply-configurations).
 
@@ -156,11 +169,13 @@ For full power supply setup and bootloader commands, consult [README.md — Rasp
 - [ ] Set pip/siren file trims in **Sounds** and test both cues at the actual venue.
 - [ ] Confirm the hardwired siren button and any mapped Zigbee actions.
 - [ ] Check both amplifier outputs and all isolation/grounding requirements.
+- [ ] Check the **Rev B motherboard** and **Rev B PDM** against their actual fitted components; do not connect RP5 GPIO power until a **Rev C or later PDM** is installed and its 5.1 V / 5 A output is validated.
+- [ ] Confirm the attached **SONOFF ZBDongle-P** is recognised and verify full Zigbee2MQTT/MQTT/button operation if used.
 - [ ] Verify supply rails and fuses against the **actual as-built** board rather than inferred power figures.
 - [ ] Repeat volume and output-selection checks after a reboot.
 
 ## 8. Details still to confirm for the finished hardware specification
 
-The present document intentionally avoids claiming unverified production details. Before turning it into a definitive assembly/wiring guide, confirm the **final fitted motherboard revision and board connectors**, **actual monitor models and supply rails**, **RP5 boot medium and finished 5.1 V power implementation**, and **whether Zigbee2MQTT/coordinator hardware is installed locally on the RP5 or remains on another computer**.
+The present document intentionally avoids claiming unverified production details. **Confirmed now:** motherboard **Rev B**; PDM **Rev B** fitted (**Rev C or later required** for RP5 power); RP5 boots from an **NVMe Base SSD** and remains **USB-C powered**; monitor **LG 24MP400-B**; and a **SONOFF ZBDongle-P** is plugged into the RP5. Still to verify: the finished motherboard and daughterboard connector/fuse inventory, whether the monitor is powered externally or from the motherboard, the final **5.1 V / at least 5 A PDM Rev C+ hardware**, and operational status of the **RP5 Zigbee2MQTT/MQTT services and button tests**. The two other LG displays listed above remain **candidate models only**.
 
 For operating instructions, see [README.md](README.md). For software internals, see [MAINTAINERS.md](MAINTAINERS.md).
