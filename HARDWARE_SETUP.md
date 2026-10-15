@@ -20,9 +20,10 @@ This document describes the **current Raspberry Pi 5 test installation** and dis
 | Operating system | **Raspberry Pi OS Bookworm Desktop (64-bit), X11** |
 | RAM usage | Approximately **1.7 GB observed with UWH running** on the 8 GB Pi |
 | 2 GB Pi 5 | **Expected to be sufficient** for this workload from the observed memory use, but **not yet separately tested**; verify headroom under the full intended display, audio, USB and Zigbee workload |
-| Audio output | **PiFi DAC+ v2.0 HAT**, recognised under the HiFiBerry DAC+ / `snd_rpi_hifiberry_dacplus` driver |
-| Audio interconnect | **Stereo 3.5 mm TRS cable** from the DAC audio output to the pool-audio input |
-| Amplifier | **FUSUPI XH-M562** stereo amplifier module on the Pool Audio Zones board |
+| Prototype/test audio DAC | **PiFi DAC+ v2.0 HAT**, recognised under the HiFiBerry DAC+ / `snd_rpi_hifiberry_dacplus` driver |
+| Production audio DAC | **Genuine Raspberry Pi DAC+ HAT** (planned replacement for the prototype PiFi DAC+ v2.0; production unit not yet tested) |
+| Current audio interconnect — required | **3.5 mm stereo TRS male-to-male cable** (stereo-to-stereo, two insulating rings on **each** plug) between the **PiFi DAC+ v2.0 HAT** and **Pool Audio Zones Rev 2** stereo input J1 |
+| Pool-audio board | **Pool Audio Zones Rev 2**, fitted with the **FUSUPI XH-M562** stereo amplifier module |
 | AIR speaker | **TOA SC-615, 8 Ω** horn (the low-impedance model, **not** the 70/100 V transformer version) |
 | Pool-audio board power | **16.0 V DC** at the amplifier in the latest bench test |
 | Level adjustments | Pool-audio **R3 (AIR)** and **R4 (WATER)** potentiometers; application sound-file trims; RP5 system output level |
@@ -50,7 +51,7 @@ UWH supports operator and external display windows; the currently used monitor i
 
 ## 3. Audio hardware and connections
 
-The current audio path is:
+The **current tested prototype** audio path is:
 
 ```text
 UWH application on Raspberry Pi 5
@@ -59,9 +60,10 @@ UWH application on Raspberry Pi 5
               |
         PiFi DAC+ v2.0 HAT
               |
-     stereo 3.5 mm TRS cable
+  3.5 mm stereo TRS male-to-male cable
+        (two rings on each plug)
               |
-   Pool Audio Zones J1 (stereo input)
+ Pool Audio Zones Rev 2, J1 stereo input
        R1/R2 mix L + R to mono
               |
        +------+------+
@@ -75,11 +77,14 @@ UWH application on Raspberry Pi 5
                   hardware as designed)
 ```
 
-### Stereo cable is required
+### Audio cable requirement and production DAC
 
-**Use a stereo TRS cable (two insulating rings on a 3.5 mm plug), not a mono TS plug.** Although the sound is ultimately mixed to mono by the Pool Audio Zones board, the DAC and board input have separate left and right connections. A mono plug in a stereo output can short one output channel to ground, potentially affecting sound and loading the DAC improperly.
+> [!IMPORTANT]
+> **Current PiFi DAC+ v2.0 HAT to Pool Audio Zones Rev 2 board:** use a **stereo-to-stereo 3.5 mm TRS male-to-male audio cable**. Both plugs must have **two insulating rings** (tip = left, ring = right, sleeve = common). **Do not use a mono TS cable or mono adapter.**
 
-Use the correct mating connector arrangement for the actual DAC version: the tested installation now uses the stereo 3.5 mm interconnect.
+Although the audio is ultimately mixed to mono through R1/R2 on the **Pool Audio Zones Rev 2** board, its input is stereo. A mono plug inserted into a stereo DAC output can short one channel to ground, potentially causing poor sound, distortion or abnormal loading. In October 2026 bench testing, replacing a mono cable with a stereo cable coincided with an increase in RP5 software volume; because both changed, the improvement cannot be attributed to the cable alone. The stereo-to-stereo connection is nevertheless the correct wiring.
+
+**Production hardware will use the genuine Raspberry Pi DAC+ HAT**, in place of the PiFi DAC+ v2.0 used for current testing. Preserve the **left, right and signal-ground stereo input** to Pool Audio Zones Rev 2. Check the genuine DAC+'s actual available output connectors and use the correct adapter if necessary; **do not assume the production DAC has an identical 3.5 mm socket to the PiFi board**. If using separate left/right RCA outputs, the production interconnect must combine them correctly into a **stereo TRS connector** at the Pool Audio Zones input, not short them together. Verify and document the production DAC driver's audio-device settings before deployment; the PiFi/HiFiBerry-compatible test settings are not automatically guaranteed to be correct for the genuine Raspberry Pi DAC+.
 
 ### AIR and WATER output safety
 
@@ -164,7 +169,8 @@ For full power supply setup and bootloader commands, consult [README.md — Rasp
 
 - [ ] Confirm Bookworm **X11** and test the operator and display windows.
 - [ ] Verify the DAC is recognised and selected in `wpctl status`; restart UWH after changing the default audio sink.
-- [ ] Fit the correct **stereo TRS** interconnect; do not use a mono plug in the DAC's stereo output.
+- [ ] For the current **PiFi DAC+ v2.0 → Pool Audio Zones Rev 2** connection, fit a **3.5 mm stereo TRS male-to-male cable** (two rings on both ends); never use the mono TS cable.
+- [ ] For the planned **genuine Raspberry Pi DAC+** production HAT, verify the DAC output connectors and left/right/ground mapping to the Pool Audio Zones Rev 2 stereo input; verify audio device/driver setup on that HAT.
 - [ ] Check RP5 audio level (currently **0.80** in workshop testing) and adjust R3/R4 gently from low volume.
 - [ ] Set pip/siren file trims in **Sounds** and test both cues at the actual venue.
 - [ ] Confirm the hardwired siren button and any mapped Zigbee actions.
@@ -176,6 +182,6 @@ For full power supply setup and bootloader commands, consult [README.md — Rasp
 
 ## 8. Details still to confirm for the finished hardware specification
 
-The present document intentionally avoids claiming unverified production details. **Confirmed now:** motherboard **Rev B**; PDM **Rev B** fitted (**Rev C or later required** for RP5 power); RP5 boots from an **NVMe Base SSD** and remains **USB-C powered**; monitor **LG 24MP400-B**; and a **SONOFF ZBDongle-P** is plugged into the RP5. Still to verify: the finished motherboard and daughterboard connector/fuse inventory, whether the monitor is powered externally or from the motherboard, the final **5.1 V / at least 5 A PDM Rev C+ hardware**, and operational status of the **RP5 Zigbee2MQTT/MQTT services and button tests**. The two other LG displays listed above remain **candidate models only**.
+The present document intentionally avoids claiming unverified production details. **Confirmed now:** motherboard **Rev B**; PDM **Rev B** fitted (**Rev C or later required** for RP5 power); RP5 boots from an **NVMe Base SSD** and remains **USB-C powered**; monitor **LG 24MP400-B**; and a **SONOFF ZBDongle-P** is plugged into the RP5. Still to verify: the finished motherboard and daughterboard connector/fuse inventory, whether the monitor is powered externally or from the motherboard, the final **5.1 V / at least 5 A PDM Rev C+ hardware**, the production **genuine Raspberry Pi DAC+ HAT** connectors/driver configuration, and operational status of the **RP5 Zigbee2MQTT/MQTT services and button tests**. The two other LG displays listed above remain **candidate models only**.
 
 For operating instructions, see [README.md](README.md). For software internals, see [MAINTAINERS.md](MAINTAINERS.md).
