@@ -29,7 +29,7 @@ This document describes the **current Raspberry Pi 5 test installation** and dis
 | Pool-audio board power | **16.0 V DC** at the amplifier in the latest bench test |
 | Level adjustments | Pool-audio **R3 (AIR)** and **R4 (WATER)** potentiometers; application sound-file trims; RP5 system output level |
 | Wired siren input | Arduino/serial siren-button path supported by UWH; consult the actual installed motherboard wiring/Arduino firmware before copying a pinout |
-| Wireless inputs | Optional Zigbee referee buttons via coordinator, Zigbee2MQTT and MQTT; Windows configuration has been tested with up to three working buttons |
+| Wireless inputs | **SONOFF ZBDongle-P + Zigbee2MQTT + MQTT + referee buttons: end-to-end tested and working on the RP5**; includes a modified **Tuya IH-K663** smart button (`TS0041`, `_TZ3000_fa9mlvja`) with external waterproof pushbutton |
 
 The current 8 GB machine has demonstrated that the application does **not** need 8 GB solely to accommodate its observed RAM use. The proposed 2 GB configuration still needs a full real-world check; the 1.7 GB observation is **not** a guaranteed maximum and leaves less margin for the desktop, caches and other services.
 
@@ -137,13 +137,25 @@ The software retains a wired Arduino serial input for the referee's momentary si
 
 The early standalone Arduino/NeoPixel/voltage-monitoring demonstration is **obsolete** as an installation example. The current motherboard's Arduino Nano Every wiring and firmware are the source of truth for the production button circuit. Do not add the old A3 battery divider, NeoPixel LEDs or their resistors to the current hardware.
 
-### Optional Zigbee referee buttons
+### Zigbee referee buttons — end-to-end tested on the RP5
 
-**Hardware currently connected to the RP5:** a **SONOFF Zigbee 3.0 USB Dongle Plus (ZBDongle-P)** coordinator. Zigbee input also requires a correctly configured Zigbee2MQTT service, an MQTT broker and UWH's **Zigbee Siren** settings. Merely plugging in the dongle does **not** establish that the complete RP5 Zigbee/MQTT system has passed a full operational test.
+**Confirmed working (October 2026):** the Zigbee input system has been **tested end to end on the Raspberry Pi 5**. The **SONOFF Zigbee 3.0 USB Dongle Plus (ZBDongle-P)** is connected to the RP5, and **Zigbee2MQTT, MQTT and the referee buttons work together with UWH**. Do not describe this installation as awaiting Zigbee/MQTT validation. Separately, the Windows 11 setup has been tested with **up to three working Zigbee buttons** on one coordinator; that figure should not be assumed to be the verified button count on this RP5.
 
-On Windows 11, UWH has been tested with **up to three working Zigbee buttons** on one coordinator. The Raspberry Pi coordinator/broker setup should be validated separately before relying on it at a competition.
+#### Modified waterproof-button assembly
 
-Each Zigbee device belongs to one coordinator network at a time. Different button models emit different events; map each device's actual actions in the UWH interface. Read the [Zigbee section of README.md](README.md#zigbee2mqtt-wireless-siren-setup-and-operation) for tested behaviour, pairing and maintenance.
+A **Tuya IH-K663 smart button**, identified as Zigbee model **`TS0041`** with manufacturer string **`_TZ3000_fa9mlvja`**, has been modified for a remotely operated referee pushbutton. See [Zigbee2MQTT's IH-K663 device page](https://www.zigbee2mqtt.io/devices/IH-K663.html#tuya-ih-k663).
+
+The existing electronics were **removed from their original housing**. The modified assembly uses:
+
+- **Two AA batteries in series**, giving approximately **3.0 V nominal** when using 1.5 V cells, to supply the button PCB. Observe polarity; the exact voltage depends on the battery chemistry and state of charge.
+- A separate **Jaycar SP0732 30 mm waterproof momentary SPST pushbutton**, with its two switch contacts soldered **in parallel across the original button contacts**, so pressing the remote switch performs the original button operation. [Jaycar SP0732 product page](https://www.jaycar.co.nz/5a-dc-spst-waterproof-momentary-pushbutton-switch-30mm-diameter/p/SP0732).
+- A **PVC plumbing pressure-pipe enclosure** containing the modified Zigbee PCB, batteries and wiring.
+
+This records an **actual working prototype**, not an off-the-shelf waterproof Zigbee button. The switch's waterproof description does **not** establish a waterproof rating for the **complete home-built assembly**, cable penetrations, pipe joints, or battery compartment. Inspect seals and wiring and perform appropriate leak/operational testing before exposing it to poolside spray or immersion; do not assume it can safely be submerged. Keep the battery supply isolated from any other power source.
+
+Button event names depend on the model and its Zigbee2MQTT mapping. Test the configured action in UWH before a match. Each Zigbee device joins only one Zigbee coordinator network at a time; pairing a working button to a different coordinator can remove it from the original network.
+
+For coordinator configuration, pairing, MQTT and UWH button-action mapping, see the [Zigbee section of README.md](README.md#zigbee2mqtt-wireless-siren-setup-and-operation).
 
 ### USB/serial device detection
 
@@ -177,13 +189,13 @@ For full power supply setup and bootloader commands, consult [README.md — Rasp
 - [ ] Confirm the hardwired siren button and any mapped Zigbee actions.
 - [ ] Check both amplifier outputs and all isolation/grounding requirements.
 - [ ] Check the **Rev B motherboard** and **Rev B PDM** against their actual fitted components; do not connect RP5 GPIO power until a **Rev C or later PDM** is installed and its 5.1 V / 5 A output is validated.
-- [ ] Confirm the attached **SONOFF ZBDongle-P** is recognised and verify full Zigbee2MQTT/MQTT/button operation if used.
+- [ ] Recheck the **already end-to-end-tested RP5 SONOFF ZBDongle-P → Zigbee2MQTT → MQTT → UWH referee-button** operation before each event, including the modified IH-K663 switch and battery condition.
 - [ ] Confirm the **LG 24MP400-B** receives **19 V DC** from the motherboard-mounted PDM through the custom-made cable; verify the supply **under load**, polarity, connector wiring and current capability before reproducing the cable.
 - [ ] Verify supply rails and fuses against the **actual as-built** board rather than inferred power figures.
 - [ ] Repeat volume and output-selection checks after a reboot.
 
 ## 8. Details still to confirm for the finished hardware specification
 
-The present document intentionally avoids claiming unverified production details. **Confirmed now:** motherboard **Rev B**; PDM **Rev B** fitted (**Rev C or later required** for RP5 power); RP5 boots from an **NVMe Base SSD** and remains **USB-C powered**; monitor **LG 24MP400-B**; and a **SONOFF ZBDongle-P** is plugged into the RP5. Still to verify: the finished motherboard and daughterboard connector/fuse inventory, verification of the LG's reported **19 V DC** supply under load and the custom cable's connector/polarity details, the final **5.1 V / at least 5 A PDM Rev C+ hardware**, the production **genuine Raspberry Pi DAC+ HAT** connectors/driver configuration, and operational status of the **RP5 Zigbee2MQTT/MQTT services and button tests**. The two other LG displays listed above remain **candidate models only**.
+The present document intentionally avoids claiming unverified production details. **Confirmed now:** motherboard **Rev B**; PDM **Rev B** fitted (**Rev C or later required** for RP5 power); RP5 boots from an **NVMe Base SSD** and remains **USB-C powered**; monitor **LG 24MP400-B**; and a **SONOFF ZBDongle-P** is plugged into the RP5. Still to verify: the finished motherboard and daughterboard connector/fuse inventory, verification of the LG's reported **19 V DC** supply under load and the custom cable's connector/polarity details, the final **5.1 V / at least 5 A PDM Rev C+ hardware**, the production **genuine Raspberry Pi DAC+ HAT** connectors/driver configuration, ; the **RP5 Zigbee2MQTT, MQTT and referee buttons have already passed end-to-end functional testing**. The two other LG displays listed above remain **candidate models only**.
 
 For operating instructions, see [README.md](README.md). For software internals, see [MAINTAINERS.md](MAINTAINERS.md).
