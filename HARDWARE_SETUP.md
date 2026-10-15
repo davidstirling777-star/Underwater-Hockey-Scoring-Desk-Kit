@@ -15,6 +15,7 @@ This document describes the **current Raspberry Pi 5 test installation** and dis
 | PDM DC-DC revision | **Rev B currently installed**; **Rev C or later is required** for the RP5 5.1 V power-supply option |
 | Current RP5 power | **Separate USB-C power supply**, not yet powered by the motherboard/PDM |
 | Display currently used | **LG 24MP400-B** monitor |
+| Current monitor power | From a **PDM DC-DC board on the Rev B motherboard**, via a **custom-made power cable**; confirm the configured voltage, connector and polarity against the actual build |
 | Other LG displays considered | **LG 29U511A-B (29-inch ultrawide)** and **LG 32U631A-B (31.5-inch QHD)**; candidate options, not confirmed installed |
 | Zigbee coordinator | **SONOFF Zigbee 3.0 USB Dongle Plus (ZBDongle-P)** plugged into the RP5 |
 | Operating system | **Raspberry Pi OS Bookworm Desktop (64-bit), X11** |
@@ -32,7 +33,7 @@ This document describes the **current Raspberry Pi 5 test installation** and dis
 
 The current 8 GB machine has demonstrated that the application does **not** need 8 GB solely to accommodate its observed RAM use. The proposed 2 GB configuration still needs a full real-world check; the 1.7 GB observation is **not** a guaranteed maximum and leaves less margin for the desktop, caches and other services.
 
-**Monitor status:** the current display is an **LG 24MP400-B**. Two other LG models have been discussed as alternatives: **LG 29U511A-B**, a 29-inch ultrawide option for an operator display, and **LG 32U631A-B**, a 31.5-inch QHD option for larger viewing. These are **possibilities, not tested or fitted monitors** in the present assembly. The proposed motherboard 19 V monitor-output arrangement and monitor DC connector/polarity/current requirements must be verified for each exact model before wiring; do not assume that the present LG 24MP400-B is powered from the motherboard.
+**Monitor status:** the current display is an **LG 24MP400-B**. Two other LG models have been discussed as alternatives: **LG 29U511A-B**, a 29-inch ultrawide option for an operator display, and **LG 32U631A-B**, a 31.5-inch QHD option for larger viewing. These are **possibilities, not tested or fitted monitors** in the present assembly. The **currently fitted LG 24MP400-B is powered from a PDM DC-DC board mounted on the Rev B motherboard through a custom-made cable**. Record the actual measured PDM output voltage, cable polarity, connector wiring and available current against the built unit before duplicating it. The other proposed monitor models may have different DC power requirements; do not assume the existing cable or supply is suitable for them.
 
 For final production installation, the selected monitors, mounting and power arrangement must be checked against the as-built motherboard. Do not treat proposed monitor models or daughterboard designs as a verified equipment list.
 
@@ -150,7 +151,7 @@ UWH scans for candidate Arduino serial ports and Zigbee adapters and remembers r
 
 ## 6. Motherboard and DC-DC supplies — design versus test status
 
-The **current motherboard assembly is Rev B**, with the **Rev B PDM power-supply board**. These are *different boards*: a motherboard revision is not the same as a PDM revision. The project includes plug-in power/audio circuitry with separate DC-DC outputs for the monitor(s), pool audio and the future integrated RP5 supply. The designs remain under development, so not every proposed supply is present or verified in the current bench assembly.
+The **current motherboard assembly is Rev B**, with a **Rev B PDM power-supply board**; a PDM board on the motherboard is already supplying the **LG 24MP400-B monitor through a custom-made DC cable**. These are *different boards*: a motherboard revision is not the same as a PDM revision. The fact that a PDM powers the monitor does **not** mean the current PDM can supply the RP5 at 5.1 V. The project includes plug-in power/audio circuitry with separate DC-DC outputs for the monitor(s), pool audio and the future integrated RP5 supply. The designs remain under development, so not every proposed supply is present or verified in the current bench assembly.
 
 **Current RP5 storage:** the Raspberry Pi 5 boots from an **NVMe SSD mounted on an NVMe Base**.
 
@@ -177,11 +178,12 @@ For full power supply setup and bootloader commands, consult [README.md — Rasp
 - [ ] Check both amplifier outputs and all isolation/grounding requirements.
 - [ ] Check the **Rev B motherboard** and **Rev B PDM** against their actual fitted components; do not connect RP5 GPIO power until a **Rev C or later PDM** is installed and its 5.1 V / 5 A output is validated.
 - [ ] Confirm the attached **SONOFF ZBDongle-P** is recognised and verify full Zigbee2MQTT/MQTT/button operation if used.
+- [ ] Verify the **LG 24MP400-B** is supplied by the motherboard-mounted PDM through the custom-made cable, and check the **actual DC voltage, polarity, connector wiring and current capability** before reproducing the cable.
 - [ ] Verify supply rails and fuses against the **actual as-built** board rather than inferred power figures.
 - [ ] Repeat volume and output-selection checks after a reboot.
 
 ## 8. Details still to confirm for the finished hardware specification
 
-The present document intentionally avoids claiming unverified production details. **Confirmed now:** motherboard **Rev B**; PDM **Rev B** fitted (**Rev C or later required** for RP5 power); RP5 boots from an **NVMe Base SSD** and remains **USB-C powered**; monitor **LG 24MP400-B**; and a **SONOFF ZBDongle-P** is plugged into the RP5. Still to verify: the finished motherboard and daughterboard connector/fuse inventory, whether the monitor is powered externally or from the motherboard, the final **5.1 V / at least 5 A PDM Rev C+ hardware**, the production **genuine Raspberry Pi DAC+ HAT** connectors/driver configuration, and operational status of the **RP5 Zigbee2MQTT/MQTT services and button tests**. The two other LG displays listed above remain **candidate models only**.
+The present document intentionally avoids claiming unverified production details. **Confirmed now:** motherboard **Rev B**; PDM **Rev B** fitted (**Rev C or later required** for RP5 power); RP5 boots from an **NVMe Base SSD** and remains **USB-C powered**; monitor **LG 24MP400-B**; and a **SONOFF ZBDongle-P** is plugged into the RP5. Still to verify: the finished motherboard and daughterboard connector/fuse inventory, the measured LG monitor supply voltage and the custom cable's connector/polarity details, the final **5.1 V / at least 5 A PDM Rev C+ hardware**, the production **genuine Raspberry Pi DAC+ HAT** connectors/driver configuration, and operational status of the **RP5 Zigbee2MQTT/MQTT services and button tests**. The two other LG displays listed above remain **candidate models only**.
 
 For operating instructions, see [README.md](README.md). For software internals, see [MAINTAINERS.md](MAINTAINERS.md).
