@@ -1,9 +1,6 @@
 # Hardware setup — UWH Scoring Desk Kit
 
-This document describes the **current Raspberry Pi 5 test installation** and distinguishes it from the **motherboard/production hardware still being developed**. It is a hardware companion to [README.md](README.md), which contains the current software installation, screen, sounds and Zigbee instructions.
-
-> [!IMPORTANT]
-> The earlier NeoPixel stick and Arduino battery-voltage-divider experiments are **not part of the present hardware**. They are intentionally omitted here. Do not use old prototype photographs or wiring instructions as build instructions for the current UWH motherboard.
+This document describes the **currently installed Raspberry Pi 5 UWH Scoring Desk hardware**, together with clearly identified hardware options still being developed. It is a companion to [README.md](README.md), which contains software installation, screens, sounds and Zigbee instructions.
 
 ## 1. Current tested configuration (October 2026)
 
@@ -15,14 +12,14 @@ This document describes the **current Raspberry Pi 5 test installation** and dis
 | PDM DC-DC revision | **Rev B currently installed**; **Rev C or later is required** for the RP5 5.1 V power-supply option |
 | Current RP5 power | **Separate USB-C power supply**, not yet powered by the motherboard/PDM |
 | Display currently used | **LG 24MP400-B** monitor |
-| Current monitor power | **19 V DC** from a **PDM DC-DC board on the Rev B motherboard** via a **custom-made power cable**; check connector polarity and current capability before reproducing the cable |
+| Current monitor power | **19 V DC** from a motherboard-mounted PDM through a custom DC cable. **Centre-positive at the monitor plug and matching supply connector** has been tested and works; verify connector dimensions and current rating before making additional cables |
 | Other LG displays considered | **LG 29U511A-B (29-inch ultrawide)** and **LG 32U631A-B (31.5-inch QHD)**; candidate options, not confirmed installed |
 | Zigbee coordinator | **SONOFF Zigbee 3.0 USB Dongle Plus (ZBDongle-P)** plugged into the RP5 |
 | Operating system | **Raspberry Pi OS Bookworm Desktop (64-bit), X11** |
 | RAM usage | Approximately **1.7 GB observed with UWH running** on the 8 GB Pi |
 | 2 GB Pi 5 | **Expected to be sufficient** for this workload from the observed memory use, but **not yet separately tested**; verify headroom under the full intended display, audio, USB and Zigbee workload |
-| Prototype/test audio DAC | **PiFi DAC+ v2.0 HAT**, recognised under the HiFiBerry DAC+ / `snd_rpi_hifiberry_dacplus` driver |
-| Production audio DAC | **Genuine Raspberry Pi DAC+ HAT** (planned replacement for the prototype PiFi DAC+ v2.0; production unit not yet tested) |
+| Audio DAC currently fitted | **PiFi DAC+ v2.0 HAT**, recognised under the HiFiBerry DAC+ / `snd_rpi_hifiberry_dacplus` driver |
+| Planned production audio DAC | **Genuine Raspberry Pi DAC+ HAT**; confirm the actual connectors and driver configuration before installing |
 | Current audio interconnect — required | **3.5 mm stereo TRS male-to-male cable** (stereo-to-stereo, two insulating rings on **each** plug) between the **PiFi DAC+ v2.0 HAT** and **Pool Audio Zones Rev 2** stereo input J1 |
 | Pool-audio board | **Pool Audio Zones Rev 2**, fitted with the **FUSUPI XH-M562** stereo amplifier module |
 | AIR speaker | **TOA SC-615, 8 Ω** horn (the low-impedance model, **not** the 70/100 V transformer version) |
@@ -33,13 +30,13 @@ This document describes the **current Raspberry Pi 5 test installation** and dis
 
 The current 8 GB machine has demonstrated that the application does **not** need 8 GB solely to accommodate its observed RAM use. The proposed 2 GB configuration still needs a full real-world check; the 1.7 GB observation is **not** a guaranteed maximum and leaves less margin for the desktop, caches and other services.
 
-**Monitor status:** the current display is an **LG 24MP400-B**. Two other LG models have been discussed as alternatives: **LG 29U511A-B**, a 29-inch ultrawide option for an operator display, and **LG 32U631A-B**, a 31.5-inch QHD option for larger viewing. These are **possibilities, not tested or fitted monitors** in the present assembly. The **currently fitted LG 24MP400-B is powered at 19 V DC from a PDM DC-DC board mounted on the Rev B motherboard through a custom-made cable**. The user reports a 19 V operating supply; verify the voltage under load, cable polarity, connector wiring and available current against the built unit before duplicating it. The other proposed monitor models may have different DC power requirements; do not assume the existing cable or supply is suitable for them.
+**Monitor status:** the current display is an **LG 24MP400-B**. Two other LG models have been discussed as alternatives: **LG 29U511A-B**, a 29-inch ultrawide option for an operator display, and **LG 32U631A-B**, a 31.5-inch QHD option for larger viewing. These are **possibilities, not tested or fitted monitors** in the present assembly. The **LG 24MP400-B is powered at 19 V DC from a PDM DC-DC board mounted on the motherboard, using a custom-made power cable**. The **centre-positive to centre-positive cable arrangement has been tested successfully**: **+19 V on the inner/centre contact** and **GND (negative) on the outer contact** at the monitor plug, with corresponding polarity at the mating supply connector. This is a verified wiring arrangement for the fitted LG 24MP400-B, **not** a blanket guarantee of connector dimensions or polarity for other LG models. Before reproducing the cable, verify its connectors, insulation, current rating and polarity with a multimeter while the monitor is disconnected. The other proposed monitor models may have different DC power requirements; do not assume the existing cable or supply is suitable for them.
 
 For final production installation, the selected monitors, mounting and power arrangement must be checked against the as-built motherboard. Do not treat proposed monitor models or daughterboard designs as a verified equipment list.
 
 ## 2. Raspberry Pi 5 software and displays
 
-The tested system uses **Bookworm + X11**. In earlier two-display testing, moving the pointer over the Game Variables controls under Wayland could make GPU usage approach 98% and cause jerky mouse movement. X11 substantially improved responsiveness.
+The tested system uses **Bookworm + X11**. Under Wayland, moving the pointer over the Game Variables controls with two display windows could drive GPU usage near 98% and cause jerky mouse movement. X11 substantially improved responsiveness.
 
 To select X11:
 
@@ -52,7 +49,7 @@ UWH supports operator and external display windows; the currently used monitor i
 
 ## 3. Audio hardware and connections
 
-The **current tested prototype** audio path is:
+The current audio path is:
 
 ```text
 UWH application on Raspberry Pi 5
@@ -83,9 +80,9 @@ UWH application on Raspberry Pi 5
 > [!IMPORTANT]
 > **Current PiFi DAC+ v2.0 HAT to Pool Audio Zones Rev 2 board:** use a **stereo-to-stereo 3.5 mm TRS male-to-male audio cable**. Both plugs must have **two insulating rings** (tip = left, ring = right, sleeve = common). **Do not use a mono TS cable or mono adapter.**
 
-Although the audio is ultimately mixed to mono through R1/R2 on the **Pool Audio Zones Rev 2** board, its input is stereo. A mono plug inserted into a stereo DAC output can short one channel to ground, potentially causing poor sound, distortion or abnormal loading. In October 2026 bench testing, replacing a mono cable with a stereo cable coincided with an increase in RP5 software volume; because both changed, the improvement cannot be attributed to the cable alone. The stereo-to-stereo connection is nevertheless the correct wiring.
+Although the audio is ultimately mixed to mono through R1/R2 on the **Pool Audio Zones Rev 2** board, its input is stereo. A mono plug inserted into a stereo DAC output can short one channel to ground, potentially causing poor sound, distortion or abnormal loading. The **stereo-to-stereo TRS connection** is the required wiring for the currently fitted PiFi DAC and Pool Audio Zones Rev 2 input.
 
-**Production hardware will use the genuine Raspberry Pi DAC+ HAT**, in place of the PiFi DAC+ v2.0 used for current testing. Preserve the **left, right and signal-ground stereo input** to Pool Audio Zones Rev 2. Check the genuine DAC+'s actual available output connectors and use the correct adapter if necessary; **do not assume the production DAC has an identical 3.5 mm socket to the PiFi board**. If using separate left/right RCA outputs, the production interconnect must combine them correctly into a **stereo TRS connector** at the Pool Audio Zones input, not short them together. Verify and document the production DAC driver's audio-device settings before deployment; the PiFi/HiFiBerry-compatible test settings are not automatically guaranteed to be correct for the genuine Raspberry Pi DAC+.
+**Production hardware is planned to use the genuine Raspberry Pi DAC+ HAT**. The present installation uses the PiFi DAC+ v2.0. Preserve the **left, right and signal-ground stereo input** to Pool Audio Zones Rev 2. Check the genuine DAC+'s actual available output connectors and use the correct adapter if necessary; **do not assume the production DAC has an identical 3.5 mm socket to the PiFi board**. If using separate left/right RCA outputs, the production interconnect must combine them correctly into a **stereo TRS connector** at the Pool Audio Zones input, not short them together. Verify and document the production DAC driver's audio-device settings before deployment; the PiFi/HiFiBerry-compatible test settings are not automatically guaranteed to be correct for the genuine Raspberry Pi DAC+.
 
 ### AIR and WATER output safety
 
@@ -98,11 +95,10 @@ Keep the amplifier's AIR and WATER level controls separate. The TOA SC-615 is an
 During October 2026 bench testing:
 
 - The 16.0 V amplifier supply stayed at **16.0 V measured directly across XH-M562 pin 3 (+ supply) and pin 2 (power ground)** while the siren sounded.
-- The **same siren MP3** played through a Windows laptop was loud and clear on the amplifier, showing that the audio hardware has ample output.
-- On the Raspberry Pi, the PiFi DAC+ ALSA controls were already at **100%, 0.00 dB** (`Digital` and `Analogue`). The unexpectedly quiet siren was traced to the OS software sink level and was also investigated alongside replacement of the mono interconnect cable.
-- The RP5 PipeWire level was increased and ultimately set to **0.80 (80%)**; this placed R3 and R4 around the useful middle of their adjustment range in the bench setup.
-- The selected pip sound (`pip-beep.mp3`) was trimmed to **30%**, compared with `siren-car-honk.mp3`, because the pip sounded disproportionately loud.
-- The previously tested 0.50 PipeWire setting **persisted across a Raspberry Pi reboot**. Recheck persistence after changing to 0.80.
+- The PiFi DAC+ ALSA controls were set to **100%, 0.00 dB** (`Digital` and `Analogue`).
+- The RP5 PipeWire output level was set to **0.80 (80%)**; this placed R3 and R4 around the useful middle of their adjustment ranges in workshop tests.
+- The selected pip sound (`pip-beep.mp3`) was trimmed to **30%** relative to the selected siren (`siren-car-honk.mp3`) because the pip sounded disproportionately loud.
+- Verify that the preferred PipeWire volume and sound-file trims remain appropriate after restart and at the pool.
 
 **These are provisional workshop settings.** Confirm AIR and WATER volume at the pool. Do not raise or lower the 16.0 V amplifier supply just to compensate for a software volume mismatch.
 
@@ -135,7 +131,7 @@ For DAC driver configuration, audio troubleshooting and software installation, s
 
 The software retains a wired Arduino serial input for the referee's momentary siren button. With the current application, the hardwired button's siren sounds while it is pressed and stops when released. This is separate from the timed Zigbee action mappings.
 
-The early standalone Arduino/NeoPixel/voltage-monitoring demonstration is **obsolete** as an installation example. The current motherboard's Arduino Nano Every wiring and firmware are the source of truth for the production button circuit. Do not add the old A3 battery divider, NeoPixel LEDs or their resistors to the current hardware.
+Use the installed motherboard's Arduino Nano Every wiring and firmware when identifying button connections. Check the actual board pinout rather than assuming a generic Arduino connection.
 
 ### Zigbee referee buttons — end-to-end tested on the RP5
 
@@ -151,7 +147,7 @@ The existing electronics were **removed from their original housing**. The modif
 - A separate **Jaycar SP0732 30 mm waterproof momentary SPST pushbutton**, with its two switch contacts soldered **in parallel across the original button contacts**, so pressing the remote switch performs the original button operation. [Jaycar SP0732 product page](https://www.jaycar.co.nz/5a-dc-spst-waterproof-momentary-pushbutton-switch-30mm-diameter/p/SP0732).
 - A **PVC plumbing pressure-pipe enclosure** containing the modified Zigbee PCB, batteries and wiring.
 
-This records an **actual working prototype**, not an off-the-shelf waterproof Zigbee button. The switch's waterproof description does **not** establish a waterproof rating for the **complete home-built assembly**, cable penetrations, pipe joints, or battery compartment. Inspect seals and wiring and perform appropriate leak/operational testing before exposing it to poolside spray or immersion; do not assume it can safely be submerged. Keep the battery supply isolated from any other power source.
+This is a **working, user-modified Zigbee assembly**, not a factory-rated waterproof button. The switch's waterproof description does **not** establish a waterproof rating for the **complete home-built assembly**, cable penetrations, pipe joints, or battery compartment. Inspect seals and wiring and perform appropriate leak/operational testing before exposing it to poolside spray or immersion; do not assume it can safely be submerged. Keep the battery supply isolated from any other power source.
 
 Button event names depend on the model and its Zigbee2MQTT mapping. Test the configured action in UWH before a match. Each Zigbee device joins only one Zigbee coordinator network at a time; pairing a working button to a different coordinator can remove it from the original network.
 
@@ -174,7 +170,7 @@ The **current motherboard assembly is Rev B**, with a **Rev B PDM power-supply b
 > [!WARNING]
 > Do not use the proposed GPIO power arrangement until its voltage, current capability, start-up behaviour and all relevant connections have been verified. Do not power the Pi simultaneously through the proposed GPIO feed and another USB-C supply.
 
-Other PDM boards, fused 24 V inputs, monitor supplies, battery-backup switching and mounting arrangements are part of the hardware design and must be documented against the final manufactured assembly before making a production wiring guide. The **currently fitted Rev B motherboard and Rev B PDM** must not be represented as an already validated 5.1 V RP5 GPIO supply. The existing CAD and schematic files take precedence over old prototype photos or assumptions.
+Other PDM boards, fused 24 V inputs, monitor supplies, battery-backup switching and mounting arrangements are part of the hardware design and must be documented against the final manufactured assembly before making a production wiring guide. The **currently fitted Rev B motherboard and Rev B PDM** must not be represented as an already validated 5.1 V RP5 GPIO supply. Confirm wiring against the actual board and current schematic before assembly.
 
 For full power supply setup and bootloader commands, consult [README.md — Raspberry Pi 5 power supply configurations](README.md#raspberry-pi-5-power-supply-configurations).
 
@@ -190,12 +186,12 @@ For full power supply setup and bootloader commands, consult [README.md — Rasp
 - [ ] Check both amplifier outputs and all isolation/grounding requirements.
 - [ ] Check the **Rev B motherboard** and **Rev B PDM** against their actual fitted components; do not connect RP5 GPIO power until a **Rev C or later PDM** is installed and its 5.1 V / 5 A output is validated.
 - [ ] Recheck the **already end-to-end-tested RP5 SONOFF ZBDongle-P → Zigbee2MQTT → MQTT → UWH referee-button** operation before each event, including the modified IH-K663 switch and battery condition.
-- [ ] Confirm the **LG 24MP400-B** receives **19 V DC** from the motherboard-mounted PDM through the custom-made cable; verify the supply **under load**, polarity, connector wiring and current capability before reproducing the cable.
+- [ ] Confirm the **LG 24MP400-B** receives **19 V DC** from the motherboard-mounted PDM through its **tested centre-positive to centre-positive custom cable**; check **centre = +19 V, outer = GND** and verify connector fit, polarity and current rating before reproducing it.
 - [ ] Verify supply rails and fuses against the **actual as-built** board rather than inferred power figures.
 - [ ] Repeat volume and output-selection checks after a reboot.
 
 ## 8. Details still to confirm for the finished hardware specification
 
-The present document intentionally avoids claiming unverified production details. **Confirmed now:** motherboard **Rev B**; PDM **Rev B** fitted (**Rev C or later required** for RP5 power); RP5 boots from an **NVMe Base SSD** and remains **USB-C powered**; monitor **LG 24MP400-B**; and a **SONOFF ZBDongle-P** is plugged into the RP5. Still to verify: the finished motherboard and daughterboard connector/fuse inventory, verification of the LG's reported **19 V DC** supply under load and the custom cable's connector/polarity details, the final **5.1 V / at least 5 A PDM Rev C+ hardware**, and the production **genuine Raspberry Pi DAC+ HAT** connectors/driver configuration. **The RP5 Zigbee2MQTT, MQTT and referee buttons have already passed end-to-end functional testing.** The two other LG displays listed above remain **candidate models only**.
+The present document intentionally avoids claiming unverified production details. **Confirmed now:** motherboard **Rev B**; PDM **Rev B** fitted (**Rev C or later required** for RP5 power); RP5 boots from an **NVMe Base SSD** and remains **USB-C powered**; monitor **LG 24MP400-B**; and a **SONOFF ZBDongle-P** is plugged into the RP5. Still to verify: the finished motherboard and daughterboard connector/fuse inventory, the custom monitor cable's mechanical connector dimensions and current rating (its **19 V DC centre-positive polarity has been tested**), the final **5.1 V / at least 5 A PDM Rev C+ hardware**, and the production **genuine Raspberry Pi DAC+ HAT** connectors/driver configuration. **The RP5 Zigbee2MQTT, MQTT and referee buttons have already passed end-to-end functional testing.** The two other LG displays listed above remain **candidate models only**.
 
 For operating instructions, see [README.md](README.md). For software internals, see [MAINTAINERS.md](MAINTAINERS.md).
