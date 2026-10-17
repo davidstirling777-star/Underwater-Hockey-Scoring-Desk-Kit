@@ -362,7 +362,7 @@ def create_scoreboard_tab(app):
 
     app.white_minus_button = tk.Button(
         tab,
-        text="-ve Goal White",
+        text="Minus Goal White",
         font=app.fonts["button"],
         bg="lightgrey",
         fg="black",
@@ -403,7 +403,7 @@ def create_scoreboard_tab(app):
 
     app.black_minus_button = tk.Button(
         tab,
-        text="-ve Goal Black",
+        text="Minus Goal Black",
         font=app.fonts["button"],
         bg="lightgrey",
         fg="black",
