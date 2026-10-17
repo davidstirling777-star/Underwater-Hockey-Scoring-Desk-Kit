@@ -22,7 +22,6 @@ from sound import (
     get_sound_files,
     play_timed_sound,
     play_period_warning,
-    normalise_period_warning_duration_ms,
     sounds_directory,
 )
 
