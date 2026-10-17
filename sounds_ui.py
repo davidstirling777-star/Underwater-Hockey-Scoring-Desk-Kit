@@ -607,7 +607,7 @@ def create_sounds_tab(app):
     ttk.Label(
         timing_frame,
         text="Number of seconds to play App-generated Siren",
-        anchor="w",
+        anchor="w", justify="left", wraplength=245,
     ).grid(row=0, column=0, sticky="ew", padx=(4, 10), pady=(12, 8))
 
     siren_duration_entry = ttk.Entry(
@@ -657,7 +657,7 @@ def create_sounds_tab(app):
     ttk.Label(
         timing_frame,
         text="Maximum Timed Siren Duration — App & Zigbee (seconds)",
-        anchor="w",
+        anchor="w", justify="left", wraplength=245,
     ).grid(row=1, column=0, sticky="ew", padx=(4, 10), pady=8)
 
     max_siren_duration_entry = ttk.Entry(
