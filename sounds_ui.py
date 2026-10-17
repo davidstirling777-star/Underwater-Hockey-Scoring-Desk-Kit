@@ -1,8 +1,10 @@
 """Sounds tab: per-file trims, selection, output reporting and timing.
 
-The tab lists up to ten pip files and ten siren files discovered in Sounds/.
+The tab lists up to eight pip files and eight siren files discovered in Sounds/.
 Each row always shows a radio selector, filename cell and Trim % cell so the
 tables retain a deliberate fixed-grid appearance. Unused rows are disabled.
+The independent 30-second warning cue has one pip-file dropdown, its own
+attenuation trim and a configurable playback length in milliseconds.
 Each file has an attenuation-only Trim % (0-100). Overall system loudness is
 left to the operating system, DAC and amplifier. Click a file row to make it
 the active pip/siren; double-click it to preview the current trim.
@@ -19,15 +21,17 @@ from sound import (
     check_audio_device_available,
     get_sound_files,
     play_timed_sound,
+    play_period_warning,
+    normalise_period_warning_duration_ms,
     sounds_directory,
 )
 
 
-MAX_SOUND_ROWS = 10
+MAX_SOUND_ROWS = 8
 
 
 def _visible_files(files, selected):
-    """Return at most ten files, keeping the active selection visible."""
+    """Return at most eight files, keeping the active selection visible."""
     files = list(files)
     if len(files) <= MAX_SOUND_ROWS:
         return files
@@ -61,7 +65,8 @@ def create_sounds_tab(app):
     sounds_widget.grid_columnconfigure(0, weight=5, minsize=430)
     sounds_widget.grid_columnconfigure(1, weight=3, minsize=300)
     sounds_widget.grid_rowconfigure(2, weight=1)
-    sounds_widget.grid_rowconfigure(3, weight=1)
+    sounds_widget.grid_rowconfigure(3, weight=0)
+    sounds_widget.grid_rowconfigure(4, weight=1)
 
     sound_files = get_sound_files()
     if sound_files == ["No sound files found"]:
@@ -81,6 +86,17 @@ def create_sounds_tab(app):
 
     pips_files = _visible_files(all_pips, app.pips_var.get())
     siren_files = _visible_files(all_sirens, app.siren_var.get())
+    # Preferred naming is pip-*.mp3/wav, but keep existing pip files usable
+    # if their names only contain 'pip' instead of starting with it.
+    warning_files = [name for name in all_pips if name.lower().startswith("pip")]
+    if not warning_files:
+        warning_files = all_pips
+    if app.period_warning_file_var.get() not in warning_files:
+        fallback = app.pips_var.get()
+        app.period_warning_file_var.set(
+            fallback if fallback in warning_files
+            else (warning_files[0] if warning_files else "")
+        )
 
     # Tk variables exist only for currently displayed files. app.sound_trims
     # remains the persistent in-memory dictionary, including trims for files
@@ -200,8 +216,28 @@ def create_sounds_tab(app):
                 f"{type(error).__name__}: {error}"
             )
 
+    def preview_period_warning():
+        """Preview the special warning with its own trim and duration."""
+        filename = app.period_warning_file_var.get()
+        if not filename or not ensure_audio_device("period warning"):
+            return
+        try:
+            trim = int(app.period_warning_trim.get().strip())
+            milliseconds = int(app.period_warning_duration_ms.get().strip())
+            if not 0 <= trim <= 100 or not 50 <= milliseconds <= 5000:
+                raise ValueError
+        except (ValueError, tk.TclError):
+            messagebox.showerror(
+                "Invalid Warning Settings",
+                "Set warning Trim % to 0–100 and duration to 50–5000 ms.",
+            )
+            return
+        play_period_warning(filename, app.enable_sound, trim, milliseconds)
+        app_log(f"30-second warning preview: {filename} "
+                f"(Trim: {trim}%, duration: {milliseconds} ms)")
+
     def build_sound_table(parent, title, files, selection_var, sound_type):
-        """Build one polished fixed ten-row selector/filename/trim table."""
+        """Build one polished fixed eight-row selector/filename/trim table."""
         frame = ttk.LabelFrame(
             parent,
             text=title,
@@ -339,7 +375,7 @@ def create_sounds_tab(app):
                         commit_trim(name, var),
                 )
             else:
-                # Keep the same three visible cells for all ten rows. The
+                # Keep the same three visible cells for all eight rows. The
                 # unused radio button has a unique sentinel value so it never
                 # appears selected when the real selection variable is empty.
                 disabled_background = "#eeeeee"
@@ -478,6 +514,66 @@ def create_sounds_tab(app):
         pady=(0, 7),
     )
 
+    # One separate warning file and trim. Unlike the main Pips table trim,
+    # this remains independent even when both selectors use the same file.
+    warning_frame = ttk.LabelFrame(
+        sounds_widget,
+        text="30-second period warning",
+        padding=(8, 7),
+    )
+    warning_frame.grid(
+        row=3, column=0, sticky="nsew", padx=(0, 10), pady=(0, 7)
+    )
+    warning_table = tk.Frame(
+        warning_frame, borderwidth=1, relief="solid", background="#d6d6d6"
+    )
+    warning_table.grid(row=0, column=0, sticky="ew")
+    warning_frame.grid_columnconfigure(0, weight=1)
+    warning_table.grid_columnconfigure(0, minsize=54)
+    warning_table.grid_columnconfigure(1, minsize=250, weight=1)
+    warning_table.grid_columnconfigure(2, minsize=78)
+    header_style = dict(
+        font=("Arial", 10, "bold"), background="#e9e9e9",
+        borderwidth=1, relief="solid", pady=5,
+    )
+    for column, heading in enumerate(("Test", "Sound File", "Trim %")):
+        tk.Label(
+            warning_table, text=heading, anchor="center", **header_style
+        ).grid(row=0, column=column, sticky="nsew")
+
+    ttk.Button(
+        warning_table, text="Play", command=preview_period_warning,
+        state="normal" if warning_files else "disabled",
+    ).grid(row=1, column=0, sticky="nsew", padx=1, pady=1)
+    warning_combo = ttk.Combobox(
+        warning_table,
+        textvariable=app.period_warning_file_var,
+        values=warning_files,
+        state="readonly" if warning_files else "disabled",
+        font=("Arial", 10),
+    )
+    warning_combo.grid(row=1, column=1, sticky="ew", padx=5, pady=4)
+
+    warning_trim_cell = tk.Frame(
+        warning_table, background="#ffffff",
+        borderwidth=1, relief="solid", padx=5, pady=3,
+    )
+    warning_trim_cell.grid(row=1, column=2, sticky="nsew")
+    warning_trim_entry = ttk.Entry(
+        warning_trim_cell,
+        textvariable=app.period_warning_trim,
+        width=6, justify="center", font=("Arial", 10),
+        validate="key", validatecommand=trim_validation,
+    )
+    warning_trim_entry.pack(fill="x", expand=True)
+    if not warning_files:
+        warning_trim_entry.state(["disabled"])
+    ttk.Label(
+        warning_frame,
+        text="Separate from countdown pips. Press Play to preview the warning.",
+        anchor="w",
+    ).grid(row=1, column=0, sticky="ew", pady=(6, 0))
+
     siren_frame = build_sound_table(
         sounds_widget,
         "Sirens",
@@ -486,7 +582,7 @@ def create_sounds_tab(app):
         "siren",
     )
     siren_frame.grid(
-        row=3,
+        row=4,
         column=0,
         sticky="nsew",
         padx=(0, 10),
@@ -501,7 +597,7 @@ def create_sounds_tab(app):
     timing_frame.grid(
         row=2,
         column=1,
-        rowspan=2,
+        rowspan=3,
         sticky="nsew",
         padx=(0, 0),
         pady=(0, 0),
@@ -511,7 +607,7 @@ def create_sounds_tab(app):
 
     ttk.Label(
         timing_frame,
-        text="Number of seconds to play Siren",
+        text="Number of seconds to play App-generated Siren",
         anchor="w",
     ).grid(row=0, column=0, sticky="ew", padx=(4, 10), pady=(12, 8))
 
@@ -561,7 +657,7 @@ def create_sounds_tab(app):
 
     ttk.Label(
         timing_frame,
-        text="Maximum Siren Duration (seconds)",
+        text="Maximum Timed Siren Duration — App & Zigbee (seconds)",
         anchor="w",
     ).grid(row=1, column=0, sticky="ew", padx=(4, 10), pady=8)
 
@@ -608,11 +704,47 @@ def create_sounds_tab(app):
         normalize_max_siren_duration,
     )
 
+    ttk.Label(
+        timing_frame,
+        text="Number of milliseconds to play timed period warning signal",
+        anchor="w", justify="left", wraplength=245,
+    ).grid(row=2, column=0, sticky="ew", padx=(4, 10), pady=8)
+
+    warning_duration_entry = ttk.Entry(
+        timing_frame,
+        textvariable=app.period_warning_duration_ms,
+        width=10,
+    )
+    warning_duration_entry.grid(row=2, column=1, sticky="w", padx=(0, 10), pady=8)
+
+    def validate_warning_milliseconds(value):
+        return not value or (value.isdigit() and int(value) <= 5000)
+
+    warning_duration_entry.configure(
+        validate="key",
+        validatecommand=(timing_frame.register(validate_warning_milliseconds), "%P"),
+    )
+
+    def normalize_warning_milliseconds(event=None):
+        try:
+            value = int(app.period_warning_duration_ms.get().strip())
+            if not 50 <= value <= 5000:
+                raise ValueError
+        except (ValueError, tk.TclError):
+            messagebox.showerror(
+                "Invalid Period Warning Duration",
+                "Enter a whole number from 50 to 5000 milliseconds.",
+            )
+            app.period_warning_duration_ms.set("1000")
+
+    warning_duration_entry.bind("<FocusOut>", normalize_warning_milliseconds)
+    warning_duration_entry.bind("<Return>", normalize_warning_milliseconds)
+
     ttk.Separator(
         timing_frame,
         orient="horizontal",
     ).grid(
-        row=2,
+        row=3,
         column=0,
         columnspan=2,
         sticky="ew",
@@ -631,7 +763,7 @@ def create_sounds_tab(app):
         anchor="nw",
         wraplength=330,
     ).grid(
-        row=3,
+        row=4,
         column=0,
         columnspan=2,
         sticky="ew",
@@ -643,7 +775,7 @@ def create_sounds_tab(app):
         ttk.Label(
             timing_frame,
             text=(
-                "Up to 10 pip files and 10 siren files are shown. "
+                "Up to 8 pip files and 8 siren files are shown. "
                 "If more are present, the active selection is kept visible."
             ),
             font=("Arial", 9),
@@ -651,7 +783,7 @@ def create_sounds_tab(app):
             anchor="nw",
             wraplength=360,
         ).grid(
-            row=4,
+            row=5,
             column=0,
             columnspan=2,
             sticky="ew",
@@ -675,6 +807,18 @@ def save_sound_settings_method(app):
         )
         return
 
+    try:
+        warning_trim = int(app.period_warning_trim.get().strip())
+        warning_duration_ms = int(app.period_warning_duration_ms.get().strip())
+        if not 0 <= warning_trim <= 100 or not 50 <= warning_duration_ms <= 5000:
+            raise ValueError
+    except (ValueError, tk.TclError):
+        messagebox.showerror(
+            "Invalid Period Warning Settings",
+            "Warning trim must be 0–100%, and duration 50–5000 milliseconds.",
+        )
+        return
+
     for filename, trim_var in app.sound_trim_vars.items():
         try:
             trim = int(trim_var.get().strip())
@@ -692,6 +836,9 @@ def save_sound_settings_method(app):
     settings = {
         "pips_sound": app.pips_var.get(),
         "siren_sound": app.siren_var.get(),
+        "period_warning_sound": app.period_warning_file_var.get(),
+        "period_warning_trim": warning_trim,
+        "period_warning_duration_ms": warning_duration_ms,
         "sound_trims": {
             filename: int(round(value))
             for filename, value in sorted(app.sound_trims.items())
