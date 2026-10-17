@@ -586,16 +586,20 @@ results computer's combined CSV is the tournament's combined record.
 
 The Sounds tab reports **Audio output in use**. On Raspberry Pi/Linux it identifies the PipeWire system-default output selected when UWH started, including a HiFiBerry DAC+ or compatible I2S DAC when detected; on Windows it reports that the Windows system-default output is in use. UWH does not change the operating system's audio default. If you change the OS default while UWH is running, **restart UWH** so pygame opens the newly selected output.
 
-**Save Settings** stores the selected pip and siren files, the per-file **Trim %** values, the Enable Sound setting and the siren timing settings in the JSON file stored beside the application.
+**Save Settings** stores the selected pip and siren files, their per-file **Trim %** values, the separate 30-second warning sound/trim/duration, the Enable Sound setting and siren timing settings in the JSON file stored beside the application.
 
-The old Pips and Siren dropdown boxes have been replaced by two fixed tables. Each table shows up to **10 sound files** with the columns **Sound File** and **Trim %**:
+The Pips and Sirens tables each show up to **8 sound files**, with the columns **Use**, **Sound File** and **Trim %**:
 
 - The **Pips** table lists supported `.MP3` and `.WAV` files from the app-level `Sounds` folder whose filename contains `pip` (case-insensitive). For clarity, custom pip files should use names such as `pip-short-beep.mp3` or `pip-countdown.wav`.
 - The **Sirens** table lists supported files whose filename contains `siren` (case-insensitive). For clarity, custom siren files should use names such as `siren-air-horn.wav` or `siren-classic.mp3`.
 - A sound file that does not contain `pip` or `siren` in its filename will not appear in the corresponding table.
-- Each of the 10 rows has a radio-button position on the left. Exactly **one Pip** and **one Siren** can be selected at a time. Rows without a sound file remain visible but their radio button and Trim % field are disabled/greyed, keeping the table layout consistent. The selections are stored as `pips_sound` and `siren_sound` in `settings.json` and are restored when UWH starts.
+- Each of the 8 rows has a radio-button position on the left. Exactly **one countdown Pip** and **one Siren** can be selected at a time. Rows without a sound file remain visible but their radio button and Trim % field are disabled/greyed, keeping the table layout consistent. The selections are stored as `pips_sound` and `siren_sound` in `settings.json` and are restored when UWH starts.
 - Click the enabled radio button (or the filename) to make that file the active pip or siren. **Double-click** a filename to preview it using its current Trim %.
 - New sound files default to **100% Trim**.
+
+Between the two tables is a **30-second period warning** selector with a single dropdown of available `pip`-named files, its own **Trim %** column (the same width as in the two tables), and a **Play** preview button. This warning is emitted just before the timer displays **00:30** during break periods. Its file choice and trim are **independent of the 10-to-1-second countdown**, even when the same recording is selected in both places. For example, countdown pips can remain trimmed to 30% while the one-off 30-second warning plays at 100%. The warning trim defaults to **100%**, without changing the countdown pips' existing trim.
+
+Under **Siren timing**, **Number of milliseconds to play timed period warning signal** sets how long the warning is heard, in whole milliseconds (**50–5000 ms**, default **1000 ms**). A short pip recording loops up to that duration; a longer recording is stopped at the configured duration. The 10-to-1-second countdown pips still play their selected file once each, at their normal file length.
 
 **Trim %** is an attenuation-only correction for differences in the apparent loudness of individual sound files. The accepted range is **0–100%**: `100%` plays the file at its native level, `50%` attenuates it to half the playback amplitude used by UWH, and `0%` mutes that file. UWH deliberately does not boost files above their native level, avoiding a digital-gain stage that could introduce clipping.
 
@@ -689,7 +693,7 @@ UWH uses the per-file **Trim %** values for relative cue levels. The operating s
 
 **Siren** plays at pre-determined periods and also when the Chief Referee activates the button to stop or start play.
 
-**Number of seconds to play Siren** sets the requested duration of timed game and mapped wireless siren cycles. If the selected file is shorter, playback loops as needed. **Maximum Siren Duration (seconds)** independently caps each timed blast (default 10 seconds; allowed 1–30 seconds), including when the requested duration is longer.
+**Number of seconds to play App-generated Siren** sets the requested duration of game-period sirens and also supplies the per-cycle duration for mapped Zigbee timed sirens. If the selected file is shorter, playback loops as needed. **Maximum Timed Siren Duration — App & Zigbee (seconds)** independently caps each timed blast (default 10 seconds; allowed 1–30 seconds), including when the requested duration is longer. The wired Arduino hold-to-sound button does not use this timer.
 
 **Hardwired button (Arduino/serial):** the siren sounds while the button is held and stops when it is released. This differs from the timed Zigbee button behaviour.
 
@@ -715,7 +719,8 @@ The system automatically plays audio cues during different periods:
 
 #### Notes:
 
-- Pip sounds use the selected file in the **Pips** table and that file's **Trim %**.
+- At **00:30 remaining in a break**, the single warning uses the **30-second period warning** dropdown, its own **Trim %** and the configured millisecond duration.
+- At **10–1 seconds remaining**, countdown pip sounds use the **Pips** table's selected file and its per-file **Trim %**.
 - Siren sounds use the selected file in the **Sirens** table and that file's **Trim %**. The operating-system/DAC/amplifier volume remains the overall master level.
 - **Timed siren playback:** A short sound file loops until the configured duration is reached, subject to **Maximum Siren Duration**. The hardwired Arduino siren instead follows the button's physical press and release.
 - Game periods (halves) only play siren at the end, no countdown pips
@@ -739,9 +744,9 @@ If the checkbox beside **Team Time-Out Period** is selected, the Team Time-Out b
 
 **Add Goal Black** adds a goal to Black and, if the 'Record Scorers Cap Number' checkbox is ticked, opens the same scorer popup for the Black team. Unknown and Penalty Goal options are provided.
 
-**-ve Goal White** removes one goal from White after confirmation. It does nothing if White's score is already zero. If used during a break, Team Time-Out or Referee Time-Out, an additional warning is shown before the score is changed.
+**Minus Goal White** removes one goal from White after confirmation. It does nothing if White's score is already zero. If used during a break, Team Time-Out or Referee Time-Out, an additional warning is shown before the score is changed.
 
-**-ve Goal Black** removes one goal from Black after confirmation. It does nothing if Black's score is already zero. If used during a break, Team Time-Out or Referee Time-Out, an additional warning is shown before the score is changed.
+**Minus Goal Black** removes one goal from Black after confirmation. It does nothing if Black's score is already zero. If used during a break, Team Time-Out or Referee Time-Out, an additional warning is shown before the score is changed.
 
 **Referee Time-Out** pauses:
 - Court Time
@@ -1100,7 +1105,7 @@ The table describes **observed actions and their tested mappings**, not a univer
 
 | Observed Zigbee2MQTT `action` | Example UWH mapping |
 |---|---|
-| `single` | **One siren cycle** of **Number of seconds to play Siren** |
+| `single` | **One siren cycle** of **Number of seconds to play App-generated Siren** |
 | `double` | **Two siren cycles**, consecutive, with no deliberately programmed pause |
 | `hold` | **One siren cycle** for the tested button, which sends `hold` on release |
 | `emergency` | A separately configured mapping, such as **One siren cycle**, for a button that publishes `emergency` |
@@ -1210,7 +1215,7 @@ The frontend on port 8080 is **separate from MQTT**. Opening a webpage on PC 2 d
 | Windows broker works but Zigbee2MQTT does not start after boot | Set Mosquitto **Automatic**; confirm `pm2 save` under the task's Windows account and correct `pm2.cmd`/working directory; inspect Scheduler history. Do not run two PM2 instances. |
 | Pi MQTT fails with `ModuleNotFoundError` | Check `.venv/bin/python -m pip show paho-mqtt`, then run UWH using that same virtual environment. |
 | Frontend says adapter missing / port busy | Find the actual COM port or `/dev/serial/by-id`; confirm adapter type and permissions, and close any other program using the coordinator. |
-| Audible siren works but timing or level is different | Check the selected siren file and its **Trim %** in the **Sounds** tab, **Number of seconds to play Siren**, **Maximum Siren Duration**, and the operating-system/DAC/amplifier master volume. Arduino hold-to-sound differs from Zigbee timed actions. |
+| Audible siren works but timing or level is different | Check the selected siren file and its **Trim %** in the **Sounds** tab, **Number of seconds to play App-generated Siren**, **Maximum Siren Duration**, and the operating-system/DAC/amplifier master volume. Arduino hold-to-sound differs from Zigbee timed actions. |
 
 **Useful diagnostic commands** (use the correct host and authentication options for your broker):
 
