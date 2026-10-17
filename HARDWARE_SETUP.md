@@ -96,11 +96,12 @@ During October 2026 bench testing:
 
 - The 16.0 V amplifier supply stayed at **16.0 V measured directly across XH-M562 pin 3 (+ supply) and pin 2 (power ground)** while the siren sounded.
 - The PiFi DAC+ ALSA controls were set to **100%, 0.00 dB** (`Digital` and `Analogue`).
-- The RP5 PipeWire output level was set to **0.80 (80%)**; this placed R3 and R4 around the useful middle of their adjustment ranges in workshop tests.
+- The RP5 PipeWire output level was **0.80 (80%)** in workshop tests, but at the **October 2026 tournament the siren was too quiet**. The operator now intends to use **1.00 (100%)** as the venue starting point, then adjust the AIR/WATER amplifier controls cautiously.
 - The selected pip sound (`pip-beep.mp3`) was trimmed to **30%** relative to the selected siren (`siren-car-honk.mp3`) because the pip sounded disproportionately loud.
-- Verify that the preferred PipeWire volume and sound-file trims remain appropriate after restart and at the pool.
+- The tournament test confirmed that separate **pip trims are useful** and the **30-second warning pip requires independent file selection and trim** to remain audible over pool noise.
+- Verify that the selected PipeWire volume, cues and amplifier levels remain appropriate after restarting and at the venue.
 
-**These are provisional workshop settings.** Confirm AIR and WATER volume at the pool. Do not raise or lower the 16.0 V amplifier supply just to compensate for a software volume mismatch.
+**These are commissioning starting points, not fixed calibration values.** Check AIR and WATER levels at the venue. Do not raise or lower the 16.0 V amplifier supply just to compensate for a software volume mismatch.
 
 ### Check and set audio output
 
@@ -112,10 +113,10 @@ wpctl get-volume @DEFAULT_AUDIO_SINK@
 
 On the tested RP5, HDMI appeared as cards 0 and 1, and the DAC as **ALSA card 2**. Card and PipeWire sink numbers can change, so identify them each time rather than hard-coding them in scripts.
 
-To set the presently selected default audio sink to the **tested 80% starting point**:
+To set the presently selected default audio sink to the **100% starting point chosen after tournament testing**:
 
 ```bash
-wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.80
+wpctl set-volume @DEFAULT_AUDIO_SINK@ 1.00
 wpctl get-volume @DEFAULT_AUDIO_SINK@
 ```
 
@@ -180,7 +181,7 @@ For full power supply setup and bootloader commands, consult [README.md — Rasp
 - [ ] Verify the DAC is recognised and selected in `wpctl status`; restart UWH after changing the default audio sink.
 - [ ] For the current **PiFi DAC+ v2.0 → Pool Audio Zones Rev 2** connection, fit a **3.5 mm stereo TRS male-to-male cable** (two rings on both ends); never use the mono TS cable.
 - [ ] For the planned **genuine Raspberry Pi DAC+** production HAT, verify the DAC output connectors and left/right/ground mapping to the Pool Audio Zones Rev 2 stereo input; verify audio device/driver setup on that HAT.
-- [ ] Check RP5 audio level (currently **0.80** in workshop testing) and adjust R3/R4 gently from low volume.
+- [ ] Check RP5 audio level (**1.00** planned after field testing) and adjust R3/R4 gently from low volume; ensure the 30-second warning can be heard over pool noise.
 - [ ] Set pip/siren file trims in **Sounds** and test both cues at the actual venue.
 - [ ] Confirm the hardwired siren button and any mapped Zigbee actions.
 - [ ] Check both amplifier outputs and all isolation/grounding requirements.
