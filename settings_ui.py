@@ -1172,7 +1172,8 @@ def create_about_tab(app, readme_path):
         "davidstirling777@gmail.com.\n\n"
         "The conductor seems to be the star of the show, even though they do "
         "not make any noise. They even get to come on to the stage all on "
-        "their own, to rapturous applause."
+        "their own, to rapturous applause.\n"
+        "— Russell Torrance, Australian Broadcasting Corporation"
     )
     ttk.Label(
         outer,
