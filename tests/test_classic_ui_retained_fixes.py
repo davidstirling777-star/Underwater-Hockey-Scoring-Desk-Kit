@@ -99,10 +99,12 @@ class ClassicUiRetainedFixesTests(unittest.TestCase):
         self.assertIn("self.engine.clear_sudden_death_goal()", uwh)
         self.assertIn("self.engine.sudden_death_restore_active", uwh)
         self.assertIn("self.engine.sudden_death_restore_time", uwh)
+        # The tick remains scheduled through the drift-resistant helper.
+        # Do not couple this regression check to source-code line wrapping.
         self.assertIn(
-            "self.sudden_death_timer_job = self._after_one_second(\n"
-            "                self.start_sudden_death_timer",
-            uwh,
+            "self.sudden_death_timer_job = self._after_one_second("
+            "self.start_sudden_death_timer)",
+            " ".join(uwh.split()),
         )
 
     def test_release_returns_to_next_numeric_1_2_patch(self):
