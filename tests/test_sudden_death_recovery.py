@@ -88,6 +88,10 @@ class FakeClock:
 
 
 class FakeApp(load_uwh_methods()):
+    def _after_one_second(self, callback):
+        """Stand-in for the GUI monotonic scheduler in this isolated test."""
+        return self.master.after(1000, callback)
+
     def __init__(self):
         self.engine = GameEngine()
         self.engine.set_sequence([
