@@ -105,6 +105,8 @@ class FakeApp(load_callbacks()):
         self.load_settings = Mock()
         self.update_team_timeouts_allowed = Mock()
         self.update_overtime_variables_state = Mock()
+        # Visual label-state updates are separate from settings persistence.
+        self.update_optional_variable_labels = Mock()
         self._update_start_first_game_in = Mock()
         self._update_time_to_start_first_game = Mock()
 
