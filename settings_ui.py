@@ -1026,7 +1026,7 @@ def create_tournament_tab(app):
         ttk.Label(
             table,
             text=heading,
-            width=16,
+            width=16 if column == 0 else 24,
             **header_options,
         ).grid(row=0, column=column, sticky="nsew")
 
@@ -1051,7 +1051,7 @@ def create_tournament_tab(app):
             ttk.Entry(
                 table,
                 textvariable=variable,
-                width=16,
+                width=16 if column == 0 else 24,
                 validate="key",
                 validatecommand=manual_validation,
             ).grid(
