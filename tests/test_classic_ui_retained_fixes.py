@@ -100,9 +100,8 @@ class ClassicUiRetainedFixesTests(unittest.TestCase):
         self.assertIn("self.engine.sudden_death_restore_active", uwh)
         self.assertIn("self.engine.sudden_death_restore_time", uwh)
         self.assertIn(
-            "self.sudden_death_timer_job = self.master.after(\n"
-            "            1000,\n"
-            "            self.start_sudden_death_timer",
+            "self.sudden_death_timer_job = self._after_one_second(\n"
+            "                self.start_sudden_death_timer",
             uwh,
         )
 
