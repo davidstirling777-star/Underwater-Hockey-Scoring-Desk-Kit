@@ -57,7 +57,8 @@
         "team_timeouts_allowed": true,
         "overtime_allowed": true,
         "sudden_death_game_break": true,
-        "crib_time": true
+        "crib_time": true,
+        "record_scorers_cap_number": true
       }
     },
     {
