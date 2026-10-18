@@ -64,7 +64,7 @@
       "text": "Mini League",
       "values": {
         "team_timeout_period": "1",
-        "half_period": "5",
+        "half_period": "7",
         "half_time_break": "1.5",
         "overtime_game_break": "1",
         "overtime_half_period": "1",
