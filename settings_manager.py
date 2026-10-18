@@ -278,7 +278,8 @@ def get_default_unified_settings():
                 },
                 "checkboxes": {
                     "team_timeouts_allowed": True,
-                    "overtime_allowed": True
+                    "overtime_allowed": True,
+                    "record_scorers_cap_number": True
                 }
             },
             {"text": "2", "values": {}, "checkboxes": {}},
