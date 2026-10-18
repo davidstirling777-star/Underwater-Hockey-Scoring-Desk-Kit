@@ -750,6 +750,48 @@ def create_tournament_tab(app):
     # ------------------------------------------------------------
     # Starting game number
     # ------------------------------------------------------------
+    # ------------------------------------------------------------
+    # Court CSV numbering mode
+    # ------------------------------------------------------------
+    tk.Label(
+        widget4,
+        text="This court uses numbers:",
+        font=(
+            default_font.cget("family"),
+            default_font.cget("size")
+        ),
+        anchor="w"
+    ).grid(
+        row=2,
+        column=0,
+        sticky="w",
+        padx=8,
+        pady=(8, 2)
+    )
+    app.court_game_mode_dropdown = ttk.Combobox(
+        widget4,
+        textvariable=app.court_game_mode_var,
+        values=(
+            "even",
+            "odd",
+            "consecutive"
+        ),
+        state="readonly",
+        width=12
+    )
+    app.court_game_mode_dropdown.grid(
+        row=2,
+        column=1,
+        sticky="w",
+        padx=(4, 8),
+        pady=(8, 2)
+    )
+    app.court_game_mode_dropdown.bind(
+        "<<ComboboxSelected>>",
+        app.on_court_game_mode_changed
+    )
+
+    # ------------------------------------------------------------
     tk.Label(
         widget4,
         text="Starting Game #:",
@@ -759,7 +801,7 @@ def create_tournament_tab(app):
         ),
         anchor="w"
     ).grid(
-        row=2,
+        row=3,
         column=0,
         sticky="w",
         padx=8,
@@ -779,7 +821,7 @@ def create_tournament_tab(app):
         width=6
     )
     app.starting_game_dropdown.grid(
-        row=2,
+        row=3,
         column=1,
         sticky="w",
         padx=(4, 8),
@@ -790,48 +832,6 @@ def create_tournament_tab(app):
         app.on_game_selection_changed
     )
 
-    # ------------------------------------------------------------
-    # Court CSV numbering mode
-    # ------------------------------------------------------------
-    tk.Label(
-        widget4,
-        text="This court uses numbers:",
-        font=(
-            default_font.cget("family"),
-            default_font.cget("size")
-        ),
-        anchor="w"
-    ).grid(
-        row=2,
-        column=2,
-        sticky="e",
-        padx=(16, 4),
-        pady=(8, 2)
-    )
-    app.court_game_mode_dropdown = ttk.Combobox(
-        widget4,
-        textvariable=app.court_game_mode_var,
-        values=(
-            "even",
-            "odd",
-            "consecutive"
-        ),
-        state="readonly",
-        width=12
-    )
-    app.court_game_mode_dropdown.grid(
-        row=2,
-        column=3,
-        sticky="w",
-        padx=(4, 8),
-        pady=(8, 2)
-    )
-    app.court_game_mode_dropdown.bind(
-        "<<ComboboxSelected>>",
-        app.on_court_game_mode_changed
-    )
-
-    # ------------------------------------------------------------
     # Results: local file + optional third-computer synchronisation
     # ------------------------------------------------------------
     # The result filename is derived from the draw. This read-only dropdown
@@ -845,57 +845,57 @@ def create_tournament_tab(app):
         values=(), state="readonly", width=18
     )
     ttk.Label(widget4, text="Tournament Results:").grid(
-        row=3, column=0, sticky="w", padx=8, pady=(10, 2)
+        row=4, column=0, sticky="w", padx=8, pady=(10, 2)
     )
     app.tournament_results_dropdown.grid(
-        row=3, column=1, columnspan=3,
+        row=4, column=1, columnspan=3,
         sticky="ew", padx=4, pady=(10, 2)
     )
     ttk.Button(
         widget4, text="Results Folder", command=app.open_csv_folder
-    ).grid(row=3, column=4, sticky="ew", padx=(4, 8), pady=(10, 2))
+    ).grid(row=4, column=4, sticky="ew", padx=(4, 8), pady=(10, 2))
 
     app.tournament_sync_mode_var = tk.StringVar(
         master=app.master,
         value=sync_settings.get("mode", "Local only")
     )
     ttk.Label(widget4, text="Results sync:").grid(
-        row=4, column=0, sticky="w", padx=8, pady=2
+        row=5, column=0, sticky="w", padx=8, pady=2
     )
     ttk.Combobox(
         widget4, textvariable=app.tournament_sync_mode_var,
         values=("Local only", "Shared server"),
         state="readonly", width=18
-    ).grid(row=4, column=1, columnspan=3, sticky="ew", padx=4, pady=2)
+    ).grid(row=5, column=1, columnspan=3, sticky="ew", padx=4, pady=2)
 
     app.tournament_sync_url_var = tk.StringVar(
         master=app.master,
         value=sync_settings.get("server_url", "")
     )
     ttk.Label(widget4, text="Server URL:").grid(
-        row=5, column=0, sticky="w", padx=8, pady=2
+        row=6, column=0, sticky="w", padx=8, pady=2
     )
     ttk.Entry(
         widget4, textvariable=app.tournament_sync_url_var,
         width=30
-    ).grid(row=5, column=1, columnspan=4,
+    ).grid(row=6, column=1, columnspan=4,
            sticky="ew", padx=(4, 8), pady=2)
 
     app.tournament_sync_token_var = tk.StringVar(
         master=app.master, value=sync_settings.get("token", "")
     )
     ttk.Label(widget4, text="Access token:").grid(
-        row=6, column=0, sticky="w", padx=8, pady=2
+        row=7, column=0, sticky="w", padx=8, pady=2
     )
     ttk.Entry(
         widget4, textvariable=app.tournament_sync_token_var,
         show="*", width=20
-    ).grid(row=6, column=1, columnspan=3,
+    ).grid(row=7, column=1, columnspan=3,
            sticky="ew", padx=4, pady=2)
     ttk.Button(
         widget4, text="Save & Sync",
         command=app.save_tournament_sync_configuration
-    ).grid(row=6, column=4, sticky="ew", padx=(4, 8), pady=2)
+    ).grid(row=7, column=4, sticky="ew", padx=(4, 8), pady=2)
 
     app.tournament_sync_status_var = tk.StringVar(
         master=app.master,
@@ -905,11 +905,11 @@ def create_tournament_tab(app):
         widget4, textvariable=app.tournament_sync_status_var,
         font=(default_font.cget("family"), small_size),
         wraplength=490, justify="left"
-    ).grid(row=7, column=0, columnspan=4,
+    ).grid(row=8, column=0, columnspan=4,
            sticky="ew", padx=8, pady=(6, 2))
     ttk.Button(
         widget4, text="Sync Now", command=app.tournament_sync.wake
-    ).grid(row=7, column=4, sticky="ew", padx=(4, 8), pady=(6, 2))
+    ).grid(row=8, column=4, sticky="ew", padx=(4, 8), pady=(6, 2))
 
     # Create/resume results immediately but never make the network a
     # prerequisite for selecting or finishing a match.
@@ -932,7 +932,7 @@ def create_tournament_tab(app):
         anchor="nw", justify="left", wraplength=600
     )
     csv_comment.grid(
-        row=8, column=0, columnspan=5,
+        row=9, column=0, columnspan=5,
         sticky="nw", padx=8, pady=(6, 4)
     )
 
@@ -945,7 +945,7 @@ def create_tournament_tab(app):
         padding=(8, 7),
     )
     manual_draw.grid(
-        row=9,
+        row=10,
         column=0,
         columnspan=5,
         sticky="ew",
