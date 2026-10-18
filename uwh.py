@@ -20,6 +20,7 @@ import display_manager
 import display_ui
 import game_flow
 import game_logging
+from clock_timing import OneSecondDeadline
 import game_settings_manager
 import hardware_detection
 import penalties_ui
@@ -2967,6 +2968,22 @@ class GameManagementApp:
                     break
 
 
+    def _after_one_second(self, callback):
+        """Use monotonic deadlines to prevent accumulating Tk callback latency."""
+        if not hasattr(self, "_second_deadlines"):
+            self._second_deadlines = {}
+        key = callback.__name__
+        timer = self._second_deadlines.setdefault(key, OneSecondDeadline())
+        if timer.deadline is not None and timer.clock() - timer.deadline > 2.0:
+            timer.reset()
+        return self.master.after(timer.next_delay_ms(), callback)
+
+    def _reset_second_deadlines(self):
+        """Reset clock phase on period or timeout changes."""
+        if hasattr(self, "_second_deadlines"):
+            for deadline in self._second_deadlines.values():
+                deadline.reset()
+
     def start_current_period(self):
         """Apply the chosen period's timer, widgets and sound cues.
         """
@@ -2975,6 +2992,7 @@ class GameManagementApp:
 
         cur_period = self.engine.get_current_period()
 
+        self._reset_second_deadlines()
         # Cancel any old Between Game Break jobs before configuring
         # the current period. New jobs are scheduled after the effective
         # break duration has been adjusted for crib time.
@@ -3207,10 +3225,7 @@ class GameManagementApp:
 
             # Arm the first tick before secondary UI/log work so an unrelated
             # display callback cannot silently stop the count-up.
-            self.sudden_death_timer_job = self.master.after(
-                1000,
-                self.start_sudden_death_timer
-            )
+            self.sudden_death_timer_job = self._after_one_second(self.start_sudden_death_timer)
             self.update_timer_display()
 
             event_name = self.engine.period_start_event_name(
@@ -3233,10 +3248,7 @@ class GameManagementApp:
                 self.master.after_cancel(self.timer_job)
                 self.timer_job = None
 
-            self.timer_job = self.master.after(
-                1000,
-                self.countdown_timer
-            )
+            self.timer_job = self._after_one_second(self.countdown_timer)
 
             event_name = self.engine.period_start_event_name(
                 cur_period["name"]
@@ -3420,7 +3432,7 @@ class GameManagementApp:
         if self._game_export_timer_was_running:
             self.engine.start_timer()
             if self.timer_job is None and self.engine.timer_seconds > 0:
-                self.timer_job = self.master.after(1000, self.countdown_timer)
+                self.timer_job = self._after_one_second(self.countdown_timer)
         self._game_export_timer_was_running = False
 
         self.next_game_preview_active = False
@@ -3478,10 +3490,7 @@ class GameManagementApp:
         self.engine.sudden_death_seconds += 1
 
         # Schedule the next tick before presentation callbacks.
-        self.sudden_death_timer_job = self.master.after(
-            1000,
-            self.start_sudden_death_timer
-        )
+        self.sudden_death_timer_job = self._after_one_second(self.start_sudden_death_timer)
         self.update_timer_display()
 
     def goto_between_game_break(self):
@@ -3565,10 +3574,7 @@ class GameManagementApp:
             self.engine.decrement_timer()
             self.update_timer_display()
 
-            self.timer_job = self.master.after(
-                1000,
-                self.countdown_timer
-            )
+            self.timer_job = self._after_one_second(self.countdown_timer)
 
         else:
             self.next_period()
@@ -3610,6 +3616,7 @@ class GameManagementApp:
             return
         
         self.in_timeout = True
+        self._reset_second_deadlines()
         self.engine.start_timeout("White")
         self.court_time_paused = True
         if not preserve_saved_state:
@@ -3625,7 +3632,7 @@ class GameManagementApp:
         self.half_label_var.set("White Team Time-Out")
         self.update_half_label_background("White Team Time-Out")
         self.update_timer_display()
-        self.timer_job = self.master.after(1000, self.timeout_countdown)
+        self.timer_job = self._after_one_second(self.timeout_countdown)
 
     def black_team_timeout(self, preserve_saved_state=False):
         """Start or resume the Black team's timeout.
@@ -3647,6 +3654,7 @@ class GameManagementApp:
             return
         
         self.in_timeout = True
+        self._reset_second_deadlines()
         self.engine.start_timeout("Black")
         self.court_time_paused = True
         if not preserve_saved_state:
@@ -3662,7 +3670,7 @@ class GameManagementApp:
         self.half_label_var.set("Black Team Time-Out")
         self.update_half_label_background("Black Team Time-Out")
         self.update_timer_display()
-        self.timer_job = self.master.after(1000, self.timeout_countdown)
+        self.timer_job = self._after_one_second(self.timeout_countdown)
 
     def timeout_countdown(self):
         """Update the active timeout and its displayed count.
@@ -3713,7 +3721,7 @@ class GameManagementApp:
             self.engine.decrement_timer()
             self.update_timer_display()
 
-            self.timer_job = self.master.after(1000, self.timeout_countdown)
+            self.timer_job = self._after_one_second(self.timeout_countdown)
 
         else:
             self.end_timeout()
@@ -3722,6 +3730,7 @@ class GameManagementApp:
         """End a team timeout and restore the interrupted game timer.
         """
         self.in_timeout = False
+        self._reset_second_deadlines()
         prev_active_team = self.engine.active_timeout_team
         self.engine.end_timeout()
         self.court_time_paused = False
@@ -3775,10 +3784,7 @@ class GameManagementApp:
         # No second time-out started. Restore the original game clock,
         # but only if it was running before the time-out.
         if self.engine.timer_running:
-            self.timer_job = self.master.after(
-                1000,
-                self.countdown_timer
-            )
+            self.timer_job = self._after_one_second(self.countdown_timer)
 
         print(
             "TEAM TIMEOUT END:",
@@ -4236,22 +4242,13 @@ class GameManagementApp:
                     self.master.after_cancel(self.timer_job)
                     self.timer_job = None
 
-                self.timer_job = self.master.after(
-                    1000,
-                    self.timeout_countdown
-                )
+                self.timer_job = self._after_one_second(self.timeout_countdown)
 
             elif was_sudden_death and self.engine.timer_running:
-                self.sudden_death_timer_job = self.master.after(
-                    1000,
-                    self.start_sudden_death_timer
-                )
+                self.sudden_death_timer_job = self._after_one_second(self.start_sudden_death_timer)
 
             elif self.engine.timer_running:
-                self.timer_job = self.master.after(
-                    1000,
-                    self.countdown_timer
-                )
+                self.timer_job = self._after_one_second(self.countdown_timer)
 
             if not self.court_time_paused:
                 self.court_time_job = self.master.after(
@@ -4273,7 +4270,7 @@ class GameManagementApp:
         # Update the referee timeout timer label
         self.referee_timeout_timer_var.set(f"Ref Time-Out: {int(mins):02d}:{int(secs):02d}")
         self.referee_timeout_elapsed += 1
-        self.timer_job = self.master.after(1000, self.referee_timeout_countup)
+        self.timer_job = self._after_one_second(self.referee_timeout_countup)
 
     def restore_sudden_death_after_goal_removal(self):
         """Restore Sudden Death after correcting the deciding goal.

@@ -47,6 +47,7 @@ a = Analysis(
         ("assets/pip-countdown-beep.mp3", "Sounds"),
         ("assets/pip-notification.mp3", "Sounds"),
         ("assets/pip-short-tone.mp3", "Sounds"),
+        ("assets/pip-whistle.mp3", "Sounds"),
         ("assets/siren-car-honk.mp3", "Sounds"),
         ("assets/siren-machinegun.mp3", "Sounds"),
         ("assets/siren-police.mp3", "Sounds"),

@@ -178,6 +178,10 @@ class FakeTransition(_load_transition_method(), FakeApp):
         self.update_penalty_display = Mock()
         self.countdown_timer = Mock()
 
+    def _after_one_second(self, callback):
+        """Provide the scheduling interface used by the real application."""
+        return self.master.after(1000, callback)
+
     def _show_game_export_error(self, why):
         self.warnings.append(why)
         self._game_export_timer_was_running = self.engine.timer_running

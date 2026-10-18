@@ -2,6 +2,9 @@
   "soundSettings": {
     "pips_sound": "pip-beep.mp3",
     "siren_sound": "siren-car-honk.mp3",
+    "period_warning_sound": "pip-whistle.mp3",
+    "period_warning_trim": 100,
+    "period_warning_duration_ms": 1000,
     "sound_trims": {},
     "enable_sound": true,
     "siren_duration": 2,

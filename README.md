@@ -597,9 +597,9 @@ The Pips and Sirens tables each show up to **8 sound files**, with the columns *
 - Click the enabled radio button (or the filename) to make that file the active pip or siren. **Double-click** a filename to preview it using its current Trim %.
 - New sound files default to **100% Trim**.
 
-Between the two tables is a **30-second period warning** selector with a single dropdown of available `pip`-named files, its own **Trim %** column (the same width as in the two tables), and a **Play** preview button. This warning is emitted just before the timer displays **00:30** during break periods. Its file choice and trim are **independent of the 10-to-1-second countdown**, even when the same recording is selected in both places. For example, countdown pips can remain trimmed to 30% while the one-off 30-second warning plays at 100%. The warning trim defaults to **100%**, without changing the countdown pips' existing trim.
+Between the two tables is a **30-second period warning** selector with a single dropdown of available `pip`-named files, its own **Trim %** column (the same width as in the two tables), and a double-click filename preview (no separate Test column). This warning is emitted just before the timer displays **00:30** during break periods. Its file choice and trim are **independent of the 10-to-1-second countdown**, even when the same recording is selected in both places. For example, countdown pips can remain trimmed to 30% while the one-off 30-second warning plays at 100%. The warning trim defaults to **100%**, without changing the countdown pips' existing trim.
 
-Under **Siren timing**, **Number of milliseconds to play timed period warning signal** sets how long the warning is heard, in whole milliseconds (**50–5000 ms**, default **1000 ms**). A short pip recording loops up to that duration; a longer recording is stopped at the configured duration. The 10-to-1-second countdown pips still play their selected file once each, at their normal file length.
+Under **Siren timing**, **Number of milliseconds to play timed period warning (30 second warning) signal** sets how long the warning is heard, in whole milliseconds (**50–5000 ms**, default **1000 ms**). A short pip recording loops up to that duration; a longer recording is stopped at the configured duration. The 10-to-1-second countdown pips still play their selected file once each, at their normal file length.
 
 **Trim %** is an attenuation-only correction for differences in the apparent loudness of individual sound files. The accepted range is **0–100%**: `100%` plays the file at its native level, `50%` attenuates it to half the playback amplitude used by UWH, and `0%` mutes that file. UWH deliberately does not boost files above their native level, avoiding a digital-gain stage that could introduce clipping.
 
@@ -748,7 +748,7 @@ If the checkbox beside **Team Time-Out Period** is selected, the Team Time-Out b
 
 **Minus Goal Black** removes one goal from Black after confirmation. It does nothing if Black's score is already zero. If used during a break, Team Time-Out or Referee Time-Out, an additional warning is shown before the score is changed.
 
-**Referee Time-Out** pauses:
+**CMAS final-two-minute clock procedure:** The software cannot infer from a siren whether the referee is stopping play or restarting it. When the referee directs that the clock be stopped (including the special final-two-minute situation), the operator uses **Referee Time-Out** and releases it on the referee's restart instruction. No automatic final-two-minute siren interpretation is planned. **Team timeouts:** At the end of a team timeout, the existing programmed siren and automatic return to game timing remain unchanged, following referee consultation. No rapid-buzz substitute is being implemented. See [CMAS timing and local sound preferences](CMAS_TIMING.md).\n\n**Referee Time-Out** pauses:
 - Court Time
 - The active game timer
 - Team Time-Out timers

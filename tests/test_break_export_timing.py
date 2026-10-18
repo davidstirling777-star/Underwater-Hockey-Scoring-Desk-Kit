@@ -125,6 +125,10 @@ class Harness(CountdownCode):
         self.clear_all_penalties = Mock()
         self.start_current_period = Mock()
 
+    def _after_one_second(self, callback):
+        """Headless replacement for the GUI monotonic tick scheduler."""
+        return self.master.after(1000, callback)
+
     def get_sound_trim(self, filename):
         return self.sound_trims.get(filename, 100)
 
