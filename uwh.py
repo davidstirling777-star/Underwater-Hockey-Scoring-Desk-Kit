@@ -2312,6 +2312,9 @@ class GameManagementApp:
                     widget["entry"].delete(0, tk.END)
                     break
         
+        if var_name in ("sudden_death_game_break", "record_scorers_cap_number"):
+            self.update_optional_variable_labels()
+
         # Only rebuild game sequence if the variable affects the sequence structure
         # Variables that don't affect game sequence: record_scorers_cap_number, team_timeouts_allowed, crib_time
         if var_name not in ["record_scorers_cap_number", "team_timeouts_allowed", "crib_time"]:
@@ -2770,7 +2773,29 @@ class GameManagementApp:
         self.build_game_sequence()
         self.save_game_settings()
 
+    def update_optional_variable_labels(self):
+        """Grey checkbox-controlled labels when their option is disabled.
+
+        This is purely presentation: stored settings and timer values remain
+        unchanged, and toggling a checkbox immediately refreshes its label.
+        """
+        for widget in getattr(self, "widgets", []):
+            name = widget.get("name")
+            if name not in ("sudden_death_game_break", "record_scorers_cap_number"):
+                continue
+            checkbox = widget.get("checkbox")
+            label = widget.get("label_widget")
+            if checkbox is None or label is None:
+                continue
+            enabled = bool(checkbox.get())
+            label.config(fg="black" if enabled else "grey")
+            if name == "sudden_death_game_break":
+                entry = widget.get("entry")
+                if entry is not None:
+                    entry.config(state="normal" if enabled else "disabled")
+
     def update_overtime_variables_state(self):
+        self.update_optional_variable_labels()
         overtime_enabled = self.overtime_allowed_var.get()
         for widget in self.widgets:
             name = widget.get("name", "")
