@@ -20,7 +20,12 @@ def load_uwh_methods(*names):
                        body=methods, decorator_list=[])
     compiled = ast.fix_missing_locations(ast.Module(body=[cls], type_ignores=[]))
     namespace = {"game_flow": game_flow,
-                 "play_timed_sound": lambda *args: SOUNDS.append(args[1])}
+                 "play_timed_sound": lambda *args: SOUNDS.append(args[1]),
+                 "sound": type("AudioStub", (), {
+                     "play_period_warning": staticmethod(
+                         lambda *args: SOUNDS.append("warning")
+                     )
+                 })}
     exec(compile(compiled, str(path), "exec"), namespace)
     return namespace["CountdownCode"]
 
@@ -105,6 +110,9 @@ class Harness(CountdownCode):
         self.starting_game_var = Var("1")
         self.siren_var = Var("siren.mp3")
         self.pips_var = Var("pip.mp3")
+        self.period_warning_file_var = Var("pip-warning.mp3")
+        self.period_warning_trim = Var("100")
+        self.period_warning_duration_ms = Var("1000")
         self.enable_sound = Var(True)
         self.sound_trims = {"pip.mp3": 50, "siren.mp3": 60}
         self.siren_duration = Var(1.5)
@@ -153,7 +161,7 @@ class BreakExportTimingTests(unittest.TestCase):
         app = Harness(31)
         app.countdown_timer()
         self.assertEqual(app.events, ["export", "advance"])
-        self.assertEqual(SOUNDS, ["pips"])
+        self.assertEqual(SOUNDS, ["warning"])
         self.assertEqual(app.engine.timer_seconds, 30)
         self.assertTrue(app.next_game_transition_done)
 
@@ -177,7 +185,7 @@ class BreakExportTimingTests(unittest.TestCase):
         self.assertEqual(app.engine.timer_seconds, 31)
         self.assertEqual(SOUNDS, [])
         app.countdown_timer()
-        self.assertEqual(SOUNDS, ["pips"])
+        self.assertEqual(SOUNDS, ["warning"])
         self.assertEqual(app.engine.timer_seconds, 30)
         self.assertEqual(app.events.count("export"), 2)
         self.assertEqual(app.events.count("advance"), 1)
@@ -202,12 +210,19 @@ class BreakExportTimingTests(unittest.TestCase):
         app.engine.advance_period.assert_called_once_with(0, 0)
         app.start_current_period.assert_called_once_with()
 
+    def test_countdown_pips_remain_separate_at_eleven_seconds(self):
+        app = Harness(11)
+        app.next_game_transition_done = True
+        app.countdown_timer()
+        self.assertEqual(SOUNDS, ["pips"])
+        self.assertEqual(app.engine.timer_seconds, 10)
+
     def test_export_is_not_duplicated_on_subsequent_pips(self):
         app = Harness(31)
         app.countdown_timer()
         app.countdown_timer()
         self.assertEqual(app.events.count("export"), 1)
-        self.assertEqual(SOUNDS, ["pips"])
+        self.assertEqual(SOUNDS, ["warning"])
 
 
 if __name__ == "__main__":

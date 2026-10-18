@@ -60,8 +60,10 @@ def _load_sound_functions(sound_object):
     module = ast.parse(path.read_text(encoding="utf-8"))
     names = {
         "normalise_max_siren_duration",
+        "normalise_period_warning_duration_ms",
         "normalise_trim_percent",
         "play_timed_sound",
+        "play_period_warning",
         "_play_timed_sound_sync",
         "start_timed_siren",
     }
@@ -239,6 +241,44 @@ class TimedSoundTests(unittest.TestCase):
         self.play(enabled=False)
         self.assertEqual(DeferredThread.created, [])
         self.assertEqual(self.sound.calls, [])
+
+    def test_period_warning_defaults_and_bounds(self):
+        normalize = self.api["normalise_period_warning_duration_ms"]
+        self.assertEqual(normalize("750"), 750)
+        self.assertEqual(normalize(50), 50)
+        self.assertEqual(normalize(5000), 5000)
+        for invalid in (None, 0, 49, 5001, "no", "500.5", float("inf")):
+            with self.subTest(value=invalid):
+                self.assertEqual(normalize(invalid), 1000)
+
+    def test_warning_is_independent_from_normal_countdown_pip(self):
+        # Ordinary countdown pip remains a full single play at its own trim.
+        self.play(kind="pips", filename="pip.mp3", trim=30)
+        self.assertEqual(self.sound.calls, [{}])
+        self.assertEqual(self.sound.volume, 0.3)
+
+        # The separate 30-second cue may use the same recording with a higher
+        # dedicated trim and a one-second loop/cutoff.
+        self.api["play_period_warning"]("pip.mp3", True, 100, "1000")
+        DeferredThread.created[-1].run()
+        self.assertEqual(self.sound.calls, [
+            {}, {"loops": -1, "maxtime": 1000}
+        ])
+        self.assertEqual(self.sound.volume, 1.0)
+
+    def test_warning_snapshots_tk_duration_on_ui_thread(self):
+        tk_duration = TkDuration("650")
+        self.api["play_period_warning"]("pip.mp3", True, 85, tk_duration)
+        self.assertEqual(tk_duration.calls, 1)
+        self.assertEqual(DeferredThread.created[-1].args[-2:], (0.65, 5.0))
+        DeferredThread.created[-1].run()
+        self.assertEqual(tk_duration.calls, 1)
+        self.assertEqual(self.sound.calls, [{"loops": -1, "maxtime": 650}])
+        self.assertEqual(self.sound.volume, 0.85)
+
+    def test_warning_disabled_makes_no_audio_thread(self):
+        self.api["play_period_warning"]("pip.mp3", False, 100, 1000)
+        self.assertEqual(DeferredThread.created, [])
 
 
 if __name__ == "__main__":

@@ -214,6 +214,9 @@ def get_default_unified_settings():
         "soundSettings": {
             "pips_sound": "Default",
             "siren_sound": "Default",
+            "period_warning_sound": "Default",
+            "period_warning_trim": 100,
+            "period_warning_duration_ms": 1000,
             "sound_trims": {},
             "enable_sound": True,
             "siren_duration": 1.5,

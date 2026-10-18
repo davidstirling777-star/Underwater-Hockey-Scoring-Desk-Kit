@@ -1083,6 +1083,24 @@ class GameManagementApp:
         self.pips_var = tk.StringVar(value=pips_default)
         self.siren_var = tk.StringVar(value=siren_default)
 
+        # The single 30-second warning has its own selectable file and trim,
+        # separate from the ten-second countdown pips. Existing settings
+        # retain their pip file as the warning's default until changed.
+        warning_default = sound_settings.get("period_warning_sound", pips_default)
+        if warning_default not in pips_files:
+            warning_default = pips_default
+        self.period_warning_file_var = tk.StringVar(value=warning_default)
+        self.period_warning_trim = tk.StringVar(
+            value=str(int(round(sound.normalise_trim_percent(
+                sound_settings.get("period_warning_trim", 100)
+            ))))
+        )
+        self.period_warning_duration_ms = tk.StringVar(
+            value=str(sound.normalise_period_warning_duration_ms(
+                sound_settings.get("period_warning_duration_ms", 1000)
+            ))
+        )
+
         # Per-file trims default to 100%. When upgrading an older settings
         # file, preserve the previous selected Pips/Siren software levels for
         # those two selected files so the first upgraded run does not jump in
@@ -3517,17 +3535,30 @@ class GameManagementApp:
                 and self.engine.should_play_break_countdown_pip(cur_period)
             ):
                 try:
-                    play_timed_sound(
-                        self.pips_var.get(),
-                        "pips",
-                        self.enable_sound,
-                        self.get_sound_trim(self.pips_var.get()),
-                        self.siren_duration,
-                        self.max_siren_duration
-                    )
+                    if self.engine.timer_seconds == 31:
+                        # The 00:30 signal is an independent, duration-limited
+                        # cue. Its trim must not be tied to countdown pip trim,
+                        # even if the operator chooses the same sound file.
+                        sound.play_period_warning(
+                            self.period_warning_file_var.get(),
+                            self.enable_sound,
+                            self.period_warning_trim,
+                            self.period_warning_duration_ms,
+                        )
+                    else:
+                        # The 10..1 s countdown retains the original pip
+                        # selection, per-file trim and full one-shot playback.
+                        play_timed_sound(
+                            self.pips_var.get(),
+                            "pips",
+                            self.enable_sound,
+                            self.get_sound_trim(self.pips_var.get()),
+                            self.siren_duration,
+                            self.max_siren_duration
+                        )
                 except Exception as e:
                     print(
-                        f"Error playing break countdown pip at "
+                        f"Error playing break pip at "
                         f"{self.engine.timer_seconds}s: {e}"
                     )
 

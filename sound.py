@@ -234,6 +234,22 @@ def normalise_max_siren_duration(value):
     return 10.0
 
 
+def normalise_period_warning_duration_ms(value):
+    """Return the duration of the independent 30-second cue in milliseconds.
+
+    Keep the warning short enough not to overlap the final countdown pips.
+    A missing or invalid saved value uses a clear one-second warning.
+    Read Tk variables only from the UI thread.
+    """
+    try:
+        milliseconds = int(str(_get_value(value)).strip())
+        if 50 <= milliseconds <= 5000:
+            return milliseconds
+    except (TypeError, ValueError, OverflowError):
+        pass
+    return 1000
+
+
 def _normalise_filename(filename):
     """Return a stripped filename string, or an empty string."""
     return str(filename).strip() if filename is not None else ""
@@ -495,6 +511,34 @@ def play_timed_sound(
     sound_thread.start()
 
 
+def play_period_warning(filename, enable_sound, trim_percent, duration_ms):
+    """Play the selected 30-second warning file for exactly duration_ms.
+
+    The warning has its own selection, trim and duration; normal countdown
+    pips still play once at their original file length. Snapshot any Tk
+    variables before starting the playback thread.
+    """
+    sound_enabled = _get_value(enable_sound)
+    filename = _normalise_filename(filename)
+    if not sound_enabled or not _is_valid_sound_selection(filename):
+        return
+
+    milliseconds = normalise_period_warning_duration_ms(duration_ms)
+    sound_thread = threading.Thread(
+        target=_play_timed_sound_sync,
+        args=(
+            filename,
+            "period_warning",
+            sound_enabled,
+            _normalise_volume(trim_percent),
+            milliseconds / 1000.0,
+            5.0,
+        ),
+        daemon=True,
+    )
+    sound_thread.start()
+
+
 def _play_timed_sound_sync(
     filename,
     sound_type,
@@ -503,7 +547,7 @@ def _play_timed_sound_sync(
     siren_duration,
     max_siren_duration=10.0
 ):
-    """Play a pip once or a siren for the configured duration."""
+    """Play a pip once, or loop a bounded siren/period warning cue."""
     if not enable_sound:
         return
 
@@ -522,17 +566,23 @@ def _play_timed_sound_sync(
             )
             return
 
-        if sound_type == "siren":
+        if sound_type in ("siren", "period_warning"):
             try:
                 duration_seconds = float(siren_duration)
             except (TypeError, ValueError):
                 duration_seconds = 0.0
 
             if not math.isfinite(duration_seconds) or duration_seconds <= 0:
-                print("Siren playback skipped: duration must be positive.")
+                print("Timed playback skipped: duration must be positive.")
                 return
 
-            max_duration = normalise_max_siren_duration(max_siren_duration)
+            # The warning is at most 5 s; ordinary sirens keep their separate
+            # user-configured 1-30 s safety cutoff.
+            max_duration = (
+                min(5.0, float(max_siren_duration))
+                if sound_type == "period_warning"
+                else normalise_max_siren_duration(max_siren_duration)
+            )
             duration_ms = max(
                 1, min(30_000, int(min(duration_seconds, max_duration) * 1000))
             )
@@ -541,7 +591,7 @@ def _play_timed_sound_sync(
             sound_obj = _preloaded_sounds[filename]
             sound_obj.set_volume(normalized_volume)
 
-            if sound_type == "siren":
+            if sound_type in ("siren", "period_warning"):
                 channel = sound_obj.play(loops=-1, maxtime=duration_ms)
             else:
                 channel = sound_obj.play()

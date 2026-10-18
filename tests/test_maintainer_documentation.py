@@ -80,7 +80,7 @@ class MaintenanceDocumentationTests(unittest.TestCase):
         self.assertIn("in **seconds**", readme)
         self.assertIn("queues the closed state", readme)
         self.assertIn("or on normal program exit", readme)
-        self.assertIn("Maximum Siren Duration (seconds)", readme)
+        self.assertIn("Maximum Timed Siren Duration — App & Zigbee", readme)
         self.assertIn("both `9:36` and `09:36` mean 09:36", readme)
         self.assertNotIn("use the two-digit form until", readme)
 
@@ -155,7 +155,7 @@ class MaintenanceDocumentationTests(unittest.TestCase):
         self.assertNotIn("Pips Vol", sounds_ui)
         self.assertNotIn("Siren Vol", sounds_ui)
         self.assertIn('text="Trim %"', sounds_ui)
-        self.assertIn("MAX_SOUND_ROWS = 10", sounds_ui)
+        self.assertIn("MAX_SOUND_ROWS = 8", sounds_ui)
         self.assertIn("0 to 100", sounds_ui)
         self.assertIn('"sound_trims": {}', settings_manager)
         self.assertNotIn('"pips_volume": 50.0', settings_manager)
@@ -176,7 +176,7 @@ class MaintenanceDocumentationTests(unittest.TestCase):
         self.assertIn("next_release_version.py", workflow)
         self.assertIn("lower-right corner", readme)
 
-    def test_sounds_tab_has_two_fixed_ten_row_sound_tables(self):
+    def test_sounds_tab_has_eight_row_tables_and_separate_warning(self):
         sounds_ui = source("sounds_ui.py")
         self.assertIn('build_sound_table(', sounds_ui)
         self.assertIn('"Pips"', sounds_ui)
@@ -193,7 +193,12 @@ class MaintenanceDocumentationTests(unittest.TestCase):
         self.assertIn("range(MAX_SOUND_ROWS)", sounds_ui)
         self.assertIn("double-click the filename to preview it", sounds_ui)
         readme = source("README.md")
-        self.assertIn("Exactly **one Pip** and **one Siren**", readme)
+        self.assertIn("Exactly **one countdown Pip** and **one Siren**", readme)
+        self.assertIn("30-second period warning", readme)
+        self.assertIn("period_warning_file_var", sounds_ui)
+        self.assertIn("period_warning_trim", sounds_ui)
+        self.assertIn("period_warning_duration_ms", sounds_ui)
+        self.assertIn("play_period_warning", source("sound.py"))
         self.assertIn("`pips_sound` and `siren_sound`", readme)
 
     def test_tournament_tab_includes_manual_draw_creator(self):
