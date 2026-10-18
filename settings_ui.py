@@ -748,10 +748,7 @@ def create_tournament_tab(app):
     )
 
     # ------------------------------------------------------------
-    # Starting game number
-    # ------------------------------------------------------------
-    # ------------------------------------------------------------
-    # Court CSV numbering mode
+    # Court CSV numbering mode (above Starting Game # on the left)
     # ------------------------------------------------------------
     tk.Label(
         widget4,
@@ -791,6 +788,8 @@ def create_tournament_tab(app):
         app.on_court_game_mode_changed
     )
 
+    # ------------------------------------------------------------
+    # Starting game number
     # ------------------------------------------------------------
     tk.Label(
         widget4,
@@ -832,6 +831,7 @@ def create_tournament_tab(app):
         app.on_game_selection_changed
     )
 
+    # ------------------------------------------------------------
     # Results: local file + optional third-computer synchronisation
     # ------------------------------------------------------------
     # The result filename is derived from the draw. This read-only dropdown
