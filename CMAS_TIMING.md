@@ -38,13 +38,17 @@ match. This does not guarantee zero output-device sound latency or
 hard-real-time behaviour on Windows / Raspberry Pi. Verify timing with
 a clock and speakers in a real pool-side setup.
 
-## Referee review pending
+## Confirmed operator procedure
 
-Do not change the final-two-minute policy automatically, the referee
-restart workflow, or the team-timeout-end sound until the proposed
-operator procedures have been discussed with referees. A rapid buzz
-as a *request* for the Chief Referee to sound the restart signal is a
-proposal only, **not** an implemented change.
+The app cannot determine from the siren alone whether the Chief Referee
+has stopped or restarted play. The operator therefore uses **Referee
+Time-Out** to pause the clock on the referee's instruction, including
+during the final two minutes, and releases it on the restart instruction.
+No automatic siren classification or new two-minute stop logic is planned.
+
+Following referee consultation, retain the application's existing
+end-of-team-timeout siren and automatic resumption of the game timer.
+**Do not implement a rapid-buzz substitute.**
 
 ## Regression checks
 
