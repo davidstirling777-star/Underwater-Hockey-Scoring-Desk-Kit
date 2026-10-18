@@ -528,22 +528,38 @@ def create_sounds_tab(app):
     )
     warning_table.grid(row=0, column=0, sticky="ew")
     warning_frame.grid_columnconfigure(0, weight=1)
+    # Match the Pips/Sirens Use column, retaining the warning dropdown
+    # and its independent trim.  Play is immediately beside Use.
     warning_table.grid_columnconfigure(0, minsize=54)
-    warning_table.grid_columnconfigure(1, minsize=250, weight=1)
-    warning_table.grid_columnconfigure(2, minsize=78)
+    warning_table.grid_columnconfigure(1, minsize=54)
+    warning_table.grid_columnconfigure(2, minsize=250, weight=1)
+    warning_table.grid_columnconfigure(3, minsize=78)
     header_style = dict(
         font=("Arial", 10, "bold"), background="#e9e9e9",
         borderwidth=1, relief="solid", pady=5,
     )
-    for column, heading in enumerate(("Test", "Sound File", "Trim %")):
+    for column, heading in enumerate(("Use", "Test", "Sound File", "Trim %")):
         tk.Label(
             warning_table, text=heading, anchor="center", **header_style
         ).grid(row=0, column=column, sticky="nsew")
 
+    warning_radio_cell = tk.Frame(
+        warning_table, background="#ffffff", borderwidth=1, relief="solid"
+    )
+    warning_radio_cell.grid(row=1, column=0, sticky="nsew")
+    warning_radio = ttk.Radiobutton(
+        warning_radio_cell,
+        variable=app.period_warning_file_var,
+        value=app.period_warning_file_var.get(),
+    )
+    if not warning_files:
+        warning_radio.state(["disabled"])
+    warning_radio.pack(expand=True)
+
     ttk.Button(
         warning_table, text="Play", command=preview_period_warning,
         state="normal" if warning_files else "disabled",
-    ).grid(row=1, column=0, sticky="nsew", padx=1, pady=1)
+    ).grid(row=1, column=1, sticky="nsew", padx=1, pady=1)
     warning_combo = ttk.Combobox(
         warning_table,
         textvariable=app.period_warning_file_var,
@@ -551,13 +567,20 @@ def create_sounds_tab(app):
         state="readonly" if warning_files else "disabled",
         font=("Arial", 10),
     )
-    warning_combo.grid(row=1, column=1, sticky="ew", padx=5, pady=4)
+    warning_combo.grid(row=1, column=2, sticky="ew", padx=5, pady=4)
+
+    # Follow the dropdown selection so the single Use radio still refers
+    # to the currently chosen warning file.
+    def update_warning_radio(*_args):
+        warning_radio.configure(value=app.period_warning_file_var.get())
+
+    app.period_warning_file_var.trace_add("write", update_warning_radio)
 
     warning_trim_cell = tk.Frame(
         warning_table, background="#ffffff",
         borderwidth=1, relief="solid", padx=5, pady=3,
     )
-    warning_trim_cell.grid(row=1, column=2, sticky="nsew")
+    warning_trim_cell.grid(row=1, column=3, sticky="nsew")
     warning_trim_entry = ttk.Entry(
         warning_trim_cell,
         textvariable=app.period_warning_trim,
