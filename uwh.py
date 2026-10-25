@@ -2026,7 +2026,7 @@ class GameManagementApp:
             remaining = self.engine.format_seconds_as_mmss(
                 self.team_timeout_saved_state["timer_seconds"]
             )
-            self.game_number_var.set(f"Time Remaining: {remaining}")
+            self.game_number_var.set(f"Game Time Remaining: {remaining}")
             return
 
         if (

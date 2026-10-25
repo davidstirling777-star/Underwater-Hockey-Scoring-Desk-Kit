@@ -70,11 +70,11 @@ class TimeoutGameNumberTests(unittest.TestCase):
                 self.setUp()
                 app = self.app
                 getattr(app, f"{team}_team_timeout")()
-                app.game_number_var.set.assert_called_with("Time Remaining: 07:32")
+                app.game_number_var.set.assert_called_with("Game Time Remaining: 07:32")
                 self.assertEqual(app.engine.timer_seconds, 60)
                 app.engine.timer_seconds = 15
                 app.update_game_number_display()
-                app.game_number_var.set.assert_called_with("Time Remaining: 07:32")
+                app.game_number_var.set.assert_called_with("Game Time Remaining: 07:32")
                 app.end_timeout()
                 app.game_number_var.set.assert_called_with("Game #12")
                 self.assertEqual(app.engine.timer_seconds, 452)
@@ -86,7 +86,7 @@ class TimeoutGameNumberTests(unittest.TestCase):
         app.engine.timer_seconds = 0
         app.end_timeout()
         self.assertTrue(app.in_timeout)
-        app.game_number_var.set.assert_called_with("Time Remaining: 07:32")
+        app.game_number_var.set.assert_called_with("Game Time Remaining: 07:32")
         app.end_timeout()
         app.game_number_var.set.assert_called_with("Game #12")
 
