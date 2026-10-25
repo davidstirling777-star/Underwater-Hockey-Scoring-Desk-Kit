@@ -136,7 +136,7 @@ def on_game_selection_changed(app, event=None):
             selected_game
         )
 
-    update_game_number_display(app)
+    app.update_game_number_display()
 
 def _game_number_as_int(game_number):
     """Return a whole-number game value, or None when not numeric."""
@@ -246,3 +246,4 @@ def on_csv_file_changed(app, event=None):
     )
 
     refresh_game_numbers_for_court(app)
+
