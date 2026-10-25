@@ -2019,7 +2019,16 @@ class GameManagementApp:
         return game_flow.get_current_game_number(self)
 
     def update_game_number_display(self):
-        """Update the visible game number, including next-game preview."""
+        """Show the interrupted half's clock during a team time-out."""
+        if getattr(self, "in_timeout", False):
+            # The engine clock now counts the time-out. Keep the half's saved
+            # remaining time visible on both the operator and external screens.
+            remaining = self.engine.format_seconds_as_mmss(
+                self.team_timeout_saved_state["timer_seconds"]
+            )
+            self.game_number_var.set(f"Time Remaining: {remaining}")
+            return
+
         if (
             getattr(self, "next_game_preview_active", False)
             and getattr(self, "next_game_preview_number", None)
@@ -3646,6 +3655,7 @@ class GameManagementApp:
         self.court_time_paused = True
         if not preserve_saved_state:
             self.save_timer_state()
+        self.update_game_number_display()
         self.pause_all_penalty_timers()
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
@@ -3684,6 +3694,7 @@ class GameManagementApp:
         self.court_time_paused = True
         if not preserve_saved_state:
             self.save_timer_state()
+        self.update_game_number_display()
         self.pause_all_penalty_timers()
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
@@ -3772,6 +3783,8 @@ class GameManagementApp:
         self.engine.timer_running = state["timer_running"]
         self.engine.timer_seconds = state["timer_seconds"]
         self.engine.current_index = state["current_index"]
+
+        self.update_game_number_display()
 
         self.half_label_var.set(state["half_label"])
         self.half_label.config(bg=state["half_label_bg"])
@@ -4565,3 +4578,4 @@ if __name__ == "__main__":
     print("DEBUG: ABOUT TO ENTER TK MAINLOOP")
     root.mainloop()
     print("DEBUG: TK MAINLOOP RETURNED")
+
