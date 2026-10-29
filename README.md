@@ -49,9 +49,9 @@ The game clock progresses through First Half, Half Time and Second Half, with op
 
 The Windows 11 UWH application, wired Arduino siren, Mosquitto MQTT broker and Zigbee2MQTT have been tested together with **up to three working Zigbee buttons** on one coordinator. Observed button actions include `single`, `double`, `hold` and `emergency`; **which action each button sends depends on its model**, and UWH's per-button Action Mapping determines the siren response. Zigbee2MQTT was also confirmed to restart through PM2 and Windows Task Scheduler after a Windows reboot. See [the Zigbee section](#zigbee2mqtt-wireless-siren-setup-and-operation) for installation and button-mapping instructions. Do not re-pair a working button to a second coordinator just to share it with another UWH computer.
 
-## Raspberry Pi 5: tested configuration (September 2026)
+## Raspberry Pi 5: tested configuration (October 2026)
 
-Raspberry Pi OS Desktop based on Debian 12 Bookworm (listed as Raspberry Pi OS Legacy), Python 3.11, and the X11 desktop session. Two maximised displays, mouse movement, game timers and score updates have been tested on this combination. A complete Raspberry Pi Zigbee2MQTT/Mosquitto installation has **not** been independently verified in the same way as the Windows setup.
+Raspberry Pi OS Desktop based on Debian 12 Bookworm (listed as Raspberry Pi OS Legacy), Python 3.11, and the X11 desktop session. Two maximised displays, mouse movement, game timers and score updates have been tested on this combination. This Raspberry Pi 5 setup has successfully run a tournament.
 
 Why X11 matters for this application: On the tested Pi 5, moving the pointer over Game Variables checkboxes under Wayland caused GPU utilisation to reach about 98% and the mouse became jerky. A separate note: Raspberry Pi recommends Wayland generally, but X11 was demonstrably better for this GUI.
 
@@ -781,7 +781,7 @@ This logic ensures the correct flow for tournament progression based on goals re
 
 ## Zigbee2MQTT wireless siren setup and operation
 
-This guide covers the wireless siren in the **Underwater Hockey Scoring Desk Kit (UWH)**: installation on **Windows 11** or **Raspberry Pi 5 / Raspberry Pi OS Bookworm**, MQTT configuration for Python, pairing and naming buttons, and using more than one computer. The Windows MQTT setup has been tested with **up to three working Zigbee buttons** on one coordinator (`siren_button`, `siren_button_2` and `siren_button_3`). Observed action values include `single`, `double`, `hold` and `emergency`; **individual buttons may publish different actions**, and the mapping for each action is configured in UWH. The Raspberry Pi 5 **UWH desktop application** has been tested on Bookworm + X11; the full Pi Zigbee/MQTT installation procedure remains a deployment guide to verify on the target Pi.
+This guide covers the wireless siren in the **Underwater Hockey Scoring Desk Kit (UWH)**: installation on **Windows 11** or **Raspberry Pi 5 / Raspberry Pi OS Bookworm**, MQTT configuration for Python, pairing and naming buttons, and using more than one computer. The Windows MQTT setup has been tested with **up to three working Zigbee buttons** on one coordinator (`siren_button`, `siren_button_2` and `siren_button_3`). Observed action values include `single`, `double`, `hold` and `emergency`; **individual buttons may publish different actions**, and the mapping for each action is configured in UWH. The Raspberry Pi 5 setup on **Bookworm + X11** has also successfully run a tournament.
 
 > [!IMPORTANT]
 > **A button joins one Zigbee network at a time. Do not re-pair an existing match button to another coordinator merely to use a second computer.** A second UWH computer can subscribe to the *same MQTT broker*, receiving events from the original Zigbee2MQTT instance. Re-pairing to a different Zigbee network generally removes the button from the original network and requires a reset and rejoin when moving it back. See [Using two computers](#using-two-computers-with-the-same-buttons).
@@ -1268,7 +1268,7 @@ The source remains a Python/Tkinter program and can be run from a virtual enviro
 - **Windows x64:** `UnderwaterHockeyScoringDesk-v<version>-Windows.zip`
 - **Raspberry Pi 5 / Linux ARM64:** `UnderwaterHockeyScoringDesk-v<version>-RaspberryPi5.zip`
 
-Both packages are produced from the same commit and use the same displayed `1.2.<build>` version. Windows 11 has been tested end-to-end with Zigbee2MQTT; Raspberry Pi 5 has been tested as a Bookworm/X11 desktop application. The full Pi MQTT/Zigbee installation still has not received the same end-to-end deployment verification as Windows.
+Both packages are produced from the same commit and use the same displayed `1.2.<build>` version. Windows 11 has been tested end-to-end with Zigbee2MQTT. The Raspberry Pi 5 setup on Bookworm + X11 has successfully run a tournament.
 
 For a source installation on Raspberry Pi OS Bookworm, use a project virtual environment rather than a system-wide `pip install`. `paho-mqtt` is the Python MQTT client, not the MQTT broker; Zigbee2MQTT remains a separate Node.js program.
 
