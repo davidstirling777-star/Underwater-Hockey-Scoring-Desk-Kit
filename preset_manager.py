@@ -29,6 +29,14 @@ def open_button_dialog(app, idx, trigger_button=None):
     row_num = 0
     max_btn_text_len = 16
 
+    def add_unit_label(var_name, row):
+        # Use the same units as Game Variables without altering saved values.
+        unit = app.variables.get(var_name, {}).get("unit", "")
+        if unit:
+            tk.Label(dlg, text=unit).grid(
+                row=row, column=2, sticky="w", padx=(0, 6), pady=4
+            )
+
     tk.Label(
         dlg,
         text="Button Display Text:"
@@ -117,6 +125,7 @@ def open_button_dialog(app, idx, trigger_button=None):
                 pady=4
             )
 
+            add_unit_label("sudden_death_game_break", row_num)
             entries["sudden_death_game_break"] = sudden_death_entry_var
             row_num += 1
             continue
@@ -213,13 +222,14 @@ def open_button_dialog(app, idx, trigger_button=None):
                 pady=4
             )
 
+            add_unit_label(var_name, row_num)
             entries[var_name] = entry_var
 
         row_num += 1
 
     tk.Label(
         dlg,
-        text="Crib Time (seconds):"
+        text="Crib Time:"
     ).grid(row=row_num, column=0, sticky="w", padx=6, pady=4)
 
     crib_time_value = app.button_data[idx]["values"].get(
@@ -241,6 +251,7 @@ def open_button_dialog(app, idx, trigger_button=None):
         pady=4
     )
 
+    add_unit_label("crib_time", row_num)
     entries["crib_time"] = crib_time_entry_var
     row_num += 1
 
@@ -339,7 +350,7 @@ def open_button_dialog(app, idx, trigger_button=None):
     button_frame.grid(
         row=row_num,
         column=0,
-        columnspan=2,
+        columnspan=3,
         pady=16
     )
 

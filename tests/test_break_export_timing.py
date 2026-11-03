@@ -111,6 +111,7 @@ class Harness(CountdownCode):
         self.siren_var = Var("siren.mp3")
         self.pips_var = Var("pip.mp3")
         self.period_warning_file_var = Var("pip-warning.mp3")
+        self.period_warning_enabled = Var(True)
         self.period_warning_trim = Var("100")
         self.period_warning_duration_ms = Var("1000")
         self.enable_sound = Var(True)
@@ -168,6 +169,18 @@ class BreakExportTimingTests(unittest.TestCase):
         self.assertEqual(SOUNDS, ["warning"])
         self.assertEqual(app.engine.timer_seconds, 30)
         self.assertTrue(app.next_game_transition_done)
+
+    def test_disabled_warning_keeps_export_and_countdown_running(self):
+        app = Harness(31)
+        app.period_warning_enabled.set(False)
+        app.countdown_timer()
+        self.assertEqual(SOUNDS, [])
+        self.assertEqual(app.events, ["export", "advance"])
+        self.assertEqual(app.engine.timer_seconds, 30)
+        app.engine.timer_seconds = 11
+        app.countdown_timer()
+        self.assertEqual(SOUNDS, ["pips"])
+        self.assertEqual(app.engine.timer_seconds, 10)
 
     def test_excel_lock_pauses_at_31_without_warning_pip_or_reset(self):
         app = Harness(31, succeeds=False)

@@ -543,18 +543,17 @@ def create_sounds_tab(app):
             warning_table, text=heading, anchor="center", **header_style
         ).grid(row=0, column=column, sticky="nsew")
 
-    warning_radio_cell = tk.Frame(
+    warning_use_cell = tk.Frame(
         warning_table, background="#ffffff", borderwidth=1, relief="solid"
     )
-    warning_radio_cell.grid(row=1, column=0, sticky="nsew")
-    warning_radio = ttk.Radiobutton(
-        warning_radio_cell,
-        variable=app.period_warning_file_var,
-        value=app.period_warning_file_var.get(),
+    warning_use_cell.grid(row=1, column=0, sticky="nsew")
+    warning_checkbox = ttk.Checkbutton(
+        warning_use_cell,
+        variable=app.period_warning_enabled,
     )
     if not warning_files:
-        warning_radio.state(["disabled"])
-    warning_radio.pack(expand=True)
+        warning_checkbox.state(["disabled"])
+    warning_checkbox.pack(expand=True)
 
     ttk.Button(
         warning_table, text="Play", command=preview_period_warning,
@@ -568,13 +567,6 @@ def create_sounds_tab(app):
         font=("Arial", 10),
     )
     warning_combo.grid(row=1, column=2, sticky="ew", padx=5, pady=4)
-
-    # Follow the dropdown selection so the single Use radio still refers
-    # to the currently chosen warning file.
-    def update_warning_radio(*_args):
-        warning_radio.configure(value=app.period_warning_file_var.get())
-
-    app.period_warning_file_var.trace_add("write", update_warning_radio)
 
     warning_trim_cell = tk.Frame(
         warning_table, background="#ffffff",
@@ -728,7 +720,7 @@ def create_sounds_tab(app):
 
     ttk.Label(
         timing_frame,
-        text="Number of milliseconds to play timed period warning (30 second warning) signal",
+        text="Number of milliseconds to play timed period warning (30 second warning) signal (the pre-game whistle)",
         anchor="w", justify="left",
     ).grid(row=2, column=0, sticky="ew", padx=(4, 10), pady=8)
 
@@ -859,6 +851,7 @@ def save_sound_settings_method(app):
         "pips_sound": app.pips_var.get(),
         "siren_sound": app.siren_var.get(),
         "period_warning_sound": app.period_warning_file_var.get(),
+        "period_warning_enabled": bool(app.period_warning_enabled.get()),
         "period_warning_trim": warning_trim,
         "period_warning_duration_ms": warning_duration_ms,
         "sound_trims": {
