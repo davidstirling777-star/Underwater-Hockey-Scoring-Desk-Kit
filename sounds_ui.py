@@ -720,7 +720,7 @@ def create_sounds_tab(app):
 
     ttk.Label(
         timing_frame,
-        text="Number of milliseconds to play timed period warning (30 second warning) signal",
+        text="Number of milliseconds to play timed period warning (30 second warning) signal (the pre-game whistle)",
         anchor="w", justify="left",
     ).grid(row=2, column=0, sticky="ew", padx=(4, 10), pady=8)
 
