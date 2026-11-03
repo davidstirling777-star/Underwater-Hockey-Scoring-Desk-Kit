@@ -58,6 +58,7 @@ class FakeApp:
         self.pips_var = Var("pip-beep.mp3")
         self.siren_var = Var("siren-car-honk.mp3")
         self.period_warning_file_var = Var("pip-warning.mp3")
+        self.period_warning_enabled = Var(True)
         self.period_warning_trim = Var("100")
         self.period_warning_duration_ms = Var("750")
         self.sound_trim_vars = {"pip-beep.mp3": Var("30")}
@@ -89,6 +90,15 @@ class IndependentWarningSettingsTests(unittest.TestCase):
         self.assertEqual(settings["period_warning_trim"], 100)
         self.assertEqual(settings["period_warning_duration_ms"], 750)
         self.assertFalse(self.messages.errors)
+
+    def test_disabled_warning_is_saved_without_losing_selected_file(self):
+        self.app.period_warning_enabled.set(False)
+        self.save(self.app)
+        self.assertIs(self.app.saved["period_warning_enabled"], False)
+        self.assertEqual(self.app.saved["period_warning_sound"], "pip-warning.mp3")
+        self.app.period_warning_enabled.set(True)
+        self.save(self.app)
+        self.assertIs(self.app.saved["period_warning_enabled"], True)
 
     def test_same_audio_file_still_has_two_distinct_trims(self):
         self.app.period_warning_file_var.set("pip-beep.mp3")

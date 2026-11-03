@@ -1091,6 +1091,10 @@ class GameManagementApp:
         if warning_default not in pips_files:
             warning_default = pips_default
         self.period_warning_file_var = tk.StringVar(value=warning_default)
+        # Older settings keep the warning enabled until the operator opts out.
+        self.period_warning_enabled = tk.BooleanVar(
+            value=sound_settings.get("period_warning_enabled", True)
+        )
         self.period_warning_trim = tk.StringVar(
             value=str(int(round(sound.normalise_trim_percent(
                 sound_settings.get("period_warning_trim", 100)
@@ -3582,12 +3586,13 @@ class GameManagementApp:
                         # The 00:30 signal is an independent, duration-limited
                         # cue. Its trim must not be tied to countdown pip trim,
                         # even if the operator chooses the same sound file.
-                        sound.play_period_warning(
-                            self.period_warning_file_var.get(),
-                            self.enable_sound,
-                            self.period_warning_trim,
-                            self.period_warning_duration_ms,
-                        )
+                        if self.period_warning_enabled.get():
+                            sound.play_period_warning(
+                                self.period_warning_file_var.get(),
+                                self.enable_sound,
+                                self.period_warning_trim,
+                                self.period_warning_duration_ms,
+                            )
                     else:
                         # The 10..1 s countdown retains the original pip
                         # selection, per-file trim and full one-shot playback.
