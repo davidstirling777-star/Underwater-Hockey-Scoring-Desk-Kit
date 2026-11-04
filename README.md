@@ -6,7 +6,7 @@ A project to allow the use of a computer, modern computer languages and readily 
 
 The hardware is still being developed. The current `HARDWARE_SETUP.md` remains a separate working hardware note for now; when the production hardware is settled, its relevant material can be folded into this manual as a hardware chapter.
 
-The software has an operator-facing Underwater Hockey Game Management App and player-facing or spectator-facing Display Window(s). The operator window opens on **Game Variables**, with six other main tabs: **Scoreboard**, **Tournament List**, **Screens**, **Sounds**, **Zigbee Siren**, and **About**.
+The software has an operator-facing Underwater Hockey Game Management App and player-facing or spectator-facing Display Window(s). The operator window opens on **Game Variables**, with six other main tabs: **Scoreboard**, **Tournament List**, **Screens**, **Sounds**, **Siren Control**, and **About**.
 
 ## Contents
 
@@ -37,7 +37,7 @@ A normal operating flow is:
 3. If a tournament draw is being used, use **Tournament List** to select the draw, starting game and any results synchronisation settings.
 4. In **Screens**, select the operator layout and open the required player/spectator Display Window(s). Use **Auto Detect Screens** and **Test Displays** when setting up a new computer or monitor arrangement.
 5. In **Sounds**, select and test the siren and pip sounds, per-file trims and siren timing.
-6. If wireless referee buttons are being used, configure and test them in **Zigbee Siren**. The wired Arduino siren button remains a separate local input path.
+6. If wireless referee buttons are being used, configure and test them in **Siren Control**. The wired siren supports Arduino USB and, on Pi 5, GPIO17 (see the wired GPIO section).
 7. Use **Scoreboard** during the match for goals, penalties, team time-outs and manual timer control. The player/spectator Display Window follows the live match state.
 8. At the end of a tournament game, UWH saves the completed result to the separate results CSV before clearing the live match and advancing to the next selected game. If shared two-court sync is enabled, the local save happens first and network upload happens afterwards in the background.
 
@@ -107,7 +107,7 @@ Download the newer release and extract it into a **separate folder** first. Do n
 > [!WARNING]
 > **Back up `settings.json` before every update.** It includes your **Zigbee button-name list** (for example, `siren_button, siren_button_2, siren_button_3`), MQTT settings, sound preferences, screen layout and the remembered Display Window open/closed state. Back up tournament CSVs, custom sounds in the app-level `Sounds` folder, and game logs too. Replacing UWH's settings can lose button names **or action mappings**, even though the buttons remain paired to Zigbee2MQTT.
 
-After updating, confirm the **Zigbee Siren → Button Device Names** field and test every configured button and its action mapping before using the system at a match. The lower-right corner of the **Game Variables** panel shows the running UWH version so you can confirm which download is actually open. Windows and Raspberry Pi 5 release builds show the same `1.2.<build>` number used in their release ZIP names; source installations show a source-build identifier. Do not blindly replace a new-format `settings.json` with a very old version; compare and carry forward your customised values where the format has changed. Zigbee2MQTT has a **separate** `data/` directory that should be backed up before Zigbee2MQTT updates; see [the Zigbee section](#zigbee2mqtt-wireless-siren-setup-and-operation).
+After updating, confirm the **Siren Control → Button Device Names** field and test every configured button and its action mapping before using the system at a match. The lower-right corner of the **Game Variables** panel shows the running UWH version so you can confirm which download is actually open. Windows and Raspberry Pi 5 release builds show the same `1.2.<build>` number used in their release ZIP names; source installations show a source-build identifier. Do not blindly replace a new-format `settings.json` with a very old version; compare and carry forward your customised values where the format has changed. Zigbee2MQTT has a **separate** `data/` directory that should be backed up before Zigbee2MQTT updates; see [the Zigbee section](#zigbee2mqtt-wireless-siren-setup-and-operation).
 
 ## Downloading and installing UWH on a Raspberry Pi 5
 
@@ -289,6 +289,75 @@ python3 -m venv .venv
 ```
 
 Do not use `sudo pip install` or `pip install --break-system-packages` for the source installation. This source method is useful for development and troubleshooting; ordinary Pi users should prefer the versioned `-RaspberryPi5.zip` under GitHub Releases.
+
+### Wired siren on Raspberry Pi 5 — GPIO17 and optional Arduino USB
+
+UWH automatically starts a wired GPIO listener on a **Raspberry Pi 5**. The app
+configures **BCM GPIO17 (physical header pin 11)** as an **input with both internal
+pull-up and pull-down disabled**. No GPIO BIOS/bootloader setting is needed.
+The motherboard's **R13 (11 kΩ) supplies the external pull-up to regulated 3.3 V**.
+Do not connect the Arduino's 5 V siren signal to this pin.
+
+| Motherboard J17 | Raspberry Pi 40-pin header | Function |
+|---|---|---|
+| Pin 1 — `PR5 Wired Siren Signal` | Physical **11**, **BCM GPIO17** | LOW = pressed; HIGH (about 3.3 V) = released |
+| Pin 2 — GND | Physical **6 and 9** | Common ground/power return |
+| Pin 3 — `RP5_5V` from the Rev D DC-DC-PDM board | Physical **2 and 4** | Regulated **5.1 V** power; never connect to a signal GPIO |
+
+The power contacts share current; size the cable and connectors for the intended
+5 A supply and follow the Pi power guidance above.
+GPIO17 is separate from the Raspberry Pi DAC+'s I2C/I2S pins. Access the header
+through a suitable pass-through connector/interposer when the DAC+ is fitted.
+The optocouplers separate the signal voltages, but the motherboard shares GND;
+this is **not full galvanic isolation**. Fit **both U1 and U2**, whose input LEDs
+are in series, even if only one controller is used.
+
+The GPIO worker samples every 5 ms and accepts a press or release only after
+**50 ms of stable level**. A held button produces one ON event; it does not
+retrigger repeatedly. A button already held at app startup is recognised after
+the same debounce interval. The siren follows press/hold/release, like the
+Arduino input, rather than issuing a timed Zigbee pulse.
+
+**Arduino USB remains active alongside GPIO17.** The Arduino's `SIREN_ON` and
+`SIREN_OFF` messages and the GPIO button each have their own pressed state. The
+first active input starts the siren; it stops when **all active wired inputs have
+released**. The **Siren Control → Activity Log** records each GPIO17 and
+Arduino USB ON/OFF transition separately, even when the other input keeps the
+siren sounding. Repeated reports of the same state do not fill the log.
+Duplicate ON reports do not restart playback. A GPIO read failure
+releases only the GPIO state; a serial disconnect releases only the Arduino
+state. Neither cancels the other input while it is held.
+
+GPIO events use the same local audio and optional MQTT siren output as Arduino
+USB, with all sound/UI work handled on the main application thread. Windows
+continues to use USB/Arduino without loading a GPIO library.
+
+**Installation and diagnostics:** the ARM Linux requirements include `lgpio`,
+and the Raspberry Pi release build bundles it. Source users should reinstall
+`requirements.txt` in their project virtual environment after updating. If pip
+needs to compile `lgpio`, install its build prerequisites first with
+`sudo apt install swig build-essential python3-dev`, then run
+`PYPI=1 python -m pip install -r requirements.txt` to include liblgpio in the
+extension. The
+listener finds the RP1 controller by its `pinctrl-rp1` label, accommodating both
+`gpiochip0` and `gpiochip4` numbering. Startup success or a missing-library,
+permission, or busy-pin error appears in the **Siren Control Activity Log**.
+A failure leaves Arduino USB and the rest of UWH available. Check `/dev/gpiochip*`
+permissions and GPIO group membership if access is denied; close other programs
+claiming GPIO17. Restart UWH after correcting a GPIO startup/read error.
+
+**Pi installations without this wired input:** do not leave an enabled GPIO17
+floating. Set `UWH_GPIO_SIREN=0` when launching, for example:
+
+```bash
+UWH_GPIO_SIREN=0 ./Start-UWH.sh
+```
+
+For the motherboard circuit above, leave that override unset. No additional
+3.3 V cable conductor or internal pull-up is required. Before use, verify idle
+3.3 V and pressed LOW at pin 11, then test GPIO alone, Arduino USB alone, and
+both together. Software tests use simulated GPIO; actual Pi/cable/button testing
+is still required.
 
 ### Raspberry Pi troubleshooting
 
@@ -693,9 +762,9 @@ UWH uses the per-file **Trim %** values for relative cue levels. The operating s
 
 **Siren** plays at pre-determined periods and also when the Chief Referee activates the button to stop or start play.
 
-**Number of seconds to play App-generated Siren** sets the requested duration of game-period sirens and also supplies the per-cycle duration for mapped Zigbee timed sirens. If the selected file is shorter, playback loops as needed. **Maximum Timed Siren Duration — App & Zigbee (seconds)** independently caps each timed blast (default 10 seconds; allowed 1–30 seconds), including when the requested duration is longer. The wired Arduino hold-to-sound button does not use this timer.
+**Number of seconds to play App-generated Siren** sets the requested duration of game-period sirens and also supplies the per-cycle duration for mapped Zigbee timed sirens. If the selected file is shorter, playback loops as needed. **Maximum Timed Siren Duration — App & Zigbee (seconds)** independently caps each timed blast (default 10 seconds; allowed 1–30 seconds), including when the requested duration is longer. The wired Arduino/GPIO hold-to-sound inputs do not use this timer.
 
-**Hardwired button (Arduino/serial):** the siren sounds while the button is held and stops when it is released. This differs from the timed Zigbee button behaviour.
+**Hardwired button (Arduino USB or Pi 5 GPIO17):** the siren sounds while the button is held and stops when it is released. This differs from the timed Zigbee button behaviour.
 
 **Zigbee buttons (MQTT):** When **Button Action Mapping** assigns them accordingly, `single` sounds one timed cycle and `double` sounds two consecutive timed cycles **without a programmed pause**. On the button tested for `hold`, that action arrives on release and was mapped to one timed cycle. Another tested button publishes `emergency`, which must be mapped separately. These are **observed examples, not universal button behaviours**. See [the Zigbee section](#zigbee2mqtt-wireless-siren-setup-and-operation) for setup and Auto-add From Log.
 
@@ -1062,9 +1131,9 @@ The `action` value is what UWH uses. Battery/link-quality-only updates do **not*
 
 **Why simple names?** UWH's current subscription example is `zigbee2mqtt/+` and the current handler extracts the **last segment** of the topic. A Zigbee2MQTT friendly name containing `/` creates a deeper MQTT topic and will not match that configuration reliably. Avoid spaces and keep names identical between Zigbee2MQTT and UWH.
 
-### Configure the UWH Zigbee Siren tab
+### Configure the UWH Siren Control tab
 
-Open UWH → **Zigbee Siren**. Configure the application against the broker you actually use:
+Open UWH → **Siren Control**. Configure the application against the broker you actually use:
 
 | UWH field | One-computer setup | Second computer sharing the same broker |
 |---|---|---|
@@ -1288,7 +1357,7 @@ Source/PyInstaller builds are still possible for developers, but ordinary users 
 
 ### Startup self-test
 
-The application includes a startup diagnostic window and a Zigbee Siren activity log. Device/COM-port detection is a diagnostic, **not** proof of Zigbee pairing or an audible siren. The Windows MQTT path has been tested by pressing the physical buttons and hearing the local siren; use the same end-to-end test on any new computer.
+The application includes a startup diagnostic window and a Siren Control activity log. Device/COM-port detection is a diagnostic, **not** proof of Zigbee pairing or an audible siren. The Windows MQTT path has been tested by pressing the physical buttons and hearing the local siren; use the same end-to-end test on any new computer.
 
 ### Useful references
 

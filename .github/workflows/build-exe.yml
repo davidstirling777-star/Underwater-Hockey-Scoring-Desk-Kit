@@ -137,9 +137,12 @@ jobs:
           cache: pip
 
       - name: Install build dependencies
+        env:
+          # Bundle liblgpio if pip needs to build lgpio from source.
+          PYPI: "1"
         run: |
           sudo apt-get update
-          sudo apt-get install -y zip tk-dev tcl-dev
+          sudo apt-get install -y zip tk-dev tcl-dev swig build-essential
           python -m pip install --upgrade pip setuptools wheel
           pip install pyinstaller
 

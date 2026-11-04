@@ -408,7 +408,7 @@ def _create_mapping_table(app, config_frame, config):
 def create_zigbee_siren_tab(app):
     """Create the live Zigbee tab, using the approved 62/38 split layout."""
     tab = ttk.Frame(app.notebook)
-    app.notebook.add(tab, text="Zigbee Siren")
+    app.notebook.add(tab, text="Siren Control")
     tab.columnconfigure(0, weight=1)
     tab.rowconfigure(0, weight=1)
 
@@ -575,7 +575,7 @@ def create_zigbee_siren_tab(app):
         row=1, column=0, columnspan=2, pady=6
     )
 
-    app.add_to_zigbee_log("Zigbee Siren tab initialized")
+    app.add_to_zigbee_log("Siren Control tab initialized")
     if not is_mqtt_available():
         app.add_to_zigbee_log(
             "WARNING: paho-mqtt library not installed. Install with: pip install paho-mqtt"

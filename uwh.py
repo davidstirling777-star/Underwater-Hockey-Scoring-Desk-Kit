@@ -112,6 +112,7 @@ except OSError as error:
     print(f"SOUNDS: Could not prepare folder: {error}")
 import zigbee_siren
 import serial_siren_listener
+import gpio_siren_listener
 import tkinter as tk
 from tkinter import ttk, messagebox, font
 import datetime
@@ -276,6 +277,10 @@ class GameManagementApp:
             except tk.TclError:
                 pass
             return "break"
+
+        gpio_listener = getattr(self, "gpio_siren_listener", None)
+        if gpio_listener is not None:
+            gpio_listener.stop()
 
         try:
             self._stop_wireless_siren()
@@ -530,7 +535,7 @@ class GameManagementApp:
             pass
 
     def handle_hardware_siren_event(self, event_name="ON"):
-        """Thread-safe input from MQTT and the Arduino serial listener.
+        """Thread-safe input from MQTT, Arduino serial and the Pi GPIO listener.
 
         Worker threads must never read Tk variables or call pygame here. The
         existing Tk status queue poller processes hardware events on the UI thread.
@@ -735,6 +740,32 @@ class GameManagementApp:
 
     def _process_hardware_siren_event(self, event_name):
         """Handle siren events ONLY on the Tk main thread."""
+        if event_name.startswith("GPIO_STATUS:"):
+            self.add_to_zigbee_log(event_name.split(":", 1)[1])
+            return
+
+        # USB and GPIO can report the same physical button. Start on the
+        # first active source, stop on the last release, and ignore repeats.
+        # A GPIO failure/release must not cancel a still-held Arduino input.
+        if event_name in ("ON", "OFF", "GPIO_ON", "GPIO_OFF"):
+            sources = getattr(self, "_wired_siren_sources", None)
+            if sources is None:
+                sources = self._wired_siren_sources = set()
+            was_pressed = bool(sources)
+            wired_source = "GPIO17" if event_name.startswith("GPIO_") else "Arduino USB"
+            pressed = event_name in ("ON", "GPIO_ON")
+            if (wired_source in sources) == pressed:
+                return
+            signal = "SIREN_ON" if pressed else "SIREN_OFF"
+            self.add_to_zigbee_log(f"{wired_source} button: {signal} received")
+            if pressed:
+                sources.add(wired_source)
+            else:
+                sources.discard(wired_source)
+            if bool(sources) == was_pressed:
+                return
+            event_name = "ON" if sources else "OFF"
+
         if event_name.startswith("ARDUINO_SERIAL_OPEN:"):
             port = event_name.split(":", 1)[1]
             self.add_to_zigbee_log(
@@ -774,7 +805,6 @@ class GameManagementApp:
             return
 
         if event_name == "OFF":
-            self.add_to_zigbee_log("Arduino button: SIREN_OFF received")
             self._stop_arduino_siren()
             try:
                 self.zigbee_controller.handle_hardware_siren_event("OFF")
@@ -786,11 +816,9 @@ class GameManagementApp:
             print(f"Unrecognised hardware siren event: {event_name!r}")
             return
 
-        self.add_to_zigbee_log("Arduino button: SIREN_ON received")
-
-        # The Arduino button has TWO outputs: local PC sound and the
+        # The wired inputs have TWO outputs: local PC sound and the
         # MQTT-controlled siren. Muting the PC must not suppress the hardware
-        # siren's ON command. A release always stops both outputs.
+        # siren's ON command. The final wired release stops both outputs.
         if self.enable_sound.get():
             try:
                 track = self.siren_var.get()
@@ -1448,6 +1476,9 @@ class GameManagementApp:
             splash_report(f"Serial siren listener failed: {e}", False)
             if DEBUG_MODE:
                 print(f"Failed to initialize serial button module thread: {e}")
+
+        # The serial listener remains active even when GPIO17 is available.
+        self.gpio_siren_listener = gpio_siren_listener.start_gpio_listener(self)
 
         close_splash_after_final_check()
         # ─────────────────────────────────────────────────────────────────────

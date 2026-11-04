@@ -89,7 +89,7 @@ class ArduinoRoutingTests(unittest.TestCase):
         self.assertEqual(self.clip.volume, 0.6)
         self.controller.start_siren_continuous.assert_called_once_with()
         self.app.add_to_zigbee_log.assert_called_with(
-            "Arduino button: SIREN_ON received"
+            "Arduino USB button: SIREN_ON received"
         )
 
     def test_release_stops_local_and_mqtt_siren(self):
@@ -101,7 +101,7 @@ class ArduinoRoutingTests(unittest.TestCase):
         )
         self.controller.stop_siren_continuous.assert_called_once_with()
         self.app.add_to_zigbee_log.assert_called_with(
-            "Arduino button: SIREN_OFF received"
+            "Arduino USB button: SIREN_OFF received"
         )
 
     def test_muting_pc_audio_does_not_block_mqtt_button(self):
