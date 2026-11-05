@@ -47,7 +47,7 @@ The game clock progresses through First Half, Half Time and Second Half, with op
 
 ## Windows 11: tested configuration (September 2026)
 
-The Windows 11 UWH application, wired Arduino siren, Mosquitto MQTT broker and Zigbee2MQTT have been tested together with **up to three working Zigbee buttons** on one coordinator. Observed button actions include `single`, `double`, `hold` and `emergency`; **which action each button sends depends on its model**, and UWH's per-button Action Mapping determines the siren response. Zigbee2MQTT was also confirmed to restart through PM2 and Windows Task Scheduler after a Windows reboot. See [the Zigbee section](#zigbee2mqtt-wireless-siren-setup-and-operation) for installation and button-mapping instructions. Do not re-pair a working button to a second coordinator just to share it with another UWH computer.
+The Windows 11 UWH application, wired Arduino siren, Mosquitto MQTT broker and Zigbee2MQTT have been tested together with **up to three working Zigbee buttons** on one coordinator. The preferred deployment button is now the **Aqara WXKG11LM**, tested on 6 November 2026 with `single`, `double`, `hold` and `release`. Other previously tested types have limited functionality (no hold or release signals); UWH's per-button Action Mapping determines the siren response. Zigbee2MQTT was also confirmed to restart through PM2 and Windows Task Scheduler after a Windows reboot. See [the Zigbee section](#zigbee2mqtt-wireless-siren-setup-and-operation) for installation and button-mapping instructions. Do not re-pair a working button to a second coordinator just to share it with another UWH computer.
 
 ## Raspberry Pi 5: tested configuration (October 2026)
 
@@ -766,7 +766,7 @@ UWH uses the per-file **Trim %** values for relative cue levels. The operating s
 
 **Hardwired button (Arduino USB or Pi 5 GPIO17):** the siren sounds while the button is held and stops when it is released. This differs from the timed Zigbee button behaviour.
 
-**Zigbee buttons (MQTT):** When **Button Action Mapping** assigns them accordingly, `single` sounds one timed cycle and `double` sounds two consecutive timed cycles **without a programmed pause**. On the button tested for `hold`, that action arrives on release and was mapped to one timed cycle. Another tested button publishes `emergency`, which must be mapped separately. These are **observed examples, not universal button behaviours**. See [the Zigbee section](#zigbee2mqtt-wireless-siren-setup-and-operation) for setup and Auto-add From Log.
+**Zigbee buttons (MQTT):** When **Button Action Mapping** assigns them accordingly, `single` sounds one timed cycle and `double` sounds two consecutive timed cycles **without a programmed pause**. The preferred **Aqara WXKG11LM** also sends separate `hold` and `release` actions: map these to **Start continuous siren** and **Stop continuous siren** respectively. Other previously tested types have limited functionality (no hold or release signals); a button that publishes `emergency` must have that action mapped separately. See [the Zigbee section](#zigbee2mqtt-wireless-siren-setup-and-operation) for setup and Auto-add From Log.
 
 ### Sound timing table
 
@@ -850,7 +850,7 @@ This logic ensures the correct flow for tournament progression based on goals re
 
 ## Zigbee2MQTT wireless siren setup and operation
 
-This guide covers the wireless siren in the **Underwater Hockey Scoring Desk Kit (UWH)**: installation on **Windows 11** or **Raspberry Pi 5 / Raspberry Pi OS Bookworm**, MQTT configuration for Python, pairing and naming buttons, and using more than one computer. The Windows MQTT setup has been tested with **up to three working Zigbee buttons** on one coordinator (`siren_button`, `siren_button_2` and `siren_button_3`). Observed action values include `single`, `double`, `hold` and `emergency`; **individual buttons may publish different actions**, and the mapping for each action is configured in UWH. The Raspberry Pi 5 setup on **Bookworm + X11** has also successfully run a tournament.
+This guide covers the wireless siren in the **Underwater Hockey Scoring Desk Kit (UWH)**: installation on **Windows 11** or **Raspberry Pi 5 / Raspberry Pi OS Bookworm**, MQTT configuration for Python, pairing and naming buttons, and using more than one computer. The Windows MQTT setup has been tested with **up to three working Zigbee buttons** on one coordinator (`siren_button`, `siren_button_2` and `siren_button_3`). The preferred **Aqara WXKG11LM** has been tested with `single`, `double`, `hold` and `release`; individual buttons may publish different actions, and the mapping for each action is configured in UWH. The Raspberry Pi 5 setup on **Bookworm + X11** has also successfully run a tournament.
 
 > [!IMPORTANT]
 > **A button joins one Zigbee network at a time. Do not re-pair an existing match button to another coordinator merely to use a second computer.** A second UWH computer can subscribe to the *same MQTT broker*, receiving events from the original Zigbee2MQTT instance. Re-pairing to a different Zigbee network generally removes the button from the original network and requires a reset and rejoin when moving it back. See [Using two computers](#using-two-computers-with-the-same-buttons).
@@ -1100,6 +1100,21 @@ Use `where pm2` to find **your actual** `pm2.cmd` path, replacing `YOUR_WINDOWS_
 
 **Verify:** reboot Windows, wait about two minutes, then open `http://localhost:8080` **before** manually running PM2. In the tested setup, the frontend and wireless button reception returned after restarting Windows. A separate sign-in test with a second Windows account has not yet been documented.
 
+### Preferred Zigbee button and other tested devices
+
+**Preferred device to deploy: Aqara WXKG11LM wireless button**, as identified by Zigbee2MQTT for the unit tested on **6 November 2026**. It paired successfully in the Zigbee2MQTT frontend, and all four actions were confirmed working in UWH: `single`, `double`, `hold` and `release`.
+
+[Purchase listing used for the tested unit (AliExpress)](https://www.aliexpress.com/item/1005008270619004.html).
+
+| Device | Deployment status | Tested functionality |
+|---|---|---|
+| **Aqara WXKG11LM** | **Preferred** | `single`, `double`, `hold` and `release`; supports timed cycles and hold-to-sound with a separate release signal |
+| **Tuya IH-K663 and other previously tested button types** | Also tested but with limited functionality (no hold or release signals) | Use the timed-cycle mappings for the actions actually received; unsuitable for continuous hold-to-sound |
+
+For the preferred button, map `single` to **One siren cycle**, `double` to **Two siren cycles**, `hold` to **Start continuous siren**, and `release` to **Stop continuous siren**. Save the mappings and test all four actions. Continuous operation remains subject to the configured maximum hold time and audio cutoff.
+
+The tested unit's friendly name was `Siren_button2`; this is a user-assigned name, not the model number. Enter the exact name shown by your own frontend in UWH's **Button Device Names**. The results above describe the tested unit; verify the model and four actions when commissioning another unit from the listing.
+
 ### Pairing and naming buttons in the frontend
 
 These steps apply to **both** platforms and are performed on the **single Zigbee2MQTT instance that owns the coordinator**.
@@ -1176,12 +1191,13 @@ The table describes **observed actions and their tested mappings**, not a univer
 |---|---|
 | `single` | **One siren cycle** of **Number of seconds to play App-generated Siren** |
 | `double` | **Two siren cycles**, consecutive, with no deliberately programmed pause |
-| `hold` | **One siren cycle** for the tested button, which sends `hold` on release |
+| `hold` | **Start continuous siren** for the preferred Aqara WXKG11LM |
+| `release` | **Stop continuous siren** for the preferred Aqara WXKG11LM |
 | `emergency` | A separately configured mapping, such as **One siren cycle**, for a button that publishes `emergency` |
 
 For example, a configured duration of **1.5 seconds** gives approximately 1.5 seconds for one timed cycle and two consecutive cycles for a mapped `double`. Actual audio-start/stop overhead may cause a small transition between cycles. Different models publish different long-press and release values: inspect each button's log rather than assuming the table applies automatically.
 
-**Important:** On the tested button, the `hold` action arrives **on release**; mapping that action to **One siren cycle** is not continuous press-to-sound. The Zigbee mapping table also offers **Start continuous siren** and **Stop continuous siren**, but these require actual matching press/release messages and are bounded by the hold timer and audio cutoff. The **hardwired Arduino button** instead sounds locally while physically held and stops on release. Timed game and wireless sirens use the selected **Sounds** file and duration, subject to **Maximum Siren Duration (seconds)** (default 10; allowed 1–30 seconds).
+**Important:** The preferred Aqara WXKG11LM sends separate `hold` and `release` actions, verified with **Start continuous siren** and **Stop continuous siren**. Continuous operation starts when the button reports `hold`, and is bounded by the hold timer and audio cutoff. Other previously tested button types have no hold or release signals and should use timed-cycle mappings. The **hardwired Arduino button** instead sounds locally while physically held and stops on release. Timed game and wireless sirens use the selected **Sounds** file and duration, subject to **Maximum Siren Duration (seconds)** (default 10; allowed 1–30 seconds).
 
 ### Using two computers with the same buttons
 
