@@ -1113,7 +1113,7 @@ Use `where pm2` to find **your actual** `pm2.cmd` path, replacing `YOUR_WINDOWS_
 
 For the preferred button, map `single` to **One siren cycle**, `double` to **Two siren cycles**, `hold` to **Start continuous siren**, and `release` to **Stop continuous siren**. Save the mappings and test all four actions. Continuous operation remains subject to the configured maximum hold time and audio cutoff.
 
-The tested unit's friendly name was `Siren_button2`; this is a user-assigned name, not the model number. Enter the exact name shown by your own frontend in UWH's **Button Device Names**. The results above describe the tested unit; verify the model and four actions when commissioning another unit from the listing.
+The tested unit's friendly name was `Siren_button2`; this is a user-assigned name, not the model number. Enter the exact name shown by your own frontend in UWH's **Button Device Names**. These are observed results for the tested unit, **not universal button behaviours**; verify the model and four actions when commissioning another unit from the listing.
 
 ### Pairing and naming buttons in the frontend
 
