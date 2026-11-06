@@ -1,6 +1,6 @@
 # Underwater Hockey Scoring Desk Kit
 
-A project to allow the use of a computer, modern computer languages and readily available Arduino hardware to make a scoring and siren system for Underwater Hockey.
+A project to allow the use of a computer, modern computer languages and readily available Arduino or Raspberry Pi 5 hardware to make a scoring and siren system for Underwater Hockey.
 
 **This README is the user manual for the software.** It combines installation, normal operation, tournament files, two-court results synchronisation, screens, sounds and Zigbee siren setup in one place. The separate `MAINTAINERS.md` is for people modifying the Python source.
 
@@ -37,7 +37,7 @@ A normal operating flow is:
 3. If a tournament draw is being used, use **Tournament List** to select the draw, starting game and any results synchronisation settings.
 4. In **Screens**, select the operator layout and open the required player/spectator Display Window(s). Use **Auto Detect Screens** and **Test Displays** when setting up a new computer or monitor arrangement.
 5. In **Sounds**, select and test the siren and pip sounds, per-file trims and siren timing.
-6. If wireless referee buttons are being used, configure and test them in **Siren Control**. The wired siren supports Arduino USB and, on Pi 5, GPIO17 (see the wired GPIO section).
+6. If wireless referee buttons are being used, configure and test them in **Siren Control**. The wired siren supports Arduino USB and, on Pi 5, GPIO17, independently or together (see [wired siren setup](#wired-siren-on-raspberry-pi-5--gpio17-and-optional-arduino-usb)). Test each connected wired input and check its ON/OFF events in the **Siren Control → Activity Log**.
 7. Use **Scoreboard** during the match for goals, penalties, team time-outs and manual timer control. The player/spectator Display Window follows the live match state.
 8. At the end of a tournament game, UWH saves the completed result to the separate results CSV before clearing the live match and advancing to the next selected game. If shared two-court sync is enabled, the local save happens first and network upload happens afterwards in the background.
 
@@ -295,14 +295,19 @@ Do not use `sudo pip install` or `pip install --break-system-packages` for the s
 UWH automatically starts a wired GPIO listener on a **Raspberry Pi 5**. The app
 configures **BCM GPIO17 (physical header pin 11)** as an **input with both internal
 pull-up and pull-down disabled**. No GPIO BIOS/bootloader setting is needed.
-The motherboard's **R13 (11 kΩ) supplies the external pull-up to regulated 3.3 V**.
+The motherboard's **R13 (11 kΩ) supplies the external pull-up using 3.3 V from the Pi**, brought back through J19.
 Do not connect the Arduino's 5 V siren signal to this pin.
 
-| Motherboard J17 | Raspberry Pi 40-pin header | Function |
+| Motherboard connection | Raspberry Pi 40-pin header | Function |
 |---|---|---|
-| Pin 1 — `PR5 Wired Siren Signal` | Physical **11**, **BCM GPIO17** | LOW = pressed; HIGH (about 3.3 V) = released |
-| Pin 2 — GND | Physical **6 and 9** | Common ground/power return |
-| Pin 3 — `RP5_5V` from the Rev D DC-DC-PDM board | Physical **2 and 4** | Regulated **5.1 V** power; never connect to a signal GPIO |
+| J19 — siren signal | Physical **11**, **BCM GPIO17** | LOW = pressed; HIGH (about 3.3 V) = released |
+| J19 — 3V3 | Physical **1**, **3.3 V** | From Pi to motherboard R13; do not feed an external supply into this pin |
+| J17 — GND | Physical **6 and 9** | Common ground/power return |
+| J17 — `RP5_5V` from the Rev D DC-DC-PDM board | Physical **2 and 4** | Regulated **5.1 V** power; never connect to a signal GPIO |
+
+This is the four-conductor arrangement for the motherboard revision using
+J17 for power/GND and J19 for siren/3.3 V. Match the terminal labels to your
+board revision, especially when splitting the motherboard into separate boards.
 
 The power contacts share current; size the cable and connectors for the intended
 5 A supply and follow the Pi power guidance above.
@@ -353,8 +358,8 @@ floating. Set `UWH_GPIO_SIREN=0` when launching, for example:
 UWH_GPIO_SIREN=0 ./Start-UWH.sh
 ```
 
-For the motherboard circuit above, leave that override unset. No additional
-3.3 V cable conductor or internal pull-up is required. Before use, verify idle
+For the motherboard circuit above, leave that override unset and connect the
+3.3 V return conductor for R13; keep the internal pulls disabled. Before use, verify idle
 3.3 V and pressed LOW at pin 11, then test GPIO alone, Arduino USB alone, and
 both together. Software tests use simulated GPIO; actual Pi/cable/button testing
 is still required.
@@ -764,7 +769,7 @@ UWH uses the per-file **Trim %** values for relative cue levels. The operating s
 
 **Number of seconds to play App-generated Siren** sets the requested duration of game-period sirens and also supplies the per-cycle duration for mapped Zigbee timed sirens. If the selected file is shorter, playback loops as needed. **Maximum Timed Siren Duration — App & Zigbee (seconds)** independently caps each timed blast (default 10 seconds; allowed 1–30 seconds), including when the requested duration is longer. The wired Arduino/GPIO hold-to-sound inputs do not use this timer.
 
-**Hardwired button (Arduino USB or Pi 5 GPIO17):** the siren sounds while the button is held and stops when it is released. This differs from the timed Zigbee button behaviour.
+**Hardwired button (Arduino USB or Pi 5 GPIO17):** the siren sounds while a wired input is held and stops when all active wired inputs have released. GPIO17 uses 50 ms debounce on both press and release. This differs from timed Zigbee actions; Zigbee continuous hold/release mappings have their own safety cutoff.
 
 **Zigbee buttons (MQTT):** When **Button Action Mapping** assigns them accordingly, `single` sounds one timed cycle and `double` sounds two consecutive timed cycles **without a programmed pause**. The preferred **Aqara WXKG11LM** also sends separate `hold` and `release` actions: map these to **Start continuous siren** and **Stop continuous siren** respectively. Other previously tested types have limited functionality (no hold or release signals); a button that publishes `emergency` must have that action mapped separately. See [the Zigbee section](#zigbee2mqtt-wireless-siren-setup-and-operation) for setup and Auto-add From Log.
 
@@ -791,7 +796,7 @@ The system automatically plays audio cues during different periods:
 - At **00:30 remaining in a break**, the single warning uses the **30-second period warning** dropdown, its own **Trim %** and the configured millisecond duration.
 - At **10–1 seconds remaining**, countdown pip sounds use the **Pips** table's selected file and its per-file **Trim %**.
 - Siren sounds use the selected file in the **Sirens** table and that file's **Trim %**. The operating-system/DAC/amplifier volume remains the overall master level.
-- **Timed siren playback:** A short sound file loops until the configured duration is reached, subject to **Maximum Siren Duration**. The hardwired Arduino siren instead follows the button's physical press and release.
+- **Timed siren playback:** A short sound file loops until the configured duration is reached, subject to **Maximum Siren Duration**. The hardwired Arduino/Raspberry Pi 5 siren instead follows press/hold/release; when both inputs are active, the final wired release stops it.
 - Game periods (halves) only play siren at the end, no countdown pips
 - Sudden Death periods have no automatic audio cues. The Sudden Death timer counts upwards from 00:00. A goal scored during Sudden Death immediately ends the game. Sudden Death Start and Sudden Death End messages are logged but do not trigger audio.
 
@@ -881,7 +886,7 @@ Zigbee USB coordinator -- Zigbee2MQTT (Node.js)
 - **Mosquitto** is the MQTT message broker. The broker and Zigbee2MQTT can run on the same computer, or on different computers if properly configured.
 - **Python `paho-mqtt`** is the MQTT *client library* used by a source-code UWH installation. Installing it does **not** install a broker or Zigbee2MQTT.
 - **UWH** subscribes to button messages. The selected *Siren* audio file is played by UWH on its own audio output; a separate Zigbee siren device is **not** needed for this use case.
-- **Arduino hardwired siren:** its local press/hold/release audio path is independent of MQTT. If an optional MQTT siren output is configured, the Arduino can also send ON/OFF commands to that separate output.
+- **Arduino/Raspberry Pi 5 hardwired siren:** Arduino USB (`SIREN_ON`/`SIREN_OFF`) and Raspberry Pi 5 GPIO17 can trigger local press/hold/release audio independently of MQTT. They can operate together: the first active wired input starts the siren and the final release stops it. If an optional MQTT siren output is configured, UWH also sends ON/OFF commands to that separate output for either input pathway. See [wired siren setup and diagnostics](#wired-siren-on-raspberry-pi-5--gpio17-and-optional-arduino-usb).
 
 For the simple local installation, all three software components run on one machine, and the MQTT broker is `localhost:1883`. For a second UWH computer, set its **MQTT Broker** field to the hostname or LAN IP address of the existing broker; `localhost` would point to the *second* computer, not the first.
 
@@ -1197,11 +1202,13 @@ The table describes **observed actions and their tested mappings**, not a univer
 
 For example, a configured duration of **1.5 seconds** gives approximately 1.5 seconds for one timed cycle and two consecutive cycles for a mapped `double`. Actual audio-start/stop overhead may cause a small transition between cycles. Different models publish different long-press and release values: inspect each button's log rather than assuming the table applies automatically.
 
-**Important:** The preferred Aqara WXKG11LM sends separate `hold` and `release` actions, verified with **Start continuous siren** and **Stop continuous siren**. Continuous operation starts when the button reports `hold`, and is bounded by the hold timer and audio cutoff. Other previously tested button types have no hold or release signals and should use timed-cycle mappings. The **hardwired Arduino button** instead sounds locally while physically held and stops on release. Timed game and wireless sirens use the selected **Sounds** file and duration, subject to **Maximum Siren Duration (seconds)** (default 10; allowed 1–30 seconds).
+**Important:** The preferred Aqara WXKG11LM sends separate `hold` and `release` actions, verified with **Start continuous siren** and **Stop continuous siren**. Continuous operation starts when the button reports `hold`, and is bounded by the hold timer and audio cutoff. Other previously tested button types have no hold or release signals and should use timed-cycle mappings. The **hardwired Arduino/Raspberry Pi 5 button inputs** sound locally while held, independently of MQTT, and stop when all active wired inputs have released. Timed game and wireless sirens use the selected **Sounds** file and duration, subject to **Maximum Siren Duration (seconds)** (default 10; allowed 1–30 seconds).
 
 ### Using two computers with the same buttons
 
-#### Supported arrangement: one Zigbee network, multiple MQTT clients
+**Advanced users only — untested with UWH:** sharing one MQTT broker between multiple UWH applications is a possible configuration, but has not been tested with this project. Most deployments are expected to have their own **SONOFF Zigbee USB receiver/coordinator**, Zigbee2MQTT instance and local MQTT broker, with their own buttons paired to that coordinator.
+
+#### Untested shared-broker arrangement: one Zigbee network, multiple MQTT clients
 
 ```text
                            ONE Zigbee network
@@ -1214,7 +1221,7 @@ button 3 -----/
                                                 UWH PC 1    UWH PC 2
 ```
 
-The two UWH applications can be on **Windows, Raspberry Pi, or a mixture**; they can each subscribe to the same broker. The button is paired **once**, to the **one** coordinator. The second computer does not require another Zigbee USB dongle or a second Zigbee2MQTT instance merely to receive those button messages.
+In this advanced, **untested shared-broker arrangement**, the two UWH applications can be on **Windows, Raspberry Pi, or a mixture** and can each subscribe to the same broker. This is not the expected setup for most deployments. The button is paired **once**, to the **one** coordinator. The second computer does not require another Zigbee USB dongle or a second Zigbee2MQTT instance merely to receive those button messages.
 
 **Example:** Zigbee2MQTT and Mosquitto run on Windows PC 1, whose broker is reachable at `192.168.1.50` (illustrative address only). UWH on PC 1 uses `MQTT Broker: localhost`. UWH on the Raspberry Pi/PC 2 uses `MQTT Broker: 192.168.1.50`, the same port and the same relevant button names. Both subscribe to the existing Zigbee2MQTT topics. The broker must be configured for authenticated LAN access; `localhost` on PC 2 would not reach PC 1.
 
@@ -1300,7 +1307,7 @@ The frontend on port 8080 is **separate from MQTT**. Opening a webpage on PC 2 d
 | Windows broker works but Zigbee2MQTT does not start after boot | Set Mosquitto **Automatic**; confirm `pm2 save` under the task's Windows account and correct `pm2.cmd`/working directory; inspect Scheduler history. Do not run two PM2 instances. |
 | Pi MQTT fails with `ModuleNotFoundError` | Check `.venv/bin/python -m pip show paho-mqtt`, then run UWH using that same virtual environment. |
 | Frontend says adapter missing / port busy | Find the actual COM port or `/dev/serial/by-id`; confirm adapter type and permissions, and close any other program using the coordinator. |
-| Audible siren works but timing or level is different | Check the selected siren file and its **Trim %** in the **Sounds** tab, **Number of seconds to play App-generated Siren**, **Maximum Siren Duration**, and the operating-system/DAC/amplifier master volume. Arduino hold-to-sound differs from Zigbee timed actions. |
+| Audible siren works but timing or level is different | Check the selected siren file and its **Trim %** in the **Sounds** tab, **Number of seconds to play App-generated Siren**, **Maximum Siren Duration**, and the operating-system/DAC/amplifier master volume. Arduino USB and Raspberry Pi 5 GPIO17 hold-to-sound differ from Zigbee timed actions; if a wired siren stays on, check whether the other wired input is still active in **Siren Control → Activity Log**. |
 
 **Useful diagnostic commands** (use the correct host and authentication options for your broker):
 
@@ -1373,7 +1380,7 @@ Source/PyInstaller builds are still possible for developers, but ordinary users 
 
 ### Startup self-test
 
-The application includes a startup diagnostic window and a Siren Control activity log. Device/COM-port detection is a diagnostic, **not** proof of Zigbee pairing or an audible siren. The Windows MQTT path has been tested by pressing the physical buttons and hearing the local siren; use the same end-to-end test on any new computer.
+The application includes a startup diagnostic window and a Siren Control activity log. Device/COM-port detection is a diagnostic, **not** proof of Zigbee pairing or an audible siren. For a Pi 5 wired input, confirm GPIO17 readiness and press/release events in **Siren Control → Activity Log**; Arduino USB events are logged separately. Test each wired path individually and then together to verify that the siren stops after the final release. The Windows MQTT path has been tested by pressing the physical buttons and hearing the local siren; use the same end-to-end test on any new computer.
 
 ### Useful references
 
