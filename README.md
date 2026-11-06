@@ -1113,7 +1113,7 @@ Use `where pm2` to find **your actual** `pm2.cmd` path, replacing `YOUR_WINDOWS_
 
 **Preferred device to deploy: Aqara WXKG11LM wireless button**, as identified by Zigbee2MQTT for the unit tested on **6 November 2026**. It paired successfully in the Zigbee2MQTT frontend, and all four actions were confirmed working in UWH: `single`, `double`, `hold` and `release`.
 
-[Purchase listing used for the tested unit (AliExpress)](https://www.aliexpress.com/item/1005008270619004.html).
+**Specifications:** Aqara Wireless Mini Switch, model **WXKG11LM**; Zigbee wireless communication; powered by a replaceable **CR2032 coin-cell battery**. For UWH deployment, choose a version that reports `single`, `double`, `hold` and `release` through Zigbee2MQTT, as verified on the tested unit.
 
 | Device | Deployment status | Tested functionality |
 |---|---|---|
