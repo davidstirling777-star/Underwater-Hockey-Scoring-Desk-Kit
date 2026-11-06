@@ -417,7 +417,7 @@ Most period-duration boxes accept decimal **minutes**, e.g. `1.5` (or `1,5`) = 1
 
 ### Presets
 
-Here, **nine** buttons are available for commonly used settings. Existing six-button settings are preserved; slots 7, 8 and 9 are added empty. Holding a preset button for **three seconds** opens its editor, where the button name and saved settings can be changed. Click the stored button to load those settings back into the Game Variables.
+Here, **nine** buttons are available for commonly used settings. Holding a preset button for **three seconds** opens its editor, where the button name and saved settings can be changed. Click the stored button to load those settings back into the Game Variables.
 
 ## Tournament List tab
 
