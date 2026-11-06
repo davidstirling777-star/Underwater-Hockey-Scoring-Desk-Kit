@@ -421,7 +421,7 @@ Here, **nine** buttons are available for commonly used settings. Holding a prese
 
 ## Tournament List tab
 
-Tournament draw selection and results synchronisation are on their own **Tournament List** tab, leaving more room for Game Variables and its Game Sequence explanation.
+Tournament draw selection and results synchronisation are on the **Tournament List** tab
 
 Tournament files now live in the visible **`Tournament data`** folder beside the application. The release package includes a demo `Tournament_Draw.csv` and matching `Tournament_Results.csv` there. On first run after upgrading from an older version, UWH copies legacy root-level CSVs into `Tournament data` when a file of the same name is not already present; the old files are left untouched.
 
