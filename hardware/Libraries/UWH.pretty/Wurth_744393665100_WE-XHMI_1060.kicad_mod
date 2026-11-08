@@ -1,0 +1,118 @@
+(footprint "Wurth_744393665100_WE-XHMI_1060"
+	(version 20260206)
+	(generator "pcbnew")
+	(generator_version "10.0")
+	(layer "F.Cu")
+	(property "Reference" "REF**"
+		(at -8.919466 1.183999 0)
+		(unlocked yes)
+		(layer "F.SilkS")
+		(uuid "9f38b59b-e437-499b-bbc6-8c8adda5db0d")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.1)
+			)
+		)
+	)
+	(property "Value" "Wurth_744393665100_WE-XHMI_1060"
+		(at 0 6.35 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(uuid "e77a0c48-4452-4557-907a-860d2f2151f5")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "19047ecd-a5bb-4db4-919b-cc57373b700a")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "d082fc47-3ba6-48d3-ae6c-398e638ee969")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr smd)
+	(duplicate_pad_numbers_are_jumpers no)
+	(fp_rect
+		(start -6.15 -5.5)
+		(end 6.15 5.5)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.CrtYd")
+		(uuid "d75ab1d2-a35d-4823-a248-9edca82940ee")
+	)
+	(fp_rect
+		(start -5.65 -5)
+		(end 5.65 5)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.Fab")
+		(uuid "0ca6c30a-6f68-47df-968b-475d0c1df9ac")
+	)
+	(fp_text user "${REFERENCE}"
+		(at 0 -6.6304 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(uuid "40ed3bd4-c5e1-49d8-99d6-d6b794d1dc97")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(pad "1" smd roundrect
+		(at 0 -3.2)
+		(size 9 2.5)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(roundrect_rratio 0.15)
+		(uuid "9c4e52a4-36e8-4165-a263-378f56ac66e8")
+	)
+	(pad "2" smd roundrect
+		(at 0 3.2)
+		(size 9 2.5)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(roundrect_rratio 0.15)
+		(uuid "7c2d8449-300f-43de-8049-c5942c5fda86")
+	)
+	(embedded_fonts no)
+	(model "${KIPRJMOD}/../../Libraries/UWH.3dshapes/L_Wurth_WE-XHMI-1060P.step"
+		(offset
+			(xyz 0 0 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz -0 -0 90)
+		)
+	)
+)

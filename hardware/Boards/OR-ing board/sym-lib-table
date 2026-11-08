@@ -1,0 +1,5 @@
+(sym_lib_table
+ (version 7)
+ (lib (name "UWH") (type "KiCad") (uri "${KIPRJMOD}/../../Libraries/UWH.kicad_sym") (options "") (descr "Shared UWH symbols"))
+ (lib (name "LTC4418IUF_PBF") (type "KiCad") (uri "${KIPRJMOD}/LTC4418IUF_PBF.kicad_sym") (options "") (descr "LTC4418 controller"))
+)

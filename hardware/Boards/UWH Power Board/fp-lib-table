@@ -1,0 +1,5 @@
+(fp_lib_table
+ (version 7)
+ (lib (name "UWH") (type "KiCad") (uri "${KIPRJMOD}/../../Libraries/UWH.pretty") (options "") (descr "Shared UWH footprints"))
+ (lib (name "Stack_Template") (type "KiCad") (uri "${KIPRJMOD}/../../Libraries/Stack_Template.pretty") (options "") (descr "Stack mounting holes"))
+)

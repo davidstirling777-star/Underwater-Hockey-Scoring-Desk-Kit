@@ -1,3 +1,5 @@
+> **Historical bench-test notes:** for the current split-board assembly, 30 mm standoffs, wiring and fuse guidance, use [Hardware assembly in the README](README.md#hardware-assembly). The older motherboard/PDM observations below are not current assembly instructions.
+
 # Hardware setup — UWH Scoring Desk Kit
 
 This document describes the **currently installed Raspberry Pi 5 UWH Scoring Desk hardware**, together with clearly identified hardware options still being developed. It is a companion to [README.md](README.md), which contains software installation, screens, sounds and Zigbee instructions.

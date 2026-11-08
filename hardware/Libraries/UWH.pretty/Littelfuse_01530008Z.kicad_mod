@@ -1,0 +1,41 @@
+(footprint "Littelfuse_01530008Z" (version 20211014) (generator pcbnew)
+  (layer "F.Cu")
+  (descr "Littelfuse 01530008Z MINI/ATM automotive blade fuse holder, vertical THT. Manufacturer PCB pattern: two electrical holes on 7.62 mm pitch, centered board-lock hole. DigiKey F065-ND; LCSC C206907.")
+  (tags "Littelfuse 01530008Z F065-ND C206907 MINI ATM automotive blade fuse holder THT")
+  (attr through_hole)
+
+  (fp_text reference "REF**" (at 0 -5.20) (layer "F.SilkS")
+    (effects (font (size 1 1) (thickness 0.15)))
+  )
+  (fp_text value "01530008Z" (at 0 5.20) (layer "F.Fab")
+    (effects (font (size 1 1) (thickness 0.15)))
+  )
+  (fp_text user "${REFERENCE}" (at 0 0 90) (layer "F.Fab")
+    (effects (font (size 1 1) (thickness 0.15)))
+  )
+
+  (fp_line (start -8.78 -4.10) (end 8.78 -4.10) (layer "F.SilkS") (width 0.20))
+  (fp_line (start 8.78 -4.10) (end 8.78 4.10) (layer "F.SilkS") (width 0.20))
+  (fp_line (start 8.78 4.10) (end -8.78 4.10) (layer "F.SilkS") (width 0.20))
+  (fp_line (start -8.78 4.10) (end -8.78 -4.10) (layer "F.SilkS") (width 0.20))
+
+  (fp_line (start -8.635 -3.810) (end 8.635 -3.810) (layer "F.Fab") (width 0.10))
+  (fp_line (start 8.635 -3.810) (end 8.635 3.810) (layer "F.Fab") (width 0.10))
+  (fp_line (start 8.635 3.810) (end -8.635 3.810) (layer "F.Fab") (width 0.10))
+  (fp_line (start -8.635 3.810) (end -8.635 -3.810) (layer "F.Fab") (width 0.10))
+
+  (fp_line (start -9.15 -4.31) (end 9.15 -4.31) (layer "F.CrtYd") (width 0.05))
+  (fp_line (start 9.15 -4.31) (end 9.15 4.31) (layer "F.CrtYd") (width 0.05))
+  (fp_line (start 9.15 4.31) (end -9.15 4.31) (layer "F.CrtYd") (width 0.05))
+  (fp_line (start -9.15 4.31) (end -9.15 -4.31) (layer "F.CrtYd") (width 0.05))
+
+  (pad "1" thru_hole roundrect (at -3.81 0) (size 3.40 3.40) (drill 1.73) (layers "*.Cu" "*.Mask") (roundrect_rratio 0.25))
+  (pad "2" thru_hole circle (at 3.81 0) (size 3.40 3.40) (drill 1.73) (layers "*.Cu" "*.Mask"))
+  (pad "" np_thru_hole circle (at 0 0) (size 3.79 3.79) (drill 3.79) (layers "*.Cu" "*.Mask"))
+
+  (model "${KIPRJMOD}/../../Libraries/UWH.3dshapes/OL-01530008Z.step"
+    (offset (xyz 0 3.048 -4.6765))
+    (scale (xyz 1 1 1))
+    (rotate (xyz 180 0 0))
+  )
+)

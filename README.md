@@ -1,16 +1,17 @@
 # Underwater Hockey Scoring Desk Kit
 
-A project to allow the use of a computer, modern computer languages and readily available Arduino hardware to make a scoring and siren system for Underwater Hockey.
+A project to allow the use of a computer, modern computer languages and readily available Arduino or Raspberry Pi 5 hardware to make a scoring and siren system for Underwater Hockey.
 
-**This README is the user manual for the software.** It combines installation, normal operation, tournament files, two-court results synchronisation, screens, sounds and Zigbee siren setup in one place. The separate `MAINTAINERS.md` is for people modifying the Python source.
+**This README is the user manual for the software and hardware assembly.** It combines installation, normal operation, tournament files, two-court results synchronisation, screens, sounds and Zigbee siren setup in one place. The separate `MAINTAINERS.md` is for people modifying the Python source.
 
-The hardware is still being developed. The current `HARDWARE_SETUP.md` remains a separate working hardware note for now; when the production hardware is settled, its relevant material can be folded into this manual as a hardware chapter.
+The hardware is still being developed. See [Hardware assembly](#hardware-assembly) for the split control/power board build and [`hardware/`](hardware/README.md) for editable KiCad sources. `HARDWARE_SETUP.md` preserves earlier bench-test notes; use this README for the current assembly wiring.
 
 The software has an operator-facing Underwater Hockey Game Management App and player-facing or spectator-facing Display Window(s). The operator window opens on **Game Variables**, with six other main tabs: **Scoreboard**, **Tournament List**, **Screens**, **Sounds**, **Siren Control**, and **About**.
 
 ## Contents
 
 - [How the application works](#how-the-application-works)
+- [Hardware assembly](#hardware-assembly)
 - [Known working setups](#known-working-setups)
 - [Windows 11 installation](#downloading-and-installing-uwh-on-windows)
 - [Raspberry Pi 5 installation](#downloading-and-installing-uwh-on-a-raspberry-pi-5)
@@ -37,11 +38,88 @@ A normal operating flow is:
 3. If a tournament draw is being used, use **Tournament List** to select the draw, starting game and any results synchronisation settings.
 4. In **Screens**, select the operator layout and open the required player/spectator Display Window(s). Use **Auto Detect Screens** and **Test Displays** when setting up a new computer or monitor arrangement.
 5. In **Sounds**, select and test the siren and pip sounds, per-file trims and siren timing.
-6. If wireless referee buttons are being used, configure and test them in **Siren Control**. The wired siren supports Arduino USB and, on Pi 5, GPIO17 (see the wired GPIO section).
+6. If wireless referee buttons are being used, configure and test them in **Siren Control**. The wired siren supports Arduino USB and, on Pi 5, GPIO17, independently or together (see [wired siren setup](#wired-siren-on-raspberry-pi-5--gpio17-and-optional-arduino-usb)). Test each connected wired input and check its ON/OFF events in the **Siren Control → Activity Log**.
 7. Use **Scoreboard** during the match for goals, penalties, team time-outs and manual timer control. The player/spectator Display Window follows the live match state.
 8. At the end of a tournament game, UWH saves the completed result to the separate results CSV before clearing the live match and advancing to the next selected game. If shared two-court sync is enabled, the local save happens first and network upload happens afterwards in the background.
 
 The game clock progresses through First Half, Half Time and Second Half, with optional Overtime and Sudden Death when enabled. The detailed sequence and the special rules for goals scored during breaks are described later in this manual.
+
+## Hardware assembly
+
+The editable KiCad projects and shared libraries are in [`hardware/`](hardware/README.md). The split **control board above the power board** replaces the original motherboard. The original motherboard project and automatic backups are not included. These are development hardware sources, not a claim of completed production or thermal certification. Use **1 oz copper** for the control and power boards as designed.
+
+### Fit only the PDMs you need
+
+**Only fit DC-DC PDM boards for loads that this assembly will power.** The minimum configuration uses **one PDM: the audio supply at power J15**, for a system with the power board, audio board and wired siren. The control circuit receives backed 24 V separately through power J11 → control J21; it does not need another PDM.
+
+- If you supply your own computer instead of the onboard Raspberry Pi 5, omit the Pi PDM at **J18** and its Pi power harness. Use the external computer's audio output and the Arduino USB pathway for the wired siren.
+- If monitors have their own external power supplies, omit their screen PDMs at **J2/J5/J7/J9** and the corresponding screen-power leads. Fit only as many screen PDMs as there are monitors powered by this assembly.
+- Fit the Pi PDM only when powering the onboard Pi, and fit the audio PDM in every configuration described here. Unused PDM positions can remain empty.
+
+### Board stack and assembly order
+
+1. Open each `.kicad_pro` from KiCad's project manager. Install the standard KiCad libraries; the supplied project library tables locate the shared UWH libraries. Refill copper zones and run ERC/DRC before fabrication.
+2. Assemble and inspect the power board, DC-DC PDMs and OR-ing board first. Fit the OR-ing module to **power J16**, matching numbered pins and the pin-1 marks; its two-row connector can otherwise be reversed. The supplied 2×5 assignment is SELV on pins 1–2, GND on 3–4 and 7–8, backed output on 5–6, and battery on 9–10. SELV feeds LTC4418 V1 and remains the preferred source, even when the battery voltage is higher.
+3. Fit only the required PDMs: screen supplies at **J2/J5/J7/J9**, the audio supply at **J15**, and the optional Pi supply at **J18**. Use **DC-DC PDM-Audio Rev D or later for the Pi supply**. Set and measure outputs before connecting loads: **19 V** for the specified screens, **16 V nominal and never above 18 V** for audio, and **5.1 V** for the Pi. Verify against each actual load's rating.
+4. Mount the **control board above the power board using 30 mm standoffs** at the matching mounting holes. Support the boards without bending them; check screw length and clearance from copper, component leads and the underside of daughterboards. Keep the lower board's terminal-access edge accessible.
+5. Fit the audio board and the controller hardware required for your configuration: the Pi 5 stack (NVMe Base, active cooler and DAC+), the Arduino, or both, on the upper assembly. Use the matching audio mounting holes and **audio J5 / control J10** header. Audio power arrives separately by two wires at audio J19; the mating J5/J10 header still carries the same audio supply and GND, so it is not an electrically isolated mounting connector.
+6. Fit **both control-board optocouplers U1 and U2**, even if only one controller is used: their input LEDs are in series. Set JP1 **1–2 for Nano ESP32 (3.3 V)** or **2–3 for Nano Every (5 V)** before powering the Arduino. The Pi has its own 3.3 V pull-up through R13.
+7. Make the harnesses below, check polarity and continuity with power removed, then energise and test one load at a time. Do not connect another USB-C power supply to a Pi already powered through its GPIO header.
+
+### Supply location and wiring sizes
+
+Locate the **24 V SELV PSU near the 230 V power outlet**, and run several metres of **4 mm² finely multistranded copper cable (approximately AWG 11)**, for **each** of positive and GND, from the PSU to the UWH siren hardware. AWG values here are approximate comparisons; buy the stated metric conductor area. Check voltage at the hardware under maximum load, including both conductors' voltage drop. Keep mains connections at the PSU end. **Containment of the boards to IPX5 is a minimum expectation.**
+
+Power-board **J1 is Phoenix Contact 1714971**. The project builder has physically verified that **4 mm² finely multistranded cable fits the terminals with a bootlace ferrule formed using a ferrule crimper**. Phoenix Contact publishes a **4 mm² maximum for flexible conductors, including ferruled conductors**. Do not trim away strands. Check the actual PSU terminal rating separately. Protect the long cable at its source as appropriate to the cable and PSU; the board fuse cannot protect a short upstream of itself.
+
+Use flexible copper for internal harnesses. The following starting sizes assume short internal runs, **up to about 300 mm one way**; reassess longer runs, bundled wiring and high enclosure temperatures. Use terminations rated for the selected conductor and current. The TB007-508 terminals are specified for up to **2.5 mm²**; GPIO crimp contacts require their own wire-size check.
+
+| Connection | Pin-to-pin wiring | Suggested conductor area, each wire |
+|---|---|---|
+| PSU to power board | J1 **1 = +24 V**, **2 = GND** | **4 mm² (approx. AWG 11)** |
+| 24 V battery to power board | J14 **1 = battery +**, **2 = GND** | **2.5 mm² (approx. AWG 14)**; battery-source protection close to the battery |
+| Power board to control board | J11 **1 → J21.1**, **2 → J21.2**: backed 24 V / GND | **0.5 mm² (approx. AWG 20)** for the control circuit only |
+| Power board to audio board | J10 **1 → audio J19.1**, **2 → audio J19.2**: audio supply / GND | **1.0 mm² (approx. AWG 17)** |
+| Power board to Pi power harness | J17 **1 = +5.1 V**, **2 = GND** | **1.5 mm² (approx. AWG 15)** trunk for each polarity |
+| Pi harness branches | +5.1 V to physical **2 and 4**; GND to physical **6 and 9** | Two short **0.5 mm² (approx. AWG 20)** branches per polarity, with suitable current-rated contacts |
+| Pi siren signal | Control J19 **1 → Pi physical 11 (BCM GPIO17)** | **0.25 mm² (approx. AWG 24)** |
+| Pi pull-up supply | Pi physical **1 (3.3 V) → control J19.2** | **0.25 mm² (approx. AWG 24)** |
+| Remote normally open siren button | Across control **J20 pins 1 and 2** | **0.5 mm² (approx. AWG 20)** as a starting size; assess the actual remote cable length |
+
+Split the Pi power trunk using a rated splice/distribution connection; do not try to force the trunk wire into a small GPIO contact. Use both listed 5 V contacts and both ground contacts. With the DAC+ installed, use a suitable pass-through header/interposer rather than disturbing the HAT connections. Measure 5 V at the Pi under load; do not compensate for excessive cable loss by raising the PDM above 5.1 V.
+
+**Control J19 pin 2 is 3.3 V, not GND.** J20 is a button-loop connection, not a positive/GND supply connector. Keep these distinct from the power terminals' pin-1-positive/pin-2-GND convention. The boards share GND; the optocouplers separate the controller signal voltages but do not provide whole-system galvanic isolation.
+
+Screen outputs are power **J3 = screen 1**, **J4 = screen 2**, **J6 = screen 3**, and **J8 = screen 4**, with positive on pin 1 and GND on pin 2. Use **1.0 mm² (approx. AWG 17)** for short screen-power leads, increasing area as needed for external cable length. Only **screen 1**, audio, Pi and the control supply are backed up; screens 2–4 use the SELV supply directly through their PDMs.
+
+### DAC+ audio cable and volume limit
+
+Use a straight four-conductor cable from DAC+ P6 to audio J6. Short **0.25 mm² (approx. AWG 24)** conductors are suitable; keep the audio cable away from PDM switching components and power wiring.
+
+| DAC+ P6 | Audio J6 | Signal / audio-board destination |
+|---|---|---|
+| 1 | 1 | Left audio — J1 tip / R2 pad 1 |
+| 2 | 2 | Ground |
+| 3 | 3 | Right audio — J1 ring / R1 pad 1 |
+| 4 | 4 | Ground |
+
+For the tested **DAC+ PCB 003R5**, insert an **unwired 3.5 mm plug in the DAC+ socket** to operate headphone detect. Leave **P6 pin 5 externally unconnected**: measurements show that without a plug it is directly connected to 3.3 V, so **do not bridge it to pin 4/GND**. Use one audio source at a time.
+
+RV5 sets the maximum WATER-zone level. Looking at its adjustment screw, turn **anticlockwise to lower the maximum volume**. The Bourns 3296W-1-502LF has approximately 25 turns of effective adjustment and an idling wiper at the endpoints, not a hard rotational stop. Start with a low limit and set the operating level deliberately. Follow the audio schematic's two-transformer underwater-speaker wiring. Neither side of a BTL amplifier output may be connected to GND.
+
+### Fuses and hot-climate operation
+
+Keep the current **5 A recommendation** for power-board **F2 (battery)**, **F3 (SELV feed into the OR-ing path)** and audio-board **F2**. A **6 A fuse may need to be considered for hot climates**, subject to availability of a correctly rated part and verification of the protected wiring, connector, MOSFET and PCB paths. This is a conditional engineering review, not an instruction to increase a fuse merely because it opens.
+
+The backed load budget is **55 W screen + 30 W audio + 19.8 W Pi stack = 104.8 W**. At an assumed 90% conversion efficiency that is approximately **4.85 A at 24 V** or **5.29 A at 22 V**, before startup transients and small auxiliary loads. Retaining 5 A therefore requires checking actual simultaneous load, startup and hot-enclosure behaviour; it is not a guarantee of continuous operation at all nameplate maxima.
+
+The separate **20 A main SELV fuse** has alternative MINI **F1 / Keystone 3568** and MAXI **F4 / Keystone 3555-2** positions. **Fit only one of F1 and F4.** The **Keystone MAXI fuse holder may need to be used in hot climates because of derating in the MINI fuse and holder**. This alternative applies to the main input fuse; it does not make the 5 A branch positions MAXI-compatible. Check both fuse and holder derating at the actual internal temperature. Record the actual fuse MPN separately from its holder MPN.
+
+### First power-up checks
+
+Before fitting the Pi or connecting speakers, verify each PDM's voltage and polarity. Confirm SELV is selected with both supplies present, then test battery takeover and return to SELV under the intended backed load. Check for Pi undervoltage or resets and measure connector, fuse-holder and narrow-trace temperatures during a sustained-load test. Test GPIO17 and optional Arduino USB press/release events separately and together in **Siren Control → Activity Log**. GPIO17 uses the external R13 pull-up, with internal pulls disabled; LOW means pressed. See [wired siren setup](#wired-siren-on-raspberry-pi-5--gpio17-and-optional-arduino-usb) for software behaviour.
+
+Component references: [Phoenix 1714971](https://www.phoenixcontact.com/en-us/products/1714971), [Same Sky TB007-508 datasheet](https://www.sameskydevices.com/product/resource/tb007-508.pdf), [Littelfuse MINI fuse derating](https://www.littelfuse.com/assetdocs/littelfuse-datasheet-mini?assetguid=231dbb04-2bf5-4da4-ac3e-23aa05c4339b), [Bourns 3296 datasheet](https://www.bourns.com/data/global/pdfs/3296.pdf).
 
 ## Known working setups
 
@@ -119,7 +197,7 @@ Raspberry Pi 5 can be powered in several ways, but the power source affects how 
 
 | Power arrangement | Pi 5 behaviour | Required configuration |
 |---|---|---|
-| **UWH Scoring Desk production motherboard — 5.1 V / at least 5 A through the GPIO header** | No USB-C Power Delivery negotiation occurs. The motherboard provides the high-current 5 V rail directly. | **Set `PSU_MAX_CURRENT=5000` in the Pi 5 bootloader EEPROM.** |
+| **UWH Scoring Desk production power board — 5.1 V / at least 5 A through the GPIO header** | No USB-C Power Delivery negotiation occurs. The motherboard provides the high-current 5 V rail directly. | **Set `PSU_MAX_CURRENT=5000` in the Pi 5 bootloader EEPROM.** |
 | **Official Raspberry Pi 27 W USB-C supply, or another compatible USB-PD source that negotiates 5 V / 5 A** | The Pi detects the 5 A supply through USB-PD and automatically enables the higher power budget. | No `PSU_MAX_CURRENT` override is normally required. |
 | **Good-quality 5 V / 3 A USB-C supply** | The Pi 5 can operate, but downstream USB power is normally limited to 600 mA. | Do **not** claim 5 A with `PSU_MAX_CURRENT=5000` unless the supply and complete power path really can provide it. |
 | **Other verified 5 V / 5 A non-PD supply or bench supply connected through GPIO** | Electrically similar to the UWH GPIO-powered case: there is no USB-PD negotiation to report the available current. | `PSU_MAX_CURRENT=5000` may be used only when the source, wiring and connectors are genuinely capable of supplying 5 A. |
@@ -127,11 +205,11 @@ Raspberry Pi 5 can be powered in several ways, but the power source affects how 
 #### UWH Scoring Desk production hardware
 
 > [!IMPORTANT]
-> **The UWH Scoring Desk motherboard provides the Raspberry Pi 5 with a regulated 5.1 V supply capable of at least 5 A through the GPIO header. The dedicated PDM-Audio DC-DC supply uses the LMQ61460 regulator. The regulator specifies 3.5–7 ms from its first switching pulse to 90% of the selected output voltage, with a typical 0.7 ms enable-to-first-switching-pulse delay. This keeps the regulator's designed start-up to near operating voltage below 10 ms. The assembled production board should still be checked under load during hardware validation.**
+> **The UWH Scoring Desk power board provides the Raspberry Pi 5 with a regulated 5.1 V supply capable of at least 5 A through the GPIO header. The dedicated PDM-Audio DC-DC supply uses the LMQ61460 regulator. The regulator specifies 3.5–7 ms from its first switching pulse to 90% of the selected output voltage, with a typical 0.7 ms enable-to-first-switching-pulse delay. This keeps the regulator's designed start-up to near operating voltage below 10 ms. The assembled production board should still be checked under load during hardware validation.**
 
-The production motherboard feeds the Pi 5 through the **5 V GPIO power pins rather than through USB-C**. This deliberately bypasses USB-C Power Delivery negotiation. Most users are expected to provide their own Raspberry Pi 5, so each Pi fitted to the production motherboard must have its bootloader configured to recognise the available **5000 mA** supply.
+The production power board feeds the Pi 5 through the **5 V GPIO power pins rather than through USB-C**. This deliberately bypasses USB-C Power Delivery negotiation. Most users are expected to provide their own Raspberry Pi 5, so each Pi powered by the production power board must have its bootloader configured to recognise the available **5000 mA** supply.
 
-For the UWH motherboard, edit the Pi 5 bootloader EEPROM configuration:
+For the UWH power board, edit the Pi 5 bootloader EEPROM configuration:
 
 ```bash
 sudo rpi-eeprom-config --edit
@@ -161,20 +239,20 @@ The result should include:
 PSU_MAX_CURRENT=5000
 ```
 
-`PSU_MAX_CURRENT=5000` tells the Pi 5 firmware to **skip USB Power Delivery negotiation and assume that a 5 A source is available**. It does not increase the capability of the power supply itself. On the UWH motherboard this is appropriate because the dedicated PDM-Audio supply and its power path are designed for the Pi 5 load.
+`PSU_MAX_CURRENT=5000` tells the Pi 5 firmware to **skip USB Power Delivery negotiation and assume that a 5 A source is available**. It does not increase the capability of the power supply itself. On the UWH power board this is appropriate because the dedicated PDM-Audio supply and its power path are designed for the Pi 5 load.
 
-Raspberry Pi also provides a `usb_max_current_enable=1` setting that raises the USB peripheral limit from 600 mA to 1.6 A. **It does not need to be added separately for the UWH motherboard:** Raspberry Pi documents that this higher USB-current setting is enabled automatically when `PSU_MAX_CURRENT=5000` is set.
+Raspberry Pi also provides a `usb_max_current_enable=1` setting that raises the USB peripheral limit from 600 mA to 1.6 A. **It does not need to be added separately for the UWH power board:** Raspberry Pi documents that this higher USB-current setting is enabled automatically when `PSU_MAX_CURRENT=5000` is set.
 
 > [!CAUTION]
-> **Do not use `PSU_MAX_CURRENT=5000` merely to remove a low-power warning.** Only use it when the complete 5 V supply path is genuinely capable of supplying 5 A. If a Pi 5 is removed from the UWH motherboard and later used with a lower-current supply, review or remove this EEPROM override. Also avoid connecting a second USB-C power supply while the Pi is already being powered from the UWH motherboard's GPIO 5 V rail.
+> **Do not use `PSU_MAX_CURRENT=5000` merely to remove a low-power warning.** Only use it when the complete 5 V supply path is genuinely capable of supplying 5 A. If a Pi 5 is removed from the UWH power board and later used with a lower-current supply, review or remove this EEPROM override. Also avoid connecting a second USB-C power supply while the Pi is already being powered from the UWH power board's GPIO 5 V rail.
 
 #### If the Pi 5 is powered through USB-C instead
 
 A Pi 5 supplied from an official Raspberry Pi 27 W USB-C supply negotiates **5 V / 5 A** using USB Power Delivery, so the firmware knows that the higher current is available and no UWH-specific EEPROM override is required.
 
-A Pi 5 can also run from a suitable **5 V / 3 A** USB-C source. In that configuration Raspberry Pi normally restricts the total power available to downstream USB devices to **600 mA**. With a recognised 5 V / 5 A source—or with the UWH motherboard correctly configured using `PSU_MAX_CURRENT=5000`—the USB peripheral limit rises to **1.6 A**.
+A Pi 5 can also run from a suitable **5 V / 3 A** USB-C source. In that configuration Raspberry Pi normally restricts the total power available to downstream USB devices to **600 mA**. With a recognised 5 V / 5 A source—or with the UWH power board correctly configured using `PSU_MAX_CURRENT=5000`—the USB peripheral limit rises to **1.6 A**.
 
-The production UWH motherboard uses GPIO power injection rather than USB-C because its dedicated regulated 5.1 V supply is already part of the scoring-desk hardware; implementing a separate USB-C 5 A source would otherwise require a suitable USB-C/USB-PD power-source arrangement.
+The production UWH power board uses GPIO power injection rather than USB-C because its dedicated regulated 5.1 V supply is already part of the scoring-desk hardware; implementing a separate USB-C 5 A source would otherwise require a suitable USB-C/USB-PD power-source arrangement.
 
 The dedicated PDM-Audio supply also makes a future independent Pi 5 hard-reset function practical, but **the dedicated supply by itself does not provide a reset**. A hard-reset/recovery button would need to be added to the PDM-Audio daughterboard (or otherwise wired to its regulator enable/control path) so that the Pi's 5.1 V output can be deliberately switched off and restarted. Without that additional hardware, recovery from a completely locked Pi still requires an external power cycle or use of the Pi's own controls.
 
@@ -295,20 +373,23 @@ Do not use `sudo pip install` or `pip install --break-system-packages` for the s
 UWH automatically starts a wired GPIO listener on a **Raspberry Pi 5**. The app
 configures **BCM GPIO17 (physical header pin 11)** as an **input with both internal
 pull-up and pull-down disabled**. No GPIO BIOS/bootloader setting is needed.
-The motherboard's **R13 (11 kΩ) supplies the external pull-up to regulated 3.3 V**.
+The control board's **R13 (11 kΩ) supplies the external pull-up using 3.3 V from the Pi**, brought back through J19.
 Do not connect the Arduino's 5 V siren signal to this pin.
 
-| Motherboard J17 | Raspberry Pi 40-pin header | Function |
+| Board connection | Raspberry Pi 40-pin header | Function |
 |---|---|---|
-| Pin 1 — `PR5 Wired Siren Signal` | Physical **11**, **BCM GPIO17** | LOW = pressed; HIGH (about 3.3 V) = released |
-| Pin 2 — GND | Physical **6 and 9** | Common ground/power return |
-| Pin 3 — `RP5_5V` from the Rev D DC-DC-PDM board | Physical **2 and 4** | Regulated **5.1 V** power; never connect to a signal GPIO |
+| Control J19 — siren signal | Physical **11**, **BCM GPIO17** | LOW = pressed; HIGH (about 3.3 V) = released |
+| Control J19 — 3V3 | Physical **1**, **3.3 V** | From Pi to control-board R13; do not feed an external supply into this pin |
+| Power J17 — GND | Physical **6 and 9** | Common ground/power return |
+| Power J17 — `RP5_5V` from the Rev D DC-DC-PDM board | Physical **2 and 4** | Regulated **5.1 V** power; never connect to a signal GPIO |
+
+This is the four-conductor arrangement using power-board J17 for power/GND and control-board J19 for siren/3.3 V. The power pair branches to two contacts per polarity at the Pi. See the [assembly wiring table](#supply-location-and-wiring-sizes).
 
 The power contacts share current; size the cable and connectors for the intended
 5 A supply and follow the Pi power guidance above.
 GPIO17 is separate from the Raspberry Pi DAC+'s I2C/I2S pins. Access the header
 through a suitable pass-through connector/interposer when the DAC+ is fitted.
-The optocouplers separate the signal voltages, but the motherboard shares GND;
+The optocouplers separate the signal voltages, but the boards share GND;
 this is **not full galvanic isolation**. Fit **both U1 and U2**, whose input LEDs
 are in series, even if only one controller is used.
 
@@ -353,8 +434,8 @@ floating. Set `UWH_GPIO_SIREN=0` when launching, for example:
 UWH_GPIO_SIREN=0 ./Start-UWH.sh
 ```
 
-For the motherboard circuit above, leave that override unset. No additional
-3.3 V cable conductor or internal pull-up is required. Before use, verify idle
+For the motherboard circuit above, leave that override unset and connect the
+3.3 V return conductor for R13; keep the internal pulls disabled. Before use, verify idle
 3.3 V and pressed LOW at pin 11, then test GPIO alone, Arduino USB alone, and
 both together. Software tests use simulated GPIO; actual Pi/cable/button testing
 is still required.
@@ -412,13 +493,13 @@ Most period-duration boxes accept decimal **minutes**, e.g. `1.5` (or `1,5`) = 1
 
 ### Presets
 
-Here, **nine** buttons are available for commonly used settings. Existing six-button settings are preserved; slots 7, 8 and 9 are added empty. Holding a preset button for **three seconds** opens its editor, where the button name and saved settings can be changed. Click the stored button to load those settings back into the Game Variables.
+Here, **nine** buttons are available for commonly used settings. Holding a preset button for **three seconds** opens its editor, where the button name and saved settings can be changed. Click the stored button to load those settings back into the Game Variables.
 
 ## Tournament List tab
 
-Tournament draw selection and results synchronisation are on their own **Tournament List** tab, leaving more room for Game Variables and its Game Sequence explanation.
+Tournament draw selection and results synchronisation are on the **Tournament List** tab
 
-Tournament files now live in the visible **`Tournament data`** folder beside the application. The release package includes a demo `Tournament_Draw.csv` and matching `Tournament_Results.csv` there. On first run after upgrading from an older version, UWH copies legacy root-level CSVs into `Tournament data` when a file of the same name is not already present; the old files are left untouched.
+Tournament files live in the visible **`Tournament data`** folder beside the application. The release package includes a demo `Tournament_Draw.csv` and matching `Tournament_Results.csv` there. On first run after upgrading from an older version, UWH copies legacy root-level CSVs into `Tournament data` when a file of the same name is not already present; the old files are left untouched.
 
 The CSV File dropdown automatically refreshes when clicked. New original draw CSV files copied into `Tournament data` can be selected without restarting the application. Generated `_Results.csv` files are excluded from the draw dropdown.
 
@@ -433,7 +514,11 @@ Click **Save Draw** to create a new `<Draw Name>_Draw.csv` and its separate `<Dr
 Where `#` is the Game Number (but this can also be `game`, `game#` or `game_number`).
 
 > [!IMPORTANT]
-> The selected **draw is an input file** and is not modified by UWH. Selecting it creates a sibling results CSV only if one does not already exist; an existing results file is **never reset**. `Tournament_Draw.csv` produces `Tournament_Results.csv`; `Court_A_Draw.csv` produces `Court_A_Results.csv`. Other names produce `<name>_Results.csv`. The results file starts as a complete copy of the draw, then receives scores and penalty data. UWH hides generated `_Results.csv` files from the draw selector.
+> The selected **draw is an input file** and is not modified by UWH. Selecting it creates a sibling results CSV only if one does not already exist; an existing results file is **never reset**. `Tournament_Draw.csv` produces `Tournament_Results.csv`; `Court_A_Draw.csv` produces `Court_A_Results.csv`. Other names produce `<name>_Results.csv`. A newly created results file starts as a complete copy of the draw, then receives scores and penalty data. UWH hides generated `_Results.csv` files from the draw selector.
+
+**If a results file with the expected name already exists in the same folder, UWH reuses it**, including after an application restart. For example, selecting `Court_A_Draw.csv` when `Court_A_Results.csv` already exists keeps the saved results; it does not create a blank replacement or a second numbered results file. Each subsequent game export updates only that game's scores, penalties and scorer comments, leaving other games' results intact. **Exporting the same game again replaces that game's previously saved result fields**, so check the selected game number before continuing.
+
+The filename alone is not enough: UWH checks that the existing results file has the same headers, row count and non-result fields (including game numbers, teams and schedule) as the selected draw. If they do not match, UWH refuses to export and leaves the existing results file unchanged. Back up both files and resolve the mismatch before continuing. For a separate tournament, use a distinct draw filename so it has its own results file.
 
 Scores are written to `WScore` and `BScore`, penalised cap numbers to `Penalties`, and (when **Record Scorers Cap Number** is enabled) scorer information to `Comments` **in the results file**. Scorer entries use forms such as `W#7(2)`, `W#PG(1)` (Penalty Goal) and `B#UNK(1)` (Unknown). Team names, game numbers and the rest of the draw are carried through unchanged. Team names containing commas or quotes must be properly quoted in CSV.
 
@@ -764,7 +849,7 @@ UWH uses the per-file **Trim %** values for relative cue levels. The operating s
 
 **Number of seconds to play App-generated Siren** sets the requested duration of game-period sirens and also supplies the per-cycle duration for mapped Zigbee timed sirens. If the selected file is shorter, playback loops as needed. **Maximum Timed Siren Duration — App & Zigbee (seconds)** independently caps each timed blast (default 10 seconds; allowed 1–30 seconds), including when the requested duration is longer. The wired Arduino/GPIO hold-to-sound inputs do not use this timer.
 
-**Hardwired button (Arduino USB or Pi 5 GPIO17):** the siren sounds while the button is held and stops when it is released. This differs from the timed Zigbee button behaviour.
+**Hardwired button (Arduino USB or Pi 5 GPIO17):** the siren sounds while a wired input is held and stops when all active wired inputs have released. GPIO17 uses 50 ms debounce on both press and release. This differs from timed Zigbee actions; Zigbee continuous hold/release mappings have their own safety cutoff.
 
 **Zigbee buttons (MQTT):** When **Button Action Mapping** assigns them accordingly, `single` sounds one timed cycle and `double` sounds two consecutive timed cycles **without a programmed pause**. The preferred **Aqara WXKG11LM** also sends separate `hold` and `release` actions: map these to **Start continuous siren** and **Stop continuous siren** respectively. Other previously tested types have limited functionality (no hold or release signals); a button that publishes `emergency` must have that action mapped separately. See [the Zigbee section](#zigbee2mqtt-wireless-siren-setup-and-operation) for setup and Auto-add From Log.
 
@@ -791,7 +876,7 @@ The system automatically plays audio cues during different periods:
 - At **00:30 remaining in a break**, the single warning uses the **30-second period warning** dropdown, its own **Trim %** and the configured millisecond duration.
 - At **10–1 seconds remaining**, countdown pip sounds use the **Pips** table's selected file and its per-file **Trim %**.
 - Siren sounds use the selected file in the **Sirens** table and that file's **Trim %**. The operating-system/DAC/amplifier volume remains the overall master level.
-- **Timed siren playback:** A short sound file loops until the configured duration is reached, subject to **Maximum Siren Duration**. The hardwired Arduino siren instead follows the button's physical press and release.
+- **Timed siren playback:** A short sound file loops until the configured duration is reached, subject to **Maximum Siren Duration**. The hardwired Arduino/Raspberry Pi 5 siren instead follows press/hold/release; when both inputs are active, the final wired release stops it.
 - Game periods (halves) only play siren at the end, no countdown pips
 - Sudden Death periods have no automatic audio cues. The Sudden Death timer counts upwards from 00:00. A goal scored during Sudden Death immediately ends the game. Sudden Death Start and Sudden Death End messages are logged but do not trigger audio.
 
@@ -881,7 +966,7 @@ Zigbee USB coordinator -- Zigbee2MQTT (Node.js)
 - **Mosquitto** is the MQTT message broker. The broker and Zigbee2MQTT can run on the same computer, or on different computers if properly configured.
 - **Python `paho-mqtt`** is the MQTT *client library* used by a source-code UWH installation. Installing it does **not** install a broker or Zigbee2MQTT.
 - **UWH** subscribes to button messages. The selected *Siren* audio file is played by UWH on its own audio output; a separate Zigbee siren device is **not** needed for this use case.
-- **Arduino hardwired siren:** its local press/hold/release audio path is independent of MQTT. If an optional MQTT siren output is configured, the Arduino can also send ON/OFF commands to that separate output.
+- **Arduino/Raspberry Pi 5 hardwired siren:** Arduino USB (`SIREN_ON`/`SIREN_OFF`) and Raspberry Pi 5 GPIO17 can trigger local press/hold/release audio independently of MQTT. They can operate together: the first active wired input starts the siren and the final release stops it. If an optional MQTT siren output is configured, UWH also sends ON/OFF commands to that separate output for either input pathway. See [wired siren setup and diagnostics](#wired-siren-on-raspberry-pi-5--gpio17-and-optional-arduino-usb).
 
 For the simple local installation, all three software components run on one machine, and the MQTT broker is `localhost:1883`. For a second UWH computer, set its **MQTT Broker** field to the hostname or LAN IP address of the existing broker; `localhost` would point to the *second* computer, not the first.
 
@@ -1104,7 +1189,9 @@ Use `where pm2` to find **your actual** `pm2.cmd` path, replacing `YOUR_WINDOWS_
 
 **Preferred device to deploy: Aqara WXKG11LM wireless button**, as identified by Zigbee2MQTT for the unit tested on **6 November 2026**. It paired successfully in the Zigbee2MQTT frontend, and all four actions were confirmed working in UWH: `single`, `double`, `hold` and `release`.
 
-[Purchase listing used for the tested unit (AliExpress)](https://www.aliexpress.com/item/1005008270619004.html).
+**Specifications:** Aqara Wireless Mini Switch, model **WXKG11LM**, using Zigbee wireless communication. For UWH deployment, choose a version that reports `single`, `double`, `hold` and `release` through Zigbee2MQTT, as verified on the tested unit.
+
+**UWH referee-button construction:** The original casing is removed, and wires soldered to the battery terminals connect the unit to two AA batteries. Wires soldered across the onboard switch connect it to an external waterproof push-button sourced from Jaycar. The assembly is housed in 15 mm PVC pressure pipe, with the button fitted into an end that has been heated to soften and form the pipe around it.
 
 | Device | Deployment status | Tested functionality |
 |---|---|---|
@@ -1197,11 +1284,13 @@ The table describes **observed actions and their tested mappings**, not a univer
 
 For example, a configured duration of **1.5 seconds** gives approximately 1.5 seconds for one timed cycle and two consecutive cycles for a mapped `double`. Actual audio-start/stop overhead may cause a small transition between cycles. Different models publish different long-press and release values: inspect each button's log rather than assuming the table applies automatically.
 
-**Important:** The preferred Aqara WXKG11LM sends separate `hold` and `release` actions, verified with **Start continuous siren** and **Stop continuous siren**. Continuous operation starts when the button reports `hold`, and is bounded by the hold timer and audio cutoff. Other previously tested button types have no hold or release signals and should use timed-cycle mappings. The **hardwired Arduino button** instead sounds locally while physically held and stops on release. Timed game and wireless sirens use the selected **Sounds** file and duration, subject to **Maximum Siren Duration (seconds)** (default 10; allowed 1–30 seconds).
+**Important:** The preferred Aqara WXKG11LM sends separate `hold` and `release` actions, verified with **Start continuous siren** and **Stop continuous siren**. Continuous operation starts when the button reports `hold`, and is bounded by the hold timer and audio cutoff. Other previously tested button types have no hold or release signals and should use timed-cycle mappings. The **hardwired Arduino/Raspberry Pi 5 button inputs** sound locally while held, independently of MQTT, and stop when all active wired inputs have released. Timed game and wireless sirens use the selected **Sounds** file and duration, subject to **Maximum Siren Duration (seconds)** (default 10; allowed 1–30 seconds).
 
 ### Using two computers with the same buttons
 
-#### Supported arrangement: one Zigbee network, multiple MQTT clients
+**Advanced users only — untested with UWH:** sharing one MQTT broker between multiple UWH applications is a possible configuration, but has not been tested with this project. Most deployments are expected to have their own **SONOFF Zigbee USB receiver/coordinator**, Zigbee2MQTT instance and local MQTT broker, with their own buttons paired to that coordinator.
+
+#### Untested shared-broker arrangement: one Zigbee network, multiple MQTT clients
 
 ```text
                            ONE Zigbee network
@@ -1214,7 +1303,7 @@ button 3 -----/
                                                 UWH PC 1    UWH PC 2
 ```
 
-The two UWH applications can be on **Windows, Raspberry Pi, or a mixture**; they can each subscribe to the same broker. The button is paired **once**, to the **one** coordinator. The second computer does not require another Zigbee USB dongle or a second Zigbee2MQTT instance merely to receive those button messages.
+In this advanced, **untested shared-broker arrangement**, the two UWH applications can be on **Windows, Raspberry Pi, or a mixture** and can each subscribe to the same broker. This is not the expected setup for most deployments. The button is paired **once**, to the **one** coordinator. The second computer does not require another Zigbee USB dongle or a second Zigbee2MQTT instance merely to receive those button messages.
 
 **Example:** Zigbee2MQTT and Mosquitto run on Windows PC 1, whose broker is reachable at `192.168.1.50` (illustrative address only). UWH on PC 1 uses `MQTT Broker: localhost`. UWH on the Raspberry Pi/PC 2 uses `MQTT Broker: 192.168.1.50`, the same port and the same relevant button names. Both subscribe to the existing Zigbee2MQTT topics. The broker must be configured for authenticated LAN access; `localhost` on PC 2 would not reach PC 1.
 
@@ -1300,7 +1389,7 @@ The frontend on port 8080 is **separate from MQTT**. Opening a webpage on PC 2 d
 | Windows broker works but Zigbee2MQTT does not start after boot | Set Mosquitto **Automatic**; confirm `pm2 save` under the task's Windows account and correct `pm2.cmd`/working directory; inspect Scheduler history. Do not run two PM2 instances. |
 | Pi MQTT fails with `ModuleNotFoundError` | Check `.venv/bin/python -m pip show paho-mqtt`, then run UWH using that same virtual environment. |
 | Frontend says adapter missing / port busy | Find the actual COM port or `/dev/serial/by-id`; confirm adapter type and permissions, and close any other program using the coordinator. |
-| Audible siren works but timing or level is different | Check the selected siren file and its **Trim %** in the **Sounds** tab, **Number of seconds to play App-generated Siren**, **Maximum Siren Duration**, and the operating-system/DAC/amplifier master volume. Arduino hold-to-sound differs from Zigbee timed actions. |
+| Audible siren works but timing or level is different | Check the selected siren file and its **Trim %** in the **Sounds** tab, **Number of seconds to play App-generated Siren**, **Maximum Siren Duration**, and the operating-system/DAC/amplifier master volume. Arduino USB and Raspberry Pi 5 GPIO17 hold-to-sound differ from Zigbee timed actions; if a wired siren stays on, check whether the other wired input is still active in **Siren Control → Activity Log**. |
 
 **Useful diagnostic commands** (use the correct host and authentication options for your broker):
 
@@ -1373,7 +1462,7 @@ Source/PyInstaller builds are still possible for developers, but ordinary users 
 
 ### Startup self-test
 
-The application includes a startup diagnostic window and a Siren Control activity log. Device/COM-port detection is a diagnostic, **not** proof of Zigbee pairing or an audible siren. The Windows MQTT path has been tested by pressing the physical buttons and hearing the local siren; use the same end-to-end test on any new computer.
+The application includes a startup diagnostic window and a Siren Control activity log. Device/COM-port detection is a diagnostic, **not** proof of Zigbee pairing or an audible siren. For a Pi 5 wired input, confirm GPIO17 readiness and press/release events in **Siren Control → Activity Log**; Arduino USB events are logged separately. Test each wired path individually and then together to verify that the siren stops after the final release. The Windows MQTT path has been tested by pressing the physical buttons and hearing the local siren; use the same end-to-end test on any new computer.
 
 ### Useful references
 
