@@ -1,0 +1,370 @@
+(footprint "Raspberry_Pi5_NVMeBase_DACplus_Carrier"
+	(version 20260206)
+	(generator "pcbnew")
+	(generator_version "10.0")
+	(layer "F.Cu")
+	(descr "Board-only mechanical carrier footprint for Raspberry Pi 5 + Pimoroni PIM699 NVMe Base + Raspberry Pi Active Cooler + Raspberry Pi DAC+ HAT. Uses the common 58 x 49 mm Raspberry Pi mounting-hole pattern. Origin is the top-left of the conservative stack body envelope. Four 3.0 mm NPTH clearance holes for M2.5 mounting hardware. Includes aligned clearance STEP assembly model.")
+	(tags "Raspberry Pi 5 RPi5 Pimoroni PIM699 NVMe Base Active Cooler DAC+ carrier M2.5 58x49 3D STEP")
+	(property "Reference" "REF**"
+		(at 43.8 -4 0)
+		(layer "F.SilkS")
+		(uuid "77be16db-c1de-48c6-b7b9-c47569d51d67")
+		(effects
+			(font
+				(size 1.5 1.5)
+				(thickness 0.25)
+			)
+		)
+	)
+	(property "Value" "Raspberry_Pi5_NVMeBase_DACplus_Carrier"
+		(at 43.8 61 0)
+		(layer "F.Fab")
+		(uuid "69cbc592-c90e-4d58-b00c-475acbd005fc")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "c7d0d321-3fab-46fb-a770-4ee612f33260")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "b6a1c298-2f6d-4b4a-96c7-f2a966a95c1d")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(attr board_only exclude_from_pos_files exclude_from_bom)
+	(duplicate_pad_numbers_are_jumpers no)
+	(fp_line
+		(start 0 0)
+		(end 0 10)
+		(stroke
+			(width 0.4)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "ab378139-e348-4150-b407-bf7bf9b72c73")
+	)
+	(fp_line
+		(start 0 0)
+		(end 10 0)
+		(stroke
+			(width 0.4)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "21ac373f-3ffd-4808-89bc-d0804c9ee5c2")
+	)
+	(fp_line
+		(start 0 47)
+		(end 0 57)
+		(stroke
+			(width 0.4)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "e26d4f95-54a1-40a6-8699-ca3d45f4c019")
+	)
+	(fp_line
+		(start 0 57)
+		(end 10 57)
+		(stroke
+			(width 0.4)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "a07ddf03-98d0-4be6-aaed-81f9e5d2803e")
+	)
+	(fp_line
+		(start 77.6 0)
+		(end 87.6 0)
+		(stroke
+			(width 0.4)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "5186a0c6-4374-40bb-87a5-98987efb720d")
+	)
+	(fp_line
+		(start 77.6 57)
+		(end 87.6 57)
+		(stroke
+			(width 0.4)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "de09ec43-6ead-4940-be52-573c38df988e")
+	)
+	(fp_line
+		(start 87.6 0)
+		(end 87.6 10)
+		(stroke
+			(width 0.4)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "d89cea59-4a30-403d-87df-c9ccf5e2cf7e")
+	)
+	(fp_line
+		(start 87.6 47)
+		(end 87.6 57)
+		(stroke
+			(width 0.4)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "e6807f5b-c89d-4f7e-b88b-d0a71290e356")
+	)
+	(fp_rect
+		(start 0 0)
+		(end 87.6 57)
+		(stroke
+			(width 0.3)
+			(type solid)
+		)
+		(fill no)
+		(layer "Dwgs.User")
+		(uuid "fac77494-1f33-4992-bb84-1774579fe539")
+	)
+	(fp_circle
+		(center 4.5 4)
+		(end 7.5 4)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(fill no)
+		(layer "Cmts.User")
+		(uuid "9e25aca9-2898-4d65-acb8-16fab8e0923e")
+	)
+	(fp_circle
+		(center 4.5 53)
+		(end 7.5 53)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(fill no)
+		(layer "Cmts.User")
+		(uuid "95f6270e-a480-489c-85b8-8d87f48df3e7")
+	)
+	(fp_circle
+		(center 62.5 4)
+		(end 65.5 4)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(fill no)
+		(layer "Cmts.User")
+		(uuid "92900947-122c-431b-b0f7-0e1aac90fa8f")
+	)
+	(fp_circle
+		(center 62.5 53)
+		(end 65.5 53)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(fill no)
+		(layer "Cmts.User")
+		(uuid "08fc0070-5b62-4499-bd37-4b45d8a1a66a")
+	)
+	(fp_rect
+		(start -2 -2)
+		(end 103.893689 74.344256)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.CrtYd")
+		(uuid "5a9a2104-908f-453d-9f9c-01dd85dcbdef")
+	)
+	(fp_rect
+		(start 0 0.5)
+		(end 87.6 56.5)
+		(stroke
+			(width 0.18)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.Fab")
+		(uuid "52c9caa4-d431-4b6d-b007-b2bc161c9248")
+	)
+	(fp_rect
+		(start 1 0)
+		(end 66 57)
+		(stroke
+			(width 0.18)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.Fab")
+		(uuid "080b7c82-2ea0-4fb4-882e-f99147ad5b52")
+	)
+	(fp_rect
+		(start 1 0.5)
+		(end 86 56.5)
+		(stroke
+			(width 0.18)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.Fab")
+		(uuid "4978faf2-370d-409b-8ac0-cc0032a9c38c")
+	)
+	(fp_text user "RPi5 + NVMe BASE + ACTIVE COOLER + DAC+"
+		(at 43.8 20 0)
+		(layer "Dwgs.User")
+		(uuid "1fe2ce72-1825-40fc-ad63-1ee3013188c0")
+		(effects
+			(font
+				(size 1.5 1.5)
+				(thickness 0.25)
+			)
+		)
+	)
+	(fp_text user "PIM699 NVMe BASE BELOW"
+		(at 43.8 25 0)
+		(layer "Dwgs.User")
+		(uuid "3264e6bd-f6fd-4054-af26-255084b4284b")
+		(effects
+			(font
+				(size 1.1 1.1)
+				(thickness 0.18)
+			)
+		)
+	)
+	(fp_text user "RPI 5 + ACTIVE COOLER"
+		(at 43.8 29 0)
+		(layer "Dwgs.User")
+		(uuid "d514671b-82d4-463e-8381-fe91bbaffb9b")
+		(effects
+			(font
+				(size 1.1 1.1)
+				(thickness 0.18)
+			)
+		)
+	)
+	(fp_text user "DAC+ HAT ABOVE"
+		(at 43.8 33 0)
+		(layer "Dwgs.User")
+		(uuid "6618c882-7fce-4bf5-b6bc-8ac69ea96dd2")
+		(effects
+			(font
+				(size 1.1 1.1)
+				(thickness 0.18)
+			)
+		)
+	)
+	(fp_text user "58 x 49 mm HOLE PATTERN"
+		(at 43.8 38 0)
+		(layer "Dwgs.User")
+		(uuid "e87ba08b-3c00-4e55-a605-274960cc2323")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.16)
+			)
+		)
+	)
+	(fp_text user "USE 16 mm RPI->DAC+ SPACING WITH ACTIVE COOLER"
+		(at 43.8 42 0)
+		(layer "Dwgs.User")
+		(uuid "df1aa2dc-270b-43cf-9b53-eaf337343f84")
+		(effects
+			(font
+				(size 0.9 0.9)
+				(thickness 0.15)
+			)
+		)
+	)
+	(fp_text user "PROVIDE GPIO HEADER EXTENDER + CABLE CLEARANCE"
+		(at 43.8 46 0)
+		(layer "Dwgs.User")
+		(uuid "2527c345-5d6e-4a33-9bac-136d30a956d9")
+		(effects
+			(font
+				(size 0.9 0.9)
+				(thickness 0.15)
+			)
+		)
+	)
+	(fp_text user "ORIGIN 0,0 = STACK ENVELOPE TOP-LEFT"
+		(at 3 2 0)
+		(layer "Cmts.User")
+		(uuid "3851a14d-941a-4847-a9e2-ebe50cb249f6")
+		(effects
+			(font
+				(size 0.8 0.8)
+				(thickness 0.13)
+			)
+			(justify left)
+		)
+	)
+	(pad "" np_thru_hole circle
+		(at 4.5 4)
+		(size 3 3)
+		(drill 3)
+		(layers "*.Cu" "*.Mask")
+		(solder_mask_margin 1.5)
+		(clearance 1.5)
+		(uuid "36978ae8-1740-4b2d-a426-675d5704e221")
+	)
+	(pad "" np_thru_hole circle
+		(at 4.5 53)
+		(size 3 3)
+		(drill 3)
+		(layers "*.Cu" "*.Mask")
+		(solder_mask_margin 1.5)
+		(clearance 1.5)
+		(uuid "08dcdb40-91e8-40de-be5c-3c94ecde4bab")
+	)
+	(pad "" np_thru_hole circle
+		(at 62.5 4)
+		(size 3 3)
+		(drill 3)
+		(layers "*.Cu" "*.Mask")
+		(solder_mask_margin 1.5)
+		(clearance 1.5)
+		(uuid "d593f2bc-45c1-4dc1-b9c6-dbc15a1eef26")
+	)
+	(pad "" np_thru_hole circle
+		(at 62.5 53)
+		(size 3 3)
+		(drill 3)
+		(layers "*.Cu" "*.Mask")
+		(solder_mask_margin 1.5)
+		(clearance 1.5)
+		(uuid "d4264f88-e3de-4ba1-a6e9-6e610255f358")
+	)
+	(embedded_fonts no)
+	(model "${KIPRJMOD}/../../Libraries/UWH.3dshapes/Raspberry_Pi5_NVMeBase_ActiveCooler_DACplus_Carrier.step"
+		(offset
+			(xyz 0 0 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 0)
+		)
+	)
+)

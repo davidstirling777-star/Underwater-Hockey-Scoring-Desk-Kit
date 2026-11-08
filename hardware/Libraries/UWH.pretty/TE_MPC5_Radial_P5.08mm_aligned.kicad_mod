@@ -1,0 +1,175 @@
+(footprint "TE_MPC5_Radial_P5.08mm_aligned"
+	(version 20260206)
+	(generator "pcbnew")
+	(generator_version "10.0")
+	(layer "F.Cu")
+	(descr "TE Connectivity / CGS MPC5 power resistor; MPC52100J 10 ohm 5 W; 12.70 x 2.54 x 25.40 mm body; 5.08 mm lead pitch; footprint aligned to TE model 1623776-1")
+	(tags "TE Connectivity CGS MPC5 MPC52100J 10R 5W non-inductive thick-film radial P5.08mm")
+	(property "Reference" "REF**"
+		(at 2.54 4 0)
+		(layer "F.SilkS")
+		(uuid "a24d66d5-9d07-40cf-b46b-c58e32b98803")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "MPC52100J"
+		(at 2.54 1.44 0)
+		(layer "F.Fab")
+		(uuid "5289fc34-f72e-4458-8ea2-713e758ab29d")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "bbcfe393-95b3-44ad-893d-025f34a08f1b")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "7ec9e71d-f5b8-48d8-99bf-aa08679f58ec")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(attr through_hole)
+	(duplicate_pad_numbers_are_jumpers no)
+	(fp_line
+		(start -3.81 0.17)
+		(end -3.81 2.96)
+		(stroke
+			(width 0.12)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "f44d56be-d84e-4713-b72e-e3c39ff3dfd0")
+	)
+	(fp_line
+		(start -3.81 0.17)
+		(end -1.65 0.17)
+		(stroke
+			(width 0.12)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "6140674b-e8b0-4a36-bbee-08cc7b006de7")
+	)
+	(fp_line
+		(start -3.81 2.96)
+		(end 8.89 2.96)
+		(stroke
+			(width 0.12)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "6c27b4d7-fb86-4479-8073-5243e8760ab4")
+	)
+	(fp_line
+		(start 1.65 0.17)
+		(end 3.43 0.17)
+		(stroke
+			(width 0.12)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "e8b8ba25-a29b-47d9-aad5-0142c59aa71d")
+	)
+	(fp_line
+		(start 6.73 0.17)
+		(end 8.89 0.17)
+		(stroke
+			(width 0.12)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "3a3bd449-3841-49b7-be83-6ae0c71bb4fc")
+	)
+	(fp_line
+		(start 8.89 0.17)
+		(end 8.89 2.96)
+		(stroke
+			(width 0.12)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "acde414a-2fda-452b-9941-11bcb326cf73")
+	)
+	(fp_rect
+		(start -4.06 -1.65)
+		(end 9.14 2.96)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(fill no)
+		(layer "F.CrtYd")
+		(uuid "16c00adc-13ad-43f7-9313-a8cf8ec5fc6e")
+	)
+	(fp_rect
+		(start -3.81 0.17)
+		(end 8.89 2.71)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(fill no)
+		(layer "F.Fab")
+		(uuid "051c271d-5ed8-4edb-acb8-759231039299")
+	)
+	(fp_text user "${REFERENCE}"
+		(at 2.54 1.44 0)
+		(layer "F.Fab")
+		(uuid "95d5bc48-9ffa-4d1e-ba30-e659b00dfd1c")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(pad "1" thru_hole rect
+		(at 0 0)
+		(size 2.8 2.8)
+		(drill 1.5)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "d9c1cc46-0269-45c4-803b-df5f3714fe1f")
+	)
+	(pad "2" thru_hole circle
+		(at 5.08 0)
+		(size 2.8 2.8)
+		(drill 1.5)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "f9b53d07-8239-4392-8ce1-5f78169de887")
+	)
+	(embedded_fonts no)
+	(model "${KIPRJMOD}/../../Libraries/UWH.3dshapes/c-1623776-1-ba-3d.stp"
+		(offset
+			(xyz 2.5 -1.5 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz -0 -180 -180)
+		)
+	)
+)
