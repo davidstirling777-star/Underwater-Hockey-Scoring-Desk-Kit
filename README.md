@@ -99,6 +99,12 @@ Use flexible copper for internal harnesses. The following starting sizes assume 
 
 For the remote button cable, join the same group of four conductors together at **both ends** of each leg. Connect one group between **J20 pin 1** and one button terminal, and the other group between **J20 pin 2** and the other button terminal. The normally open button closes the loop when pressed. This cable is used only as button wiring, not as an Ethernet connection.
 
+Wind the 30 metre button cable onto a **spearfishing float-line winder** for tidy storage and easy deployment. The example below is the type used in this setup.
+
+<img src="docs/images/spearfishing-line-winder.jpg" alt="Example spearfishing float-line winder for storing the siren button cable" width="320">
+
+*Example line winder. Product photo: Ocean Hunter.*
+
 Split the Pi power trunk using a rated splice/distribution connection; do not try to force the trunk wire into a small GPIO contact. Use both listed 5 V contacts and both ground contacts. With the DAC+ installed, use a suitable pass-through header/interposer rather than disturbing the HAT connections. Measure 5 V at the Pi under load; do not compensate for excessive cable loss by raising the PDM above 5.1 V.
 
 **Control J19 pin 2 is 3.3 V, not GND.** J20 is a button-loop connection, not a positive/GND supply connector. Keep these distinct from the power terminals' pin-1-positive/pin-2-GND convention. The boards share GND; the optocouplers separate the controller signal voltages but do not provide whole-system galvanic isolation.
