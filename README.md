@@ -1,12 +1,12 @@
 # Underwater Hockey Scoring Desk Kit
 
-A project to allow the use of a computer, modern computer languages and readily available Arduino or Raspberry Pi 5 hardware to make a scoring and siren system for Underwater Hockey.
+A project to allow the use of a computer, modern computer languages, custom printed circuit boards and readily available Arduino or Raspberry Pi 5 hardware to make a scoring and siren system for Underwater Hockey.
 
 **This README is the user manual for the software and hardware assembly.** It combines installation, normal operation, tournament files, two-court results synchronisation, screens, sounds and Zigbee siren setup in one place. The separate `MAINTAINERS.md` is for people modifying the Python source.
 
-The hardware is still being developed. See [Hardware assembly](#hardware-assembly) for the split control/power board build and [`hardware/`](hardware/README.md) for editable KiCad sources. `HARDWARE_SETUP.md` preserves earlier bench-test notes; use this README for the current assembly wiring.
+The hardware is still being developed but a working prototype has been tested and it does work well. See [Hardware assembly](#hardware-assembly) for the custom control and power PCB build and [`hardware/`](hardware/README.md) for editable KiCad sources for the five custom PCBs you will need to make the system work in totality. `HARDWARE_SETUP.md` preserves earlier bench-test notes; use this README for the current assembly wiring.
 
-The software has an operator-facing Underwater Hockey Game Management App and player-facing or spectator-facing Display Window(s). The operator window opens on **Game Variables**, with six other main tabs: **Scoreboard**, **Tournament List**, **Screens**, **Sounds**, **Siren Control**, and **About**.
+The software has an operator-facing Underwater Hockey Game Management App and player-facing and/or spectator-facing Display Window(s). The operator window defaults to opening on the **Game Variables** tab, with six other main tabs: **Scoreboard**, **Tournament List**, **Screens**, **Sounds**, **Siren Control**, and **About**.
 
 ## Contents
 
@@ -34,37 +34,39 @@ UWH separates **match setup**, **live match control**, **public display**, **aud
 A normal operating flow is:
 
 1. Start UWH and allow the startup self-test to complete.
-2. In **Game Variables**, load a preset or enter the match timings and rules.
-3. If a tournament draw is being used, use **Tournament List** to select the draw, starting game and any results synchronisation settings.
-4. In **Screens**, select the operator layout and open the required player/spectator Display Window(s). Use **Auto Detect Screens** and **Test Displays** when setting up a new computer or monitor arrangement.
-5. In **Sounds**, select and test the siren and pip sounds, per-file trims and siren timing.
-6. If wireless referee buttons are being used, configure and test them in **Siren Control**. The wired siren supports Arduino USB and, on Pi 5, GPIO17, independently or together (see [wired siren setup](#wired-siren-on-raspberry-pi-5--gpio17-and-optional-arduino-usb)). Test each connected wired input and check its ON/OFF events in the **Siren Control → Activity Log**.
-7. Use **Scoreboard** during the match for goals, penalties, team time-outs and manual timer control. The player/spectator Display Window follows the live match state.
-8. At the end of a tournament game, UWH saves the completed result to the separate results CSV before clearing the live match and advancing to the next selected game. If shared two-court sync is enabled, the local save happens first and network upload happens afterwards in the background.
+2. In the **Game Variables** tab, load a preset or enter the match timings and rules.
+3. If a tournament draw is being used, use the **Tournament List** tab to select the draw, starting game and any results synchronisation settings.
+4. In the **Screens** tab, select the operator layout and open the required player/spectator Display Window(s). Use **Auto Detect Screens** and **Test Displays** when setting up a new computer or monitor arrangement.
+5. In the **Sounds** tab, select and test the siren and pip sounds, per-file trims (to ensure the different sounds are balanced or acceptable) and siren timing.
+6. If wireless Zigbee referee buttons are being used, configure and test them in the **Siren Control** tab. The wired siren supports Arduino USB and, on Pi 5, GPIO17, independently or together (see [wired siren setup](#wired-siren-on-raspberry-pi-5--gpio17-and-optional-arduino-usb)). Test each connected wired input and check its ON/OFF events in the **Siren Control → Activity Log**.
+7. Use the **Scoreboard** tab during the match for goals, penalties, team time-outs and manual timer control. The player/spectator Display Window follows the live match state.
+8. At the end of a tournament game, UWH saves the completed result to a separate results CSV before clearing the live match and advancing to the next selected game. If shared two-court sync is enabled, the local save happens first and network upload happens afterwards in the background (Yet to be tested).
 
-The game clock progresses through First Half, Half Time and Second Half, with optional Overtime and Sudden Death when enabled. The detailed sequence and the special rules for goals scored during breaks are described later in this manual.
+The game clock progresses through First Half, Half Time and Second Half, with optional Overtime and Sudden Death when enabled. The detailed sequence and the special rules for goals recorded during breaks are described later in this manual.
 
 ## Hardware assembly
 
-The editable KiCad projects and shared libraries are in [`hardware/`](hardware/README.md). The split **control board above the power board** replaces the original motherboard. The original motherboard project and automatic backups are not included. These are development hardware sources, not a claim of completed production or thermal certification. Use **1 oz copper** for the control and power boards as designed.
+The editable KiCad projects and shared libraries are in [`hardware/`](hardware/README.md). These are development hardware sources, not a claim of completed production or thermal certification. The control and power boards as designed for **1 oz copper** as this seems to be significantly cheaper than 2 oz.
+
+The DC-DC PDMs are populated by the PCB manufacturer as they use tiny SMD components, but unless you are will to pay for them to fit the pin header and viable resistor, you will have to solder them yourself.  I could not bring myself to pay the extra.
 
 ### Fit only the PDMs you need
 
 **Only fit DC-DC PDM boards for loads that this assembly will power.** The minimum configuration uses **one PDM: the audio supply at power J15**, for a system with the power board, audio board and wired siren. The control circuit receives backed 24 V separately through power J11 → control J21; it does not need another PDM.
 
-- If you supply your own computer instead of the onboard Raspberry Pi 5, omit the Pi PDM at **J18** and its Pi power harness. Use the external computer's audio output and the Arduino USB pathway for the wired siren.
-- If monitors have their own external power supplies, omit their screen PDMs at **J2/J5/J7/J9** and the corresponding screen-power leads. Fit only as many screen PDMs as there are monitors powered by this assembly.
-- Fit the Pi PDM only when powering the onboard Pi, and fit the audio PDM in every configuration described here. Unused PDM positions can remain empty.
+- If you supply your own computer instead of the onboard Raspberry Pi 5, omit the Pi PDM at **J18** and its Pi power harness. Use the external computer's audio output (via a 3.5 mm male to male cable between the computer audio socket and the Pool Audio Board 3.5 mm jack) and the Arduino USB pathway for the wired siren.
+- If you are going to use the monitors own external power supplies, omit their screen PDMs at **J2/J5/J7/J9** and the corresponding screen-power leads. Fit only as many screen PDMs as there are monitors powered by this assembly.
+- Fit the Raspberry Pi PDM only when powering the onboard Raspberry Pi and fit the audio PDM in every configuration described here. Unused PDM positions can remain empty.
 
 ### Board stack and assembly order
 
 1. Open each `.kicad_pro` from KiCad's project manager. Install the standard KiCad libraries; the supplied project library tables locate the shared UWH libraries. Refill copper zones and run ERC/DRC before fabrication.
-2. Assemble and inspect the power board, DC-DC PDMs and OR-ing board first. Fit the OR-ing module to **power J16**, matching numbered pins and the pin-1 marks; its two-row connector can otherwise be reversed. The supplied 2×5 assignment is SELV on pins 1–2, GND on 3–4 and 7–8, backed output on 5–6, and battery on 9–10. SELV feeds LTC4418 V1 and remains the preferred source, even when the battery voltage is higher.
-3. Fit only the required PDMs: screen supplies at **J2/J5/J7/J9**, the audio supply at **J15**, and the optional Pi supply at **J18**. Use **DC-DC PDM-Audio Rev D or later for the Pi supply**. Set and measure outputs before connecting loads: **19 V** for the specified screens, **16 V nominal and never above 18 V** for audio, and **5.1 V** for the Pi. Verify against each actual load's rating.
-4. Mount the **control board above the power board using 30 mm standoffs** at the matching mounting holes. Support the boards without bending them; check screw length and clearance from copper, component leads and the underside of daughterboards. Keep the lower board's terminal-access edge accessible.
-5. Fit the audio board and the controller hardware required for your configuration: the Pi 5 stack (NVMe Base, active cooler and DAC+), the Arduino, or both, on the upper assembly. Use the matching audio mounting holes and **audio J5 / control J10** header. Audio power arrives separately by two wires at audio J19; the mating J5/J10 header still carries the same audio supply and GND, so it is not an electrically isolated mounting connector.
-6. Fit **both control-board optocouplers U1 and U2**, even if only one controller is used: their input LEDs are in series. Set JP1 **1–2 for Nano ESP32 (3.3 V)** or **2–3 for Nano Every (5 V)** before powering the Arduino. The Pi has its own 3.3 V pull-up through R13.
-7. Make the harnesses below, check polarity and continuity with power removed, then energise and test one load at a time. Do not connect another USB-C power supply to a Pi already powered through its GPIO header.
+2. Assemble and inspect the power board, DC-DC PDMs and OR-ing board first. Fit the OR-ing module to **power J16**, matching numbered pins and the pin-1 marks; its two-row connector can otherwise be reversed. The supplied 2×5 assignment is SELV on pins 1–2, GND on 3–4 and 7–8, backed output on 5–6, and battery on 9–10. SELV feeds the PDMs controller (a LTC4418) pin V1 and remains the preferred source, even when the battery voltage is higher.
+3. Fit only the required PDMs: screen supplies at **J2/J5/J7/J9**, the audio supply at **J15**, and the optional Pi supply at **J18**. Use **DC-DC PDM-Audio Rev D or later for the Pi supply** as eariler versions (which are opaque to you) could not get down to 5V1 required to the Raspberry Pi. **Set and measure outputs** with a multimeter before connecting loads: **19 V** for the specified screens, **16 V nominal and never above 18 V** for audio, and **5.1 V** for the Pi. Verify against each actual load's rating if you can.
+4. Fit the components to the Control Board. Fit **both control-board optocouplers U1 and U2**, even if only one controller is used: their input LEDs are in series. Set JP1 **1–2 for Nano ESP32 (3.3 V)** or **2–3 for Nano Every (5 V)** before powering the Arduino. The Pi has its own 3.3 V pull-up through R13.
+5. Fit the components to the audio board and the controller hardware required for your configuration: the Pi 5 stack (recommended Pimoroni NVMe Base (you can use a MicroSD at your **increased** risk), active cooler and DAC+), the Arduino, or both, on the upper assembly. Use the matching audio mounting holes.  Do not populate the **audio J5** or **control J10** header unless you are changing the board design. Audio power arrives separately by two wires at audio J19; the mating J5/J10 header still carries the same audio supply and GND, so it is not an electrically isolated mounting connector. So don't fit them.
+6. Make the wire harnesses below, check polarity and continuity with power removed, then energise and test one load at a time. Do not connect another USB-C power supply to a Pi already powered through its GPIO header.
+7. Mount the **control board above the power board using 30 mm standoffs** at the matching mounting holes. Support the boards without bending them; check screw length and clearance from copper, component leads and the underside of daughterboards. Keep the lower board's terminal-access edge accessible.
 
 ### Supply location and wiring sizes
 
@@ -80,10 +82,11 @@ Locate the **24 V SELV PSU near the 230 V power outlet**, and run several metres
 4. Calculate **voltage drop = V_PSU − V_J1**. This difference already includes the positive wire, return wire and their connections; do not double it. With **24.0 V measured at the PSU**, the target is **at least 23.0 V at J1**. For example, 24.0 V at the PSU and 23.4 V at J1 gives a **0.6 V drop: pass**. A reading of 22.7 V gives **1.3 V: investigate and correct**.
 5. If the PSU itself sags appreciably below its nominal 24 V, investigate its load, adjustment and temperature/derating first. If the cable drop exceeds 1.0 V, power off and inspect the ferrules, terminal tightness and connections; then shorten the cable or increase conductor area using compatible, rated terminations. Do not remove strands to fit a terminal or raise the PSU voltage simply to hide cable loss. Repeat the loaded test after correcting it.
 6. Confirm that the PDM outputs remain at their required voltages and that startup/siren operation causes no resets, screen blanking or unintended battery takeover. A multimeter's steady reading does not rule out brief dips; investigate any such symptoms even if the steady cable-drop test passes. Reconnect the battery with power off, then test backup operation separately.
+Locate the **24 V SELV PSU near the 230 V power outlet**, and run several metres of twinned **4 mm² finely multistranded copper cable (approximately AWG 11)** as a minimum, for the positive and GND, from the PSU to the UWH siren hardware. AWG values here are approximate comparisons. Check voltage at the hardware under maximum load, including both conductors' voltage drop. Keep mains connections at the PSU end. **Containment of the boards to IPX5 is a minimum expectation.**
 
-Power-board **J1 is Phoenix Contact 1714971**. The project builder has physically verified that **4 mm² finely multistranded cable fits the terminals with a bootlace ferrule formed using a ferrule crimper**. Phoenix Contact publishes a **4 mm² maximum for flexible conductors, including ferruled conductors**. Do not trim away strands. Check the actual PSU terminal rating separately. Protect the long cable at its source as appropriate to the cable and PSU; the board fuse cannot protect a short upstream of itself.
+Power-board **J1 is Phoenix Contact 1714971**. **4 mm² finely multistranded cable fits the terminals with a bootlace ferrule formed using a ferrule crimper**. Phoenix Contact publishes a **4 mm² maximum for flexible conductors, including ferruled conductors**. Do not trim away strands. Check the actual PSU terminal rating separately. Protect the long cable at its source as appropriate to the cable and PSU; the board fuse cannot protect a short upstream of itself.
 
-Use flexible copper for internal harnesses. The following starting sizes assume short internal runs, **up to about 300 mm one way**; reassess longer runs, bundled wiring and high enclosure temperatures. Use terminations rated for the selected conductor and current. The TB007-508 terminals are specified for up to **2.5 mm²**; GPIO crimp contacts require their own wire-size check.
+Use flexible copper for internal harnesses. The following starting sizes assume maximum internal runs of **up to 300 mm one way**, Use terminations rated for the selected conductor and current. The TB007-508 terminals are specified for up to **2.5 mm²**; GPIO crimp contacts require their own wire-size check.
 
 | Connection | Pin-to-pin wiring | Suggested conductor area, each wire |
 |---|---|---|
@@ -109,7 +112,7 @@ Split the Pi power trunk using a rated splice/distribution connection; do not tr
 
 **Control J19 pin 2 is 3.3 V, not GND.** J20 is a button-loop connection, not a positive/GND supply connector. Keep these distinct from the power terminals' pin-1-positive/pin-2-GND convention. The boards share GND; the optocouplers separate the controller signal voltages but do not provide whole-system galvanic isolation.
 
-Screen outputs are power **J3 = screen 1**, **J4 = screen 2**, **J6 = screen 3**, and **J8 = screen 4**, with positive on pin 1 and GND on pin 2. Use **1.0 mm² (approx. AWG 17)** for short screen-power leads, increasing area as needed for external cable length. Only **screen 1**, audio, Pi and the control supply are backed up; screens 2–4 use the SELV supply directly through their PDMs.
+Screen outputs are power **J3 = screen 1**, **J4 = screen 2**, **J6 = screen 3**, and **J8 = screen 4**, with positive on pin 1 and GND on pin 2. Use **1.0 mm² (approx. AWG 17)** for short screen-power leads, increasing area as needed for external cable length. Only **screen 1**, audio, Pi and the control supply are backed up by teh battery via the OR-ing board; screens 2–4 use the SELV supply directly through their PDMs.
 
 ### DAC+ audio cable and volume limit
 
@@ -122,15 +125,15 @@ Use a straight four-conductor cable from DAC+ P6 to audio J6. Short **0.25 mm² 
 | 3 | 3 | Right audio — J1 ring / R1 pad 1 |
 | 4 | 4 | Ground |
 
-For the tested **DAC+ PCB 003R5**, insert an **unwired 3.5 mm plug in the DAC+ socket** to operate headphone detect. Leave **P6 pin 5 externally unconnected**: measurements show that without a plug it is directly connected to 3.3 V, so **do not bridge it to pin 4/GND**. Use one audio source at a time.
+For the tested **DAC+ (PCB version 003R5)**, **YOU MUST** insert an **unwired 3.5 mm plug in the DAC+ socket** to operate headphone detect. Leave **P6 pin 5 externally unconnected**: measurements show that without a plug it is directly connected to 3.3 V, so **do not bridge it to pin 4/GND**. Use one audio source at a time.
 
-RV5 sets the maximum WATER-zone level. Looking at its adjustment screw, turn **anticlockwise to lower the maximum volume**. The Bourns 3296W-1-502LF has approximately 25 turns of effective adjustment and an idling wiper at the endpoints, not a hard rotational stop. Start with a low limit and set the operating level deliberately. Follow the audio schematic's two-transformer underwater-speaker wiring. Neither side of a BTL amplifier output may be connected to GND.
+RV5 sets the maximum WATER-zone level. Looking at its adjustment screw from above, turn **anticlockwise to lower the maximum volume**. The Bourns 3296W-1-502LF has approximately 25 turns of effective adjustment and an idling wiper at the endpoints, not a hard rotational stop. Start with a low limit and set the operating level deliberately. Follow the audio schematic's two-transformer underwater-speaker wiring. Neither side of a BTL amplifier output may be connected to GND.
 
 ### Fuses and hot-climate operation
 
 Keep the current **5 A recommendation** for power-board **F2 (battery)**, **F3 (SELV feed into the OR-ing path)** and audio-board **F2**. A **6 A fuse may need to be considered for hot climates**, subject to availability of a correctly rated part and verification of the protected wiring, connector, MOSFET and PCB paths. This is a conditional engineering review, not an instruction to increase a fuse merely because it opens.
 
-The backed load budget is **55 W screen + 30 W audio + 19.8 W Pi stack = 104.8 W**. At an assumed 90% conversion efficiency that is approximately **4.85 A at 24 V** or **5.29 A at 22 V**, before startup transients and small auxiliary loads. Retaining 5 A therefore requires checking actual simultaneous load, startup and hot-enclosure behaviour; it is not a guarantee of continuous operation at all nameplate maxima.
+The battery backed up load budget is **55 W screen + 30 W audio + 19.8 W Pi stack = 104.8 W**. At an assumed 90% conversion efficiency that is approximately **4.85 A at 24 V** or **5.29 A at 22 V**, before startup transients and small auxiliary loads. Retaining 5 A therefore requires checking actual simultaneous load, startup and hot-enclosure behaviour; it is not a guarantee of continuous operation at all nameplate maxima.
 
 The separate **20 A main SELV fuse** has alternative MINI **F1 / Keystone 3568** and MAXI **F4 / Keystone 3555-2** positions. **Fit only one of F1 and F4.** The **Keystone MAXI fuse holder may need to be used in hot climates because of derating in the MINI fuse and holder**. This alternative applies to the main input fuse; it does not make the 5 A branch positions MAXI-compatible. Check both fuse and holder derating at the actual internal temperature. Record the actual fuse MPN separately from its holder MPN.
 
@@ -386,6 +389,26 @@ python3 -m venv .venv
 ```
 
 Do not use `sudo pip install` or `pip install --break-system-packages` for the source installation. This source method is useful for development and troubleshooting; ordinary Pi users should prefer the versioned `-RaspberryPi5.zip` under GitHub Releases.
+
+### Installing the Arduino siren code
+
+This is required only when using the **Arduino USB wired-siren pathway**. A Pi using GPIO17 alone does not need an Arduino sketch. Uploading the sketch is separate from installing or updating the UWH application; it remains on the Arduino when power is removed.
+
+The sketch supports the **Arduino Nano Every and Arduino Nano ESP32**, selecting the ADC method at compile time. On the ESP32 it uses named pins and calibrated millivolt readings. Set control-board JP1 to **1–2 for Nano ESP32 (3.3 V)** or **2–3 for Nano Every (5 V)** before powering the hardware; ESP32 inputs must never receive 5 V.
+
+1. On a computer used for programming, install the [Arduino IDE](https://www.arduino.cc/en/software/).
+2. Open [`assets/arduino_siren_button.ino`](assets/arduino_siren_button.ino) on GitHub and use **Download raw file**. Save it as `arduino_siren_button.ino`, not a web page or a `.txt` file. Put it inside a folder named **`arduino_siren_button`**.
+3. Open that file in Arduino IDE. If the IDE offers to create a matching sketch folder and move the file into it, accept.
+4. In **Boards Manager**, install **Arduino megaAVR Boards** for the **Arduino Nano Every**, or **Arduino ESP32 Boards** for the **Arduino Nano ESP32**. Select the board you actually have. The ESP32 sketch uses named pins A4, A3 and D2, so either Nano ESP32 pin-numbering setting can be used.
+5. In **Library Manager**, search for and install **Adafruit NeoPixel** by Adafruit, accepting any required dependencies. This library is required to compile the supplied sketch even if you have not fitted the LED stick.
+6. Close UWH and any other serial-port programs. Connect the Arduino with a **USB data cable**, then select its port in the IDE's board selector or **Tools → Port**. On Windows this is a `COM` port; unplugging and reconnecting the board helps identify the correct one.
+7. Click **Verify** (tick) to compile, then **Upload** (right arrow). Wait for the IDE to report completion. A missing `Adafruit_NeoPixel.h` error means the library is not installed; upload failures commonly mean the wrong board/port, a charge-only cable, or another program holding the port.
+8. With the board connected through the documented control-board siren interface, open **Serial Monitor** at **9600 baud**. Press and hold the wired button: expect `SIREN_ON`, repeated about every 0.5 seconds. Release it: expect `SIREN_OFF`. Check the **JP1 setting for your board** before powering the assembled hardware.
+9. **Close Serial Monitor** before starting UWH. Connect the Arduino by USB to the computer running UWH, press and release the physical button, and confirm the Arduino ON/OFF events in **Siren Control → Activity Log**, together with audible start/stop. Port detection alone does not prove the sketch or button is working.
+
+The sketch also contains NeoPixel and battery-monitor functions. **Users must work out their own voltage divider** and enter the actual R1/R2 values in the sketch, with calibration and warning thresholds appropriate to their battery. The retained 10 kΩ / 3.3 kΩ values are legacy Nano Every settings, not an ESP32 divider recommendation. Keep the ESP32 A3 input below 3.3 V and within its ADC measurement range (about 3.1 V at the configured 11 dB attenuation), including at maximum charging voltage. Do not connect the battery bank directly to A3.
+
+Official help: [Nano Every setup](https://docs.arduino.cc/tutorials/nano-every/getting-started/), [uploading a sketch](https://support.arduino.cc/hc/en-us/articles/4733418441116-Upload-a-sketch-in-Arduino-IDE), [installing libraries](https://support.arduino.cc/hc/en-us/articles/5145457742236-Install-libraries-in-the-Arduino-IDE).
 
 ### Wired siren on Raspberry Pi 5 — GPIO17 and optional Arduino USB
 
