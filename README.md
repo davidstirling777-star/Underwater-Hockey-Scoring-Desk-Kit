@@ -70,6 +70,18 @@ The DC-DC PDMs are populated by the PCB manufacturer as they use tiny SMD compon
 
 ### Supply location and wiring sizes
 
+**Suggested 24 V SELV PSU: Mean Well XDR-480E-24.** This model has been tested successfully with the UWH unit and has ample power headroom for the tested configuration.
+
+Locate the **24 V SELV PSU near the 230 V power outlet**, and run several metres of **4 mm² finely multistranded copper cable (approximately AWG 11)**, for **each** of positive and GND, from the PSU to the UWH siren hardware. AWG values here are approximate comparisons; buy the stated metric conductor area. Check the loaded supply voltage using the procedure below. Keep mains connections at the PSU end. **Containment of the boards to IPX5 is a minimum expectation.**
+
+**24 V supply cable acceptance check:** use **24.0 V nominal at the PSU** and a recommended **maximum 1.0 V drop** from the PSU's DC output terminals to power-board J1 at the highest intended simultaneous load. This is a commissioning target for the supply wiring, **not a verified absolute undervoltage limit for the boards**.
+
+1. With power off, disconnect the backup battery for this test so it cannot mask a weak SELV supply. Connect the equipment that this installation will actually power.
+2. Run the connected screens at their highest intended brightness, exercise the computer, and sound the siren at its intended maximum operating level. Use this simultaneous operating load rather than an idle measurement.
+3. Set the multimeter to **DC volts**. Measure across the PSU's accessible **+V and −V DC terminals** and record `V_PSU`. At the same steady load, measure across power-board **J1 pin 1 (+24 V) and pin 2 (GND)** and record `V_J1`. Measure only the low-voltage DC side; keep clear of the mains terminals.
+4. Calculate **voltage drop = V_PSU − V_J1**. This difference already includes the positive wire, return wire and their connections; do not double it. With **24.0 V measured at the PSU**, the target is **at least 23.0 V at J1**. For example, 24.0 V at the PSU and 23.4 V at J1 gives a **0.6 V drop: pass**. A reading of 22.7 V gives **1.3 V: investigate and correct**.
+5. If the PSU itself sags appreciably below its nominal 24 V, investigate its load, adjustment and temperature/derating first. If the cable drop exceeds 1.0 V, power off and inspect the ferrules, terminal tightness and connections; then shorten the cable or increase conductor area using compatible, rated terminations. Do not remove strands to fit a terminal or raise the PSU voltage simply to hide cable loss. Repeat the loaded test after correcting it.
+6. Confirm that the PDM outputs remain at their required voltages and that startup/siren operation causes no resets, screen blanking or unintended battery takeover. A multimeter's steady reading does not rule out brief dips; investigate any such symptoms even if the steady cable-drop test passes. Reconnect the battery with power off, then test backup operation separately.
 Locate the **24 V SELV PSU near the 230 V power outlet**, and run several metres of twinned **4 mm² finely multistranded copper cable (approximately AWG 11)** as a minimum, for the positive and GND, from the PSU to the UWH siren hardware. AWG values here are approximate comparisons. Check voltage at the hardware under maximum load, including both conductors' voltage drop. Keep mains connections at the PSU end. **Containment of the boards to IPX5 is a minimum expectation.**
 
 Power-board **J1 is Phoenix Contact 1714971**. **4 mm² finely multistranded cable fits the terminals with a bootlace ferrule formed using a ferrule crimper**. Phoenix Contact publishes a **4 mm² maximum for flexible conductors, including ferruled conductors**. Do not trim away strands. Check the actual PSU terminal rating separately. Protect the long cable at its source as appropriate to the cable and PSU; the board fuse cannot protect a short upstream of itself.
@@ -86,9 +98,17 @@ Use flexible copper for internal harnesses. The following starting sizes assume 
 | Pi harness branches | +5.1 V to physical **2 and 4**; GND to physical **6 and 9** | Two short **0.5 mm² (approx. AWG 20)** branches per polarity, with suitable current-rated contacts |
 | Pi siren signal | Control J19 **1 → Pi physical 11 (BCM GPIO17)** | **0.25 mm² (approx. AWG 24)** |
 | Pi pull-up supply | Pi physical **1 (3.3 V) → control J19.2** | **0.25 mm² (approx. AWG 24)** |
-| Remote normally open siren button | Across control **J20 pins 1 and 2** | **0.5 mm² (approx. AWG 20)** as a starting size; assess the actual remote cable length |
+| Remote normally open siren button | Across control **J20 pins 1 and 2** | In-use cable: **30 metres of Cat 6a Ethernet cable**, plugs removed, with **four conductors connected in parallel for each leg**, using all eight conductors |
 
-Split the Pi power trunk using a rated splice/distribution connection; do not try to force the trunk wire into a small GPIO contact. Use both listed 5 V contacts and both ground contacts. With the DAC+ installed, use a suitable pass-through header/interposer rather than disturbing the HAT connections. Measure 5 V at the Pi under load; do not compensate for excessive cable loss by raising the PDM above 5.1 V.
+For the remote button cable, join the same group of four conductors together at **both ends** of each leg. Connect one group between **J20 pin 1** and one button terminal, and the other group between **J20 pin 2** and the other button terminal. The normally open button closes the loop when pressed. This cable is used only as button wiring, not as an Ethernet connection.
+
+Wind the 30 metre button cable onto a **spearfishing float-line winder** for tidy storage and easy deployment. The example below is the type used in this setup.
+
+<img src="docs/images/spearfishing-line-winder.jpg" alt="Example spearfishing float-line winder for storing the siren button cable" width="320">
+
+*Example line winder. Product photo: Ocean Hunter.*
+
+Split the Pi power trunk using a rated splice/distribution connection; do not try to force the trunk wire into a small GPIO contact. Use both listed 5 V contacts and both ground contacts. With the DAC+ installed, use a suitable pass-through header/interposer rather than disturbing the HAT connections. An example cable connector is the **Harwin M20-1070600**, a **2×6-position, 2.54 mm female crimp housing**, fitted with separately supplied **M20-1180042** contacts. It can connect the harness to accessible mating pins covering Pi physical pins **1–12**, which include all the power, ground, 3.3 V and GPIO17 connections listed above. The housing is not itself a pass-through interposer: confirm mating-pin length, clearance and pin-1 orientation with the DAC+ fitted, and leave unused positions unwired. The M20-1180042 contacts accept **0.05–0.33 mm² (30–22 AWG)** wire, so the table's **0.5 mm² (approximately AWG 20)** power branches cannot be crimped directly into them. For this connector, use short **0.33 mm² (22 AWG)** power tails from rated splices, retaining both 5 V and both GND contacts, and verify voltage drop and temperature at the intended load. Measure 5 V at the Pi under load; do not compensate for excessive cable loss by raising the PDM above 5.1 V.
 
 **Control J19 pin 2 is 3.3 V, not GND.** J20 is a button-loop connection, not a positive/GND supply connector. Keep these distinct from the power terminals' pin-1-positive/pin-2-GND convention. The boards share GND; the optocouplers separate the controller signal voltages but do not provide whole-system galvanic isolation.
 

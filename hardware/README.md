@@ -23,3 +23,7 @@ Some unused legacy library footprints refer to optional models not supplied in t
 Before ordering parts, check actual component MPNs, separate fuse/holder BOM entries, the JP1 header and shunt, and mating cable housings/contacts. Run KiCad ERC and DRC with zones refilled. Test the completed assembly's load, temperature, startup and supply changeover behaviour.
 
 Import checks: all five schematic/PCB connectivity comparisons passed using an independent parser, and all custom footprints/models used by the boards resolve to included files. Native KiCad ERC/DRC was not run. The control-board JP1 schematic contains MPN `61300211121`, while its PCB MPN is blank; verify the intended three-pin selector header and separate shunt before ordering.
+
+## Printed siren button enclosure
+
+The [UWH siren enclosure](Enclosures/UWH_Siren/README.md) contains the pipe adaptor and removable cup STEP files, with PETG printing guidance. Use natural/clear translucent PETG for the cup so the circuit board's LED glow is visible; glass-like transparency is not required. The adaptor can be PETG in any colour.
