@@ -68,6 +68,8 @@ The editable KiCad projects and shared libraries are in [`hardware/`](hardware/R
 
 ### Supply location and wiring sizes
 
+**Suggested 24 V SELV PSU: Mean Well XDR-480E-24.** This model has been tested successfully with the UWH unit and has ample power headroom for the tested configuration.
+
 Locate the **24 V SELV PSU near the 230 V power outlet**, and run several metres of **4 mm² finely multistranded copper cable (approximately AWG 11)**, for **each** of positive and GND, from the PSU to the UWH siren hardware. AWG values here are approximate comparisons; buy the stated metric conductor area. Check voltage at the hardware under maximum load, including both conductors' voltage drop. Keep mains connections at the PSU end. **Containment of the boards to IPX5 is a minimum expectation.**
 
 Power-board **J1 is Phoenix Contact 1714971**. The project builder has physically verified that **4 mm² finely multistranded cable fits the terminals with a bootlace ferrule formed using a ferrule crimper**. Phoenix Contact publishes a **4 mm² maximum for flexible conductors, including ferruled conductors**. Do not trim away strands. Check the actual PSU terminal rating separately. Protect the long cable at its source as appropriate to the cable and PSU; the board fuse cannot protect a short upstream of itself.
