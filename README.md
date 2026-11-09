@@ -370,6 +370,26 @@ python3 -m venv .venv
 
 Do not use `sudo pip install` or `pip install --break-system-packages` for the source installation. This source method is useful for development and troubleshooting; ordinary Pi users should prefer the versioned `-RaspberryPi5.zip` under GitHub Releases.
 
+### Installing the Arduino siren code
+
+This is required only when using the **Arduino USB wired-siren pathway**. A Pi using GPIO17 alone does not need an Arduino sketch. Uploading the sketch is separate from installing or updating the UWH application; it remains on the Arduino when power is removed.
+
+The sketch supports the **Arduino Nano Every and Arduino Nano ESP32**, selecting the ADC method at compile time. On the ESP32 it uses named pins and calibrated millivolt readings. Set control-board JP1 to **1–2 for Nano ESP32 (3.3 V)** or **2–3 for Nano Every (5 V)** before powering the hardware; ESP32 inputs must never receive 5 V.
+
+1. On a computer used for programming, install the [Arduino IDE](https://www.arduino.cc/en/software/).
+2. Open [`assets/arduino_siren_button.ino`](assets/arduino_siren_button.ino) on GitHub and use **Download raw file**. Save it as `arduino_siren_button.ino`, not a web page or a `.txt` file. Put it inside a folder named **`arduino_siren_button`**.
+3. Open that file in Arduino IDE. If the IDE offers to create a matching sketch folder and move the file into it, accept.
+4. In **Boards Manager**, install **Arduino megaAVR Boards** for the **Arduino Nano Every**, or **Arduino ESP32 Boards** for the **Arduino Nano ESP32**. Select the board you actually have. The ESP32 sketch uses named pins A4, A3 and D2, so either Nano ESP32 pin-numbering setting can be used.
+5. In **Library Manager**, search for and install **Adafruit NeoPixel** by Adafruit, accepting any required dependencies. This library is required to compile the supplied sketch even if you have not fitted the LED stick.
+6. Close UWH and any other serial-port programs. Connect the Arduino with a **USB data cable**, then select its port in the IDE's board selector or **Tools → Port**. On Windows this is a `COM` port; unplugging and reconnecting the board helps identify the correct one.
+7. Click **Verify** (tick) to compile, then **Upload** (right arrow). Wait for the IDE to report completion. A missing `Adafruit_NeoPixel.h` error means the library is not installed; upload failures commonly mean the wrong board/port, a charge-only cable, or another program holding the port.
+8. With the board connected through the documented control-board siren interface, open **Serial Monitor** at **9600 baud**. Press and hold the wired button: expect `SIREN_ON`, repeated about every 0.5 seconds. Release it: expect `SIREN_OFF`. Check the **JP1 setting for your board** before powering the assembled hardware.
+9. **Close Serial Monitor** before starting UWH. Connect the Arduino by USB to the computer running UWH, press and release the physical button, and confirm the Arduino ON/OFF events in **Siren Control → Activity Log**, together with audible start/stop. Port detection alone does not prove the sketch or button is working.
+
+The sketch also contains NeoPixel and battery-monitor functions. **Users must work out their own voltage divider** and enter the actual R1/R2 values in the sketch, with calibration and warning thresholds appropriate to their battery. The retained 10 kΩ / 3.3 kΩ values are legacy Nano Every settings, not an ESP32 divider recommendation. Keep the ESP32 A3 input below 3.3 V and within its ADC measurement range (about 3.1 V at the configured 11 dB attenuation), including at maximum charging voltage. Do not connect the battery bank directly to A3.
+
+Official help: [Nano Every setup](https://docs.arduino.cc/tutorials/nano-every/getting-started/), [uploading a sketch](https://support.arduino.cc/hc/en-us/articles/4733418441116-Upload-a-sketch-in-Arduino-IDE), [installing libraries](https://support.arduino.cc/hc/en-us/articles/5145457742236-Install-libraries-in-the-Arduino-IDE).
+
 ### Wired siren on Raspberry Pi 5 — GPIO17 and optional Arduino USB
 
 UWH automatically starts a wired GPIO listener on a **Raspberry Pi 5**. The app

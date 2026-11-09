@@ -1,16 +1,18 @@
-// Arduino Every or Nano Siren Button Sketch, using Arduino Screw Terminal Connector
+// Arduino Nano Every / Nano ESP32 Siren Button Sketch
 // Add the Adafruit NeoPixel library
-// Pin A4 (Pin 18) monitoring: LOW = SIREN_ON (repeat every 0.5s), HIGH = SIREN_OFF
-// Connect a pull-up resistor between A4 (Pin 18) and +5V.
-// Connect momentary Normally Open (NO) switch between Pin A4 (Pin 18) and Ground (GND).
+// Pin A4 monitoring: LOW = SIREN_ON (repeat every 0.5s), HIGH = SIREN_OFF
+// External A4 pull-up: 5 V for Nano Every, 3.3 V for Nano ESP32 (never 5 V).
+// Use the control-board button/optocoupler interface; LOW = pressed.
 // Sort your own calibration between voltage divider and actual voltage of battery.
 //
 // NeoPixel Stick: 8 LEDs, DIN on D2
 //
 // Battery monitoring:
-// For Arduino Nano Every:
-//   R1 = 10 kΩ from Battery Positive (+) to A3
-//   R2 = 3.3 kΩ from A3 to Ground
+// Users must work out their own voltage divider for their battery and board.
+// R1 goes from battery positive to A3; R2 goes from A3 to GND.
+// Set R1/R2 below to the actual fitted values. Never connect battery+ directly.
+// Nano ESP32: keep A3 below 3.3 V and within the ADC measurement range
+// (about 3.1 V at 11 dB attenuation), including maximum charging voltage.
 // Battery negative, Arduino GND, and voltage divider ground must all be common.
 //
 // NeoPixel functions:
@@ -29,8 +31,12 @@
 
 #include <Adafruit_NeoPixel.h>
 
-const int signalPin = 18;
-const int neoPixelPin = 2;
+const int signalPin = A4;
+#if defined(ARDUINO_ARCH_ESP32)
+const int neoPixelPin = D2; // Named pin works with either Nano ESP32 numbering mode.
+#else
+const int neoPixelPin = 2;  // Nano Every digital D2.
+#endif
 const int numPixels = 8;
 const int batterySensePin = A3;
 
@@ -48,15 +54,23 @@ const int DEBOUNCE_THRESHOLD = 3;
 const int RELEASE_DEBOUNCE_THRESHOLD = 3;
 
 // Battery voltage divider setup
+// USER CONFIGURATION: work out your own divider and enter its resistances here.
+// These legacy Nano Every values are NOT a recommended ESP32 divider.
 const float R1 = 10000.0; // ohms
 const float R2 = 3300.0;  // ohms
-const float ADC_REF_VOLTAGE = 5.0;
+#if !defined(ARDUINO_ARCH_ESP32)
+const float ADC_REF_VOLTAGE = 5.0; // Nano Every 10-bit ADC.
+#endif
 
 // Calibration
 // Use 1.0 for no correction.
 // Sort your own calibration between voltage divider and actual voltage of battery.
 // Previous measured correction was 13.0 / 13.6 = 0.956.
-const float BATTERY_CALIBRATION = 0.956;
+#if defined(ARDUINO_ARCH_ESP32)
+const float BATTERY_CALIBRATION = 1.0; // Start with the ESP32 calibrated mV reading.
+#else
+const float BATTERY_CALIBRATION = 0.956; // Preserve the existing Every calibration.
+#endif
 
 // Battery warning values
 const float HAPPY_VOLTAGE = 13.2;  // pick a voltage just above your battery voltage
@@ -90,7 +104,11 @@ bool batteryFlashState = false;
 bool noVoltageWarning = false;
 
 void setup() {
-  pinMode(signalPin, INPUT);
+  pinMode(signalPin, INPUT); // External pull-up; never drive the button line.
+#if defined(ARDUINO_ARCH_ESP32)
+  analogReadResolution(12);
+  analogSetPinAttenuation(batterySensePin, ADC_11db);
+#endif
   pinMode(LED_BUILTIN, OUTPUT);
 
   Serial.begin(9600);
@@ -116,11 +134,11 @@ void loop() {
   unsigned long currentTime = millis();
 
   if (signalState == LOW) {
-    debounceCounter++;
+    if (debounceCounter < DEBOUNCE_THRESHOLD) debounceCounter++;
     releaseDebounceCounter = 0;
   } else {
     debounceCounter = 0;
-    releaseDebounceCounter++;
+    if (releaseDebounceCounter < RELEASE_DEBOUNCE_THRESHOLD) releaseDebounceCounter++;
   }
 
   if (debounceCounter == DEBOUNCE_THRESHOLD && !sirenActive) {
@@ -139,10 +157,7 @@ void loop() {
     Serial.println("SIREN_ON");
     lastSirenTime = currentTime;
 
-    pinMode(signalPin, OUTPUT);
-    digitalWrite(signalPin, HIGH);
-    delayMicroseconds(100);
-    pinMode(signalPin, INPUT);
+    // Keep A4 as an input: driving HIGH would fight a held-low button/optocoupler.
   }
 
   if (releaseDebounceCounter == RELEASE_DEBOUNCE_THRESHOLD && sirenActive) {
@@ -173,12 +188,21 @@ float readBatteryVoltage() {
   long adcTotal = 0;
 
   for (int i = 0; i < BATTERY_ADC_SAMPLES; i++) {
+#if defined(ARDUINO_ARCH_ESP32)
+    adcTotal += analogReadMilliVolts(batterySensePin);
+#else
     adcTotal += analogRead(batterySensePin);
+#endif
     delayMicroseconds(300);
   }
 
   float adcAverage = adcTotal / (float)BATTERY_ADC_SAMPLES;
+#if defined(ARDUINO_ARCH_ESP32)
+  // Calibrated millivolts account for the ESP32 ADC reference and attenuation.
+  float pinVoltage = adcAverage / 1000.0;
+#else
   float pinVoltage = adcAverage * (ADC_REF_VOLTAGE / 1023.0);
+#endif
   float actualBatteryV = pinVoltage * ((R1 + R2) / R2) * BATTERY_CALIBRATION;
 
   return actualBatteryV;
