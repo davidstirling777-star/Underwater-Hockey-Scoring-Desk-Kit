@@ -111,7 +111,7 @@ Split the Pi power trunk using a rated splice/distribution connection; do not tr
 
 **Control J19 pin 2 is 3.3 V, not GND.** J20 is a button-loop connection, not a positive/GND supply connector. Keep these distinct from the power terminals' pin-1-positive/pin-2-GND convention. The boards share GND; the optocouplers separate the controller signal voltages but do not provide whole-system galvanic isolation.
 
-Screen outputs are power **J3 = screen 1**, **J4 = screen 2**, **J6 = screen 3**, and **J8 = screen 4**, with positive on pin 1 and GND on pin 2. Use **1.0 mm² (approx. AWG 17)** for short screen-power leads, increasing area as needed for external cable length. Only **screen 1**, audio, Pi and the control supply are backed up by teh battery via the OR-ing board; screens 2–4 use the SELV supply directly through their PDMs.
+Screen outputs are power **J3 = screen 1**, **J4 = screen 2**, **J6 = screen 3**, and **J8 = screen 4**, with positive on pin 1 and GND on pin 2. Use **1.0 mm² (approx. AWG 17)** for short screen-power leads, increasing area as needed for external cable length. Only **screen 1**, audio, Pi and the control supply are backed up by the battery via the OR-ing board; screens 2–4 use the SELV supply directly through their PDMs.
 
 ### DAC+ audio cable and volume limit
 
