@@ -97,7 +97,7 @@ Use flexible copper for internal harnesses. The following starting sizes assume 
 | Pi harness branches | +5.1 V to physical **2 and 4**; GND to physical **6 and 9** | Two short **0.5 mm² (approx. AWG 20)** branches per polarity, with suitable current-rated contacts |
 | Pi siren signal | Control J19 **1 → Pi physical 11 (BCM GPIO17)** | **0.25 mm² (approx. AWG 24)** |
 | Pi pull-up supply | Pi physical **1 (3.3 V) → control J19.2** | **0.25 mm² (approx. AWG 24)** |
-| Remote normally open siren button | Across control **J20 pins 1 and 2** | In-use cable: **30 metres of Cat 6a Ethernet cable**, plugs removed, with **four conductors connected in parallel for each leg**, using all eight conductors |
+| Remote normally open siren button | Across control **J20 pins 1 and 2** | In-use cable: **30 metres of Cat 6a Ethernet patch cable**, plugs cut off, with **four conductors connected in parallel for each leg**, using all eight conductors |
 
 For the remote button cable, join the same group of four conductors together at **both ends** of each leg. Connect one group between **J20 pin 1** and one button terminal, and the other group between **J20 pin 2** and the other button terminal. The normally open button closes the loop when pressed. This cable is used only as button wiring, not as an Ethernet connection.
 
