@@ -4,7 +4,7 @@ A project to allow the use of a computer, modern computer languages, custom prin
 
 **This README is the user manual for the software and hardware assembly.** It combines installation, normal operation, tournament files, two-court results synchronisation, screens, sounds and Zigbee siren setup in one place. The separate `MAINTAINERS.md` is for people modifying the Python source.
 
-The hardware is still being developed but a working prototype has been tested and it does work well. See [Hardware assembly](#hardware-assembly) for the custom control and power PCB build and [`hardware/`](hardware/README.md) for editable KiCad sources for the five custom PCBs you will need to make the system work in totality. `HARDWARE_SETUP.md` preserves earlier bench-test notes; use this README for the current assembly wiring.
+The hardware is still being developed but a working prototype has been tested and it does work well. See [Hardware assembly](#hardware-assembly) for the custom control and power PCB build and [`hardware/`](hardware/README.md) for editable KiCad sources for the five custom PCBs you will need to make the system work in totality. [Hardware setup](HARDWARE_SETUP.md) summarises current equipment and commissioning notes; use this README for the assembly wiring.
 
 The software has an operator-facing Underwater Hockey Game Management App and player-facing and/or spectator-facing Display Window(s). The operator window defaults to opening on the **Game Variables** tab, with six other main tabs: **Scoreboard**, **Tournament List**, **Screens**, **Sounds**, **Siren Control**, and **About**.
 
@@ -1514,4 +1514,4 @@ The application includes a startup diagnostic window and a Siren Control activit
 - [Raspberry Pi desktop configuration](https://www.raspberrypi.com/documentation/computers/configuration.html) — switching between X11 and Wayland using `raspi-config`.
 - [GitHub: downloading files](https://docs.github.com/en/repositories/working-with-files/using-files/downloading-source-code-archives-and-directories) — using Code → Download ZIP.
 - [Zigbee2MQTT wireless siren setup and operation](#zigbee2mqtt-wireless-siren-setup-and-operation) — Mosquitto, Python/Paho, Zigbee2MQTT, pairing, multi-computer warnings and troubleshooting.
-- `HARDWARE_SETUP.md` — wired Arduino/physical hardware, where supplied.
+- [Hardware setup](HARDWARE_SETUP.md) — current equipment, DAC+, wired/wireless siren inputs and commissioning notes.
