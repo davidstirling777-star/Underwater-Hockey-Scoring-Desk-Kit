@@ -37,6 +37,12 @@ The two AA cells are connected in series. Route the insulated wires through the 
 
 Pack **foam or bubble wrap at both ends inside the pipe** to stop the AA batteries sliding up and down or rattling. Keep the cells secure without pulling on the wires, and leave the packing removable for battery replacement. The wireless siren is not a child's rattle!
 
+### Expanded assembly view
+
+<img src="../../../docs/images/aqara-battery-wiring-expanded.jpeg" alt="Expanded wireless siren assembly showing the two AA batteries, battery wiring, waterproof button and foam pieces for both ends of the pipe" width="360">
+
+Expanded view showing the battery wiring and suitably sized foam pieces for both ends of the pipe. When assembled, the foam keeps the two AA cells pressed together so they do not separate during use, and keeps the battery wires in contact with the terminals.
+
 ## Early working unit
 
 <img src="../../../docs/images/early-wireless-siren-unit.jpeg" alt="Early working wireless siren unit with pipe handle, push button and grey printed enclosure" width="360">
