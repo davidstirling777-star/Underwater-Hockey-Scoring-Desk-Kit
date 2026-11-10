@@ -19,6 +19,24 @@ Affix the pipe adaptor to the pipe with a material such as **RTV silicone**, sel
 
 The STEP geometry is the authority for manufacturing dimensions. Import the files at their original scale. They contain solid geometry rather than a native Fusion feature history. The cup geometry is unchanged; its rounded bottom is already present in the GitHub file. For assembly in CAD, move the cup 10 mm towards the pipe socket to match the shortened adaptor.
 
+## Aqara board wiring and strain relief
+
+The photographs below show an example of wiring added to the Aqara Zigbee button circuit board.
+
+| Wire colour | Connection |
+|---|---|
+| Two white wires | Across the existing switch contacts, leading to the external waterproof button |
+| Red | Positive (+) end of the two-AA battery supply in the pipe |
+| Black | Negative (−) end of the two-AA battery supply in the pipe |
+
+The two AA cells are connected in series. Route the insulated wires through the **existing holes in the Aqara circuit board** for strain relief, as shown, leaving a little slack between each hole and its solder joint so movement does not pull directly on the joint.
+
+<img src="../../../docs/images/aqara-button-wiring-1.jpeg" alt="Aqara button circuit board with added battery and waterproof-button wires routed through existing holes for strain relief, first view" width="360">
+
+<img src="../../../docs/images/aqara-button-wiring-2.jpeg" alt="Aqara button circuit board with added battery and waterproof-button wires routed through existing holes for strain relief, reverse view" width="360">
+
+Pack **foam or bubble wrap at both ends inside the pipe** to stop the AA batteries sliding up and down or rattling. Keep the cells secure without pulling on the wires, and leave the packing removable for battery replacement. The wireless siren is not a child's rattle!
+
 ## Early working unit
 
 <img src="../../../docs/images/early-wireless-siren-unit.jpeg" alt="Early working wireless siren unit with pipe handle, push button and grey printed enclosure" width="360">
