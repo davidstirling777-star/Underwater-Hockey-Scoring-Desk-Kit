@@ -46,6 +46,8 @@ The game clock progresses through First Half, Half Time and Second Half, with op
 
 ## Hardware assembly
 
+The [wireless siren enclosure guide](hardware/Enclosures/UWH_Siren/README.md) includes the printable parts and a photograph of an early working unit. Working units were constructed using grey PLA filament.
+
 The editable KiCad projects and shared libraries are in [`hardware/`](hardware/README.md). These are development hardware sources, not a claim of completed production or thermal certification. The control and power boards as designed for **1 oz copper** as this seems to be significantly cheaper than 2 oz.
 
 The DC-DC PDMs are populated by the PCB manufacturer as they use tiny SMD components, but unless you are will to pay for them to fit the pin header and viable resistor, you will have to solder them yourself.  I could not bring myself to pay the extra.
@@ -888,7 +890,7 @@ UWH uses the per-file **Trim %** values for relative cue levels. The operating s
 
 **Siren** plays at pre-determined periods and also when the Chief Referee activates the button to stop or start play.
 
-**Number of seconds to play App-generated Siren** sets the requested duration of game-period sirens and also supplies the per-cycle duration for mapped Zigbee timed sirens. If the selected file is shorter, playback loops as needed. **Maximum Timed Siren Duration — App & Zigbee (seconds)** independently caps each timed blast (default 10 seconds; allowed 1–30 seconds), including when the requested duration is longer. The wired Arduino/GPIO hold-to-sound inputs do not use this timer.
+**Number of seconds to play App-generated Siren** defaults to **1.5 seconds** for new settings and sets the requested duration of game-period sirens and also supplies the per-cycle duration for mapped Zigbee timed sirens. If the selected file is shorter, playback loops as needed. **Maximum Timed Siren Duration — App & Zigbee (seconds)** independently caps each timed blast (default 10 seconds; allowed 1–30 seconds), including when the requested duration is longer. The wired Arduino/GPIO hold-to-sound inputs do not use this timer.
 
 **Hardwired button (Arduino USB or Pi 5 GPIO17):** the siren sounds while a wired input is held and stops when all active wired inputs have released. GPIO17 uses 50 ms debounce on both press and release. This differs from timed Zigbee actions; Zigbee continuous hold/release mappings have their own safety cutoff.
 

@@ -26,4 +26,4 @@ Import checks: all five schematic/PCB connectivity comparisons passed using an i
 
 ## Printed siren button enclosure
 
-The [UWH siren enclosure](Enclosures/UWH_Siren/README.md) contains the pipe adaptor and removable cup STEP files, with PETG printing guidance. Use natural/clear translucent PETG for the cup so the circuit board's LED glow is visible; glass-like transparency is not required. The adaptor can be PETG in any colour.
+The [UWH siren enclosure](Enclosures/UWH_Siren/README.md) contains the pipe adaptor and removable cup STEP files, assembly guidance and an early working-unit photo. Working units were constructed using grey PLA filament.
