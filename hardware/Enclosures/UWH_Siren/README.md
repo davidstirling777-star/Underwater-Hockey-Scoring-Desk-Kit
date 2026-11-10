@@ -11,11 +11,12 @@ Two STEP models for the pipe-mounted Aqara Wireless Mini Switch circuit-board en
 
 **The cup only needs to let the circuit board's LED glow be seen from outside. Glass-like transparency and a clear view of the circuit board are not required.** A frosted or translucent appearance is acceptable. No optical polishing is required.
 
-Use unfilled PETG for both parts as the starting material choice. Ask the printer to confirm that the selected cup filament and print settings transmit enough light through the finished wall to see the actual LED under the intended lighting. Avoid opaque pigment or coatings on the cup. Using PETG for both parts does not eliminate the need to check the mating thread fit.
+Use unfilled PETG for both parts as the starting material choice. Using PETG for both parts does not eliminate the need to check the mating thread fit.
 
 ## Intended assembly
 
-The adaptor fits over a pipe with a nominal 22.0 mm outside diameter. The removable cup houses the bare Aqara board, measured at 38 × 31 × 5 mm, with its 38 mm dimension along the cup. Battery and external-button wires pass through the adaptor's internal stop into the pipe. Two AA batteries are intended to sit in the pipe shaft; the external Jaycar button is wired to the board's existing switch contacts.
+The adaptor fits over a pipe with a nominal 22.0 mm outside diameter. The intended pipe is Marley 800.15PN15 PVC (DN15) pressure pipe or equivalent. A DN15 pipe is a metric nominal pipe size equivalent to a 1/2-inch imperial nominal pipe size (NPS), featuring a standard outside diameter of 21.3 mm (0.840 inches).
+The removable cup houses the bare Aqara board, measured at 38 × 31 × 5 mm, with its 38 mm dimension along the cup. Battery and external-button wires pass through the adaptor's internal stop into the pipe. Two AA batteries are intended to sit in the pipe shaft; the external Jaycar button is wired to the board's existing switch contacts.
 
 The STEP geometry is the authority for manufacturing dimensions. Import the files into Fusion or compatible CAD/slicing software at their original scale. They contain solid geometry rather than a native Fusion feature history.
 
