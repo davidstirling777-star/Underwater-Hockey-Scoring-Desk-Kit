@@ -7,7 +7,7 @@
     "period_warning_duration_ms": 1000,
     "sound_trims": {},
     "enable_sound": true,
-    "siren_duration": 2,
+    "siren_duration": 1.5,
     "max_siren_duration": 10
   },
   "zigbeeSettings": {
