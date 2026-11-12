@@ -8466,7 +8466,7 @@
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
-		(in_bom no)
+		(in_bom yes)
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
@@ -8558,7 +8558,7 @@
 				)
 			)
 		)
-		(property "MPN" "61300211121"
+		(property "MPN" "61300311121"
 			(at 118.11 35.56 0)
 			(hide yes)
 			(show_name no)
@@ -8580,7 +8580,7 @@
 				)
 			)
 		)
-		(property "Supplier P/N" "732-5315-ND"
+		(property "Supplier P/N" "732-5316-ND"
 			(at 118.11 35.56 0)
 			(hide yes)
 			(show_name no)
@@ -9398,7 +9398,7 @@
 		(in_bom yes)
 		(on_board yes)
 		(in_pos_files no)
-		(dnp no)
+		(dnp yes)
 		(fields_autoplaced yes)
 		(uuid "e7b3a0be-9312-4dc2-986c-530e2c5067a0")
 		(property "Reference" "J10"
@@ -9498,7 +9498,7 @@
 				)
 			)
 		)
-		(property "Assembly" "HAND FIT"
+		(property "Assembly" ""
 			(at 63.5 101.6 0)
 			(hide yes)
 			(show_name no)

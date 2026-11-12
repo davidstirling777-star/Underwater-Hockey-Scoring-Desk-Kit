@@ -1466,7 +1466,7 @@
 			(uuid "ae6bdbc5-7e77-4d2e-9733-f2d9b8c68cc6")
 		)
 		(embedded_fonts no)
-		(model "${KIPRJMOD}/../../Libraries/UWH.3dshapes/Phoenix_Contact_1984756_PT_1.5_16-3.5-H.step"
+		(model "${UWH_LIBRARIES}/UWH.3dshapes/Phoenix_Contact_1984756_PT_1.5_16-3.5-H.step"
 			(offset
 				(xyz 1.75 4 0)
 			)
@@ -1960,7 +1960,7 @@
 			)
 		)
 		(property "Value" "Jumper_3_Open"
-			(at 2.690336 1.755318 180)
+			(at 2.690336 1.755318 0)
 			(layer "F.Fab")
 			(uuid "1a19f721-0dc1-42e5-b52b-4eac3cafb5a4")
 			(effects
@@ -1992,7 +1992,7 @@
 				)
 			)
 		)
-		(property "Manufacturer" ""
+		(property "Manufacturer" "Würth Elektronik"
 			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -2005,7 +2005,7 @@
 				)
 			)
 		)
-		(property "MPN" ""
+		(property "MPN" "61300311121"
 			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -2018,7 +2018,7 @@
 				)
 			)
 		)
-		(property "Supplier" ""
+		(property "Supplier" "DigiKey "
 			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -2031,7 +2031,7 @@
 				)
 			)
 		)
-		(property "Supplier P/N" ""
+		(property "Supplier P/N" "732-5315-ND"
 			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -2054,7 +2054,7 @@
 				(pins "1" "2" "3")
 			)
 		)
-		(attr through_hole exclude_from_bom)
+		(attr through_hole)
 		(duplicate_pad_numbers_are_jumpers no)
 		(fp_line
 			(start -1.38 6.46)
@@ -2191,7 +2191,7 @@
 		(pad "1" thru_hole rect
 			(at 0 0 270)
 			(size 1.7 1.7)
-			(drill 1)
+			(drill 1.1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
 			(net "Arduino Nano ESP32 +3V3 output")
@@ -2202,7 +2202,7 @@
 		(pad "2" thru_hole circle
 			(at 0 2.54 270)
 			(size 1.7 1.7)
-			(drill 1)
+			(drill 1.1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
 			(net "Net-(JP1-C)")
@@ -2213,7 +2213,7 @@
 		(pad "3" thru_hole circle
 			(at 0 5.08 270)
 			(size 1.7 1.7)
-			(drill 1)
+			(drill 1.1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
 			(net "Arduino Nano Every +5V output")
@@ -4075,7 +4075,7 @@
 			(uuid "b83c0469-7ef7-4513-a004-d8ee275330a5")
 		)
 		(embedded_fonts no)
-		(model "${KIPRJMOD}/../../Libraries/UWH.3dshapes/Arduino_Nano_Every_ABX00028_WithHeaders.step"
+		(model "${UWH_LIBRARIES}/UWH.3dshapes/Arduino_Nano_Every_ABX00028_WithHeaders.step"
 			(offset
 				(xyz 0 -35.5 0)
 			)
@@ -5056,7 +5056,7 @@
 				(pins "1" "3" "5" "7" "9" "11" "2" "4" "6" "8" "10" "12")
 			)
 		)
-		(attr through_hole exclude_from_pos_files)
+		(attr through_hole exclude_from_pos_files dnp)
 		(duplicate_pad_numbers_are_jumpers no)
 		(fp_rect
 			(start -4.931607 -40.6552)
@@ -5289,7 +5289,7 @@
 			(uuid "3ec8a1dc-7e65-443e-b2fe-ee18b7e306c7")
 		)
 		(embedded_fonts no)
-		(model "${KIPRJMOD}/../../Libraries/UWH.3dshapes/Pool_Audio_Zone.step"
+		(model "${UWH_LIBRARIES}/UWH.3dshapes/Pool_Audio_Zone.step"
 			(offset
 				(xyz 60.5 -4.5 9)
 			)
@@ -5975,7 +5975,7 @@
 			(uuid "2cc20ed7-1d37-492b-8544-291535286aa7")
 		)
 		(embedded_fonts no)
-		(model "${KIPRJMOD}/../../Libraries/UWH.3dshapes/Raspberry_Pi5_NVMeBase_ActiveCooler_DACplus_Carrier.step"
+		(model "${UWH_LIBRARIES}/UWH.3dshapes/Raspberry_Pi5_NVMeBase_ActiveCooler_DACplus_Carrier.step"
 			(offset
 				(xyz 0 0 0)
 			)
@@ -6449,7 +6449,7 @@
 			(uuid "d14852b6-9d9e-438a-ac4f-6845c11aca31")
 		)
 		(embedded_fonts no)
-		(model "${KIPRJMOD}/../../Libraries/UWH.3dshapes/Phoenix_Contact_1984756_PT_1.5_16-3.5-H.step"
+		(model "${UWH_LIBRARIES}/UWH.3dshapes/Phoenix_Contact_1984756_PT_1.5_16-3.5-H.step"
 			(offset
 				(xyz 1.75 4 0)
 			)
@@ -8745,8 +8745,8 @@
 			(justify left bottom)
 		)
 	)
-	(gr_text "+5V"
-		(at 163.107393 125.427915 270)
+	(gr_text "5V/VBUS"
+		(at 163.108422 119.988331 270)
 		(layer "F.SilkS")
 		(uuid "df2f0c2d-bbc6-4cad-abf0-a0caf13a47ca")
 		(effects
