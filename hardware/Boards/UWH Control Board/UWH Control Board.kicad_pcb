@@ -2031,7 +2031,7 @@
 				)
 			)
 		)
-		(property "Supplier P/N" "732-5315-ND"
+		(property "Supplier P/N" "732-5316-ND"
 			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -5033,7 +5033,7 @@
 				)
 			)
 		)
-		(property "Assembly" "HAND FIT"
+		(property "Assembly" ""
 			(at 0 0 0)
 			(unlocked yes)
 			(layer "F.Fab")
