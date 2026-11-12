@@ -5,7 +5,7 @@ Start with [Hardware assembly in the main README](../README.md#hardware-assembly
 Five current projects are included:
 
 | Project folder under `Boards/` | Purpose |  Copper Weight |
-|---|---|
+|---|---|---|
 | `UWH Power Board` | Lower board: fused supply inputs, PDMs and OR-ing module |  **2 oz copper on both F.Cu and B.Cu**  |
 | `UWH Control Board` | Upper board: controller connections, Arduino footprint (sometimes optional) and audio/Pi mounting |  1 oz copper on both F.Cu and B.Cu  |
 | `Pool_Audio_Zone` | Audio mixer, amplifier connections and speaker filters |  1 oz copper on both F.Cu and B.Cu  |
