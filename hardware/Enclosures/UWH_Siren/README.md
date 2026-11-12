@@ -9,6 +9,8 @@ Working units were constructed using **grey PLA filament**.
 
 ## Intended assembly
 
+**The current pipe adaptor is the version without a screw hole. It has been successfully test-fitted to the DN15 pressure pipe.**
+
 The pipe receiver has a **21.4 mm internal diameter** for the specified **Marley DN15 pipe with 21.34 mm outside diameter**. This provides 0.06 mm nominal diametral clearance; check the actual printed fit before assembly. The pipe insertion section is 25 mm long, the transition to the threaded collar is **10 mm long**, and the adaptor is 44 mm long overall. The mating thread and sealing groove are retained from the supplied design.
 
 The removable cup houses the bare Aqara board, measured at 38 × 31 × 5 mm, with its 38 mm dimension along the cup. Battery and external-button wires pass through the adaptor's internal stop into the pipe. Two AA batteries sit in the pipe shaft; the external waterproof normally-open button is wired to the Aqara board's existing switch contacts.
