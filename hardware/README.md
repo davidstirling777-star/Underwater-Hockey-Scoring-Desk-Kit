@@ -8,7 +8,7 @@ These sources were imported from `UWH-Scoring-Hardware.zip`, supplied on 8 Novem
 |---|---|
 | `UWH Power Board` | Lower board: fused supply inputs, PDMs and OR-ing module |
 | `UWH Control Board` | Upper board: controller connections and audio/Pi mounting |
-| `Pool_Audio_Zone` | Audio mixer, amplifier connections and speaker filters |
+| `Pool_Audio_Zone` | Audio mixer, amplifier connections and speaker filters; **1 oz copper on both F.Cu and B.Cu** |
 | `OR-ing board` | LTC4418 SELV-priority / battery-backup selector |
 | `DC-DC PDM-Audio` | Adjustable DC-DC supply module; verify revision/output for each load |
 
