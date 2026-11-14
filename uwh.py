@@ -3020,6 +3020,8 @@ class GameManagementApp:
     def adjust_between_game_break_for_crib_time(self):
         """Shorten the break when needed to realign court and local time.
         """
+        if not self.variables['crib_time'].get("used", True):
+            return
         current_court_time = datetime.datetime.now() - datetime.timedelta(seconds=self.court_time_seconds)
         local_time = datetime.datetime.now()
         seconds_behind = int((local_time - current_court_time).total_seconds())
@@ -3109,7 +3111,10 @@ class GameManagementApp:
             )
             court_seconds = self.court_time_seconds
 
-            if local_seconds > court_seconds:
+            # The saved allowance remains present when its checkbox is off.
+            # Only shorten the break when Crib Time is explicitly enabled.
+            if (self.variables["crib_time"].get("used", True)
+                    and local_seconds > court_seconds):
                 delta = local_seconds - court_seconds
                 crib_time = 0
 
