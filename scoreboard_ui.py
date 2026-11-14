@@ -44,16 +44,6 @@ def create_scoreboard_tab(app):
         sticky="nsew"
     )
 
-    # A placed child does not change the existing full-width label's geometry
-    # or centred Court Time text. Hidden entirely while both clocks agree.
-    app.court_time_delta_label = tk.Label(
-        app.court_time_label,
-        textvariable=app.court_time_delta_var,
-        font=app.fonts["referee_timeout_timer"],
-        bg="lightgrey",
-        anchor="e",
-    )
-
     app.half_label = tk.Label(
         tab,
         textvariable=app.half_label_var,
