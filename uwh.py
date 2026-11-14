@@ -972,6 +972,8 @@ class GameManagementApp:
         self.black_score_var = tk.IntVar(value=0)
         self.timer_var = tk.StringVar(value="00:00")
         self.court_time_var = tk.StringVar(value="Court Time is 00:00:00")
+        self.court_time_delta_var = tk.StringVar(value="")
+        self.court_time_delta_job = None
         self.half_label_var = tk.StringVar(value="")
         self.game_number_var = tk.StringVar(value="Game 1")
         self.white_team_var = tk.StringVar(value="White")
@@ -1463,6 +1465,7 @@ class GameManagementApp:
         splash_report("Penalty display updates started", True)
 
         self.reset_timer()
+        self._poll_court_time_delta()
         splash_report("Timer initialized", True)
 
         # 4. FINAL APPLICATION HARDWARE INITIALIZATION HOOK
@@ -2960,6 +2963,31 @@ class GameManagementApp:
         self.update_court_time()
         self.start_current_period()
             
+    def _refresh_court_time_delta(self):
+        """Show unsigned whole-second lag without moving the Court Time text."""
+        lag = 0
+        if self.court_time_seconds is not None:
+            now = datetime.datetime.now()
+            local_seconds = now.hour * 3600 + now.minute * 60 + now.second
+            # Court Time can exceed 24 hours; compare across midnight without
+            # displaying a spurious nearly-24-hour lag or an ahead-of-time sign.
+            difference = (local_seconds - int(self.court_time_seconds) + 43200) % 86400 - 43200
+            lag = max(0, difference)
+        if lag:
+            minutes, seconds = divmod(lag, 60)
+            self.court_time_delta_var.set(f"Δ {minutes:02d}:{seconds:02d}")
+            self.court_time_delta_label.place(relx=1.0, rely=0.5, x=-10, anchor="e")
+        else:
+            self.court_time_delta_var.set("")
+            self.court_time_delta_label.place_forget()
+
+    def _poll_court_time_delta(self):
+        """Keep lag visible during referee pauses, when Court Time stops ticking."""
+        if self.court_time_delta_job is not None:
+            self.master.after_cancel(self.court_time_delta_job)
+        self._refresh_court_time_delta()
+        self.court_time_delta_job = self.master.after(250, self._poll_court_time_delta)
+
     def update_court_time(self):
         """Advance court time on Tk's event loop while respecting pauses.
         """
@@ -3017,27 +3045,15 @@ class GameManagementApp:
             )
         )
         
-    def adjust_between_game_break_for_crib_time(self):
-        """Shorten the break when needed to realign court and local time.
-        """
-        if not self.variables['crib_time'].get("used", True):
-            return
-        current_court_time = datetime.datetime.now() - datetime.timedelta(seconds=self.court_time_seconds)
-        local_time = datetime.datetime.now()
-        seconds_behind = int((local_time - current_court_time).total_seconds())
-        if seconds_behind <= 0:
-            return
-        crib_time_var = self.variables['crib_time']
-        crib_time = int(float(crib_time_var.get("value", crib_time_var["default"])))
-        for idx in range(self.engine.current_index, len(self.engine.full_sequence)):
-            period = self.engine.full_sequence[idx]
-            if period['name'] == 'Between Game Break' and seconds_behind > 0:
-                reduce_by = min(crib_time, seconds_behind, period['duration'])
-                period['duration'] = max(0, period['duration'] - reduce_by)
-                seconds_behind -= reduce_by
-                if seconds_behind <= 0:
-                    break
-
+    def _credit_crib_time(self, recovered_seconds):
+        """Credit only time actually recovered, so later breaks do not repay it."""
+        self.court_time_seconds += recovered_seconds
+        hours, remainder = divmod(int(self.court_time_seconds), 3600)
+        minutes, seconds = divmod(remainder, 60)
+        self.court_time_var.set(
+            f"Court Time is {hours:02d}:{minutes:02d}:{seconds:02d}"
+        )
+        self._refresh_court_time_delta()
 
     def _after_one_second(self, callback):
         """Use monotonic deadlines to prevent accumulating Tk callback latency."""
@@ -3139,13 +3155,13 @@ class GameManagementApp:
                     and cur_period["duration"] is not None
                 ):
                     # Preserve the existing minimum duration.
-                    new_duration = (
-                        cur_period["duration"] - reduce_by
+                    original_duration = cur_period["duration"]
+                    # Never lengthen a configured break shorter than the floor.
+                    recovered_seconds = min(
+                        reduce_by, max(0, original_duration - 32)
                     )
-                    cur_period["duration"] = max(
-                        32,
-                        new_duration
-                    )
+                    cur_period["duration"] = original_duration - recovered_seconds
+                    self._credit_crib_time(recovered_seconds)
 
             # Show the next game no later than 30 seconds after the
             # previous game and at least 30 seconds before the next one.

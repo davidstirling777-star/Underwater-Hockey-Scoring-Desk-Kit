@@ -21,7 +21,7 @@ def load_methods():
     app_class = next(n for n in tree.body if isinstance(n, ast.ClassDef)
                      and n.name == "GameManagementApp")
     names = {"get_minutes", "start_current_period",
-             "adjust_between_game_break_for_crib_time"}
+             "_credit_crib_time"}
     methods = [n for n in app_class.body if isinstance(n, ast.FunctionDef)
                and n.name in names]
     assert {n.name for n in methods} == names
@@ -46,6 +46,7 @@ def make_app(enabled, name="Between Game Break", value="2.5", lag=23, allowance=
         "crib_time": {"default": 1, "value": allowance, "used": enabled},
     }
     app.get_minutes = lambda key: METHODS["get_minutes"](app, key)
+    app._credit_crib_time = lambda seconds: METHODS["_credit_crib_time"](app, seconds)
     app.engine = GameEngine()
     app.engine.set_sequence([{"name": name, "type": "break",
                               "duration": app.get_minutes(key)}])
@@ -96,10 +97,55 @@ class CribTimeCheckboxTests(unittest.TestCase):
         METHODS["start_current_period"](app)
         self.assertEqual(app.engine.timer_seconds, 150)
 
-    def test_legacy_adjustment_also_honours_disabled_checkbox(self):
+    def test_recovered_delay_is_not_deducted_from_later_breaks(self):
+        app = make_app(True)
+        METHODS["start_current_period"](app)
+        self.assertEqual(app.engine.timer_seconds, 127)
+        self.assertEqual(app.court_time_seconds, 43200)
+        app.court_time_var.set.assert_called_with("Court Time is 12:00:00")
+        for _ in range(3):
+            METHODS["start_current_period"](app)
+            self.assertEqual(app.engine.timer_seconds, 150)
+            self.assertEqual(app.court_time_seconds, 43200)
+
+    def test_later_timeout_adds_only_new_delay(self):
+        app = make_app(True)
+        METHODS["start_current_period"](app)
+        app.court_time_seconds -= 17
+        METHODS["start_current_period"](app)
+        self.assertEqual(app.engine.timer_seconds, 133)
+        self.assertEqual(app.court_time_seconds, 43200)
+        METHODS["start_current_period"](app)
+        self.assertEqual(app.engine.timer_seconds, 150)
+
+    def test_partial_recovery_carries_only_remaining_delay(self):
+        app = make_app(True, allowance=10)
+        for remaining, duration in ((13, 140), (3, 140), (0, 147), (0, 150)):
+            METHODS["start_current_period"](app)
+            self.assertEqual(app.court_time_seconds, 43200 - remaining)
+            self.assertEqual(app.engine.timer_seconds, duration)
+
+    def test_minimum_break_credits_only_seconds_actually_removed(self):
+        app = make_app(True, value="0.75", allowance=60)
+        METHODS["start_current_period"](app)
+        self.assertEqual(app.engine.timer_seconds, 32)
+        self.assertEqual(app.court_time_seconds, 43190)  # 13 recovered, 10 remain
+
+    def test_disabled_leaves_court_time_unchanged(self):
         app = make_app(False)
-        METHODS["adjust_between_game_break_for_crib_time"](app)
-        self.assertEqual(app.engine.get_current_period()["duration"], 150)
+        METHODS["start_current_period"](app)
+        self.assertEqual(app.court_time_seconds, 43177)
+
+    def test_half_time_does_not_credit_delay(self):
+        app = make_app(True, "Half Time", "1.5")
+        METHODS["start_current_period"](app)
+        self.assertEqual(app.court_time_seconds, 43177)
+
+    def test_short_break_is_not_lengthened_or_credited(self):
+        app = make_app(True, value="0.5")
+        METHODS["start_current_period"](app)
+        self.assertEqual(app.engine.timer_seconds, 30)
+        self.assertEqual(app.court_time_seconds, 43177)
 
 
 if __name__ == "__main__":
