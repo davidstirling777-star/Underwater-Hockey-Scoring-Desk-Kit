@@ -3017,27 +3017,14 @@ class GameManagementApp:
             )
         )
         
-    def adjust_between_game_break_for_crib_time(self):
-        """Shorten the break when needed to realign court and local time.
-        """
-        if not self.variables['crib_time'].get("used", True):
-            return
-        current_court_time = datetime.datetime.now() - datetime.timedelta(seconds=self.court_time_seconds)
-        local_time = datetime.datetime.now()
-        seconds_behind = int((local_time - current_court_time).total_seconds())
-        if seconds_behind <= 0:
-            return
-        crib_time_var = self.variables['crib_time']
-        crib_time = int(float(crib_time_var.get("value", crib_time_var["default"])))
-        for idx in range(self.engine.current_index, len(self.engine.full_sequence)):
-            period = self.engine.full_sequence[idx]
-            if period['name'] == 'Between Game Break' and seconds_behind > 0:
-                reduce_by = min(crib_time, seconds_behind, period['duration'])
-                period['duration'] = max(0, period['duration'] - reduce_by)
-                seconds_behind -= reduce_by
-                if seconds_behind <= 0:
-                    break
-
+    def _credit_crib_time(self, recovered_seconds):
+        """Credit only time actually recovered, so later breaks do not repay it."""
+        self.court_time_seconds += recovered_seconds
+        hours, remainder = divmod(int(self.court_time_seconds), 3600)
+        minutes, seconds = divmod(remainder, 60)
+        self.court_time_var.set(
+            f"Court Time is {hours:02d}:{minutes:02d}:{seconds:02d}"
+        )
 
     def _after_one_second(self, callback):
         """Use monotonic deadlines to prevent accumulating Tk callback latency."""
@@ -3139,13 +3126,13 @@ class GameManagementApp:
                     and cur_period["duration"] is not None
                 ):
                     # Preserve the existing minimum duration.
-                    new_duration = (
-                        cur_period["duration"] - reduce_by
+                    original_duration = cur_period["duration"]
+                    # Never lengthen a configured break shorter than the floor.
+                    recovered_seconds = min(
+                        reduce_by, max(0, original_duration - 32)
                     )
-                    cur_period["duration"] = max(
-                        32,
-                        new_duration
-                    )
+                    cur_period["duration"] = original_duration - recovered_seconds
+                    self._credit_crib_time(recovered_seconds)
 
             # Show the next game no later than 30 seconds after the
             # previous game and at least 30 seconds before the next one.
