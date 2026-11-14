@@ -972,6 +972,8 @@ class GameManagementApp:
         self.black_score_var = tk.IntVar(value=0)
         self.timer_var = tk.StringVar(value="00:00")
         self.court_time_var = tk.StringVar(value="Court Time is 00:00:00")
+        self.court_time_delta_var = tk.StringVar(value="")
+        self.court_time_delta_job = None
         self.half_label_var = tk.StringVar(value="")
         self.game_number_var = tk.StringVar(value="Game 1")
         self.white_team_var = tk.StringVar(value="White")
@@ -1463,6 +1465,7 @@ class GameManagementApp:
         splash_report("Penalty display updates started", True)
 
         self.reset_timer()
+        self._poll_court_time_delta()
         splash_report("Timer initialized", True)
 
         # 4. FINAL APPLICATION HARDWARE INITIALIZATION HOOK
@@ -2960,6 +2963,31 @@ class GameManagementApp:
         self.update_court_time()
         self.start_current_period()
             
+    def _refresh_court_time_delta(self):
+        """Show unsigned whole-second lag without moving the Court Time text."""
+        lag = 0
+        if self.court_time_seconds is not None:
+            now = datetime.datetime.now()
+            local_seconds = now.hour * 3600 + now.minute * 60 + now.second
+            # Court Time can exceed 24 hours; compare across midnight without
+            # displaying a spurious nearly-24-hour lag or an ahead-of-time sign.
+            difference = (local_seconds - int(self.court_time_seconds) + 43200) % 86400 - 43200
+            lag = max(0, difference)
+        if lag:
+            minutes, seconds = divmod(lag, 60)
+            self.court_time_delta_var.set(f"Δ {minutes:02d}:{seconds:02d}")
+            self.court_time_delta_label.place(relx=1.0, rely=0.5, x=-10, anchor="e")
+        else:
+            self.court_time_delta_var.set("")
+            self.court_time_delta_label.place_forget()
+
+    def _poll_court_time_delta(self):
+        """Keep lag visible during referee pauses, when Court Time stops ticking."""
+        if self.court_time_delta_job is not None:
+            self.master.after_cancel(self.court_time_delta_job)
+        self._refresh_court_time_delta()
+        self.court_time_delta_job = self.master.after(250, self._poll_court_time_delta)
+
     def update_court_time(self):
         """Advance court time on Tk's event loop while respecting pauses.
         """
@@ -3025,6 +3053,7 @@ class GameManagementApp:
         self.court_time_var.set(
             f"Court Time is {hours:02d}:{minutes:02d}:{seconds:02d}"
         )
+        self._refresh_court_time_delta()
 
     def _after_one_second(self, callback):
         """Use monotonic deadlines to prevent accumulating Tk callback latency."""
