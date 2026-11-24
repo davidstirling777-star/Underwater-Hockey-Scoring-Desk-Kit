@@ -210,6 +210,9 @@ class GameColumnExportTests(unittest.TestCase):
             get_current_game_number=lambda: "2",
             white_score_var=Var(4),
             black_score_var=Var(3),
+            white_team_var=Var("White Sharks"),
+            black_team_var=Var("Black Rays"),
+            record_failed_game_export_locally=Mock(),
             csv_var=Var(self.file.name),
             use_tournament_list_var=Var(True),
             engine=SimpleNamespace(
@@ -225,13 +228,14 @@ class GameColumnExportTests(unittest.TestCase):
                 self.export(game, white, black, penalties),
         )
 
-        self.assertFalse(game_flow.export_and_reset_game_at_break(app))
+        self.assertTrue(game_flow.export_and_reset_game_at_break(app))
         self.assertEqual((app.white_score_var.get(),
-                          app.black_score_var.get()), (4, 3))
-        self.assertEqual(len(app.engine.stored_penalties), 1)
+                          app.black_score_var.get()), (0, 0))
+        self.assertEqual(app.engine.stored_penalties, [])
         self.assertEqual(self.file.read_bytes(), original)
-        app.advance_to_next_game.assert_not_called()
-        app.log_game_event.assert_not_called()
+        app.record_failed_game_export_locally.assert_called_once()
+        app.advance_to_next_game.assert_called_once()
+        app.log_game_event.assert_called_once_with("Game End")
 
 
 if __name__ == "__main__":

@@ -55,6 +55,10 @@ class FakeApp:
     def __init__(self, result=True, csv_name="Draw.csv", tournament=True):
         self.white_score_var = Var(4)
         self.black_score_var = Var(3)
+        self.white_team_var = Var("White Sharks")
+        self.black_team_var = Var("Black Rays")
+        self.recovery_records = []
+        self._last_game_export_warning = None
         self.csv_var = Var(csv_name)
         self.use_tournament_list_var = Var(tournament)
         self.game_numbers = ["1", "2", "3"]
@@ -70,35 +74,45 @@ class FakeApp:
     def get_current_game_number(self):
         return self.starting_game_var.get()
 
+    def _show_game_export_warning(self, message):
+        self.warnings.append(message)
+
+    def record_failed_game_export_locally(self, **details):
+        self.recovery_records.append(details)
+        self._last_game_export_warning = (
+            "Errors exporting game data. Data is saved locally. "
+            f"Game {details['game_number']}: {details['white_team']} "
+            f"{details['white_score']} - {details['black_score']} "
+            f"{details['black_team']}."
+        )
+        return True
+
 
 class ExportTests(unittest.TestCase):
-    def test_false_preserves_scores_penalties_and_game_number(self):
+    def test_false_export_is_recorded_locally_and_game_advances(self):
         app = FakeApp(result=False)
-        self.assertIs(game_flow.export_and_reset_game_at_break(app), False)
-        self.assertEqual((app.white_score_var.get(), app.black_score_var.get()), (4, 3))
-        self.assertEqual(len(app.engine.stored_penalties), 1)
-        self.assertEqual(app.starting_game_var.get(), "1")
-        app.clear_all_penalties.assert_not_called()
-        app.engine.clear_goal_scorers.assert_not_called()
-        app.advance_to_next_game.assert_not_called()
-        app.log_game_event.assert_not_called()
-        self.assertTrue(app.engine.sudden_death_goal_scored)
-        self.assertTrue(app.engine.sudden_death_restore_active)
-        self.assertEqual(app.engine.sudden_death_restore_time, 725)
-        self.assertEqual(app.engine.sudden_death_seconds, 725)
+        self.assertIs(game_flow.export_and_reset_game_at_break(app), True)
+        self.assertEqual(app.recovery_records[0], {
+            "game_number": "1",
+            "white_team": "White Sharks",
+            "black_team": "Black Rays",
+            "white_score": 4,
+            "black_score": 3,
+            "reason": "The selected CSV is unavailable, has an invalid header, or does not contain this game number.",
+        })
+        self.assertEqual((app.white_score_var.get(), app.black_score_var.get()), (0, 0))
+        app.advance_to_next_game.assert_called_once_with()
 
-    def test_write_exception_preserves_results(self):
+    def test_write_exception_is_recovered_and_game_advances(self):
         app = FakeApp()
         app.write_game_results_to_csv.side_effect = PermissionError("locked")
-        with self.assertRaises(PermissionError):
-            game_flow.export_and_reset_game_at_break(app)
-        self.assertEqual(app.white_score_var.get(), 4)
-        app.advance_to_next_game.assert_not_called()
+        self.assertIs(game_flow.export_and_reset_game_at_break(app), True)
+        self.assertEqual(app.recovery_records[0]["reason"], "locked")
+        self.assertEqual((app.white_score_var.get(), app.black_score_var.get()), (0, 0))
+        app.advance_to_next_game.assert_called_once_with()
 
-    def test_successful_retry_clears_once(self):
+    def test_export_failure_clears_once_after_local_recovery(self):
         app = FakeApp(result=False)
-        self.assertIs(game_flow.export_and_reset_game_at_break(app), False)
-        app.write_game_results_to_csv.return_value = True
         self.assertIs(game_flow.export_and_reset_game_at_break(app), True)
         self.assertEqual(app.white_score_var.get(), 0)
         self.assertEqual(app.black_score_var.get(), 0)
@@ -118,16 +132,17 @@ class ExportTests(unittest.TestCase):
         app.write_game_results_to_csv.assert_not_called()
         app.advance_to_next_game.assert_called_once_with()
 
-    def test_missing_csv_in_tournament_mode_blocks_export(self):
+    def test_missing_csv_in_tournament_mode_records_and_advances(self):
         app = FakeApp(csv_name="No CSV files found")
-        self.assertIs(game_flow.export_and_reset_game_at_break(app), False)
-        app.write_game_results_to_csv.assert_not_called()
+        self.assertIs(game_flow.export_and_reset_game_at_break(app), True)
+        self.assertEqual(app.recovery_records[0]["game_number"], "1")
+        app.advance_to_next_game.assert_called_once_with()
 
-    def test_no_game_number_blocks_export(self):
+    def test_no_game_number_does_not_block_manual_app_flow(self):
         app = FakeApp()
         app.starting_game_var.set("")
-        self.assertIs(game_flow.export_and_reset_game_at_break(app), False)
-        app.write_game_results_to_csv.assert_not_called()
+        self.assertIs(game_flow.export_and_reset_game_at_break(app), True)
+        app.advance_to_next_game.assert_called_once_with()
 
     def test_retry_uses_original_game_after_dropdown_change(self):
         app = FakeApp()
@@ -189,22 +204,37 @@ class FakeTransition(_load_transition_method(), FakeApp):
 
 
 class TransitionTests(unittest.TestCase):
-    def test_failure_then_retry_preserves_state_and_resumes_clock(self):
+    def _show_game_export_warning(self, message):
+        self.warnings.append(message)
+
+    def test_export_failure_warns_and_does_not_block_transition(self):
         app = FakeTransition(result=False)
-        app.run_next_game_transition()
-        self.assertTrue(app._game_export_pending)
-        self.assertEqual(app._pending_export_game_number, "1")
-        self.assertFalse(app.next_game_transition_done)
-        self.assertFalse(app.engine.timer_running)
-        self.assertEqual(app.white_score_var.get(), 4)
-        app.advance_to_next_game.assert_not_called()
-        app.write_game_results_to_csv.return_value = True
         app.run_next_game_transition()
         self.assertTrue(app.next_game_transition_done)
         self.assertFalse(app._game_export_pending)
-        self.assertTrue(app.engine.timer_running)
-        self.assertEqual(app.master.after.call_args.args[0], 1000)
+        self.assertEqual(app.white_score_var.get(), 0)
+        self.assertEqual(app.black_score_var.get(), 0)
+        self.assertEqual(len(app.warnings), 1)
+        self.assertIn("Errors exporting game data", app.warnings[0])
+        self.assertIn("White Sharks 4 - 3 Black Rays", app.warnings[0])
         app.advance_to_next_game.assert_called_once_with()
+
+
+
+class FractionalCourtTimeExportRegressionTests(unittest.TestCase):
+    def test_fractional_court_time_does_not_interrupt_completed_export(self):
+        import game_logging
+
+        app = FakeApp(result=True)
+        app.log_game_event.side_effect = lambda event: game_logging.format_court_time(
+            3661.75
+        )
+        self.assertEqual(game_logging.format_court_time(3661.75), "01:01:01")
+        self.assertIs(game_flow.export_and_reset_game_at_break(app), True)
+        app.write_game_results_to_csv.assert_called_once()
+        app.log_game_event.assert_called_once_with("Game End")
+        app.advance_to_next_game.assert_called_once_with()
+        self.assertEqual((app.white_score_var.get(), app.black_score_var.get()), (0, 0))
 
 
 if __name__ == "__main__":

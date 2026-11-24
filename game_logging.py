@@ -13,6 +13,10 @@ def format_court_time(court_time_seconds):
     if court_time_seconds is None:
         return "00:00:00"
 
+    # Court time can become fractional when break-time adjustments are
+    # calculated from configured durations. The display/log format is whole
+    # seconds, so normalize before using integer format specifiers.
+    court_time_seconds = int(court_time_seconds)
     hours, remainder = divmod(court_time_seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
 

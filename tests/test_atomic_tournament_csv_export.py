@@ -172,6 +172,9 @@ class AtomicTournamentExportTests(unittest.TestCase):
             get_current_game_number=lambda: "1",
             white_score_var=Var(4),
             black_score_var=Var(3),
+            white_team_var=Var("White Sharks"),
+            black_team_var=Var("Black Rays"),
+            record_failed_game_export_locally=Mock(),
             csv_var=Var(self.draw.name),
             use_tournament_list_var=Var(True),
             engine=SimpleNamespace(
@@ -192,17 +195,17 @@ class AtomicTournamentExportTests(unittest.TestCase):
             csv_export.os, "replace",
             side_effect=PermissionError("file is in use")
         ):
-            with self.assertRaisesRegex(PermissionError, "in use"):
-                game_flow.export_and_reset_game_at_break(app)
+            self.assertTrue(game_flow.export_and_reset_game_at_break(app))
         self.assertEqual(self.draw.read_bytes(), before)
         self.assertEqual(self.staged(), [])
-        self.assertEqual(app.white_score_var.get(), 4)
-        self.assertEqual(app.black_score_var.get(), 3)
-        self.assertEqual(len(app.engine.stored_penalties), 1)
-        app.engine.clear_goal_scorers.assert_not_called()
-        app.log_game_event.assert_not_called()
-        app.clear_all_penalties.assert_not_called()
-        app.advance_to_next_game.assert_not_called()
+        self.assertEqual(app.white_score_var.get(), 0)
+        self.assertEqual(app.black_score_var.get(), 0)
+        self.assertEqual(app.engine.stored_penalties, [])
+        app.record_failed_game_export_locally.assert_called_once()
+        app.engine.clear_goal_scorers.assert_called_once()
+        app.log_game_event.assert_called_once_with("Game End")
+        app.clear_all_penalties.assert_called_once()
+        app.advance_to_next_game.assert_called_once()
 
 
 if __name__ == "__main__":

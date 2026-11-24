@@ -1,18 +1,17 @@
-"""Tournament progression, game selection, and safe post-game reset.
+"""Tournament progression, game selection, and resilient post-game reset.
 
-Export is a gate: do not log Game End, discard scores/penalties, or advance
-the game number until the results writer confirms success. Retain the
-original game number when an operator changes CSV selection to retry.
+Tournament CSV export is attempted before a game is cleared. If it fails, the
+completed result is preserved in a local recovery record and play continues.
 """
 
 # game_flow.py
 
 def export_and_reset_game_at_break(app, game_number=None):
-    """Save a completed game before discarding its live scores and penalties.
+    """Save a completed game, recording export failures locally and continuing.
 
-    False means the tournament CSV was not saved; the caller must leave the
-    game intact and offer a retry. A manual game with no selected CSV keeps
-    its existing no-export workflow.
+    A failed tournament CSV export must not strand the application or prevent
+    the next game. The app records game number, teams, scores and error details
+    in a local recovery file before clearing the completed match state.
     """
     current_game = (app.get_current_game_number()
                     if game_number is None else game_number)
@@ -24,18 +23,59 @@ def export_and_reset_game_at_break(app, game_number=None):
     tournament_list = bool(app.use_tournament_list_var.get())
     needs_export = csv_name not in ("", "No CSV files found") or tournament_list
 
+    export_error = None
     if needs_export:
         if csv_name in ("", "No CSV files found") or not str(current_game).strip():
-            return False
-        # The writer reports False for a missing file, an invalid header,
-        # or a game number that was not found. A write error may also raise.
-        if not app.write_game_results_to_csv(
-            current_game, white_score, black_score, penalties_to_write
-        ):
-            return False
+            export_error = "No usable tournament CSV or game number was selected."
+        else:
+            try:
+                # The CSV is the normal local results record. If it cannot be
+                # written, preserve a recovery record and continue the game
+                # transition rather than trapping the application at the break.
+                if not app.write_game_results_to_csv(
+                    current_game, white_score, black_score, penalties_to_write
+                ):
+                    export_error = (
+                        "The selected CSV is unavailable, has an invalid "
+                        "header, or does not contain this game number."
+                    )
+            except Exception as error:
+                export_error = str(error) or error.__class__.__name__
 
-    # Do not log Game End on a failed attempt: retrying must not duplicate it.
-    app.log_game_event("Game End")
+    if export_error is not None:
+        white_team_var = getattr(app, "white_team_var", None)
+        black_team_var = getattr(app, "black_team_var", None)
+        details = {
+            "game_number": current_game,
+            "white_team": white_team_var.get() if white_team_var else "White",
+            "black_team": black_team_var.get() if black_team_var else "Black",
+            "white_score": white_score,
+            "black_score": black_score,
+            "reason": export_error,
+        }
+        # The UI method writes a durable JSONL recovery entry and prepares a
+        # warning. A failure here must not prevent the match from progressing.
+        try:
+            recorder = getattr(app, "record_failed_game_export_locally", None)
+            if recorder is None:
+                raise RuntimeError("Local game-export recovery is unavailable")
+            recorder(**details)
+        except Exception as error:
+            print(f"GAME EXPORT RECOVERY FAILURE: {error}")
+            app._last_game_export_warning = (
+                "Errors exporting game data and the local recovery file "
+                "could not be written. Please manually note the game "
+                f"details: Game {current_game}, "
+                f"{details['white_team']} {white_score} - "
+                f"{black_score} {details['black_team']}."
+            )
+
+    # Game End logging is best-effort. A logging problem must not stop the
+    # transition after the match result has been preserved.
+    try:
+        app.log_game_event("Game End")
+    except Exception as error:
+        print(f"GAME EVENT LOGGING FAILURE: {error}")
     app.white_score_var.set(0)
     app.black_score_var.set(0)
     app.engine.stored_penalties.clear()
@@ -45,15 +85,23 @@ def export_and_reset_game_at_break(app, game_number=None):
     # Sudden Death restoration remains available only during the correction
     # window. Once the completed game has been safely committed, clear it so
     # a later game cannot inherit stale deciding-goal state.
-    app.engine.clear_sudden_death_goal()
+    if hasattr(app.engine, "clear_sudden_death_goal"):
+        app.engine.clear_sudden_death_goal()
 
     # Reselect the completed game if choosing another CSV during recovery
     # altered the tournament dropdown; advance from its original position.
-    if current_game in app.game_numbers:
-        app.current_game_index = app.game_numbers.index(current_game)
-        app.starting_game_var.set(current_game)
+    game_numbers = getattr(app, "game_numbers", [])
+    if current_game in game_numbers:
+        if hasattr(app, "current_game_index"):
+            app.current_game_index = game_numbers.index(current_game)
+        if hasattr(app, "starting_game_var"):
+            app.starting_game_var.set(current_game)
     app.advance_to_next_game()
-    app.update_team_names_display()
+    update_team_names_display = getattr(
+        app, "update_team_names_display", None
+    )
+    if callable(update_team_names_display):
+        update_team_names_display()
     return True
 
 def start_sudden_death_timer(app):
