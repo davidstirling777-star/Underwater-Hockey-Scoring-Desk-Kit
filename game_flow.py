@@ -43,10 +43,12 @@ def export_and_reset_game_at_break(app, game_number=None):
                 export_error = str(error) or error.__class__.__name__
 
     if export_error is not None:
+        white_team_var = getattr(app, "white_team_var", None)
+        black_team_var = getattr(app, "black_team_var", None)
         details = {
             "game_number": current_game,
-            "white_team": app.white_team_var.get(),
-            "black_team": app.black_team_var.get(),
+            "white_team": white_team_var.get() if white_team_var else "White",
+            "black_team": black_team_var.get() if black_team_var else "Black",
             "white_score": white_score,
             "black_score": black_score,
             "reason": export_error,
@@ -54,7 +56,10 @@ def export_and_reset_game_at_break(app, game_number=None):
         # The UI method writes a durable JSONL recovery entry and prepares a
         # warning. A failure here must not prevent the match from progressing.
         try:
-            app.record_failed_game_export_locally(**details)
+            recorder = getattr(app, "record_failed_game_export_locally", None)
+            if recorder is None:
+                raise RuntimeError("Local game-export recovery is unavailable")
+            recorder(**details)
         except Exception as error:
             print(f"GAME EXPORT RECOVERY FAILURE: {error}")
             app._last_game_export_warning = (
