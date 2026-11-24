@@ -74,6 +74,9 @@ class FakeApp:
     def get_current_game_number(self):
         return self.starting_game_var.get()
 
+    def _show_game_export_warning(self, message):
+        self.warnings.append(message)
+
     def record_failed_game_export_locally(self, **details):
         self.recovery_records.append(details)
         self._last_game_export_warning = "Errors exporting game data. Data is saved locally."
@@ -212,9 +215,6 @@ class TransitionTests(unittest.TestCase):
         app.advance_to_next_game.assert_called_once_with()
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 
 class FractionalCourtTimeExportRegressionTests(unittest.TestCase):
     def test_fractional_court_time_does_not_interrupt_completed_export(self):
@@ -230,3 +230,7 @@ class FractionalCourtTimeExportRegressionTests(unittest.TestCase):
         app.log_game_event.assert_called_once_with("Game End")
         app.advance_to_next_game.assert_called_once_with()
         self.assertEqual((app.white_score_var.get(), app.black_score_var.get()), (0, 0))
+
+
+if __name__ == "__main__":
+    unittest.main()
