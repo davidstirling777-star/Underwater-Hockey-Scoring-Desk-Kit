@@ -79,7 +79,12 @@ class FakeApp:
 
     def record_failed_game_export_locally(self, **details):
         self.recovery_records.append(details)
-        self._last_game_export_warning = "Errors exporting game data. Data is saved locally."
+        self._last_game_export_warning = (
+            "Errors exporting game data. Data is saved locally. "
+            f"Game {details['game_number']}: {details['white_team']} "
+            f"{details['white_score']} - {details['black_score']} "
+            f"{details['black_team']}."
+        )
         return True
 
 
