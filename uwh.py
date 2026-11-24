@@ -3379,73 +3379,93 @@ class GameManagementApp:
         self.update_game_number_display()
         self.update_penalty_display()
 
-    def _show_game_export_error(self, reason):
-        """Keep the finished game intact; offer a non-modal CSV export retry."""
-        if not self._game_export_pending:
-            return
-
-        # A failed export must not allow the break timer to advance into the
-        # next game while its scores still belong to the completed game.
-        self._game_export_timer_was_running |= bool(self.engine.timer_running)
-        self.engine.stop_timer()
-        if self.timer_job is not None:
-            self.master.after_cancel(self.timer_job)
-            self.timer_job = None
-
-        # Preview is cosmetic; reverting it makes the unsaved game unmistakable.
-        self.next_game_preview_active = False
-        self.next_game_preview_number = None
-        self.next_game_notice_active = False
-        self.update_game_number_display()
-        self.update_penalty_display()
-        self.update_timer_display()
-
-        message = (
-            f"Results for game {self._pending_export_game_number or '(unspecified)'} "
-            "were NOT saved. Scores, penalties and goal scorers are intact; "
-            "the break timer is paused.\n\n"
-            f"{reason}\n\n"
-            "Correct the selected tournament CSV or its file permissions, "
-            "then press Retry Export. You can still use the main window "
-            "while this warning is open."
+    def record_failed_game_export_locally(
+        self, game_number, white_team, black_team,
+        white_score, black_score, reason
+    ):
+        """Persist enough match information to recover a failed CSV export."""
+        record = {
+            "recorded_at": datetime.datetime.now().isoformat(timespec="seconds"),
+            "game_number": str(game_number),
+            "white_team": str(white_team),
+            "black_team": str(black_team),
+            "white_score": white_score,
+            "black_score": black_score,
+            "export_error": str(reason),
+        }
+        # Keep an in-memory copy as a last-resort fallback if the disk is full
+        # or the tournament-data directory is unavailable.
+        self._failed_game_exports = getattr(
+            self, "_failed_game_exports", []
         )
-        print(f"CSV EXPORT FAILURE: {message}")
-        popup = self._game_export_dialog
-        if popup is None or not popup.winfo_exists():
+        self._failed_game_exports.append(record)
+
+        recovery_file = os.path.join(
+            TOURNAMENT_DATA_DIR, "Game_Export_Failures.jsonl"
+        )
+        try:
+            os.makedirs(TOURNAMENT_DATA_DIR, exist_ok=True)
+            with open(recovery_file, "a", encoding="utf-8") as output:
+                output.write(json.dumps(record, ensure_ascii=False) + "\\n")
+                output.flush()
+                os.fsync(output.fileno())
+            saved_locally = True
+        except OSError as error:
+            print(f"GAME EXPORT RECOVERY FAILURE: {error}")
+            saved_locally = False
+
+        if saved_locally:
+            self._last_game_export_warning = (
+                "Errors exporting game data. The game details have been "
+                "saved locally in Tournament data/Game_Export_Failures.jsonl.\\n\\n"
+                f"Game {game_number}: {white_team} {white_score} - "
+                f"{black_score} {black_team}.\\n\\n"
+                "Please pass this game number, team names and scores to the "
+                "Tournament Director so the tournament results can be updated."
+            )
+        else:
+            self._last_game_export_warning = (
+                "Errors exporting game data. The recovery file could not be "
+                "written, but the details are retained in this session. "
+                "Please immediately note and pass the following to the "
+                "Tournament Director:\\n\\n"
+                f"Game {game_number}: {white_team} {white_score} - "
+                f"{black_score} {black_team}."
+            )
+        return saved_locally
+
+    def _show_game_export_warning(self, message):
+        """Show a dismissible, non-modal warning without blocking game flow."""
+        try:
             popup = tk.Toplevel(self.master)
-            popup.title("Game results not saved")
+            popup.title("Game data export warning")
             popup.transient(self.master)
             popup.resizable(False, False)
-            self._game_export_dialog = popup
             panel = ttk.Frame(popup, padding=14)
             panel.pack(fill="both", expand=True)
-            self._game_export_error_label = ttk.Label(
-                panel, justify="left", wraplength=470,
+            ttk.Label(
+                panel, text=message, justify="left", wraplength=500
+            ).pack(anchor="w", pady=(0, 12))
+            ttk.Button(panel, text="Close", command=popup.destroy).pack(
+                anchor="e"
             )
-            self._game_export_error_label.pack(anchor="w", pady=(0, 12))
-            buttons = ttk.Frame(panel)
-            buttons.pack(fill="x")
-            ttk.Button(
-                buttons, text="Retry Export",
-                command=self.run_next_game_transition,
-            ).pack(side="right", padx=(8, 0))
-            # The dialog is non-modal, so the operator can correct the CSV.
-            # Closing it would otherwise strand the unsaved match without a
-            # visible Retry button, so keep it available until the save works.
-            popup.protocol("WM_DELETE_WINDOW", lambda: popup.lift())
-            self._game_export_error_label.config(text=message)
-
-            # Keep the dialog with its parent, including on a second monitor.
             popup.update_idletasks()
             left = self.master.winfo_rootx()
             width = self.master.winfo_width()
-            popup_width = popup.winfo_reqwidth()
-            x = left + max(10, (width - popup_width) // 2)
+            x = left + max(10, (width - popup.winfo_reqwidth()) // 2)
             y = self.master.winfo_rooty() + 90
             popup.geometry(f"+{x}+{y}")
+            popup.lift()
+        except tk.TclError as error:
+            print(f"GAME EXPORT WARNING DISPLAY FAILURE: {error}")
+            print(message)
 
-        self._game_export_error_label.config(text=message)
-        popup.lift()
+    def _show_game_export_error(self, reason):
+        """Compatibility wrapper for an unexpected transition error."""
+        self._show_game_export_warning(
+            "Errors exporting game data. The application will continue.\\n\\n"
+            + str(reason)
+        )
 
     def run_next_game_transition(self):
         """Export the finished game before clearing it or advancing."""
@@ -3501,6 +3521,11 @@ class GameManagementApp:
         self.next_game_notice_active = True
         self.update_game_number_display()
         self.update_penalty_display()
+
+        warning = getattr(self, "_last_game_export_warning", None)
+        if warning:
+            self._last_game_export_warning = None
+            self._show_game_export_warning(warning)
 
     def next_period(self):
         """End this period and enter the next, respecting any pending export.
