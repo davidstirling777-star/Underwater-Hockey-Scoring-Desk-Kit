@@ -3529,7 +3529,13 @@ class GameManagementApp:
         warning = getattr(self, "_last_game_export_warning", None)
         if warning:
             self._last_game_export_warning = None
-            self._show_game_export_warning(warning)
+            warning_handler = getattr(
+                self, "_show_game_export_warning", None
+            )
+            if callable(warning_handler):
+                warning_handler(warning)
+            else:
+                print(warning)
 
     def next_period(self):
         """End this period and enter the next, respecting any pending export.
@@ -3589,7 +3595,8 @@ class GameManagementApp:
 
     def countdown_timer(self):
         """Tick the game timer and dispatch period sounds and export.
-        Export must precede the 30-second pip; failure prevents advance.
+        Export is attempted before the 30-second pip; failures are recorded
+        locally and warned about without pausing the break or blocking play.
         """
         if self.timer_job:
             self.master.after_cancel(self.timer_job)
@@ -3604,8 +3611,8 @@ class GameManagementApp:
 
             # The 30-second warning pip fires while timer_seconds == 31,
             # immediately before the display changes to 00:30. Export
-            # FIRST, on this same countdown callback. A failed write pauses
-            # at 00:31 so neither the pip nor next game can proceed.
+            # FIRST, on this same countdown callback. A failed write is
+            # captured in the local recovery file; play continues afterward.
             # <= 31 also handles exceptionally short/adjusted breaks.
             if (cur_period and cur_period["name"] == "Between Game Break"
                     and not self.next_game_transition_done
