@@ -89,9 +89,12 @@ def export_and_reset_game_at_break(app, game_number=None):
 
     # Reselect the completed game if choosing another CSV during recovery
     # altered the tournament dropdown; advance from its original position.
-    if current_game in app.game_numbers:
-        app.current_game_index = app.game_numbers.index(current_game)
-        app.starting_game_var.set(current_game)
+    game_numbers = getattr(app, "game_numbers", [])
+    if current_game in game_numbers:
+        if hasattr(app, "current_game_index"):
+            app.current_game_index = game_numbers.index(current_game)
+        if hasattr(app, "starting_game_var"):
+            app.starting_game_var.set(current_game)
     app.advance_to_next_game()
     app.update_team_names_display()
     return True
