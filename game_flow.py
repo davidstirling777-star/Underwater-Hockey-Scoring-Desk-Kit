@@ -85,11 +85,8 @@ def export_and_reset_game_at_break(app, game_number=None):
     # Sudden Death restoration remains available only during the correction
     # window. Once the completed game has been safely committed, clear it so
     # a later game cannot inherit stale deciding-goal state.
-    clear_sudden_death_goal = getattr(
-        app.engine, "clear_sudden_death_goal", None
-    )
-    if callable(clear_sudden_death_goal):
-        clear_sudden_death_goal()
+    if hasattr(app.engine, "clear_sudden_death_goal"):
+        app.engine.clear_sudden_death_goal()
 
     # Reselect the completed game if choosing another CSV during recovery
     # altered the tournament dropdown; advance from its original position.
@@ -100,7 +97,11 @@ def export_and_reset_game_at_break(app, game_number=None):
         if hasattr(app, "starting_game_var"):
             app.starting_game_var.set(current_game)
     app.advance_to_next_game()
-    app.update_team_names_display()
+    update_team_names_display = getattr(
+        app, "update_team_names_display", None
+    )
+    if callable(update_team_names_display):
+        update_team_names_display()
     return True
 
 def start_sudden_death_timer(app):
