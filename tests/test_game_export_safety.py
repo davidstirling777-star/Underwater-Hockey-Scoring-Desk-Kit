@@ -103,10 +103,8 @@ class ExportTests(unittest.TestCase):
         self.assertEqual((app.white_score_var.get(), app.black_score_var.get()), (0, 0))
         app.advance_to_next_game.assert_called_once_with()
 
-    def test_successful_retry_clears_once(self):
+    def test_export_failure_clears_once_after_local_recovery(self):
         app = FakeApp(result=False)
-        self.assertIs(game_flow.export_and_reset_game_at_break(app), False)
-        app.write_game_results_to_csv.return_value = True
         self.assertIs(game_flow.export_and_reset_game_at_break(app), True)
         self.assertEqual(app.white_score_var.get(), 0)
         self.assertEqual(app.black_score_var.get(), 0)
@@ -198,21 +196,19 @@ class FakeTransition(_load_transition_method(), FakeApp):
 
 
 class TransitionTests(unittest.TestCase):
-    def test_failure_then_retry_preserves_state_and_resumes_clock(self):
+    def _show_game_export_warning(self, message):
+        self.warnings.append(message)
+
+    def test_export_failure_warns_and_does_not_block_transition(self):
         app = FakeTransition(result=False)
-        app.run_next_game_transition()
-        self.assertTrue(app._game_export_pending)
-        self.assertEqual(app._pending_export_game_number, "1")
-        self.assertFalse(app.next_game_transition_done)
-        self.assertFalse(app.engine.timer_running)
-        self.assertEqual(app.white_score_var.get(), 4)
-        app.advance_to_next_game.assert_not_called()
-        app.write_game_results_to_csv.return_value = True
         app.run_next_game_transition()
         self.assertTrue(app.next_game_transition_done)
         self.assertFalse(app._game_export_pending)
-        self.assertTrue(app.engine.timer_running)
-        self.assertEqual(app.master.after.call_args.args[0], 1000)
+        self.assertEqual(app.white_score_var.get(), 0)
+        self.assertEqual(app.black_score_var.get(), 0)
+        self.assertEqual(len(app.warnings), 1)
+        self.assertIn("Errors exporting game data", app.warnings[0])
+        self.assertIn("White Sharks 4 - 3 Black Rays", app.warnings[0])
         app.advance_to_next_game.assert_called_once_with()
 
 
