@@ -3421,9 +3421,9 @@ class GameManagementApp:
         if saved_locally:
             self._last_game_export_warning = (
                 "Errors exporting game data. The game details have been "
-                "saved locally in Tournament data/Game_Export_Failures.jsonl.\\n\\n"
+                "saved locally in Tournament data/Game_Export_Failures.jsonl.\n\n"
                 f"Game {game_number}: {white_team} {white_score} - "
-                f"{black_score} {black_team}.\\n\\n"
+                f"{black_score} {black_team}.\n\n"
                 "Please pass this game number, team names and scores to the "
                 "Tournament Director so the tournament results can be updated."
             )
@@ -3432,7 +3432,7 @@ class GameManagementApp:
                 "Errors exporting game data. The recovery file could not be "
                 "written, but the details are retained in this session. "
                 "Please immediately note and pass the following to the "
-                "Tournament Director:\\n\\n"
+                "Tournament Director:\n\n"
                 f"Game {game_number}: {white_team} {white_score} - "
                 f"{black_score} {black_team}."
             )
@@ -3467,7 +3467,7 @@ class GameManagementApp:
     def _show_game_export_error(self, reason):
         """Compatibility wrapper for an unexpected transition error."""
         self._show_game_export_warning(
-            "Errors exporting game data. The application will continue.\\n\\n"
+            "Errors exporting game data. The application will continue.\n\n"
             + str(reason)
         )
 
