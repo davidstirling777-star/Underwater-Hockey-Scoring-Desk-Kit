@@ -1,8 +1,7 @@
-"""Tournament progression, game selection, and safe post-game reset.
+"""Tournament progression, game selection, and resilient post-game reset.
 
-Export is a gate: do not log Game End, discard scores/penalties, or advance
-the game number until the results writer confirms success. Retain the
-original game number when an operator changes CSV selection to retry.
+Tournament CSV export is attempted before a game is cleared. If it fails, the
+completed result is preserved in a local recovery record and play continues.
 """
 
 # game_flow.py
