@@ -3019,8 +3019,12 @@ class GameManagementApp:
         
     def _credit_crib_time(self, recovered_seconds):
         """Credit only time actually recovered, so later breaks do not repay it."""
-        self.court_time_seconds += recovered_seconds
-        hours, remainder = divmod(int(self.court_time_seconds), 3600)
+        # Crib-time recovery is measured in whole seconds; do not let a
+        # fractional configured duration turn the court clock into a float.
+        self.court_time_seconds = int(self.court_time_seconds) + int(
+            recovered_seconds
+        )
+        hours, remainder = divmod(self.court_time_seconds, 3600)
         minutes, seconds = divmod(remainder, 60)
         self.court_time_var.set(
             f"Court Time is {hours:02d}:{minutes:02d}:{seconds:02d}"
@@ -3406,7 +3410,7 @@ class GameManagementApp:
         try:
             os.makedirs(TOURNAMENT_DATA_DIR, exist_ok=True)
             with open(recovery_file, "a", encoding="utf-8") as output:
-                output.write(json.dumps(record, ensure_ascii=False) + "\\n")
+                output.write(json.dumps(record, ensure_ascii=False) + "\n")
                 output.flush()
                 os.fsync(output.fileno())
             saved_locally = True
