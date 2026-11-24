@@ -143,10 +143,11 @@ class Harness(CountdownCode):
     def advance_to_next_game(self):
         self.events.append("advance")
 
+    def _show_game_export_warning(self, message):
+        self.events.append("warning")
+
     def _show_game_export_error(self, reason):
         self.events.append("warning")
-        self._game_export_timer_was_running |= self.engine.timer_running
-        self.engine.stop_timer()
 
 
 class BreakExportTimingTests(unittest.TestCase):
@@ -182,30 +183,28 @@ class BreakExportTimingTests(unittest.TestCase):
         self.assertEqual(SOUNDS, ["pips"])
         self.assertEqual(app.engine.timer_seconds, 10)
 
-    def test_excel_lock_pauses_at_31_without_warning_pip_or_reset(self):
+    def test_export_failure_warns_but_does_not_pause_or_block_play(self):
         app = Harness(31, succeeds=False)
         app.countdown_timer()
-        self.assertEqual(app.events, ["export", "warning"])
-        self.assertEqual(SOUNDS, [])
-        self.assertEqual(app.engine.timer_seconds, 31)
-        self.assertFalse(app.engine.timer_running)
-        self.assertEqual(app.white_score_var.get(), 4)
-        self.assertEqual(app.black_score_var.get(), 3)
-        self.assertEqual(len(app.engine.stored_penalties), 1)
-
-    def test_retry_saves_before_pip_and_resumes_break(self):
-        app = Harness(31, succeeds=False)
-        app.countdown_timer()
-        app.csv_success = True
-        app.run_next_game_transition()
-        self.assertTrue(app.engine.timer_running)
-        self.assertEqual(app.engine.timer_seconds, 31)
-        self.assertEqual(SOUNDS, [])
-        app.countdown_timer()
+        self.assertEqual(app.events, ["export", "advance", "warning"])
         self.assertEqual(SOUNDS, ["warning"])
         self.assertEqual(app.engine.timer_seconds, 30)
-        self.assertEqual(app.events.count("export"), 2)
+        self.assertTrue(app.engine.timer_running)
+        self.assertTrue(app.next_game_transition_done)
+        self.assertEqual(app.white_score_var.get(), 0)
+        self.assertEqual(app.black_score_var.get(), 0)
+        self.assertEqual(app.engine.stored_penalties, [])
+
+    def test_failed_export_is_not_retried_or_allowed_to_block_break(self):
+        app = Harness(31, succeeds=False)
+        app.countdown_timer()
+        app.countdown_timer()
+        self.assertTrue(app.engine.timer_running)
+        self.assertEqual(app.engine.timer_seconds, 29)
+        self.assertEqual(SOUNDS, ["warning"])
+        self.assertEqual(app.events.count("export"), 1)
         self.assertEqual(app.events.count("advance"), 1)
+        self.assertEqual(app.events.count("warning"), 1)
 
     def test_short_break_exports_at_first_tick(self):
         app = Harness(25)
@@ -213,12 +212,12 @@ class BreakExportTimingTests(unittest.TestCase):
         self.assertEqual(app.events[:2], ["export", "advance"])
         self.assertEqual(app.engine.timer_seconds, 24)
 
-    def test_manual_next_period_cannot_bypass_export_failure(self):
+    def test_manual_next_period_continues_after_export_failure(self):
         app = Harness(90, succeeds=False)
         app.next_period()
-        self.assertEqual(app.events, ["export", "warning"])
-        app.engine.advance_period.assert_not_called()
-        self.assertEqual(app.white_score_var.get(), 4)
+        self.assertEqual(app.events, ["export", "advance", "warning"])
+        app.engine.advance_period.assert_called_once_with(0, 0)
+        self.assertEqual(app.white_score_var.get(), 0)
 
     def test_manual_next_period_exports_before_advancing(self):
         app = Harness(90)
